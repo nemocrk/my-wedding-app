@@ -67,7 +67,7 @@ RUN npm install && \
 # Copia tutto il codice
 COPY . .
 
-EXPOSE 5173
+EXPOSE 80
 
-# Comando per avviare Vite dev server con hot-reload
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+# Comando per avviare Vite dev server con hot-reload su porta 80
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "80"]
