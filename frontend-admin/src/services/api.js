@@ -3,11 +3,23 @@
 const API_BASE_URL = '/api';
 
 const handleResponse = async (response) => {
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(errorText || 'Errore nella richiesta API');
+  // Try to parse JSON regardless of status code to get error details
+  let data;
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    // Fallback for non-JSON errors (like standard Nginx 500 html if middleware fails)
+    data = { detail: await response.text() }; 
   }
-  return response.json();
+
+  if (!response.ok) {
+    // Prefer "detail" field (DRF standard), then "error", then generic message
+    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  }
+  
+  return data;
 };
 
 export const api = {
