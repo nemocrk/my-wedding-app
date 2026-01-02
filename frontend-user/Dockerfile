@@ -4,7 +4,7 @@
 # ==============================================
 # Stage 1: Build - Compile React app
 # ==============================================
-FROM node:alpine as build
+FROM node:alpine AS build
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ RUN npm run build
 # ==============================================
 # Stage 2: Production - Nginx server
 # ==============================================
-FROM nginx:alpine as production
+FROM nginx:alpine AS production
 
 # Installa wget per healthchecks
 RUN apk add --no-cache wget
@@ -53,7 +53,7 @@ CMD ["nginx", "-g", "daemon off;"]
 # ==============================================
 # Stage 3: Development - Hot reload
 # ==============================================
-FROM node:alpine as development
+FROM node:alpine AS development
 
 # Installa wget (mancante in node:alpine di default) per healthcheck
 RUN apk add --no-cache wget

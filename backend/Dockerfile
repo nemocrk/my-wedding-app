@@ -4,7 +4,7 @@
 # ==============================================
 # Stage 1: Base - Common dependencies
 # ==============================================
-FROM python:slim as base
+FROM python:slim AS base
 
 # Variabili d'ambiente per evitare file .pyc e buffer output
 ENV PYTHONDONTWRITEBYTECODE=1
@@ -25,7 +25,7 @@ RUN apt-get update && apt-get install -y \
 # ==============================================
 # Stage 2: Development
 # ==============================================
-FROM base as development
+FROM base AS development
 
 # Copia e installa le dipendenze Python
 COPY requirements.txt /app/
