@@ -13,7 +13,7 @@ class PersonSerializer(serializers.ModelSerializer):
         model = Person
         fields = [
             'id', 'first_name', 'last_name', 'is_child', 
-            'dietary_requirements', 'requires_accommodation', 'requires_transfer'
+            'dietary_requirements'
         ]
         extra_kwargs = {
             'last_name': {'required': False, 'allow_blank': True, 'allow_null': True}
@@ -26,9 +26,10 @@ class InvitationSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = [
             'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
+            'accommodation_requested', 'transfer_requested',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status'
         ]
-        read_only_fields = ['id', 'created_at'] # status is now writable
+        read_only_fields = ['id', 'created_at']
 
     def create(self, validated_data):
         guests_data = validated_data.pop('guests')
@@ -50,7 +51,7 @@ class InvitationSerializer(serializers.ModelSerializer):
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
 
-        # 1. Update Invitation Fields (including status)
+        # 1. Update Invitation Fields (status, logistics, name, etc.)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
@@ -69,8 +70,7 @@ class InvitationSerializer(serializers.ModelSerializer):
                     if 'last_name' in g_data: guest.last_name = g_data['last_name']
                     if 'is_child' in g_data: guest.is_child = g_data['is_child']
                     if 'dietary_requirements' in g_data: guest.dietary_requirements = g_data['dietary_requirements']
-                    if 'requires_accommodation' in g_data: guest.requires_accommodation = g_data['requires_accommodation']
-                    if 'requires_transfer' in g_data: guest.requires_transfer = g_data['requires_transfer']
+                    # Logistics removed from guest
                         
                     guest.save()
                     incoming_guest_ids.append(g_id)
@@ -107,5 +107,7 @@ class InvitationListSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = [
             'id', 'name', 'code', 'guests_count', 'guests', 
-            'accommodation_offered', 'transfer_offered', 'status'
+            'accommodation_offered', 'transfer_offered', 
+            'accommodation_requested', 'transfer_requested',
+            'status'
         ]
