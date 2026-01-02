@@ -2,14 +2,22 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Users, ExternalLink } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 import { api } from '../services/api';
 import ErrorModal from '../components/common/ErrorModal';
 
 const InvitationList = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   
+  // Create/Edit Modal State
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingInvitation, setEditingInvitation] = useState(null);
+  
+  // Delete Modal State
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
   // Error Handling
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -33,14 +41,40 @@ const InvitationList = () => {
     fetchInvitations();
   }, []);
 
-  const handleEdit = (id) => {
-    // TODO: Implement Edit
-    console.log("Edit", id);
+  const handleEdit = async (id) => {
+    try {
+      // Fetch full details (including guest IDs and affinities) before editing
+      const fullData = await api.getInvitation(id);
+      setEditingInvitation(fullData);
+      setIsModalOpen(true);
+    } catch (error) {
+      setErrorMessage("Impossibile caricare i dettagli per la modifica: " + error.message);
+      setErrorModalOpen(true);
+    }
   };
 
-  const handleDelete = (id) => {
-    // TODO: Implement Delete with confirmation
-    console.log("Delete", id);
+  const handleCreateNew = () => {
+    setEditingInvitation(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (id) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await api.deleteInvitation(itemToDelete);
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      fetchInvitations(); // Refresh list
+    } catch (error) {
+      setIsDeleteModalOpen(false);
+      setErrorMessage("Impossibile eliminare l'invito: " + error.message);
+      setErrorModalOpen(true);
+    }
   };
 
   return (
@@ -52,7 +86,7 @@ const InvitationList = () => {
         </div>
         <button 
           className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-pink-200 transform active:scale-95"
-          onClick={() => setIsModalOpen(true)}
+          onClick={handleCreateNew}
         >
           <Plus size={20} className="mr-2" />
           Nuovo Invito
@@ -99,7 +133,7 @@ const InvitationList = () => {
                       <p className="text-lg font-medium text-gray-900">Nessun invito presente</p>
                       <p className="text-sm text-gray-500 mb-4">Crea il tuo primo invito per iniziare a popolare la lista.</p>
                       <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={handleCreateNew}
                         className="text-pink-600 font-medium hover:text-pink-700 hover:underline"
                       >
                         Crea Invito
@@ -163,7 +197,7 @@ const InvitationList = () => {
                           <Edit2 size={18} />
                         </button>
                         <button 
-                          onClick={() => handleDelete(invitation.id)}
+                          onClick={() => handleDeleteClick(invitation.id)}
                           className="text-gray-400 hover:text-red-600 transition-colors"
                           title="Elimina"
                         >
@@ -183,8 +217,21 @@ const InvitationList = () => {
         <CreateInvitationModal 
           onClose={() => setIsModalOpen(false)} 
           onSuccess={fetchInvitations}
+          initialData={editingInvitation}
         />
       )}
+
+      {/* DELETE CONFIRMATION MODAL */}
+      <ConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={handleConfirmDelete}
+        title="Elimina Invito"
+        message="Sei sicuro di voler eliminare questo invito? Questa azione rimuoverà tutti gli ospiti associati e non può essere annullata."
+        confirmText="Sì, elimina"
+        cancelText="Annulla"
+        isDangerous={true}
+      />
 
       <ErrorModal 
         isOpen={errorModalOpen} 
