@@ -29,16 +29,12 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
 
 class GlobalConfigViewSet(viewsets.ViewSet):
-    """
-    ViewSet for managing the Singleton GlobalConfig.
-    """
     def list(self, request):
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config)
         return Response(serializer.data)
 
     def create(self, request):
-        # Allow update via POST/PUT essentially
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
         if serializer.is_valid():
@@ -48,76 +44,80 @@ class GlobalConfigViewSet(viewsets.ViewSet):
 
 
 class DashboardStatsView(APIView):
-    """
-    Returns aggregated stats for the dashboard charts.
-    """
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
-        # 1. Ospiti (Adulti/Bambini - Confermati/Non Confermati)
-        stats_guests = Person.objects.aggregate(
-            adults_confirmed=Count('id', filter=Q(is_child=False, is_attending=True)),
-            children_confirmed=Count('id', filter=Q(is_child=True, is_attending=True)),
-            adults_pending=Count('id', filter=Q(is_child=False, is_attending__isnull=True)),
-            children_pending=Count('id', filter=Q(is_child=True, is_attending__isnull=True)),
-            adults_declined=Count('id', filter=Q(is_child=False, is_attending=False)),
-            children_declined=Count('id', filter=Q(is_child=True, is_attending=False)),
-        )
+        # 1. Ospiti aggregati per stato INVITO
+        # Se l'invito è confirmed, contiamo i suoi ospiti come confirmed
+        
+        confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
+        pending_invitations = Invitation.objects.filter(status=Invitation.Status.PENDING)
+        declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
+        
+        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False).count()
+        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True).count()
+        
+        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False).count()
+        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True).count()
+        
+        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False).count()
+        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True).count()
 
-        # 2. Logistic Requests (Transfer / Accommodation)
-        # Confirmed Requests: field requires_X = True
+        stats_guests = {
+            'adults_confirmed': adults_confirmed,
+            'children_confirmed': children_confirmed,
+            'adults_pending': adults_pending,
+            'children_pending': children_pending,
+            'adults_declined': adults_declined,
+            'children_declined': children_declined,
+        }
+
+        # 2. Logistic Requests
+        # Confirmed Requests: field requires_X = True AND invitation status = confirmed
         
-        # Conteggio Alloggi
-        acc_confirmed_adults = Person.objects.filter(requires_accommodation=True, is_child=False).count()
-        acc_confirmed_children = Person.objects.filter(requires_accommodation=True, is_child=True).count()
-        
-        # Transfer
-        trans_confirmed = Person.objects.filter(requires_transfer=True).count()
+        acc_confirmed_adults = Person.objects.filter(invitation__in=confirmed_invitations, requires_accommodation=True, is_child=False).count()
+        acc_confirmed_children = Person.objects.filter(invitation__in=confirmed_invitations, requires_accommodation=True, is_child=True).count()
+        trans_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, requires_transfer=True).count()
 
         # 3. Financials
-        # Total Potential Cost (Assuming ALL pending come + ALL confirmed come)
-        # Total Confirmed Cost (Only confirmed)
-        
         def calculate_cost(adults, children, acc_adults, acc_children, transfers):
             total = 0
-            total += adults * config.price_adult_meal
-            total += children * config.price_child_meal
-            total += acc_adults * config.price_accommodation_adult
-            total += acc_children * config.price_accommodation_child
-            total += transfers * config.price_transfer
+            total += float(adults) * float(config.price_adult_meal)
+            total += float(children) * float(config.price_child_meal)
+            total += float(acc_adults) * float(config.price_accommodation_adult)
+            total += float(acc_children) * float(config.price_accommodation_child)
+            total += float(transfers) * float(config.price_transfer)
             return total
 
         # Costo Confermato
         cost_confirmed = calculate_cost(
-            stats_guests['adults_confirmed'], 
-            stats_guests['children_confirmed'],
-            acc_confirmed_adults,
-            acc_confirmed_children,
+            adults_confirmed, children_confirmed,
+            acc_confirmed_adults, acc_confirmed_children,
             trans_confirmed
         )
 
-        # Costo Ipotizzato (Confermato + Pending come se accettassero tutto ciò che gli è offerto)
-        # Per i pending, dobbiamo stimare se prenderebbero alloggio/transfer. 
-        # Pessimistic scenario (Max Cost): All pending guests take offered services.
-        
-        pending_adults = Person.objects.filter(is_child=False, is_attending__isnull=True)
-        pending_children = Person.objects.filter(is_child=True, is_attending__isnull=True)
+        # Costo Ipotizzato (Confermato + Pending)
+        # Per i pending, assumiamo lo scenario peggiore (prendono tutto se offerto)
         
         est_acc_adults = acc_confirmed_adults
         est_acc_children = acc_confirmed_children
         est_trans = trans_confirmed
 
-        for p in pending_adults:
-            if p.invitation.accommodation_offered: est_acc_adults += 1
-            if p.invitation.transfer_offered: est_trans += 1
+        # Aggiungiamo i pending che hanno l'offerta attiva
+        for inv in pending_invitations:
+            inv_adults = inv.guests.filter(is_child=False).count()
+            inv_children = inv.guests.filter(is_child=True).count()
             
-        for p in pending_children:
-            if p.invitation.accommodation_offered: est_acc_children += 1
-            if p.invitation.transfer_offered: est_trans += 1
+            if inv.accommodation_offered:
+                est_acc_adults += inv_adults
+                est_acc_children += inv_children
+            
+            if inv.transfer_offered:
+                est_trans += (inv_adults + inv_children)
 
         cost_total_estimated = calculate_cost(
-            stats_guests['adults_confirmed'] + stats_guests['adults_pending'],
-            stats_guests['children_confirmed'] + stats_guests['children_pending'],
+            adults_confirmed + adults_pending,
+            children_confirmed + children_pending,
             est_acc_adults,
             est_acc_children,
             est_trans
