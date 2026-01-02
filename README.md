@@ -8,11 +8,12 @@ Il sistema offre un'esperienza utente unica (apertura busta animata) e una conso
 Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 
 1.  **Database (PostgreSQL):** Persistenza dati (invitati, RSVP, tracking analytics). **Isolato da Internet** tramite rete `db_network` interna.
-2.  **Backend (Django + DRF):** API REST. Gestisce logica di business, autenticazione e raccolta dati di tracking. **Non accessibile direttamente dall'esterno** - solo tramite nginx.
-3.  **Frontend User (React):** Esposto su **Internet** tramite `nginx-public`. Mostra l'invito animato. Accesso tramite query param univoco.
-4.  **Frontend Admin (React):** Esposto **SOLO su localhost:8080** tramite `nginx-intranet`. Dashboard per gestione adesioni e visualizzazione Heatmap/Navigazione. **Richiede SSH tunnel o VPN per accesso remoto**.
-5.  **Nginx Public:** Gateway Internet che espone solo frontend-user e API pubbliche su porta 80/443.
-6.  **Nginx Intranet:** Gateway amministrativo che espone frontend-admin su `127.0.0.1:8080`.
+2.  **Adminer (DB GUI):** Interfaccia web leggera per gestione database PostgreSQL. Accessibile su porta 8081.
+3.  **Backend (Django + DRF):** API REST. Gestisce logica di business, autenticazione e raccolta dati di tracking. **Non accessibile direttamente dall'esterno** - solo tramite nginx.
+4.  **Frontend User (React):** Esposto su **Internet** tramite `nginx-public`. Mostra l'invito animato. Accesso tramite query param univoco.
+5.  **Frontend Admin (React):** Esposto **SOLO su localhost:8080** tramite `nginx-intranet`. Dashboard per gestione adesioni e visualizzazione Heatmap/Navigazione. **Richiede SSH tunnel o VPN per accesso remoto**.
+6.  **Nginx Public:** Gateway Internet che espone solo frontend-user e API pubbliche su porta 80/443.
+7.  **Nginx Intranet:** Gateway amministrativo che espone frontend-admin su `127.0.0.1:8080`.
 
 ### Isolamento di Rete
 
@@ -29,16 +30,16 @@ Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
     ┌─────────┴──────────┐
     │                    │
     ▼                    ▼
-┌────────────┐    ┌────────────┐
-│ frontend-  │    │  backend   │◄─────┐
-│   user     │    │   (API)    │      │
-└────────────┘    └─────┬──────┘      │
-                        │             │
-                        ▼             │
-                  ┌──────────┐        │
-                  │    DB    │        │
-                  │ (isolato)│        │
-                  └──────────┘        │
+┌────────────┐    ┌────────────┐          ┌────────────┐
+│ frontend-  │    │  backend   │◄─────────┤ adminer    │
+│   user     │    │   (API)    │          │ :8081      │
+└────────────┘    └─────┬──────┘          └─────┬──────┘
+                        │                       │
+                        ▼                       ▼
+                  ┌──────────┐        ┌──────────────┐
+                  │    DB    │◄───────┤ db_network   │
+                  │ (isolato)│        │ (internal)   │
+                  └──────────┘        └──────────────┘
                                       │
 ┌────────────────────────────────┐   │
 │  INTRANET (localhost only)     │   │
@@ -57,10 +58,14 @@ Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 ```
 
 ## Regole di Sviluppo (STRICT)
-Ogni modifica al codice **DEVE** includere:
+Vedi **[AI_RULES.md](./AI_RULES.md)** per le regole obbligatorie di sviluppo AI.
+
+In sintesi:
 1.  **Unit Tests:** Test isolati per la singola funzione/componente.
 2.  **Smoke Tests:** Verifica base che l'applicazione si avvii e gli endpoint critici rispondano.
 3.  **Non-Regression Tests:** Verifica che le nuove modifiche non rompano funzionalità esistenti.
+4.  **Logging:** Log parlanti e strutturati su stdout.
+5.  **Gestione Errori:** Modali frontend per errori API, niente `alert()`.
 
 ## Prerequisiti & Ambiente di Sviluppo
 
@@ -121,6 +126,7 @@ docker-compose up --build
 # I servizi saranno disponibili su:
 # - Frontend User: http://localhost (porta 80)
 # - Frontend Admin: http://localhost:8080
+# - Adminer (DB): http://localhost:8081
 # - Backend API: accessibile tramite nginx
 ```
 
@@ -140,6 +146,15 @@ docker-compose ps
 docker-compose logs -f
 ```
 
+## Accesso Database (Adminer)
+
+Adminer è disponibile su `http://localhost:8081`.
+- **Sistema:** PostgreSQL
+- **Server:** `db` (NON localhost)
+- **Utente:** `postgres`
+- **Password:** Vedi `.env` (default: `changeme_in_prod`)
+- **Database:** `wedding_db`
+
 ## Accesso Admin Remoto
 
 Il frontend admin è accessibile **SOLO** su `127.0.0.1:8080` per sicurezza.
@@ -148,10 +163,12 @@ Il frontend admin è accessibile **SOLO** su `127.0.0.1:8080` per sicurezza.
 
 ```bash
 # Dal tuo computer locale, crea un tunnel SSH verso il server
-ssh -L 8080:localhost:8080 user@your-server.com
+# Mappa anche la porta 8081 per Adminer se necessario
+ssh -L 8080:localhost:8080 -L 8081:localhost:8081 user@your-server.com
 
 # Ora puoi accedere all'admin dal tuo browser:
-# http://localhost:8080
+# Admin: http://localhost:8080
+# Adminer: http://localhost:8081
 ```
 
 ### Opzione 2: VPN
@@ -187,7 +204,8 @@ docker-compose exec frontend-user sh
 # Visualizza logs specifico servizio
 docker-compose logs -f backend
 
-# Esegui migrazioni Django
+# Esegui migrazioni Django (in caso di problemi automatici)
+docker-compose exec backend python manage.py makemigrations core
 docker-compose exec backend python manage.py migrate
 
 # Crea superuser Django
@@ -197,8 +215,8 @@ docker-compose exec backend python manage.py createsuperuser
 ## Testing
 
 ```bash
-# Backend tests
-docker-compose exec backend python manage.py test
+# Backend tests (Unit & Smoke)
+docker-compose exec backend python manage.py test core
 
 # Frontend user tests
 docker-compose exec frontend-user npm test
@@ -233,6 +251,7 @@ my-wedding-app/
 │   └── certs/             # Certificati SSL
 ├── docker-compose.yml     # Orchestrazione servizi
 ├── .env.example           # Template variabili ambiente
+├── AI_RULES.md            # Regole sviluppo AI (Test, Log, Errori)
 └── README.md             # Questo file
 ```
 
@@ -289,15 +308,22 @@ docker-compose exec backend python manage.py collectstatic --noinput
 
 ## Troubleshooting
 
-### Admin non raggiungibile
+### DB Relation does not exist
+Se vedi errori `relation "core_invitation" does not exist`:
+```bash
+docker-compose exec backend python manage.py makemigrations core
+docker-compose exec backend python manage.py migrate
+```
+
+### Adminer/Admin non raggiungibile
 
 ```bash
-# Verifica che nginx-intranet sia in ascolto SOLO su localhost
-docker-compose ps nginx-intranet
-
-# Controlla la porta binding
+# Verifica porte aperte
 netstat -tlnp | grep 8080
-# Deve mostrare: 127.0.0.1:8080
+netstat -tlnp | grep 8081
+
+# Controlla log container
+docker-compose logs adminer
 ```
 
 ### Backend non risponde
