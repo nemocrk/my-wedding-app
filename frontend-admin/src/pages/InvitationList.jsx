@@ -1,15 +1,18 @@
 // frontend-admin/src/pages/InvitationList.jsx
-import React from 'react';
+import React, { useState } from 'react';
 import { Plus } from 'lucide-react';
+import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 
 const InvitationList = () => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Censimento Inviti</h1>
         <button 
           className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-colors shadow-sm"
-          onClick={() => alert('Modale creazione invito da implementare')}
+          onClick={() => setIsModalOpen(true)}
         >
           <Plus size={20} className="mr-2" />
           Nuovo Invito
@@ -47,6 +50,10 @@ const InvitationList = () => {
           </tbody>
         </table>
       </div>
+
+      {isModalOpen && (
+        <CreateInvitationModal onClose={() => setIsModalOpen(false)} />
+      )}
     </div>
   );
 };
