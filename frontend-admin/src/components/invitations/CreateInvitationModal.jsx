@@ -4,11 +4,14 @@ import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users,
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
 
-const CreateInvitationModal = ({ onClose, onSuccess }) => {
+const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   const [loading, setLoading] = useState(false);
   const [existingInvitations, setExistingInvitations] = useState([]);
+
+  // Edit Mode Flag
+  const isEditMode = !!initialData;
 
   // Error Modal State
   const [errorModalOpen, setErrorModalOpen] = useState(false);
@@ -27,21 +30,42 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
     non_affinities: [] // IDs
   });
 
+  // Load Initial Data (for Edit)
+  useEffect(() => {
+    if (initialData) {
+      setFormData({
+        name: initialData.name || '',
+        code: initialData.code || '',
+        accommodation_offered: initialData.accommodation_offered || false,
+        transfer_offered: initialData.transfer_offered || false,
+        guests: initialData.guests && initialData.guests.length > 0 
+          ? initialData.guests 
+          : [{ first_name: '', last_name: '', is_child: false }],
+        affinities: initialData.affinities || [],
+        non_affinities: initialData.non_affinities || []
+      });
+    }
+  }, [initialData]);
+
   // Fetch existing invitations for affinities step
   useEffect(() => {
     if (step === 3) {
       const loadInvitations = async () => {
         try {
           const data = await api.fetchInvitations();
-          setExistingInvitations(data.results || data);
+          // Filter out self from list if editing
+          const allInv = data.results || data;
+          const filtered = isEditMode 
+            ? allInv.filter(i => i.id !== initialData.id) 
+            : allInv;
+          setExistingInvitations(filtered);
         } catch (error) {
           console.error("Failed to load invitations", error);
-          // Optional: Show error here too if critical
         }
       };
       loadInvitations();
     }
-  }, [step]);
+  }, [step, isEditMode, initialData]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -102,7 +126,7 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
   const handleNext = () => {
     if (step === 1) {
       if (!formData.name || !formData.code) {
-        alert("Nome e Codice sono obbligatori"); // Client validation can stay simple or use toast
+        alert("Nome e Codice sono obbligatori"); 
         return;
       }
     }
@@ -123,7 +147,12 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
   const handleSubmit = async () => {
     setLoading(true);
     try {
-      await api.createInvitation(formData);
+      if (isEditMode) {
+        await api.updateInvitation(initialData.id, formData);
+      } else {
+        await api.createInvitation(formData);
+      }
+      
       if (onSuccess) onSuccess(); 
       onClose();
     } catch (error) {
@@ -139,11 +168,12 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
     <>
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
         <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl h-[90vh] flex flex-col overflow-hidden">
-          {/* ... Modal Header & Body same as before ... */}
-          
+          {/* Header */}
           <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white">
             <div>
-              <h2 className="text-2xl font-bold text-gray-800">Nuovo Invito</h2>
+              <h2 className="text-2xl font-bold text-gray-800">
+                {isEditMode ? 'Modifica Invito' : 'Nuovo Invito'}
+              </h2>
               <p className="text-sm text-gray-500 mt-1">Step {step} di {totalSteps}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-700">
@@ -151,6 +181,7 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
             </button>
           </div>
 
+          {/* Progress Bar */}
           <div className="w-full h-1 bg-gray-100">
             <div 
               className="h-full bg-pink-600 transition-all duration-300 ease-in-out"
@@ -158,6 +189,7 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
             />
           </div>
 
+          {/* Body */}
           <div className="flex-1 overflow-y-auto p-8 bg-gray-50">
             <div className="max-w-3xl mx-auto">
               
@@ -413,7 +445,7 @@ const CreateInvitationModal = ({ onClose, onSuccess }) => {
                   ) : (
                     <>
                       <Save size={18} className="mr-2" />
-                      Salva Invito
+                      {isEditMode ? 'Aggiorna Invito' : 'Salva Invito'}
                     </>
                   )}
                 </button>
