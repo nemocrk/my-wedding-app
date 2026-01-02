@@ -1,14 +1,7 @@
-"""
-URL configuration for wedding project.
-"""
 from django.contrib import admin
-from django.urls import path
-from django.http import HttpResponse
-
-def health_check(request):
-    return HttpResponse("OK")
+from django.urls import path, include
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('health/', health_check, name='health_check'),
+    path('api/', include('core.urls')),
 ]
