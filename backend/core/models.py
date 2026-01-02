@@ -39,17 +39,20 @@ class Invitation(models.Model):
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
     
-    # Opzioni offerte dagli sposi (PROPOSTA)
-    accommodation_offered = models.BooleanField(default=False)
-    transfer_offered = models.BooleanField(default=False)
+    # OPZIONI OFFERTE (Lato Sposi - Configurazione)
+    accommodation_offered = models.BooleanField(default=False, verbose_name="Alloggio Offerto")
+    transfer_offered = models.BooleanField(default=False, verbose_name="Transfer Offerto")
     
-    # Stato RSVP (Sull'intero invito)
+    # RISPOSTE RSVP (Lato Invitati - Scelte)
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
         default=Status.PENDING,
         verbose_name="Stato RSVP"
     )
+    # Se true, si applica a tutto il gruppo (o si assume il conteggio totale degli ospiti)
+    accommodation_requested = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
+    transfer_requested = models.BooleanField(default=False, verbose_name="Richiede Transfer")
     
     # Affinità
     affinities = models.ManyToManyField('self', blank=True, symmetrical=True)
@@ -72,10 +75,10 @@ class Person(models.Model):
     last_name = models.CharField(max_length=100, blank=True, null=True)
     is_child = models.BooleanField(default=False)
     
-    # Dettagli logistici specifici per persona (solo se l'invito è confermato)
+    # Dettagli personali che rimangono al singolo
     dietary_requirements = models.TextField(blank=True, null=True, verbose_name="Allergie/Intolleranze")
-    requires_accommodation = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
-    requires_transfer = models.BooleanField(default=False, verbose_name="Richiede Transfer")
+    
+    # RIMOSSI: requires_accommodation, requires_transfer (spostati su Invitation)
 
     def __str__(self):
         return f"{self.first_name} {self.last_name or ''}".strip()
