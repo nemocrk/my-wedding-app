@@ -1,0 +1,96 @@
+// frontend-admin/src/components/common/ErrorModal.jsx
+import React, { useState } from 'react';
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
+
+const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center p-4 z-[60] backdrop-blur-sm animate-fadeIn">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden transform transition-all scale-100">
+        
+        {/* Header con pulsante chiusura */}
+        <div className="flex justify-end p-4">
+          <button 
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 transition-colors p-1 rounded-full hover:bg-gray-100"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="px-8 pb-8 flex flex-col items-center text-center">
+          
+          {/* Custom SVG Sad Face */}
+          <div className="mb-6 relative">
+            <div className="absolute inset-0 bg-red-100 rounded-full blur-xl opacity-50 animate-pulse"></div>
+            <svg 
+              width="80" 
+              height="80" 
+              viewBox="0 0 24 24" 
+              fill="none" 
+              stroke="currentColor" 
+              strokeWidth="1.5" 
+              strokeLinecap="round" 
+              strokeLinejoin="round" 
+              className="text-red-500 relative z-10"
+            >
+              <circle cx="12" cy="12" r="10" />
+              <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
+              <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
+              {/* Sad Mouth Curve */}
+              <path d="M16 16 C16 16 14.5 14 12 14 C9.5 14 8 16 8 16" strokeWidth="2" />
+              {/* Teardrop (optional detail) */}
+              <path d="M15 10.5 C15 10.5 15.5 12.5 15 13" strokeWidth="1" className="opacity-60" />
+            </svg>
+          </div>
+
+          <h3 className="text-2xl font-bold text-gray-800 mb-2">
+            Qualcosa è andato storto
+          </h3>
+          
+          <p className="text-gray-500 mb-6">
+            Non siamo riusciti a completare l'operazione richiesta.
+          </p>
+
+          {/* Error Details Section */}
+          <div className="w-full">
+            <button 
+              onClick={() => setShowDetails(!showDetails)}
+              className="flex items-center justify-center w-full text-sm text-red-600 font-medium hover:text-red-700 transition-colors mb-2 focus:outline-none"
+            >
+              {showDetails ? 'Nascondi dettagli tecnici' : 'Mostra dettagli errore'}
+              {showDetails ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
+            </button>
+
+            <div 
+              className={`overflow-hidden transition-all duration-300 ease-in-out bg-red-50 rounded-lg border border-red-100 text-left ${
+                showDetails ? 'max-h-60 opacity-100 mt-2' : 'max-h-0 opacity-0'
+              }`}
+            >
+              <div className="p-3">
+                <p className="font-mono text-xs text-red-800 break-words whitespace-pre-wrap">
+                  {typeof errorDetails === 'object' 
+                    ? JSON.stringify(errorDetails, null, 2) 
+                    : errorDetails}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Action Button */}
+          <button
+            onClick={onClose}
+            className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-200 hover:shadow-red-300 transform active:scale-95"
+          >
+            Ho capito, chiudi
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default ErrorModal;
