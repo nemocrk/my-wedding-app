@@ -1,10 +1,13 @@
 // frontend-admin/src/components/invitations/CreateInvitationModal.jsx
-import React, { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check } from 'lucide-react';
+import { api } from '../../services/api';
 
-const CreateInvitationModal = ({ onClose }) => {
+const CreateInvitationModal = ({ onClose, onSuccess }) => {
   const [step, setStep] = useState(1);
   const totalSteps = 3;
+  const [loading, setLoading] = useState(false);
+  const [existingInvitations, setExistingInvitations] = useState([]);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -15,9 +18,24 @@ const CreateInvitationModal = ({ onClose }) => {
     guests: [
       { first_name: '', last_name: '', is_child: false }
     ],
-    affinities: [], // IDs of other invitations
-    non_affinities: [] // IDs of other invitations
+    affinities: [], // IDs
+    non_affinities: [] // IDs
   });
+
+  // Fetch existing invitations for affinities step
+  useEffect(() => {
+    if (step === 3) {
+      const loadInvitations = async () => {
+        try {
+          const data = await api.fetchInvitations();
+          setExistingInvitations(data.results || data); // Handle pagination result or direct array
+        } catch (error) {
+          console.error("Failed to load invitations", error);
+        }
+      };
+      loadInvitations();
+    }
+  }, [step]);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -50,6 +68,38 @@ const CreateInvitationModal = ({ onClose }) => {
     setFormData(prev => ({ ...prev, guests: newGuests }));
   };
 
+  // Affinity Management
+  const toggleAffinity = (id, type) => {
+    setFormData(prev => {
+      const currentList = prev[type];
+      const isSelected = currentList.includes(id);
+      
+      let newList;
+      if (isSelected) {
+        newList = currentList.filter(itemId => itemId !== id);
+      } else {
+        newList = [...currentList, id];
+        // Remove from the other list if present (mutually exclusive)
+        const otherType = type === 'affinities' ? 'non_affinities' : 'affinities';
+        if (prev[otherType].includes(id)) {
+           // We'll handle this clean up in the state update
+           // But react state updates are batched, so we need to be careful.
+           // Simplified: Just set the new list. The return below handles both fields.
+        }
+      }
+
+      // Logic to ensure mutual exclusivity
+      const otherType = type === 'affinities' ? 'non_affinities' : 'affinities';
+      const otherList = prev[otherType].filter(itemId => itemId !== id);
+
+      return {
+        ...prev,
+        [type]: newList,
+        [otherType]: otherList
+      };
+    });
+  };
+
   // Navigation Logic
   const handleNext = () => {
     // Basic validation
@@ -60,9 +110,10 @@ const CreateInvitationModal = ({ onClose }) => {
       }
     }
     if (step === 2) {
-      const isValid = formData.guests.every(g => g.first_name && g.last_name);
+      // LAST NAME NOT MANDATORY ANYMORE
+      const isValid = formData.guests.every(g => g.first_name);
       if (!isValid) {
-        alert("Tutti gli ospiti devono avere nome e cognome");
+        alert("Tutti gli ospiti devono avere almeno il nome");
         return;
       }
     }
@@ -74,11 +125,18 @@ const CreateInvitationModal = ({ onClose }) => {
     if (step > 1) setStep(step - 1);
   };
 
-  const handleSubmit = () => {
-    console.log("Saving Data:", formData);
-    // TODO: API Call to save
-    alert('Invito salvato! (Vedi console per i dati)');
-    onClose();
+  const handleSubmit = async () => {
+    setLoading(true);
+    try {
+      await api.createInvitation(formData);
+      if (onSuccess) onSuccess(); // Callback to refresh list
+      onClose();
+    } catch (error) {
+      console.error("Save failed", error);
+      alert(`Errore durante il salvataggio: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -110,6 +168,7 @@ const CreateInvitationModal = ({ onClose }) => {
             {/* STEP 1: Info Base */}
             {step === 1 && (
               <div className="space-y-8 animate-fadeIn">
+                {/* ... (Existing Step 1 code) ... */}
                 <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                   <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                     <span className="bg-pink-100 text-pink-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">1</span>
@@ -127,7 +186,6 @@ const CreateInvitationModal = ({ onClose }) => {
                         placeholder="Es. Famiglia Rossi"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Il nome che apparirà nella lista admin.</p>
                     </div>
 
                     <div>
@@ -140,7 +198,6 @@ const CreateInvitationModal = ({ onClose }) => {
                         placeholder="Es. famiglia-rossi"
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all font-mono text-sm"
                       />
-                      <p className="text-xs text-gray-500 mt-1">Parte finale dell'URL pubblico.</p>
                     </div>
                   </div>
 
@@ -216,7 +273,7 @@ const CreateInvitationModal = ({ onClose }) => {
                       </div>
                       
                       <div className="flex-1 w-full">
-                        <label className="block text-xs font-medium text-gray-500 mb-1">Cognome</label>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">Cognome (Opzionale)</label>
                         <input
                           type="text"
                           value={guest.last_name}
@@ -242,19 +299,12 @@ const CreateInvitationModal = ({ onClose }) => {
                         onClick={() => removeGuest(index)}
                         disabled={formData.guests.length === 1}
                         className={`p-2 rounded-lg transition-colors ${formData.guests.length === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-red-500 hover:bg-red-50'}`}
-                        title="Rimuovi ospite"
                       >
                         <Trash2 size={18} />
                       </button>
                     </div>
                   ))}
                 </div>
-                
-                {formData.guests.length === 0 && (
-                   <div className="text-center py-10 bg-gray-50 border-2 border-dashed border-gray-200 rounded-xl">
-                      <p className="text-gray-500">Nessun ospite aggiunto.</p>
-                   </div>
-                )}
               </div>
             )}
 
@@ -265,16 +315,69 @@ const CreateInvitationModal = ({ onClose }) => {
                     <span className="bg-pink-100 text-pink-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">3</span>
                     Affinità & Tavoli
                   </h3>
-                <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
-                   <div className="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
-                      <Users size={32} className="text-gray-400" />
-                   </div>
-                   <h4 className="text-gray-900 font-medium mb-2">Funzionalità in arrivo</h4>
-                   <p className="text-gray-500 max-w-md mx-auto">
-                     La selezione delle affinità sarà disponibile una volta salvati i primi inviti nel sistema. 
-                     Potrai modificare questo invito successivamente per aggiungere relazioni.
-                   </p>
-                </div>
+                
+                {existingInvitations.length === 0 ? (
+                  <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
+                    <Users size={32} className="text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">Non ci sono ancora altri inviti con cui creare affinità.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    {/* AFFINI */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                      <h4 className="font-semibold text-green-700 mb-4 flex items-center">
+                        <Users className="mr-2" size={20} />
+                        Affini (Vicina di tavolo)
+                      </h4>
+                      <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                        {existingInvitations.map(inv => (
+                          <div 
+                            key={inv.id}
+                            onClick={() => toggleAffinity(inv.id, 'affinities')}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                              formData.affinities.includes(inv.id) 
+                                ? 'bg-green-50 border-green-500' 
+                                : 'border-gray-100 hover:border-gray-300'
+                            }`}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{inv.name}</p>
+                              <p className="text-xs text-gray-500">{inv.guests_names}</p>
+                            </div>
+                            {formData.affinities.includes(inv.id) && <Check size={16} className="text-green-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* NON AFFINI */}
+                    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                      <h4 className="font-semibold text-red-700 mb-4 flex items-center">
+                         <Users className="mr-2" size={20} />
+                         Non Affini (Lontano)
+                      </h4>
+                       <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
+                        {existingInvitations.map(inv => (
+                          <div 
+                            key={inv.id}
+                            onClick={() => toggleAffinity(inv.id, 'non_affinities')}
+                            className={`p-3 rounded-lg border cursor-pointer transition-all flex items-center justify-between ${
+                              formData.non_affinities.includes(inv.id) 
+                                ? 'bg-red-50 border-red-500' 
+                                : 'border-gray-100 hover:border-gray-300'
+                            }`}
+                          >
+                            <div>
+                              <p className="text-sm font-medium text-gray-800">{inv.name}</p>
+                              <p className="text-xs text-gray-500">{inv.guests_names}</p>
+                            </div>
+                            {formData.non_affinities.includes(inv.id) && <Check size={16} className="text-red-600" />}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
@@ -284,7 +387,7 @@ const CreateInvitationModal = ({ onClose }) => {
         <div className="px-8 py-6 border-t border-gray-100 bg-white flex justify-between items-center">
           <button
             onClick={handleBack}
-            disabled={step === 1}
+            disabled={step === 1 || loading}
             className={`flex items-center px-6 py-2.5 rounded-lg border font-medium transition-colors ${
               step === 1 
                 ? 'border-gray-200 text-gray-300 cursor-not-allowed' 
@@ -299,6 +402,7 @@ const CreateInvitationModal = ({ onClose }) => {
             {step < totalSteps ? (
               <button
                 onClick={handleNext}
+                disabled={loading}
                 className="flex items-center px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
               >
                 Avanti
@@ -307,10 +411,17 @@ const CreateInvitationModal = ({ onClose }) => {
             ) : (
               <button
                 onClick={handleSubmit}
-                className="flex items-center px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-pink-200"
+                disabled={loading}
+                className="flex items-center px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-pink-200 disabled:opacity-70 disabled:cursor-not-allowed"
               >
-                <Save size={18} className="mr-2" />
-                Salva Invito
+                {loading ? (
+                  <span className="animate-pulse">Salvataggio...</span>
+                ) : (
+                  <>
+                    <Save size={18} className="mr-2" />
+                    Salva Invito
+                  </>
+                )}
               </button>
             )}
           </div>
