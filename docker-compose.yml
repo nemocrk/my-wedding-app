@@ -28,7 +28,8 @@ services:
     ports:
       - "8081:8080"
     networks:
-      - db_network
+      - db_network               # Per parlare con il DB
+      - frontend_intranet_network # Per essere raggiungibile dall'host (bypass internal flag)
     depends_on:
       - db
     environment:
