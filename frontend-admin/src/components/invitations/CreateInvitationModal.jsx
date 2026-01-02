@@ -1,6 +1,6 @@
 // frontend-admin/src/components/invitations/CreateInvitationModal.jsx
 import React, { useState } from 'react';
-import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, User } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users } from 'lucide-react';
 
 const CreateInvitationModal = ({ onClose }) => {
   const [step, setStep] = useState(1);
@@ -319,8 +319,5 @@ const CreateInvitationModal = ({ onClose }) => {
     </div>
   );
 };
-
-// Icon component per il placeholder (mancava l'import di Users sopra se non già presente, lo aggiungo per sicurezza nel codice reale se non c'è, qui simulo sia già nel context o importato)
-import { Users } from 'lucide-react'; 
 
 export default CreateInvitationModal;
