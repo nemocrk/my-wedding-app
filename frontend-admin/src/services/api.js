@@ -1,69 +1,80 @@
-// frontend-admin/src/services/api.js
-
-const API_BASE_URL = '/api';
-
-const handleResponse = async (response) => {
-  // Try to parse JSON regardless of status code to get error details
-  let data;
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    // Fallback for non-JSON errors (like standard Nginx 500 html if middleware fails)
-    data = { detail: await response.text() }; 
-  }
-
-  if (!response.ok) {
-    // Prefer "detail" field (DRF standard), then "error", then generic message
-    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
-  }
-  
-  return data;
-};
+const API_BASE_URL = 'http://localhost:8000/api';
 
 export const api = {
   // Invitations
-  fetchInvitations: async () => {
+  async fetchInvitations() {
     const response = await fetch(`${API_BASE_URL}/invitations/`);
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Failed to fetch invitations');
+    return response.json();
   },
 
-  getInvitation: async (id) => {
+  async getInvitation(id) {
     const response = await fetch(`${API_BASE_URL}/invitations/${id}/`);
-    return handleResponse(response);
+    if (!response.ok) throw new Error('Failed to fetch invitation details');
+    return response.json();
   },
 
-  createInvitation: async (data) => {
+  async createInvitation(data) {
     const response = await fetch(`${API_BASE_URL}/invitations/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
+    }
+    return response.json();
   },
 
-  updateInvitation: async (id, data) => {
+  async updateInvitation(id, data) {
     const response = await fetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(JSON.stringify(errorData));
+    }
+    return response.json();
   },
 
-  deleteInvitation: async (id) => {
+  async deleteInvitation(id) {
     const response = await fetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'DELETE',
     });
-    // DELETE often returns 204 No Content, so we might check response.ok directly
-    if (response.status === 204) {
-      return true;
+    if (!response.ok) throw new Error('Failed to delete invitation');
+    return true;
+  },
+
+  // Dashboard Stats
+  async getDashboardStats() {
+    const response = await fetch(`${API_BASE_URL}/dashboard/stats/`);
+    if (!response.ok) throw new Error('Failed to fetch dashboard stats');
+    return response.json();
+  },
+
+  // Configuration
+  async getConfig() {
+    // Il viewset usa 'list' di default per la root '/' del viewset, che è mappata a pk=1 get_or_create
+    // Ma in router.register(r'config', ...), l'endpoint list è GET /config/
+    const response = await fetch(`${API_BASE_URL}/config/`);
+    if (!response.ok) throw new Error('Failed to fetch configuration');
+    return response.json();
+  },
+
+  async updateConfig(data) {
+    // Il create method nel viewset gestisce l'update. È una POST a /config/
+    const response = await fetch(`${API_BASE_URL}/config/`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(JSON.stringify(errorData));
     }
-    return handleResponse(response);
+    return response.json();
   }
 };
