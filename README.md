@@ -332,3 +332,13 @@ sudo chown -R $USER:$USER .
 ## Licenza
 
 TBD
+
+## HOWTO
+
+1. Per pulire l'ambiente docker lanciare:
+```bash
+# Pulire tutti i container docker
+docker kill $(docker ps -q)
+docker rm $(docker ps -a -q)
+docker volume rm $(docker volume ls -q)
+```
