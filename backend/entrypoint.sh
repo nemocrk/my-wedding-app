@@ -8,11 +8,15 @@ echo "Waiting for PostgreSQL..."
 while ! nc -z db 5432; do
   sleep 1
 done
-echo "PostgreSQL started"
+echo "Database ready."
 
-echo "Running migrations..."
-# Applica le migrazioni automaticamente
-python manage.py migrate --noinput
+echo "Creating migrations for 'core'..."
+python manage.py makemigrations core
+
+echo "Applying all migrations..."
+python manage.py migrate
+
+echo "Done."
 
 echo "Collecting static files..."
 # Raccoglie i file statici (utile in produzione)
