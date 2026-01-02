@@ -31,6 +31,11 @@ class GlobalConfig(models.Model):
 
 
 class Invitation(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'In Attesa'
+        CONFIRMED = 'confirmed', 'Confermato'
+        DECLINED = 'declined', 'Declinato'
+
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
     
@@ -38,8 +43,13 @@ class Invitation(models.Model):
     accommodation_offered = models.BooleanField(default=False)
     transfer_offered = models.BooleanField(default=False)
     
-    # Stato RSVP (Calcolato o forzato)
-    # Lo stato sarà derivato dalle risposte dei singoli ospiti
+    # Stato RSVP (Sull'intero invito)
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PENDING,
+        verbose_name="Stato RSVP"
+    )
     
     # Affinità
     affinities = models.ManyToManyField('self', blank=True, symmetrical=True)
@@ -53,31 +63,6 @@ class Invitation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
-    @property
-    def status(self):
-        """Calcola lo stato complessivo dell'invito basandosi sugli ospiti"""
-        guests = self.guests.all()
-        if not guests:
-            return "empty"
-        
-        # Se nessuno ha ancora risposto (is_attending is None)
-        if all(g.is_attending is None for g in guests):
-            return "pending"
-        
-        # Se qualcuno ha risposto
-        attending_count = sum(1 for g in guests if g.is_attending is True)
-        declined_count = sum(1 for g in guests if g.is_attending is False)
-        
-        if attending_count > 0:
-            if declined_count > 0:
-                return "partial" # Alcuni vengono, altri no
-            return "confirmed" # Almeno uno viene, nessuno ha declinato esplicitamente (o gli altri sono null)
-        
-        if declined_count == len(guests):
-            return "declined" # Tutti hanno declinato
-            
-        return "pending"
-
     def __str__(self):
         return f"{self.name} ({self.code})"
 
@@ -87,11 +72,8 @@ class Person(models.Model):
     last_name = models.CharField(max_length=100, blank=True, null=True)
     is_child = models.BooleanField(default=False)
     
-    # RSVP fields (RISPOSTA REALE)
-    is_attending = models.BooleanField(null=True, blank=True, verbose_name="Presente")
+    # Dettagli logistici specifici per persona (solo se l'invito è confermato)
     dietary_requirements = models.TextField(blank=True, null=True, verbose_name="Allergie/Intolleranze")
-    
-    # Dettagli logistici confermati dal guest
     requires_accommodation = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
     requires_transfer = models.BooleanField(default=False, verbose_name="Richiede Transfer")
 
