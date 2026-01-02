@@ -102,11 +102,9 @@ class InvitationSerializer(serializers.ModelSerializer):
 class InvitationListSerializer(serializers.ModelSerializer):
     """Lighter serializer for list views"""
     guests_count = serializers.IntegerField(source='guests.count', read_only=True)
-    guests_names = serializers.SerializerMethodField()
+    # Instead of just names string, we return the full list of guests (light version)
+    guests = PersonSerializer(many=True, read_only=True)
 
     class Meta:
         model = Invitation
-        fields = ['id', 'name', 'code', 'guests_count', 'guests_names', 'accommodation_offered', 'transfer_offered']
-
-    def get_guests_names(self, obj):
-        return ", ".join([p.first_name for p in obj.guests.all()[:3]]) + ("..." if obj.guests.count() > 3 else "")
+        fields = ['id', 'name', 'code', 'guests_count', 'guests', 'accommodation_offered', 'transfer_offered']
