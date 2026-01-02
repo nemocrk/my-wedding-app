@@ -17,6 +17,33 @@ class Invitation(models.Model):
         max_length=255, 
         help_text=_("Nome descrittivo (es. Famiglia Rossi)")
     )
+    
+    # Opzioni offerte per questo invito
+    accommodation_offered = models.BooleanField(
+        default=False, 
+        help_text=_("L'alloggio è offerto/disponibile per questo invito?")
+    )
+    transfer_offered = models.BooleanField(
+        default=False, 
+        help_text=_("Il transfer è offerto/disponibile per questo invito?")
+    )
+
+    # Gestione Tavoli / Affinità (Relazioni asimmetriche a livello DB, gestite simmetricamente in app)
+    affinities = models.ManyToManyField(
+        'self', 
+        blank=True, 
+        symmetrical=False, 
+        related_name='affinity_with',
+        help_text=_("Altri inviti con cui questi ospiti dovrebbero sedere vicini")
+    )
+    non_affinities = models.ManyToManyField(
+        'self', 
+        blank=True, 
+        symmetrical=False, 
+        related_name='conflict_with',
+        help_text=_("Altri inviti con cui questi ospiti NON dovrebbero sedere vicini")
+    )
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -48,7 +75,6 @@ class Person(models.Model):
 class RSVP(models.Model):
     """
     Conferma di partecipazione per una singola persona.
-    Separata da Person per permettere storicizzazione o modifiche.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     person = models.OneToOneField(
@@ -59,6 +85,17 @@ class RSVP(models.Model):
     is_attending = models.BooleanField(default=False)
     dietary_requirements = models.TextField(blank=True, null=True)
     notes = models.TextField(blank=True, null=True)
+    
+    # Nuovi campi logistici
+    origin_location = models.CharField(
+        max_length=255, 
+        blank=True, 
+        null=True, 
+        help_text=_("Luogo di partenza")
+    )
+    requires_accommodation = models.BooleanField(default=False)
+    requires_transfer = models.BooleanField(default=False)
+
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -86,7 +123,7 @@ class AccessLog(models.Model):
 
 class InteractionLog(models.Model):
     """
-    Log per heatmap e interazioni (click, scroll, mousemove).
+    Log per heatmap e interazioni.
     """
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     invitation = models.ForeignKey(
@@ -95,8 +132,8 @@ class InteractionLog(models.Model):
         on_delete=models.CASCADE,
         null=True, blank=True
     )
-    interaction_type = models.CharField(max_length=50) # 'click', 'scroll', 'mousemove'
-    data = models.JSONField(default=dict) # Coordinate x, y, viewport, ecc.
+    interaction_type = models.CharField(max_length=50) 
+    data = models.JSONField(default=dict)
     timestamp = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
