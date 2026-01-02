@@ -55,6 +55,9 @@ CMD ["nginx", "-g", "daemon off;"]
 # ==============================================
 FROM node:alpine as development
 
+# Installa wget (mancante in node:alpine di default) per healthcheck
+RUN apk add --no-cache wget
+
 WORKDIR /app
 
 # Copia package files
