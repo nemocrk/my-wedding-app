@@ -1,6 +1,6 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import { api } from '../services/api';
@@ -98,13 +98,13 @@ const InvitationList = () => {
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
                   Nome Invito
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/6">
                   Codice (Slug)
                 </th>
-                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/3">
                   Ospiti
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
@@ -144,31 +144,47 @@ const InvitationList = () => {
               ) : (
                 invitations.map((invitation) => (
                   <tr key={invitation.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="text-sm font-medium text-gray-900">{invitation.name}</div>
-                      {invitation.accommodation_offered && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 mr-2">
-                          Alloggio
-                        </span>
-                      )}
-                      {invitation.transfer_offered && (
-                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
-                          Transfer
-                        </span>
-                      )}
+                    <td className="px-6 py-4">
+                      <div className="text-sm font-medium text-gray-900 mb-1">{invitation.name}</div>
+                      <div className="flex flex-wrap gap-1">
+                        {invitation.accommodation_offered && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                            Alloggio
+                          </span>
+                        )}
+                        {invitation.transfer_offered && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                            Transfer
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <code className="px-2 py-1 bg-gray-100 rounded text-pink-600 font-mono text-sm border border-gray-200">
+                      <code className="px-2 py-1 bg-gray-100 rounded text-pink-600 font-mono text-xs border border-gray-200">
                         {invitation.code}
                       </code>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900 flex items-center">
-                        <Users size={16} className="text-gray-400 mr-2" />
-                        <span className="font-medium">{invitation.guests?.length || 0}</span>
+                      <div className="flex items-center mb-2">
+                         <span className="text-xs font-semibold text-gray-500 uppercase mr-2">
+                           Totale: {invitation.guests?.length || 0}
+                         </span>
                       </div>
-                      <div className="text-xs text-gray-500 mt-1 truncate max-w-xs">
-                        {invitation.guests?.map(g => `${g.first_name} ${g.last_name}`).join(', ')}
+                      <div className="flex flex-wrap gap-1.5">
+                        {invitation.guests?.map((guest, idx) => (
+                          <span 
+                            key={guest.id || idx} 
+                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
+                              guest.is_child 
+                                ? 'bg-pink-50 text-pink-700 border-pink-100' 
+                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}
+                            title={guest.is_child ? "Bambino" : "Adulto"}
+                          >
+                            {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
+                            {guest.first_name} {guest.last_name}
+                          </span>
+                        ))}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
