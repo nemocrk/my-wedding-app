@@ -8,7 +8,9 @@ class PersonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Person
         fields = ['id', 'first_name', 'last_name', 'is_child']
-        read_only_fields = [] # id is not read_only here, we need it input
+        extra_kwargs = {
+            'last_name': {'required': False, 'allow_blank': True, 'allow_null': True}
+        }
 
 class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
@@ -62,13 +64,15 @@ class InvitationSerializer(serializers.ModelSerializer):
                     # Update existing guest
                     guest = existing_guests[g_id]
                     guest.first_name = g_data.get('first_name', guest.first_name)
-                    guest.last_name = g_data.get('last_name', guest.last_name)
-                    guest.is_child = g_data.get('is_child', guest.is_child)
+                    # Use explicit get to allow clearing last_name (sending None or "")
+                    if 'last_name' in g_data:
+                        guest.last_name = g_data['last_name']
+                    if 'is_child' in g_data:
+                        guest.is_child = g_data['is_child']
                     guest.save()
                     incoming_guest_ids.append(g_id)
                 else:
                     # Create new guest
-                    # Remove 'id' if present (it might be None or a temp frontend ID)
                     g_data.pop('id', None)
                     new_guest = Person.objects.create(invitation=instance, **g_data)
                     incoming_guest_ids.append(new_guest.id)
@@ -79,39 +83,21 @@ class InvitationSerializer(serializers.ModelSerializer):
                     guest.delete()
 
         # 3. Update Affinities (Symmetric)
-        if affinities is not None or non_affinities is not None:
-            # We clear old symmetries implicitly by setting new ones? 
-            # Actually, set() handles the join table for this side.
-            # But for the OTHER side, we need to be careful.
-            # For simplicity: Update this instance's relations, then fix symmetry.
-            
-            # Note: A proper symmetry implementation is complex in Update.
-            # Simplified approach: update local M2M, then ensure reverse is present.
-            # (Removing old reverse links is harder without diffing, but let's try to add new ones)
-            
-            if affinities is not None:
-                instance.affinities.set(affinities)
-                # Ensure symmetry for added ones
-                for related in affinities:
-                    related.affinities.add(instance)
-            
-            if non_affinities is not None:
-                instance.non_affinities.set(non_affinities)
-                for related in non_affinities:
-                    related.non_affinities.add(instance)
+        self._handle_affinities(instance, affinities, non_affinities)
 
         return instance
 
     def _handle_affinities(self, invitation, affinities, non_affinities):
-        if affinities:
+        if affinities is not None:
             invitation.affinities.set(affinities)
-            for other_invitation in affinities:
-                other_invitation.affinities.add(invitation)
+            # Ensure symmetry for added ones
+            for related in affinities:
+                related.affinities.add(invitation)
                 
-        if non_affinities:
+        if non_affinities is not None:
             invitation.non_affinities.set(non_affinities)
-            for other_invitation in non_affinities:
-                other_invitation.non_affinities.add(invitation)
+            for related in non_affinities:
+                related.non_affinities.add(invitation)
 
 class InvitationListSerializer(serializers.ModelSerializer):
     """Lighter serializer for list views"""
