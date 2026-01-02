@@ -83,9 +83,8 @@ const InvitationList = () => {
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle size={12} className="mr-1"/> Confermato</span>;
       case 'declined':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle size={12} className="mr-1"/> Declinato</span>;
-      case 'partial':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800"><HelpCircle size={12} className="mr-1"/> Parziale</span>;
       default:
+        // pending
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><HelpCircle size={12} className="mr-1"/> In attesa</span>;
     }
   };
@@ -188,18 +187,16 @@ const InvitationList = () => {
                           <span 
                             key={guest.id || idx} 
                             className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
-                              guest.is_attending === false 
-                                ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70' // Declinato
-                                : guest.is_child 
-                                  ? 'bg-pink-50 text-pink-700 border-pink-100' 
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
-                            } ${guest.is_attending ? 'ring-1 ring-green-400' : ''}`} // Bordo verde se confermato
+                              guest.is_child 
+                                ? 'bg-pink-50 text-pink-700 border-pink-100' 
+                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}
                             title={guest.is_child ? "Bambino" : "Adulto"}
                           >
                             {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
                             {guest.first_name} {guest.last_name}
                             
-                            {/* Icone Servizi Richiesti */}
+                            {/* Icone Servizi Richiesti (Solo se invito confermato, ma mostriamo sempre per ora) */}
                             {guest.requires_accommodation && (
                               <Home size={10} className="ml-1 text-blue-600 fill-blue-100" />
                             )}
