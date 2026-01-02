@@ -29,6 +29,11 @@ export const api = {
     return handleResponse(response);
   },
 
+  getInvitation: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/invitations/${id}/`);
+    return handleResponse(response);
+  },
+
   createInvitation: async (data) => {
     const response = await fetch(`${API_BASE_URL}/invitations/`, {
       method: 'POST',
@@ -40,8 +45,25 @@ export const api = {
     return handleResponse(response);
   },
 
-  getInvitation: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/invitations/${id}/`);
+  updateInvitation: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/invitations/${id}/`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteInvitation: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/invitations/${id}/`, {
+      method: 'DELETE',
+    });
+    // DELETE often returns 204 No Content, so we might check response.ok directly
+    if (response.status === 204) {
+      return true;
+    }
     return handleResponse(response);
   }
 };
