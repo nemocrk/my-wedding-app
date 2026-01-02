@@ -47,9 +47,7 @@ class DashboardStatsView(APIView):
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
-        # 1. Ospiti aggregati per stato INVITO
-        # Se l'invito è confirmed, contiamo i suoi ospiti come confirmed
-        
+        # 1. GUESTS
         confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
         pending_invitations = Invitation.objects.filter(status=Invitation.Status.PENDING)
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
@@ -72,14 +70,24 @@ class DashboardStatsView(APIView):
             'children_declined': children_declined,
         }
 
-        # 2. Logistic Requests
-        # Confirmed Requests: field requires_X = True AND invitation status = confirmed
-        
-        acc_confirmed_adults = Person.objects.filter(invitation__in=confirmed_invitations, requires_accommodation=True, is_child=False).count()
-        acc_confirmed_children = Person.objects.filter(invitation__in=confirmed_invitations, requires_accommodation=True, is_child=True).count()
-        trans_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, requires_transfer=True).count()
+        # 2. LOGISTICS (Confirmed)
+        # Se accommodation_requested=True su invito CONFERMATO, contiamo tutti gli ospiti dell'invito
+        acc_confirmed_adults = 0
+        acc_confirmed_children = 0
+        trans_confirmed = 0
 
-        # 3. Financials
+        for inv in confirmed_invitations:
+            inv_adults = inv.guests.filter(is_child=False).count()
+            inv_children = inv.guests.filter(is_child=True).count()
+            
+            if inv.accommodation_requested:
+                acc_confirmed_adults += inv_adults
+                acc_confirmed_children += inv_children
+            
+            if inv.transfer_requested:
+                trans_confirmed += (inv_adults + inv_children)
+
+        # 3. FINANCIALS
         def calculate_cost(adults, children, acc_adults, acc_children, transfers):
             total = 0
             total += float(adults) * float(config.price_adult_meal)
@@ -97,13 +105,11 @@ class DashboardStatsView(APIView):
         )
 
         # Costo Ipotizzato (Confermato + Pending)
-        # Per i pending, assumiamo lo scenario peggiore (prendono tutto se offerto)
-        
+        # Pending Logic: Se offerto, assumiamo richiesto (Scenario Pessimistico)
         est_acc_adults = acc_confirmed_adults
         est_acc_children = acc_confirmed_children
         est_trans = trans_confirmed
 
-        # Aggiungiamo i pending che hanno l'offerta attiva
         for inv in pending_invitations:
             inv_adults = inv.guests.filter(is_child=False).count()
             inv_children = inv.guests.filter(is_child=True).count()
