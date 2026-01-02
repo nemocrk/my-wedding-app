@@ -27,6 +27,28 @@ Il progetto è ottimizzato per il deployment su Linux.
 1.  Assicurati che Docker Desktop sia configurato con il backend WSL 2.
 2.  Clona ed esegui il progetto all'interno del file system di WSL (es. `~/projects/wedding-app`), NON nel file system di Windows (`/mnt/c/...`).
 3.  Usa VS Code con l'estensione "WSL" per editare il codice.
+4.  Installa NodeJS: 
+```bash
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.3/install.sh | bash
+source ~/.bashrc
+nvm list-remote
+nvm install <CHOOSEN VERSION>
+```
+5. Installa Docker su wsl
+```bash
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh ./get-docker.sh --dry-run
+sudo systemctl enable --now docker.service
+```
+6. Aggiungi l'utente al gruppo docker
+```bash
+sudo groupadd docker
+sudo usermod -aG docker <USER>
+```
+N.B. Riavvia la WSL se il seguente comando non funziona
+```bash
+docker run hello-world
+```
 
 ## Quick Start (da terminale WSL/Bash)
 

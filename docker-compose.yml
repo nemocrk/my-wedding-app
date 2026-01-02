@@ -1,0 +1,90 @@
+services:
+  # ---------------------------------------------
+  # 1. DATABASE (Isolato)
+  # ---------------------------------------------
+  db:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_DB: wedding_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: changeme_in_prod
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db_network  # Connesso SOLO alla rete DB
+
+  # ---------------------------------------------
+  # 2. BACKEND API (Il ponte)
+  # ---------------------------------------------
+  backend:
+    build:
+      context: ./backend      # Punta alla cartella backend
+      dockerfile: Dockerfile
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./backend:/app        # Hot-reload: sync codice locale/container
+    depends_on:
+      - db
+    environment:
+      # Il backend può chiamare il DB usando l'hostname "db"
+      DATABASE_URL: postgres://postgres:changeme_in_prod@db:5432/wedding_db
+    networks:
+      - db_network     # Per parlare col DB
+      - shared_network # Per parlare con Nginx e Admin
+
+  # ---------------------------------------------
+  # 3. FRONTEND USER (Internet - tramite Nginx)
+  # ---------------------------------------------
+  frontend-user:
+    build:
+      context: ./frontend-user
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend-user:/app
+      - /app/node_modules # Evita di sovrascrivere i node_modules del container
+    networks:
+      - shared_network
+
+  # ---------------------------------------------
+  # 4. FRONTEND ADMIN (Intranet Only)
+  # ---------------------------------------------
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      dockerfile: Dockerfile
+    volumes:
+      - ./frontend-admin:/app
+      - /app/node_modules
+    ports:
+      - "8080:80" # Esposto su localhost:8080 (Intranet/VPN accessibile)
+    networks:
+      - shared_network
+
+  # ---------------------------------------------
+  # 5. NGINX (Gateway Internet)
+  # ---------------------------------------------
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"   # HTTP Internet
+      # - "443:443" # HTTPS (da abilitare con certificati)
+    volumes:
+      - ./nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - frontend-user
+      - backend
+    networks:
+      - shared_network
+
+# ---------------------------------------------
+# RETI E VOLUMI
+# ---------------------------------------------
+networks:
+  db_network:
+    internal: true # Rete completamente isolata da internet
+  shared_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
