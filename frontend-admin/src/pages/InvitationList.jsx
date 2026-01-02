@@ -1,6 +1,6 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import { api } from '../services/api';
@@ -10,15 +10,12 @@ const InvitationList = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Create/Edit Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState(null);
   
-  // Delete Modal State
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Error Handling
   const [errorModalOpen, setErrorModalOpen] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
 
@@ -26,7 +23,6 @@ const InvitationList = () => {
     setLoading(true);
     try {
       const data = await api.fetchInvitations();
-      // Gestisce sia risposta paginata (DRF default) che lista piatta
       setInvitations(data.results || data);
     } catch (error) {
       console.error("Failed to load invitations", error);
@@ -43,7 +39,6 @@ const InvitationList = () => {
 
   const handleEdit = async (id) => {
     try {
-      // Fetch full details (including guest IDs and affinities) before editing
       const fullData = await api.getInvitation(id);
       setEditingInvitation(fullData);
       setIsModalOpen(true);
@@ -69,7 +64,7 @@ const InvitationList = () => {
       await api.deleteInvitation(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
-      fetchInvitations(); // Refresh list
+      fetchInvitations(); 
     } catch (error) {
       setIsDeleteModalOpen(false);
       setErrorMessage("Impossibile eliminare l'invito: " + error.message);
@@ -84,7 +79,6 @@ const InvitationList = () => {
       case 'declined':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle size={12} className="mr-1"/> Declinato</span>;
       default:
-        // pending
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><HelpCircle size={12} className="mr-1"/> In attesa</span>;
     }
   };
@@ -120,7 +114,7 @@ const InvitationList = () => {
                   Ospiti
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Stato
+                  Stato RSVP
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Azioni
@@ -157,17 +151,40 @@ const InvitationList = () => {
                 invitations.map((invitation) => (
                   <tr key={invitation.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <div className="text-sm font-medium text-gray-900 mb-1">{invitation.name}</div>
-                      <div className="flex flex-wrap gap-1">
+                      <div className="text-sm font-bold text-gray-900 mb-1">{invitation.name}</div>
+                      
+                      {/* OFFERTE vs RICHIESTE */}
+                      <div className="flex flex-col gap-1 mt-1">
                         {invitation.accommodation_offered && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                            Alloggio
-                          </span>
+                           <div className="flex items-center text-xs">
+                             <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
+                               <Home size={10} className="mr-1"/> Alloggio Offerto
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/> Richiesto
+                                  </span>
+                                </>
+                             )}
+                           </div>
                         )}
+                        
                         {invitation.transfer_offered && (
-                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-purple-50 text-purple-700 border border-purple-100">
-                            Transfer
-                          </span>
+                           <div className="flex items-center text-xs">
+                             <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
+                               <Bus size={10} className="mr-1"/> Transfer Offerto
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/> Richiesto
+                                  </span>
+                                </>
+                             )}
+                           </div>
                         )}
                       </div>
                     </td>
@@ -187,22 +204,15 @@ const InvitationList = () => {
                           <span 
                             key={guest.id || idx} 
                             className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
-                              guest.is_child 
-                                ? 'bg-pink-50 text-pink-700 border-pink-100' 
-                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                              invitation.status === 'declined' 
+                                ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
+                                : guest.is_child 
+                                  ? 'bg-pink-50 text-pink-700 border-pink-100' 
+                                  : 'bg-slate-50 text-slate-700 border-slate-200'
                             }`}
-                            title={guest.is_child ? "Bambino" : "Adulto"}
                           >
                             {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
                             {guest.first_name} {guest.last_name}
-                            
-                            {/* Icone Servizi Richiesti (Solo se invito confermato, ma mostriamo sempre per ora) */}
-                            {guest.requires_accommodation && (
-                              <Home size={10} className="ml-1 text-blue-600 fill-blue-100" />
-                            )}
-                            {guest.requires_transfer && (
-                              <Bus size={10} className="ml-1 text-purple-600 fill-purple-100" />
-                            )}
                           </span>
                         ))}
                       </div>
@@ -212,7 +222,6 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-3">
-                         {/* Link al frontend user (simulato) */}
                         <a 
                           href={`http://localhost/?code=${invitation.code}`}
                           target="_blank"
@@ -254,7 +263,6 @@ const InvitationList = () => {
         />
       )}
 
-      {/* DELETE CONFIRMATION MODAL */}
       <ConfirmationModal
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
