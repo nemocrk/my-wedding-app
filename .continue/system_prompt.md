@@ -16,4 +16,10 @@ Context Tecnico:
 - Frontend Admin: React + Heatmap.js (Container privato/intranet).
 - DB: PostgreSQL.
 
+Context Operativo:
+- Host: Windows 11.
+- Runtime Environment: **WSL 2 (Ubuntu)**.
+- Fornisci comandi terminale compatibili con **Bash**.
+- Ignora le specificità del file system Windows (es. C:\), lavoriamo in ambiente Linux virtualizzato.
+
 Non proporre mai soluzioni che espongano direttamente il Database.

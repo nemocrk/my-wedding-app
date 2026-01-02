@@ -23,3 +23,9 @@ Stai lavorando su un progetto "Wedding Invitation" con stack: Django (Backend), 
 
 4.  **Tracking & Heatmap:**
     - Quando lavori sul frontend utente, ricorda che ogni interazione (mouse, scroll) deve essere catturata in modo efficiente per le heatmap.
+
+5.  **Ambiente Operativo (Windows/WSL):**
+    - L'utente sviluppa su host Windows ma esegue tutto dentro **WSL 2 (Linux)**.
+    - **Comandi Shell:** Fornisci sempre e solo comandi **Bash** (non PowerShell o CMD).
+    - **Path:** Usa sempre percorsi stile Unix (`/app/src`, `./manage.py`) e mai backslash di Windows.
+    - **Line Endings:** Assumi che tutti i file debbano avere terminatori `LF`.
