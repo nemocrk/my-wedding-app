@@ -14,6 +14,7 @@ ENV PYTHONUNBUFFERED=1
 WORKDIR /app
 
 # Installa dipendenze di sistema necessarie
+# netcat-openbsd serve per lo script di wait-for-db
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
@@ -31,11 +32,18 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
+# Copia script entrypoint e rendilo eseguibile
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Copia tutto il codice sorgente
 COPY . /app/
 
 # Espone la porta
 EXPOSE 8000
+
+# Entrypoint per gestire migrazioni
+ENTRYPOINT ["entrypoint.sh"]
 
 # Comando di default per development (hot-reload)
 CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
@@ -50,11 +58,12 @@ COPY requirements.txt /app/
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt gunicorn
 
+# Copia script entrypoint e rendilo eseguibile
+COPY entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
 # Copia tutto il codice sorgente
 COPY . /app/
-
-# Raccogli i file statici (Django)
-RUN python manage.py collectstatic --noinput || true
 
 # Crea utente non-root per sicurezza
 RUN useradd -m -u 1000 appuser && \
@@ -64,6 +73,9 @@ USER appuser
 
 # Espone la porta
 EXPOSE 8000
+
+# Entrypoint per gestire migrazioni
+ENTRYPOINT ["entrypoint.sh"]
 
 # Comando di default per production (Gunicorn)
 CMD ["gunicorn", "wedding.wsgi:application", "--bind", "0.0.0.0:8000", "--workers", "4", "--timeout", "120"]
