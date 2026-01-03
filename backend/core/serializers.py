@@ -24,16 +24,31 @@ class RoomSerializer(serializers.ModelSerializer):
         model = Room
         fields = ['id', 'room_number', 'capacity_adults', 'capacity_children']
 
+class InvitationAssignmentSerializer(serializers.ModelSerializer):
+    """Serializer leggero per mostrare chi occupa l'alloggio"""
+    adults_count = serializers.SerializerMethodField()
+    children_count = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invitation
+        fields = ['id', 'name', 'code', 'adults_count', 'children_count']
+
+    def get_adults_count(self, obj):
+        return obj.guests.filter(is_child=False).count()
+
+    def get_children_count(self, obj):
+        return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
     rooms = RoomSerializer(many=True)
+    assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
     total_capacity = serializers.IntegerField(read_only=True)
     available_capacity = serializers.IntegerField(read_only=True)
 
     class Meta:
         model = Accommodation
         fields = [
-            'id', 'name', 'address', 'rooms',
+            'id', 'name', 'address', 'rooms', 'assigned_invitations',
             'total_capacity', 'available_capacity',
             'created_at', 'updated_at'
         ]
