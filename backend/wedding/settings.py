@@ -31,8 +31,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Optional for static files
-    'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
@@ -102,14 +102,41 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Assicura coerenza tra modelli ed evita migrazioni implicite di tipo ID
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# ========================================
 # CORS Settings
+# ========================================
 CORS_ALLOW_ALL_ORIGINS = DEBUG  # Allow all in debug mode
+CORS_ALLOW_CREDENTIALS = True  # CRITICAL: permette cookie sessione
+
 if not DEBUG:
     CORS_ALLOWED_ORIGINS = [
         "http://localhost",
         "http://127.0.0.1",
         # Add your production domains here
     ]
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost",
+        "http://127.0.0.1",
+    ]
+
+# ========================================
+# Session Configuration (Public Users)
+# ========================================
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_COOKIE_NAME = 'wedding_session'
+SESSION_COOKIE_AGE = 86400 * 7  # 7 giorni
+SESSION_COOKIE_HTTPONLY = True  # Non accessibile da JavaScript (sicurezza)
+SESSION_COOKIE_SECURE = not DEBUG  # True in produzione (HTTPS only)
+SESSION_COOKIE_SAMESITE = 'Lax'  # Protezione CSRF
+SESSION_SAVE_EVERY_REQUEST = False  # Risparmia write DB
+
+# ========================================
+# CSRF Configuration
+# ========================================
+CSRF_COOKIE_NAME = 'wedding_csrftoken'
+CSRF_COOKIE_HTTPONLY = False  # JavaScript deve poter leggere per axios
+CSRF_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SAMESITE = 'Lax'
 
 # Logging Configuration (Parlante)
 LOGGING = {
