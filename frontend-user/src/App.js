@@ -22,19 +22,31 @@ function App() {
       return;
     }
 
-    // Fetch invito dal backend
-    fetch(`/api/public/invitation/?code=${code}&token=${token}`)
+    // FASE 1: Autenticazione e creazione sessione
+    // Il backend valida code+token e salva in sessione Django
+    fetch('/api/public/auth/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include', // CRITICAL: invia/ricevi cookie sessione
+      body: JSON.stringify({ code, token })
+    })
       .then(res => res.json())
       .then(data => {
         if (data.valid) {
           setInvitationData(data.invitation);
+          
+          // Opzionale: rimuovi code/token dall'URL per sicurezza
+          // Dopo questa operazione, tutte le chiamate successive useranno la sessione
+          window.history.replaceState({}, document.title, window.location.pathname);
         } else {
           setError(data.message);
         }
         setLoading(false);
       })
       .catch(err => {
-        console.error('Errore caricamento invito:', err);
+        console.error('Errore autenticazione:', err);
         setError('Errore di connessione. Riprova più tardi.');
         setLoading(false);
       });
