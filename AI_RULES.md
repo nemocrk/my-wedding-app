@@ -1,49 +1,32 @@
 # AI Rules & Project Guidelines for "My-Wedding-App"
 
-## 1. Architettura & Infrastruttura
+## 0. Regola Suprema: Documentazione Viva
+**"Se il codice cambia, la documentazione DEVE cambiare."**
+Ogni Pull Request o modifica significativa deve essere accompagnata dall'aggiornamento dei relativi file in `/docs`.
+- Consultare `docs/CHECKLIST_DOCUMENTATION.md` per la struttura.
+
+## 1. Architettura & Infrastruttura (Vedi `docs/01-ARCHITECTURE.md`)
 - **Docker Compose Orchestration**: Ogni servizio (db, backend, frontend-user, frontend-admin, nginx) gira in container isolati.
 - **Isolamento DB**: Il database `wedding_db` è accessibile SOLO dalla rete interna `db_network`.
-- **Adminer**: Esposto su porta 8081, funge da GUI per il DB.
-- **Backend API**: Django/Gunicorn su porta 8000 interna. Espone API su `/api/admin/` (intranet) e `/api/public/` (internet).
-- **Frontend User**: React (Create React App), servito da Nginx Public su porta 80/443.
-- **Frontend Admin**: React (Create React App), servito da Nginx Intranet su porta 8080 (bind `127.0.0.1`).
+- **Backend API**: Django/Gunicorn su porta 8000 interna.
+- **Frontend User/Admin**: React Apps servite da Nginx dedicati (Public/Intranet).
 
-## 2. Environment Variables & Configuration
-Le variabili d'ambiente critiche sono definite in `docker-compose.yml` o `.env`.
-
-### Backend
-- `DATABASE_URL`: Stringa di connessione PostgreSQL.
-- `SECRET_KEY`: Chiave segreta Django (usare valore complesso in prod).
-- `DEBUG`: `True` in dev, `False` in prod.
-- `ALLOWED_HOSTS`: Lista host consentiti.
-- `FRONTEND_PUBLIC_URL`: URL base del frontend pubblico (es. `https://miomatrimonio.com` o `http://localhost`). Usato per generare i link di invito.
-
-### Frontend
-- `REACT_APP_API_URL`: URL base per chiamate API (differente per User e Admin).
+## 2. Environment Variables (Vedi `docs/05-DEVOPS.md`)
+Le variabili d'ambiente critiche sono definite in `.env`.
+- Backend: `DATABASE_URL`, `SECRET_KEY`, `ALLOWED_HOSTS`.
+- Frontend: `REACT_APP_API_URL` (User vs Admin).
 
 ## 3. Workflow di Sviluppo (Strict)
-1.  **Analisi**: Prima di modificare, leggere il codice esistente (`cat` file).
+1.  **Analisi**: Prima di modificare, leggere il codice esistente E la documentazione specifica (es. `docs/06-BACKEND-CORE.md`).
 2.  **No-Rewrite**: Non riscrivere file da zero se non strettamente necessario. Applicare patch/diff.
-3.  **Testing**: Ogni feature deve essere verificata (es. `curl`, unit test se possibile).
-4.  **Sicurezza**:
-    - Mai esporre il DB su Internet.
-    - I link pubblici devono essere firmati con Token HMAC.
-    - Validare sempre gli input API.
+3.  **Testing**: Ogni feature deve essere verificata (es. `curl`, unit test, smoke test).
+4.  **Sicurezza**: Mai esporre il DB su Internet. Validare sempre gli input API.
 
-## 4. Struttura URL & Routing
-- **Backend (Django)**:
-    - `/admin/`: Pannello admin Django standard.
-    - `/api/admin/`: API protette per frontend-admin.
-    - `/api/public/`: API pubbliche per frontend-user (session-based).
-- **Frontend Admin**:
-    - `/dashboard`: Statistiche.
-    - `/invitations`: Lista inviti.
-    - `/accommodations`: Gestione alloggi.
-    - `/config`: Configurazione globale (prezzi, testi, sicurezza).
+## 4. Struttura URL & Routing (Vedi `docs/03-BACKEND.md`)
+- `/api/public/`: API pubbliche (User).
+- `/api/admin/`: API protette (Admin).
+- `/dashboard`: Frontend Admin.
 
 ## 5. Log delle Modifiche Recenti
-- Aggiunto `FRONTEND_PUBLIC_URL` al backend per generare link corretti.
-- Implementata generazione link sicuri (con token) in `InvitationList`.
-- Aggiunta configurazione chiave segreta in `ConfigPage`.
-- Fix routing DRF per action custom (`auto-assign`).
-- Fix gestione errori API frontend-user (evita sovrascrittura errori 403).
+- Documentazione completa del repository in `/docs`.
+- Aggiornamento regole AI per enforcing documentation update.
