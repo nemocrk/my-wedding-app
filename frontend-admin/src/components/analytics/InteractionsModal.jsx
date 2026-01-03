@@ -6,6 +6,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [publicLink, setPublicLink] = useState(null);
   
   // Replay State
   const [isPlaying, setIsPlaying] = useState(false);
@@ -13,21 +14,27 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const containerRef = useRef(null);
+  const iframeRef = useRef(null);
 
-  // Load interactions data
+  // Load interactions and public link
   useEffect(() => {
-    const fetchInteractions = async () => {
+    const init = async () => {
       try {
-        const data = await api.getInvitationInteractions(invitationId);
-        setSessions(data);
-        if (data.length > 0) setSelectedSession(data[0]);
+        const [interactionsData, linkData] = await Promise.all([
+             api.getInvitationInteractions(invitationId),
+             api.generateInvitationLink(invitationId)
+        ]);
+        
+        setSessions(interactionsData);
+        if (interactionsData.length > 0) setSelectedSession(interactionsData[0]);
+        setPublicLink(linkData.url);
       } catch (err) {
-        console.error("Failed to load interactions", err);
+        console.error("Failed to load data", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchInteractions();
+    init();
   }, [invitationId]);
 
   // Handle Playback Logic
@@ -51,7 +58,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       if (!startTimestamp) startTimestamp = timestamp;
       
       const elapsed = timestamp - startTimestamp;
-      const currentPlayTime = (initialProgress * duration) + (elapsed * 1); 
+      const currentPlayTime = (initialProgress * duration) + (elapsed * 1); // 1x speed
 
       let newProgress = currentPlayTime / duration;
       
@@ -97,8 +104,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw full path trace
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(200, 200, 200, 0.3)';
-    ctx.lineWidth = 1;
+    ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)'; // Pink trace
+    ctx.lineWidth = 2;
     data.forEach((point, i) => {
         const x = point.x * scaleX;
         const y = point.y * scaleY;
@@ -114,8 +121,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw active path
     ctx.beginPath();
-    ctx.strokeStyle = '#ec4899'; // Pink-600
-    ctx.lineWidth = 2;
+    ctx.strokeStyle = '#be185d'; // Pink-700
+    ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
     
@@ -136,15 +143,17 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw cursor
     if (lastPoint) {
+        // Cursor circle
         ctx.beginPath();
         ctx.fillStyle = '#db2777'; 
-        ctx.arc(lastPoint.x, lastPoint.y, 5, 0, Math.PI * 2);
+        ctx.arc(lastPoint.x, lastPoint.y, 6, 0, Math.PI * 2);
         ctx.fill();
         
+        // Pulse Ring
         ctx.beginPath();
-        ctx.strokeStyle = 'rgba(219, 39, 119, 0.4)';
-        ctx.lineWidth = 10;
-        ctx.arc(lastPoint.x, lastPoint.y, 10, 0, Math.PI * 2);
+        ctx.strokeStyle = 'rgba(219, 39, 119, 0.5)';
+        ctx.lineWidth = 15;
+        ctx.arc(lastPoint.x, lastPoint.y, 15, 0, Math.PI * 2);
         ctx.stroke();
     }
   };
@@ -157,8 +166,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4 animate-fadeIn">
-      <div className="bg-white rounded-xl shadow-2xl w-full max-w-6xl max-h-[90vh] flex flex-col overflow-hidden">
+    <div className="fixed inset-0 bg-black bg-opacity-80 z-50 flex items-center justify-center p-4 animate-fadeIn">
+      <div className="bg-white rounded-xl shadow-2xl w-full max-w-[95vw] h-[90vh] flex flex-col overflow-hidden">
         
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
@@ -176,7 +185,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
         {/* Content */}
         <div className="flex-1 flex overflow-hidden">
             {/* Sidebar List (Sessions) */}
-            <div className="w-72 border-r border-gray-100 overflow-y-auto bg-gray-50 flex flex-col">
+            <div className="w-72 border-r border-gray-100 overflow-y-auto bg-gray-50 flex flex-col shrink-0">
                 <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sessioni</div>
                 <div className="flex-1 space-y-2 p-2 pt-0">
                     {loading ? (
@@ -212,7 +221,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 </div>
                                 {sess.heatmap && (
                                      <div className="mt-2 flex items-center text-xs text-pink-600 font-medium">
-                                         <Play size={10} className="mr-1"/> Replay disponibile
+                                         <Play size={10} className="mr-1"/> Replay disponibile ({sess.heatmap.screen_width}x{sess.heatmap.screen_height})
                                      </div>
                                 )}
                             </div>
@@ -222,7 +231,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
             </div>
 
             {/* Middle Panel (Event Timeline) */}
-            <div className="w-80 border-r border-gray-100 overflow-y-auto bg-white p-4">
+            <div className="w-80 border-r border-gray-100 overflow-y-auto bg-white p-4 shrink-0">
                 <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
                     <Activity size={16} className="mr-2 text-pink-600"/>
                     Timeline Eventi
@@ -260,49 +269,70 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                 )}
             </div>
 
-            {/* Right Panel (Replay Canvas) */}
-            <div className="flex-1 bg-gray-100 relative flex flex-col overflow-hidden">
-                 <div className="p-3 bg-white border-b border-gray-100 flex justify-between items-center">
+            {/* Right Panel (Replay Canvas with Iframe Background) */}
+            <div className="flex-1 bg-gray-200 relative flex flex-col overflow-hidden">
+                 <div className="p-3 bg-white border-b border-gray-100 flex justify-between items-center shrink-0 z-20 shadow-sm">
                      <h4 className="text-sm font-bold text-gray-800 flex items-center">
                          <MousePointer size={16} className="mr-2 text-pink-600"/>
                          Replay Sessione
                      </h4>
-                     {!selectedSession?.heatmap && <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">Nessun dato heatmap</span>}
+                     {selectedSession?.heatmap ? (
+                         <div className="text-xs text-gray-500">
+                            Viewport originale: {selectedSession.heatmap.screen_width}x{selectedSession.heatmap.screen_height}
+                         </div>
+                     ) : (
+                         <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">Nessun dato heatmap</span>
+                     )}
                  </div>
 
-                <div className="flex-1 relative flex items-center justify-center overflow-auto p-4 bg-gray-50/50" ref={containerRef}>
+                <div className="flex-1 relative flex items-center justify-center overflow-auto p-8 bg-gray-200" ref={containerRef}>
                     {selectedSession?.heatmap ? (
                         <div 
-                            className="relative bg-white shadow-lg border border-gray-200"
+                            className="relative shadow-2xl border-4 border-gray-800 rounded-lg overflow-hidden bg-white"
                             style={{
-                                width: '100%',
-                                maxWidth: '800px',
-                                aspectRatio: `${selectedSession.heatmap.screen_width} / ${selectedSession.heatmap.screen_height}`
+                                width: `${selectedSession.heatmap.screen_width}px`,
+                                height: `${selectedSession.heatmap.screen_height}px`,
+                                // Scale down if bigger than container
+                                transform: `scale(${Math.min(1, (containerRef.current?.clientWidth - 64) / selectedSession.heatmap.screen_width)})`,
+                                transformOrigin: 'center center',
+                                flexShrink: 0
                             }}
                         >
+                             {/* IFRAME LAYER (Background) */}
+                             {publicLink && (
+                                 <iframe 
+                                    ref={iframeRef}
+                                    src={publicLink}
+                                    title="Session Context"
+                                    className="absolute inset-0 w-full h-full border-none z-0 pointer-events-none opacity-50 grayscale-[20%]"
+                                    style={{ width: '100%', height: '100%' }}
+                                 />
+                             )}
+
+                             {/* CANVAS LAYER (Foreground) */}
                              <canvas 
                                 ref={canvasRef}
                                 width={selectedSession.heatmap.screen_width}
                                 height={selectedSession.heatmap.screen_height}
-                                className="w-full h-full block"
+                                className="absolute inset-0 z-10 w-full h-full block"
                              />
                              
-                             {/* Controls Overlay */}
-                             <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-white/90 backdrop-blur shadow-lg rounded-full px-4 py-2 flex items-center gap-4 z-10 border border-gray-100">
+                             {/* Controls Overlay (Floating) */}
+                             <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 border border-gray-700">
                                  <button 
                                     onClick={() => { setProgress(0); setIsPlaying(true); }}
-                                    className="p-1 hover:text-pink-600"
+                                    className="p-1 hover:text-pink-400 text-white transition-colors"
                                     title="Riavvia"
                                  >
-                                     <SkipBack size={18} />
+                                     <SkipBack size={20} />
                                  </button>
                                  <button 
                                     onClick={() => setIsPlaying(!isPlaying)}
-                                    className="p-2 bg-pink-600 text-white rounded-full hover:bg-pink-700 shadow-md transform active:scale-95 transition-all"
+                                    className="p-3 bg-pink-600 text-white rounded-full hover:bg-pink-500 shadow-lg transform active:scale-95 transition-all"
                                  >
-                                     {isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
+                                     {isPlaying ? <Pause size={24} fill="currentColor" /> : <Play size={24} fill="currentColor" className="ml-1" />}
                                  </button>
-                                 <div className="w-32 bg-gray-200 rounded-full h-1.5 cursor-pointer relative group"
+                                 <div className="w-48 bg-gray-600 rounded-full h-2 cursor-pointer relative group"
                                       onClick={(e) => {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           const x = e.clientX - rect.left;
@@ -311,21 +341,21 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                       }}
                                  >
                                      <div 
-                                        className="bg-pink-500 h-1.5 rounded-full absolute top-0 left-0" 
+                                        className="bg-pink-500 h-2 rounded-full absolute top-0 left-0 transition-all duration-100" 
                                         style={{ width: `${progress * 100}%` }}
                                      />
                                      <div 
-                                        className="w-3 h-3 bg-pink-600 rounded-full absolute top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 shadow transition-opacity"
+                                        className="w-4 h-4 bg-white rounded-full absolute top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 shadow transition-opacity"
                                         style={{ left: `${progress * 100}%` }} 
                                      />
                                  </div>
-                                 <span className="text-xs font-mono w-10 text-right text-gray-600">
+                                 <span className="text-xs font-mono w-12 text-right text-gray-300">
                                      {Math.round(progress * 100)}%
                                  </span>
                              </div>
                         </div>
                     ) : (
-                        <div className="text-gray-300 flex flex-col items-center">
+                        <div className="text-gray-400 flex flex-col items-center">
                             <Monitor size={64} className="mb-4 opacity-20" />
                             <p className="text-sm">Seleziona una sessione con dati heatmap per vedere il replay</p>
                         </div>
