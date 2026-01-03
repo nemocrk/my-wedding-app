@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'motion/react';
 import { authenticateInvitation } from '../services/api';
 import EnvelopeAnimation from '../components/EnvelopeAnimation';
 import LetterContent from '../components/LetterContent';
