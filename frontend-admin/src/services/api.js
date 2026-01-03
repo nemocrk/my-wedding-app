@@ -118,5 +118,49 @@ export const api = {
       body: JSON.stringify(data),
     });
     return handleResponse(response);
+  },
+
+  // Accommodations
+  fetchAccommodations: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/accommodations/`);
+    return handleResponse(response);
+  },
+
+  createAccommodation: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/accommodations/`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateAccommodation: async (id, data) => {
+    const response = await safeFetch(`${API_BASE_URL}/accommodations/${id}/`, {
+      method: 'PUT', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+  
+  deleteAccommodation: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/accommodations/${id}/`, { method: 'DELETE' });
+    if (response.status === 204) return true;
+    return handleResponse(response);
+  },
+
+  triggerAutoAssign: async (resetPrevious = false) => {
+    const response = await safeFetch(`${API_BASE_URL}/accommodations/auto-assign/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ reset_previous: resetPrevious })
+    });
+    return handleResponse(response);
+  },
+
+  fetchUnassignedInvitations: async () => {
+      const response = await safeFetch(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
+      return handleResponse(response);
   }
 };
