@@ -4,6 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
+from django.db import transaction
 from .models import Invitation, GlobalConfig, Person, Accommodation, Room, GuestInteraction, GuestHeatmap
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
@@ -394,11 +395,37 @@ class AccommodationViewSet(viewsets.ModelViewSet):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
-    # CRITICAL FIX: explicitly set url_path to match kebab-case from frontend
+    @action(detail=False, methods=['get'], url_path='unassigned-invitations')
+    def unassigned_invitations(self, request):
+        """
+        Restituisce lista inviti confermati che richiedono alloggio ma non hanno assegnazione.
+        """
+        unassigned = Invitation.objects.filter(
+            status=Invitation.Status.CONFIRMED,
+            accommodation_requested=True,
+            guests__assigned_room__isnull=True
+        ).distinct().prefetch_related('guests')
+        
+        data = []
+        for inv in unassigned:
+            adults = inv.guests.filter(is_child=False).count()
+            children = inv.guests.filter(is_child=True).count()
+            data.append({
+                'id': inv.id,
+                'name': inv.name,
+                'code': inv.code,
+                'adults_count': adults,
+                'children_count': children,
+                'total_guests': adults + children
+            })
+        
+        return Response(data)
+
     @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
         """
-        Algoritmo di assegnazione automatica GRANULARE: Person -> Room.
+        Algoritmo di assegnazione automatica ATOMICO: Person -> Room.
+        Se un invito non può essere completamente assegnato, rollback.
         """
         try:
             # Reset assegnazioni precedenti
@@ -436,6 +463,10 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 return False
 
             def assign_group_to_accommodation(group_invitations, accommodation):
+                """
+                Assegna atomicamente un gruppo di inviti.
+                Ritorna True se TUTTI possono essere assegnati, altrimenti False.
+                """
                 nonlocal assigned_count, assignment_log
                 
                 all_persons = []
@@ -448,33 +479,49 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     reverse=True
                 )
 
-                for person in all_persons:
-                    assigned = False
-                    for room in rooms:
-                        if has_non_affinity_in_room(room, person.invitation):
-                            continue
-                        
-                        if can_fit_in_room(room, person):
-                            person.assigned_room = room
-                            person.save()
-                            
-                            if not person.invitation.accommodation:
-                                person.invitation.accommodation = accommodation
-                                person.invitation.save()
-                            
-                            assigned_count += 1
-                            assignment_log.append({
-                                'person': f"{person.first_name} {person.last_name or ''}",
-                                'invitation': person.invitation.name,
-                                'room': f"{accommodation.name} - {room.room_number}",
-                                'is_child': person.is_child
-                            })
-                            assigned = True
-                            break
+                # Simulazione: Verifica se TUTTI possono essere assegnati
+                temp_assignments = []  # [(person, room)]
+                
+                with transaction.atomic():
+                    sid = transaction.savepoint()
                     
-                    if not assigned:
-                        logger.warning(f"Impossibile assegnare {person} dell'invito {person.invitation.name}")
-                        return False
+                    for person in all_persons:
+                        assigned = False
+                        for room in rooms:
+                            if has_non_affinity_in_room(room, person.invitation):
+                                continue
+                            
+                            if can_fit_in_room(room, person):
+                                # Assegnazione temporanea
+                                person.assigned_room = room
+                                person.save()
+                                temp_assignments.append((person, room))
+                                assigned = True
+                                break
+                        
+                        if not assigned:
+                            # ROLLBACK: Non tutti possono essere assegnati
+                            logger.warning(f"Impossibile assegnare completamente {person.invitation.name}: manca posto per {person}")
+                            transaction.savepoint_rollback(sid)
+                            return False
+                    
+                    # COMMIT: Tutti assegnati con successo
+                    transaction.savepoint_commit(sid)
+                
+                # Conferma assegnazione Invitation -> Accommodation
+                for inv in group_invitations:
+                    inv.accommodation = accommodation
+                    inv.save()
+                    assigned_count += inv.guests.filter(assigned_room__isnull=False).count()
+                
+                # Log
+                for person, room in temp_assignments:
+                    assignment_log.append({
+                        'person': f"{person.first_name} {person.last_name or ''}",
+                        'invitation': person.invitation.name,
+                        'room': f"{accommodation.name} - {room.room_number}",
+                        'is_child': person.is_child
+                    })
                 
                 return True
 
