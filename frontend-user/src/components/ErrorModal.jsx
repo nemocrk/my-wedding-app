@@ -1,75 +1,176 @@
-import React from 'react';
+// frontend-user/src/components/ErrorModal.jsx
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+
+// Simplified SVG icons since lucide-react might not be fully available or style-consistent in User App
+const XIcon = () => (
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="18" y1="6" x2="6" y2="18"></line>
+    <line x1="6" y1="6" x2="18" y2="18"></line>
+  </svg>
+);
+
+const ChevronDown = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="6 9 12 15 18 9"></polyline>
+  </svg>
+);
+
+const ChevronUp = () => (
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <polyline points="18 15 12 9 6 15"></polyline>
+  </svg>
+);
 
 const ErrorModal = ({ error, onClose }) => {
+  const [showDetails, setShowDetails] = useState(false);
+
+  // If no error, don't render anything (controlled by parent state usually)
   if (!error) return null;
 
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0, 0, 0, 0.6)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 10000,
-      backdropFilter: 'blur(4px)'
-    }}>
-      <div style={{
-        backgroundColor: 'white',
-        padding: '2rem',
-        borderRadius: '1rem',
-        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-        textAlign: 'center',
-        maxWidth: '90%',
-        width: '400px',
-        animation: 'fadeIn 0.3s ease-out',
-        fontFamily: "'Georgia', serif" // User theme font
-      }}>
-        <div style={{ fontSize: '5rem', marginBottom: '1rem' }}>😢</div>
-        <h2 style={{ 
-          margin: '0 0 0.5rem 0', 
-          color: '#ef4444', 
-          fontSize: '1.5rem', 
-          fontWeight: 'bold' 
-        }}>
-          Ops! Qualcosa non va
-        </h2>
-        <p style={{ 
-          margin: '0 0 1.5rem 0', 
-          color: '#4b5563',
-          lineHeight: '1.5'
-        }}>
-          {error.message || "Si è verificato un errore imprevisto."}
-        </p>
-        <button
-          onClick={onClose}
+    <AnimatePresence>
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.6)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: '1rem',
+          zIndex: 60,
+          backdropFilter: 'blur(4px)',
+          fontFamily: "'Georgia', serif" // Theme consistency
+        }}
+      >
+        <motion.div 
+          initial={{ scale: 0.95, opacity: 0, y: 20 }}
+          animate={{ scale: 1, opacity: 1, y: 0 }}
+          exit={{ scale: 0.95, opacity: 0, y: 20 }}
           style={{
-            backgroundColor: '#ef4444',
-            color: 'white',
-            border: 'none',
-            padding: '0.75rem 1.5rem',
-            fontSize: '1rem',
-            borderRadius: '0.5rem',
-            cursor: 'pointer',
-            transition: 'background-color 0.2s',
-            fontFamily: 'inherit'
+            backgroundColor: 'white',
+            borderRadius: '1rem',
+            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+            width: '100%',
+            maxWidth: '28rem',
+            overflow: 'hidden',
+            position: 'relative'
           }}
-          onMouseOver={(e) => e.target.style.backgroundColor = '#dc2626'}
-          onMouseOut={(e) => e.target.style.backgroundColor = '#ef4444'}
         >
-          Chiudi
-        </button>
-      </div>
-      <style>{`
-        @keyframes fadeIn {
-          from { opacity: 0; transform: scale(0.95); }
-          to { opacity: 1; transform: scale(1); }
-        }
-      `}</style>
-    </div>
+          
+          {/* Header con pulsante chiusura */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '1rem' }}>
+            <button 
+              onClick={onClose}
+              style={{
+                color: '#9ca3af',
+                padding: '0.25rem',
+                borderRadius: '9999px',
+                border: 'none',
+                background: 'transparent',
+                cursor: 'pointer',
+                transition: 'color 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.color = '#4b5563'}
+              onMouseOut={(e) => e.target.style.color = '#9ca3af'}
+            >
+              <XIcon />
+            </button>
+          </div>
+
+          <div style={{ padding: '0 2rem 2rem 2rem', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+            
+            {/* Custom SVG Sad Face */}
+            <div style={{ marginBottom: '1.5rem', position: 'relative' }}>
+              <div style={{
+                position: 'absolute', inset: 0, backgroundColor: '#fee2e2', borderRadius: '9999px', filter: 'blur(12px)', opacity: 0.5
+              }}></div>
+              <svg 
+                width="80" 
+                height="80" 
+                viewBox="0 0 24 24" 
+                fill="none" 
+                stroke="#ef4444" 
+                strokeWidth="1.5" 
+                strokeLinecap="round" 
+                strokeLinejoin="round" 
+                style={{ position: 'relative', zIndex: 10 }}
+              >
+                <circle cx="12" cy="12" r="10" />
+                <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
+                <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
+                <path d="M16 16 C16 16 14.5 14 12 14 C9.5 14 8 16 8 16" strokeWidth="2" />
+                <path d="M15 10.5 C15 10.5 15.5 12.5 15 13" strokeWidth="1" opacity="0.6" />
+              </svg>
+            </div>
+
+            <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
+              Ops! Qualcosa non va
+            </h3>
+            
+            <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontFamily: 'system-ui, sans-serif' }}>
+              {error.userMessage || "Non siamo riusciti a completare l'operazione richiesta."}
+            </p>
+
+            {/* Error Details Section */}
+            <div style={{ width: '100%' }}>
+              <button 
+                onClick={() => setShowDetails(!showDetails)}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%',
+                  fontSize: '0.875rem', fontWeight: '500', color: '#dc2626',
+                  marginBottom: '0.5rem', border: 'none', background: 'transparent', cursor: 'pointer'
+                }}
+              >
+                {showDetails ? 'Nascondi dettagli tecnici' : 'Mostra dettagli errore'}
+                <span style={{ marginLeft: '0.25rem', display: 'flex' }}>
+                  {showDetails ? <ChevronUp /> : <ChevronDown />}
+                </span>
+              </button>
+
+              <div style={{
+                maxHeight: showDetails ? '15rem' : '0',
+                opacity: showDetails ? 1 : 0,
+                transition: 'all 0.3s ease-in-out',
+                overflow: 'hidden',
+                backgroundColor: '#fef2f2',
+                borderRadius: '0.5rem',
+                border: '1px solid #fee2e2',
+                textAlign: 'left'
+              }}>
+                <div style={{ padding: '0.75rem' }}>
+                  <p style={{ fontFamily: 'monospace', fontSize: '0.75rem', color: '#991b1b', wordBreak: 'break-word', whiteSpace: 'pre-wrap', margin: 0 }}>
+                    {error.message || JSON.stringify(error, null, 2)}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={onClose}
+              style={{
+                marginTop: '2rem', width: '100%',
+                backgroundColor: '#dc2626', color: 'white', fontWeight: '600',
+                padding: '0.75rem 1.5rem', borderRadius: '0.75rem',
+                border: 'none', cursor: 'pointer',
+                boxShadow: '0 10px 15px -3px rgba(220, 38, 38, 0.2)',
+                transition: 'all 0.2s',
+                fontFamily: 'system-ui, sans-serif'
+              }}
+              onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
+              onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
+            >
+              Ho capito, chiudi
+            </button>
+          </div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 };
 
