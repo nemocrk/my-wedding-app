@@ -26,21 +26,23 @@ const fetchWithCredentials = async (url, options = {}) => {
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
+      // Crea un errore custom con flag per evitare double-handling
       const error = new Error(errorData.message || `HTTP ${response.status}`);
+      error.isHandled = true; 
       triggerGlobalError(error);
       throw error;
     }
 
     return response.json();
   } catch (err) {
-    // Se l'errore è già stato gestito (lanciato sopra), lo rilanciamo e basta.
-    // Se è un errore di rete (fetch fallito), lo intercettiamo.
-    if (err.message && err.message.startsWith("HTTP")) {
+    // Se l'errore è già stato gestito (lanciato sopra con isHandled), lo rilanciamo senza fare altro.
+    if (err.isHandled) {
       throw err;
     }
     
-    // Errore di rete / fetch failed
+    // Se è un errore di rete (fetch fallito) o altro imprevisto
     const networkError = new Error("Errore di connessione al server.");
+    networkError.isHandled = true;
     triggerGlobalError(networkError);
     throw networkError;
   }
