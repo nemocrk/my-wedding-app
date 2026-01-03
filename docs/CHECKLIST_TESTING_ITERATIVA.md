@@ -4,29 +4,29 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 ## Backend (`backend/`)
 
-- [ ] **Step 1: Setup Framework**
+- [x] **Step 1: Setup Framework**
   - [x] Configurare `pytest.ini` e `conftest.py` base.
-  - [ ] Creare fixtures per DB pulito e utente admin.
+  - [x] Creare fixtures per DB pulito e utente admin.
 
-- [ ] **Step 2: Core Models**
-  - [ ] `tests/test_models.py`: Unit tests su `Invitation` (creazione code, token).
-  - [ ] `tests/test_models.py`: Unit tests su `Accommodation/Room` (calcolo capacità e slot disponibili).
-  - [ ] `tests/test_models.py`: Unit tests su `GlobalConfig` (singleton constraint).
+- [x] **Step 2: Core Models**
+  - [x] `tests/test_models.py`: Unit tests su `Invitation` (creazione code, token).
+  - [x] `tests/test_models.py`: Unit tests su `Accommodation/Room` (calcolo capacità e slot disponibili).
+  - [x] `tests/test_models.py`: Unit tests su `GlobalConfig` (singleton constraint).
 
-- [ ] **Step 3: Admin API**
-  - [ ] `tests/test_api_admin.py`: CRUD Inviti.
-  - [ ] `tests/test_api_admin.py`: CRUD Alloggi.
-  - [ ] `tests/test_api_admin.py`: Generazione link pubblico.
+- [x] **Step 3: Admin API**
+  - [x] `tests/test_api_admin.py`: CRUD Inviti.
+  - [x] `tests/test_api_admin.py`: CRUD Alloggi.
+  - [x] `tests/test_api_admin.py`: Generazione link pubblico.
 
-- [ ] **Step 4: Public API & Auth**
-  - [ ] `tests/test_api_public.py`: Auth flow (code + token -> session).
-  - [ ] `tests/test_api_public.py`: RSVP flow (conferma, declino, opzioni).
-  - [ ] `tests/test_api_public.py`: Protezione sessione (tentativo accesso senza auth).
+- [x] **Step 4: Public API & Auth**
+  - [x] `tests/test_api_public.py`: Auth flow (code + token -> session).
+  - [x] `tests/test_api_public.py`: RSVP flow (conferma, declino, opzioni).
+  - [x] `tests/test_api_public.py`: Protezione sessione (tentativo accesso senza auth).
 
-- [ ] **Step 5: Algoritmo Assegnazione**
-  - [ ] `tests/test_assignment_logic.py`: Scenario base (1 invito, 1 stanza).
-  - [ ] `tests/test_assignment_logic.py`: Scenario complesso (gruppi affini, mix adulti/bambini).
-  - [ ] `tests/test_assignment_logic.py`: Gestione non-affinità.
+- [x] **Step 5: Algoritmo Assegnazione**
+  - [x] `tests/test_assignment_logic.py`: Scenario base (1 invito, 1 stanza).
+  - [x] `tests/test_assignment_logic.py`: Scenario complesso (gruppi affini, mix adulti/bambini).
+  - [x] `tests/test_assignment_logic.py`: Gestione non-affinità.
 
 ## Frontend User (`frontend-user/`)
 
