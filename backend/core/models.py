@@ -203,3 +203,59 @@ class Person(models.Model):
     class Meta:
         verbose_name = "Persona"
         verbose_name_plural = "Persone"
+
+# ---------------------------------------------
+# ANALYTICS MODELS
+# ---------------------------------------------
+
+class GuestInteraction(models.Model):
+    """Traccia singole interazioni dell'utente (Visit, Click, RSVP)"""
+    class EventType(models.TextChoices):
+        VISIT = 'visit', 'Visita Pagina'
+        CLICK_CTA = 'click_cta', 'Click CTA'
+        RSVP_SUBMIT = 'rsvp_submit', 'Invio RSVP'
+        RSVP_RESET = 'rsvp_reset', 'Reset RSVP'
+        
+    invitation = models.ForeignKey(Invitation, on_delete=models.CASCADE, related_name='interactions')
+    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Dettagli Tecnici
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    user_agent = models.TextField(null=True, blank=True)
+    device_type = models.CharField(max_length=50, null=True, blank=True, help_text="Mobile, Desktop, Tablet")
+    
+    # Geolocalizzazione (Popolabile se DB GeoIP disponibile)
+    geo_country = models.CharField(max_length=100, null=True, blank=True)
+    geo_city = models.CharField(max_length=100, null=True, blank=True)
+    
+    metadata = models.JSONField(default=dict, blank=True, help_text="Dati extra (es. button_id)")
+
+    def __str__(self):
+        return f"{self.invitation.code} - {self.event_type} - {self.timestamp}"
+    
+    class Meta:
+        verbose_name = "Interazione Ospite"
+        verbose_name_plural = "Interazioni Ospiti"
+        ordering = ['-timestamp']
+
+
+class GuestHeatmap(models.Model):
+    """Traccia movimenti del mouse per sessione"""
+    invitation = models.ForeignKey(Invitation, on_delete=models.CASCADE, related_name='heatmaps')
+    session_id = models.CharField(max_length=100, help_text="ID univoco sessione frontend")
+    timestamp = models.DateTimeField(auto_now_add=True)
+    
+    # Dati compressi: lista di [x, y, time_offset]
+    # Usiamo JSONField per flessibilità. In produzione ad alto traffico meglio TimeSeries DB.
+    mouse_data = models.JSONField(default=list)
+    
+    screen_width = models.IntegerField(default=0)
+    screen_height = models.IntegerField(default=0)
+    
+    def __str__(self):
+        return f"Heatmap {self.invitation.code} - {self.timestamp}"
+
+    class Meta:
+        verbose_name = "Heatmap Ospite"
+        verbose_name_plural = "Heatmaps Ospiti"
