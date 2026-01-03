@@ -4,7 +4,6 @@ import { authenticateInvitation } from '../services/api';
 import EnvelopeAnimation from '../components/EnvelopeAnimation';
 import LetterContent from '../components/LetterContent';
 import LoadingScreen from '../components/LoadingScreen';
-import ErrorScreen from '../components/ErrorScreen';
 import './InvitationPage.css';
 
 const InvitationPage = () => {
@@ -21,13 +20,13 @@ const InvitationPage = () => {
       const token = params.get('token');
 
       if (!code || !token) {
-        // Trigger global error modal instead of static screen for missing params
         const errorMsg = 'Link non valido. Mancano i parametri di autenticazione.';
         const customError = new Error(errorMsg);
-        customError.userMessage = errorMsg; // For simple display in Modal
-        window.dispatchEvent(new CustomEvent('api-error', { detail: customError }));
+        // Dispatch event AFTER a short delay to ensure listeners are ready/processing
+        setTimeout(() => {
+            window.dispatchEvent(new CustomEvent('api-error', { detail: customError }));
+        }, 100);
         
-        // Also keep local error to prevent further rendering of envelope
         setError(errorMsg); 
         setLoading(false);
         return;
@@ -39,15 +38,13 @@ const InvitationPage = () => {
         
         if (data.valid) {
           setInvitationData(data.invitation);
-          
           // Rimuovi parametri dall'URL per sicurezza
           window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-           // Should be handled by api.js global dispatcher, but if logic logic fails inside 200 OK:
+           // Should be handled by api.js global dispatcher, but fallback:
            throw new Error(data.message || 'Invito non valido');
         }
       } catch (err) {
-        // Error already dispatched by api.js safeFetch usually, but good to catch here just in case logic continued
         console.error('Errore autenticazione:', err);
         setError('Errore di connessione. Riprova più tardi.');
       } finally {
@@ -62,11 +59,12 @@ const InvitationPage = () => {
     return <LoadingScreen />;
   }
 
-  // Se c'è un errore, mostriamo comunque ErrorScreen come sfondo "vuoto" sotto la modale
-  // o semplicemente un div vuoto, la modale apparirà sopra.
+  // Se c'è un errore, mostriamo un container vuoto per lasciare spazio alla modale
   if (error) {
-    // Return empty div so modal is the only focus, OR keep ErrorScreen as fallback visual
-    return <div className="min-h-screen bg-gray-50" />; 
+    return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">
+        {/* Fallback visuale leggero se la modale fallisse */}
+        <p className="opacity-0">Errore caricamento invito</p>
+    </div>;
   }
 
   return (
