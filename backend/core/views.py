@@ -3,8 +3,11 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
-from .models import Invitation, GlobalConfig, Person
-from .serializers import InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer
+from .models import Invitation, GlobalConfig, Person, Accommodation
+from .serializers import InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, AccommodationSerializer
+import logging
+
+logger = logging.getLogger(__name__)
 
 class InvitationViewSet(viewsets.ModelViewSet):
     queryset = Invitation.objects.all().order_by('-created_at')
@@ -42,6 +45,136 @@ class GlobalConfigViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+class AccommodationViewSet(viewsets.ModelViewSet):
+    """CRUD completo per Alloggi"""
+    queryset = Accommodation.objects.all()
+    serializer_class = AccommodationSerializer
+
+    @action(detail=False, methods=['post'])
+    def auto_assign(self, request):
+        """
+        Algoritmo di assegnazione automatica invitati -> alloggi.
+        
+        Regole:
+        1. Solo invitati con accommodation_requested=True
+        2. Invitati affini hanno priorità nello stesso alloggio
+        3. Invitati non-affini NON possono mai coesistere
+        """
+        try:
+            # Reset assegnazioni precedenti (opzionale, configura via param)
+            if request.data.get('reset_previous', False):
+                Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
+                logger.info("Reset assegnazioni precedenti completato")
+
+            # Fetch invitati da processare
+            invitations = Invitation.objects.filter(
+                status=Invitation.Status.CONFIRMED,
+                accommodation_requested=True,
+                accommodation__isnull=True  # Solo non ancora assegnati
+            ).prefetch_related('guests', 'affinities', 'non_affinities')
+
+            # Fetch alloggi disponibili
+            accommodations = Accommodation.objects.prefetch_related('rooms').all()
+
+            assigned_count = 0
+            assignment_log = []
+
+            # Fase 1: Assegna gruppi affini insieme
+            for invitation in invitations:
+                if invitation.accommodation:
+                    continue  # Già assegnato in iterazione precedente
+
+                # Calcola capienza richiesta
+                adults = invitation.guests.filter(is_child=False).count()
+                children = invitation.guests.filter(is_child=True).count()
+
+                # Cerca affinità non ancora assegnate
+                affine_invitations = [invitation] + list(
+                    invitation.affinities.filter(
+                        status=Invitation.Status.CONFIRMED,
+                        accommodation_requested=True,
+                        accommodation__isnull=True
+                    )
+                )
+
+                # Verifica non-affinità (blocco)
+                non_affine_ids = set()
+                for inv in affine_invitations:
+                    non_affine_ids.update(inv.non_affinities.values_list('id', flat=True))
+
+                # Cerca alloggio compatibile
+                for acc in accommodations:
+                    # Check: nessun invitato non-affine già nell'alloggio
+                    existing = acc.assigned_invitations.all()
+                    if any(e.id in non_affine_ids for e in existing):
+                        continue
+
+                    # Check capienza
+                    total_adults = sum(i.guests.filter(is_child=False).count() for i in affine_invitations)
+                    total_children = sum(i.guests.filter(is_child=True).count() for i in affine_invitations)
+
+                    if acc.available_capacity() >= (total_adults + total_children):
+                        # Assegna gruppo
+                        for inv in affine_invitations:
+                            inv.accommodation = acc
+                            inv.save()
+                            assigned_count += 1
+                            assignment_log.append({
+                                'invitation': inv.name,
+                                'accommodation': acc.name,
+                                'group_type': 'affine'
+                            })
+                        logger.info(f"Gruppo affine assegnato a {acc.name}: {[i.name for i in affine_invitations]}")
+                        break
+
+            # Fase 2: Assegna invitati singoli rimasti
+            remaining = Invitation.objects.filter(
+                status=Invitation.Status.CONFIRMED,
+                accommodation_requested=True,
+                accommodation__isnull=True
+            )
+
+            for invitation in remaining:
+                adults = invitation.guests.filter(is_child=False).count()
+                children = invitation.guests.filter(is_child=True).count()
+                non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
+
+                for acc in accommodations:
+                    existing = acc.assigned_invitations.all()
+                    if any(e.id in non_affine_ids for e in existing):
+                        continue
+
+                    if acc.available_capacity() >= (adults + children):
+                        invitation.accommodation = acc
+                        invitation.save()
+                        assigned_count += 1
+                        assignment_log.append({
+                            'invitation': invitation.name,
+                            'accommodation': acc.name,
+                            'group_type': 'single'
+                        })
+                        logger.info(f"Invito singolo assegnato a {acc.name}: {invitation.name}")
+                        break
+
+            unassigned = Invitation.objects.filter(
+                status=Invitation.Status.CONFIRMED,
+                accommodation_requested=True,
+                accommodation__isnull=True
+            ).count()
+
+            return Response({
+                'success': True,
+                'assigned_count': assigned_count,
+                'unassigned_count': unassigned,
+                'assignment_log': assignment_log
+            }, status=status.HTTP_200_OK)
+
+        except Exception as e:
+            logger.error(f"Errore assegnazione alloggi: {str(e)}", exc_info=True)
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class DashboardStatsView(APIView):
     def get(self, request):
