@@ -5,6 +5,16 @@
 
 const API_BASE = '/api/public';
 
+// Generate or retrieve session ID for this tab session
+const getSessionId = () => {
+    let sid = sessionStorage.getItem('wedding_analytics_sid');
+    if (!sid) {
+        sid = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sessionStorage.setItem('wedding_analytics_sid', sid);
+    }
+    return sid;
+};
+
 /**
  * Recupera dati GeoIP dal client
  */
@@ -27,11 +37,17 @@ const fetchGeoLocation = async () => {
  */
 export const logInteraction = async (eventType, metadata = {}) => {
   try {
+    // Enrich metadata with Session ID
+    const enrichedMetadata = {
+        ...metadata,
+        session_id: getSessionId()
+    };
+
     // Se è la prima visita, arricchisci con GeoData
     if (eventType === 'view_letter' || eventType === 'visit') {
         const geoData = await fetchGeoLocation();
         if (geoData) {
-            metadata = { ...metadata, geo: geoData };
+            enrichedMetadata.geo = geoData;
         }
     }
 
@@ -39,7 +55,10 @@ export const logInteraction = async (eventType, metadata = {}) => {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ event_type: eventType, metadata }),
+      body: JSON.stringify({ 
+          event_type: eventType, 
+          metadata: enrichedMetadata 
+      }),
     });
   } catch (error) {
     // Fail silently per non disturbare l'utente
@@ -58,7 +77,8 @@ class HeatmapTracker {
     this.batchSize = 50; // Invia ogni 50 punti o all'unload
     this.throttleMs = 100; // Campiona ogni 100ms
     this.lastSampleTime = 0;
-    this.sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    // Use the same consistent session ID
+    this.sessionId = getSessionId();
   }
 
   start() {
