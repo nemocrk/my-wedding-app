@@ -5,7 +5,7 @@ import Dashboard from './pages/Dashboard';
 import InvitationList from './pages/InvitationList';
 import Configuration from './pages/Configuration';
 import AccommodationsPage from './pages/AccommodationsPage';
-import ErrorModal from './components/ErrorModal';
+import ErrorModal from './components/common/ErrorModal'; // Correct path
 import './App.css';
 
 function App() {
