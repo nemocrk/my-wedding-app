@@ -4,7 +4,7 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
-from .models import Invitation, GlobalConfig, Person, Accommodation, Room
+from .models import Invitation, GlobalConfig, Person, Accommodation, Room, GuestInteraction, GuestHeatmap
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
     AccommodationSerializer, PublicInvitationSerializer
@@ -201,6 +201,90 @@ class InvitationViewSet(viewsets.ModelViewSet):
             'token': token,
             'url': public_url
         })
+
+    @action(detail=True, methods=['get'])
+    def heatmaps(self, request, pk=None):
+        """Recupera le sessioni di heatmap per un dato invito"""
+        invitation = self.get_object()
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation).order_by('-timestamp')
+        data = [{
+            'id': h.id,
+            'session_id': h.session_id,
+            'timestamp': h.timestamp,
+            'mouse_data': h.mouse_data,
+            'screen_width': h.screen_width,
+            'screen_height': h.screen_height
+        } for h in heatmaps]
+        return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def interactions(self, request, pk=None):
+        """
+        Raggruppa interazioni e heatmap per session_id
+        Restituisce una lista di 'sessioni' con eventi cronologici
+        """
+        invitation = self.get_object()
+        
+        # Fetch all interactions
+        interactions = GuestInteraction.objects.filter(invitation=invitation).order_by('timestamp')
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation)
+        
+        # Group by Session ID (from metadata if available, or fallback to timestamp logic if needed)
+        # Assuming frontend sends 'session_id' in metadata for interactions
+        sessions_map = {}
+        
+        # Process Heatmaps first to establish base sessions
+        for hm in heatmaps:
+            sid = hm.session_id
+            if sid not in sessions_map:
+                sessions_map[sid] = {
+                    'session_id': sid,
+                    'start_time': hm.timestamp,
+                    'heatmap': {
+                        'id': hm.id,
+                        'mouse_data': hm.mouse_data,
+                        'screen_width': hm.screen_width,
+                        'screen_height': hm.screen_height
+                    },
+                    'events': [],
+                    'device_info': 'Unknown'
+                }
+
+        # Process Interactions
+        for evt in interactions:
+            # Try to match interaction to a session
+            # 1. Check explicit session_id in metadata
+            meta = evt.metadata or {}
+            sid = meta.get('session_id')
+            
+            # If no explicit session_id, we might create a 'Legacy/Unknown' session bucket 
+            # or try to match by close timestamp/IP if critical. For now, we group by 'unknown' if missing.
+            if not sid:
+                sid = f"unknown_{evt.ip_address}" 
+
+            if sid not in sessions_map:
+                sessions_map[sid] = {
+                    'session_id': sid,
+                    'start_time': evt.timestamp,
+                    'heatmap': None,
+                    'events': [],
+                    'device_info': f"{evt.device_type} ({evt.geo_country or '?'})"
+                }
+            
+            # Enrich device info if available and not set
+            if sessions_map[sid]['device_info'] == 'Unknown' or sessions_map[sid]['device_info'].startswith('Unknown'):
+                 sessions_map[sid]['device_info'] = f"{evt.device_type} ({evt.geo_country or '?'})"
+
+            sessions_map[sid]['events'].append({
+                'type': evt.event_type,
+                'timestamp': evt.timestamp,
+                'details': meta
+            })
+
+        # Sort sessions by start_time descending
+        sorted_sessions = sorted(sessions_map.values(), key=lambda x: x['start_time'], reverse=True)
+        
+        return Response(sorted_sessions)
 
 
 class GlobalConfigViewSet(viewsets.ViewSet):
