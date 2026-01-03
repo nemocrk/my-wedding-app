@@ -51,7 +51,7 @@ CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
 # ==============================================
 # Stage 3: Production
 # ==============================================
-FROM base as production
+FROM base AS production
 
 # Copia e installa le dipendenze Python + Gunicorn
 COPY requirements.txt /app/
