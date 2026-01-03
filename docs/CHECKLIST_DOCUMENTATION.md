@@ -9,15 +9,15 @@ Documentazione di alto livello già realizzata.
 - [x] **03-BACKEND.md**: Struttura Django, API endpoints principali.
 - [x] **04-FRONTEND.md**: Stack tecnologico Frontend User e Admin.
 
-## Fase 2: DevOps & Configurazione (Priorità Alta)
+## Fase 2: DevOps & Configurazione (Completato ✅)
 Documentare l'infrastruttura CI/CD, regole AI e configurazione server.
-- [ ] **05-DEVOPS.md**:
+- [x] **05-DEVOPS.md**:
     - Dettaglio `.github/copilot-instructions.md` (Regole per l'AI).
     - Analisi `.continue` (se presente configurazione specifica).
     - Configurazione Nginx dettagliata (differenze `public.conf` vs `intranet.conf`).
     - Spiegazione `docker-compose.yml` (Healthchecks, Volumes).
 
-## Fase 3: Backend Deep Dive
+## Fase 3: Backend Deep Dive (In Corso 🚧)
 Approfondimento del codice sorgente Python/Django.
 - [ ] **06-BACKEND-CORE.md**:
     - Analisi `backend/core/models.py` (Logica custom metodo `save`, segnali).
