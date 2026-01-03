@@ -1,9 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Login from './pages/Login';
+import Layout from './components/layout/Layout';
 import Dashboard from './pages/Dashboard';
 import InvitationList from './pages/InvitationList';
-import ProtectedRoute from './components/common/ProtectedRoute';
+import AccommodationsPage from './pages/AccommodationsPage';
+import Configuration from './pages/Configuration';
 import ErrorModal from './components/common/ErrorModal';
 import useApiErrorModal from './hooks/useApiErrorModal';
 import './App.css';
@@ -21,12 +22,12 @@ function App() {
         />
         
         <Routes>
-          <Route path="/login" element={<Login />} />
-          
-          <Route path="/" element={<ProtectedRoute />}>
+          <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="invitations" element={<InvitationList />} />
+            <Route path="accommodations" element={<AccommodationsPage />} />
+            <Route path="config" element={<Configuration />} />
           </Route>
         </Routes>
       </div>
