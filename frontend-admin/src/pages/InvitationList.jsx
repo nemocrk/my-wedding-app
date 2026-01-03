@@ -16,6 +16,7 @@ const InvitationList = () => {
 
   // Link generation state
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
+  const [openingPreviewFor, setOpeningPreviewFor] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
 
   const fetchInvitations = async () => {
@@ -89,6 +90,36 @@ const InvitationList = () => {
     } catch (error) {
       console.error("Error generating link", error);
       setGeneratingLinkFor(null);
+    }
+  };
+
+  const handleOpenPreview = async (invitationId) => {
+    if (openingPreviewFor === invitationId) return;
+
+    setOpeningPreviewFor(invitationId);
+
+    // Pre-apriamo la tab per evitare popup-blocker.
+    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
+
+    try {
+      const data = await api.generateInvitationLink(invitationId);
+      
+      // Cache breve: se l'utente vuole subito copiare dopo aver aperto, il dato è disponibile.
+      setGeneratedLink({ id: invitationId, url: data.url });
+
+      if (previewWindow) {
+        previewWindow.location.href = data.url;
+      } else {
+        // Fallback: se il browser blocca window.open
+        window.open(data.url, '_blank', 'noopener,noreferrer');
+      }
+    } catch (error) {
+      if (previewWindow) {
+        previewWindow.close();
+      }
+      console.error("Error opening preview", error);
+    } finally {
+      setOpeningPreviewFor(null);
     }
   };
 
@@ -242,7 +273,7 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {/* GENERATE LINK ACTION */}
+                        {/* COPY LINK ACTION */}
                         <div className="relative">
                           <button 
                             onClick={() => handleGenerateLink(invitation.id)}
@@ -266,15 +297,23 @@ const InvitationList = () => {
                           </button>
                         </div>
 
-                        <a 
-                          href={generatedLink?.id === invitation.id ? generatedLink.url : `http://localhost/?code=${invitation.code}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className={`p-1.5 rounded-md text-gray-400 hover:text-pink-600 hover:bg-pink-50 transition-colors ${!generatedLink?.id && invitation.id ? 'opacity-50 hover:opacity-100' : ''}`}
-                          title={generatedLink?.id === invitation.id ? "Apri Anteprima Sicura" : "Apri Anteprima (potrebbe richiedere token)"}
+                        {/* PREVIEW ACTION (always with token) */}
+                        <button
+                          onClick={() => handleOpenPreview(invitation.id)}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            openingPreviewFor === invitation.id
+                              ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                              : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'
+                          }`}
+                          title="Apri Anteprima Sicura"
+                          disabled={openingPreviewFor === invitation.id}
                         >
-                          <ExternalLink size={18} />
-                        </a>
+                          {openingPreviewFor === invitation.id ? (
+                            <Loader size={18} className="animate-spin" />
+                          ) : (
+                            <ExternalLink size={18} />
+                          )}
+                        </button>
 
                         <button 
                           onClick={() => handleEdit(invitation.id)}
