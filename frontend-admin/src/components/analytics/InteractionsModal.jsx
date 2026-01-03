@@ -16,6 +16,41 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   const containerRef = useRef(null);
   const iframeRef = useRef(null);
 
+  // Replay Events State (one-shot firing)
+  const replayEventsRef = useRef([]);
+  const replayFiredIndexRef = useRef(0);
+
+  const getIframeOrigin = () => {
+    try {
+      if (!publicLink) return window.location.origin;
+      return new URL(publicLink).origin;
+    } catch {
+      return window.location.origin;
+    }
+  };
+
+  const postToIframe = (message) => {
+    const targetOrigin = getIframeOrigin();
+    const win = iframeRef.current?.contentWindow;
+    if (!win) return;
+    win.postMessage(message, targetOrigin);
+  };
+
+  const resetIframeReplayState = () => {
+    postToIframe({ type: 'REPLAY_RESET' });
+  };
+
+  const dispatchReplayAction = (evt) => {
+    postToIframe({
+      type: 'REPLAY_ACTION',
+      payload: {
+        action: evt.type,
+        details: evt.details || {},
+        timestamp: evt.timestamp,
+      },
+    });
+  };
+
   // Load interactions and public link
   useEffect(() => {
     const init = async () => {
@@ -36,6 +71,33 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     };
     init();
   }, [invitationId]);
+
+  // Normalize events for replay (ms timeline)
+  useEffect(() => {
+    if (!selectedSession?.heatmap) return;
+    const mouseData = selectedSession.heatmap.mouse_data;
+    if (!mouseData || mouseData.length < 2) return;
+
+    const startTime = mouseData[0].t;
+    const endTime = mouseData[mouseData.length - 1].t;
+
+    const normalized = (selectedSession.events || [])
+      .map((evt, idx) => ({
+        ...evt,
+        _idx: idx,
+        t_ms: new Date(evt.timestamp).getTime(),
+      }))
+      .filter((evt) => Number.isFinite(evt.t_ms))
+      // keep only events inside heatmap window (optional but cleaner)
+      .filter((evt) => evt.t_ms >= startTime && evt.t_ms <= endTime)
+      .sort((a, b) => a.t_ms - b.t_ms);
+
+    replayEventsRef.current = normalized;
+    replayFiredIndexRef.current = 0;
+    // Reset iframe replay state when session changes
+    resetIframeReplayState();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSession]);
 
   // Handle Playback Logic
   useEffect(() => {
@@ -70,6 +132,16 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       setProgress(newProgress);
       drawCanvas(newProgress);
 
+      // Fire events whose t_ms <= current heatmap time
+      const nowHeatmapMs = startTime + ((endTime - startTime) * newProgress);
+      const events = replayEventsRef.current || [];
+      while (replayFiredIndexRef.current < events.length) {
+        const evt = events[replayFiredIndexRef.current];
+        if (evt.t_ms > nowHeatmapMs) break;
+        dispatchReplayAction(evt);
+        replayFiredIndexRef.current += 1;
+      }
+
       if (newProgress < 1 && isPlaying) {
         animationRef.current = requestAnimationFrame(animate);
       }
@@ -87,6 +159,30 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   useEffect(() => {
       if (selectedSession?.heatmap) drawCanvas(progress);
   }, [progress, selectedSession]);
+
+  const seekReplay = (newProg) => {
+    if (!selectedSession?.heatmap) return;
+    const mouseData = selectedSession.heatmap.mouse_data;
+    if (!mouseData || mouseData.length < 2) return;
+
+    const startTime = mouseData[0].t;
+    const endTime = mouseData[mouseData.length - 1].t;
+    const targetMs = startTime + ((endTime - startTime) * newProg);
+
+    // Reset and fast-forward events to target
+    resetIframeReplayState();
+    replayFiredIndexRef.current = 0;
+
+    const events = replayEventsRef.current || [];
+    while (replayFiredIndexRef.current < events.length) {
+      const evt = events[replayFiredIndexRef.current];
+      if (evt.t_ms > targetMs) break;
+      dispatchReplayAction(evt);
+      replayFiredIndexRef.current += 1;
+    }
+
+    setProgress(newProg);
+  };
 
   const drawCanvas = (currentProgress) => {
     const canvas = canvasRef.current;
@@ -320,7 +416,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                              {/* Controls Overlay (Floating) */}
                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 border border-gray-700">
                                  <button 
-                                    onClick={() => { setProgress(0); setIsPlaying(true); }}
+                                    onClick={() => { seekReplay(0); setIsPlaying(true); }}
                                     className="p-1 hover:text-pink-400 text-white transition-colors"
                                     title="Riavvia"
                                  >
@@ -337,7 +433,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           const x = e.clientX - rect.left;
                                           const newProg = Math.max(0, Math.min(1, x / rect.width));
-                                          setProgress(newProg);
+                                          seekReplay(newProg);
                                       }}
                                  >
                                      <div 
