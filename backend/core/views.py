@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
+from django.contrib.sessions.models import Session
 from .models import Invitation, GlobalConfig, Person, Accommodation, Room
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
@@ -12,21 +13,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-class PublicInvitationView(APIView):
+# ========================================
+# PUBLIC API (Internet - Session Based)
+# ========================================
+
+class PublicInvitationAuthView(APIView):
     """
-    Endpoint pubblico per accesso inviti da parte degli ospiti.
-    Richiede: code + token di verifica.
+    Endpoint INIZIALE per autenticazione invito pubblico.
+    Valida code + token e crea sessione sicura.
     """
-    def get(self, request):
-        code = request.query_params.get('code')
-        token = request.query_params.get('token')
+    def post(self, request):
+        code = request.data.get('code')
+        token = request.data.get('token')
         
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
         if not code or not token:
             return Response({
                 'valid': False,
-                'message': config.unauthorized_message
+                'message': 'Parametri mancanti: code e token richiesti.'
             }, status=status.HTTP_400_BAD_REQUEST)
         
         try:
@@ -34,12 +39,21 @@ class PublicInvitationView(APIView):
             
             # Verifica token
             if not invitation.verify_token(token, config.invitation_link_secret):
+                logger.warning(f"Token non valido per invito {code}")
                 return Response({
                     'valid': False,
                     'message': config.unauthorized_message
                 }, status=status.HTTP_403_FORBIDDEN)
             
-            # Token valido: serializza invito
+            # Token valido: salva in sessione
+            request.session['invitation_code'] = code
+            request.session['invitation_token'] = token
+            request.session['invitation_id'] = invitation.id
+            request.session.save()
+            
+            logger.info(f"Sessione creata per invito {code} (ID: {invitation.id})")
+            
+            # Serializza invito
             serializer = PublicInvitationSerializer(invitation, context={'config': config})
             return Response({
                 'valid': True,
@@ -53,7 +67,103 @@ class PublicInvitationView(APIView):
             }, status=status.HTTP_404_NOT_FOUND)
 
 
+class PublicInvitationView(APIView):
+    """
+    Endpoint per recuperare dettagli invito (richiede sessione attiva).
+    """
+    def get(self, request):
+        # Verifica sessione
+        invitation_id = request.session.get('invitation_id')
+        stored_code = request.session.get('invitation_code')
+        stored_token = request.session.get('invitation_token')
+        
+        if not all([invitation_id, stored_code, stored_token]):
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+            return Response({
+                'valid': False,
+                'message': 'Sessione non valida. Ricarica la pagina dal link originale.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            invitation = Invitation.objects.get(id=invitation_id, code=stored_code)
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+            
+            # Double-check token
+            if not invitation.verify_token(stored_token, config.invitation_link_secret):
+                request.session.flush()  # Invalida sessione
+                return Response({
+                    'valid': False,
+                    'message': config.unauthorized_message
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            serializer = PublicInvitationSerializer(invitation, context={'config': config})
+            return Response({
+                'valid': True,
+                'invitation': serializer.data
+            })
+            
+        except Invitation.DoesNotExist:
+            request.session.flush()
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+            return Response({
+                'valid': False,
+                'message': config.unauthorized_message
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+class PublicRSVPView(APIView):
+    """
+    Endpoint per conferma/declino partecipazione (richiede sessione attiva).
+    """
+    def post(self, request):
+        invitation_id = request.session.get('invitation_id')
+        
+        if not invitation_id:
+            return Response({
+                'success': False,
+                'message': 'Sessione scaduta.'
+            }, status=status.HTTP_401_UNAUTHORIZED)
+        
+        try:
+            invitation = Invitation.objects.get(id=invitation_id)
+            
+            # Aggiorna stato
+            new_status = request.data.get('status')  # 'confirmed' | 'declined'
+            if new_status not in ['confirmed', 'declined']:
+                return Response({
+                    'success': False,
+                    'message': 'Stato non valido.'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            invitation.status = new_status
+            
+            # Opzioni logistiche (solo se confermato)
+            if new_status == 'confirmed':
+                invitation.accommodation_requested = request.data.get('accommodation_requested', False)
+                invitation.transfer_requested = request.data.get('transfer_requested', False)
+            
+            invitation.save()
+            
+            logger.info(f"RSVP aggiornato per invito {invitation.code}: {new_status}")
+            
+            return Response({
+                'success': True,
+                'message': 'Risposta registrata con successo!'
+            })
+            
+        except Invitation.DoesNotExist:
+            return Response({
+                'success': False,
+                'message': 'Invito non trovato.'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+
+# ========================================
+# ADMIN API (Intranet Only)
+# ========================================
+
 class InvitationViewSet(viewsets.ModelViewSet):
+    """CRUD completo inviti (solo admin)"""
     queryset = Invitation.objects.all().order_by('-created_at')
     
     def get_serializer_class(self):
@@ -81,9 +191,9 @@ class InvitationViewSet(viewsets.ModelViewSet):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         token = invitation.generate_verification_token(config.invitation_link_secret)
         
-        # Costruisci URL pubblico
-        base_url = request.build_absolute_uri('/').rstrip('/')
-        public_url = f"{base_url}?code={invitation.code}&token={token}"
+        # Costruisci URL pubblico (frontend-user)
+        frontend_url = os.environ.get('FRONTEND_PUBLIC_URL', 'http://localhost')
+        public_url = f"{frontend_url}?code={invitation.code}&token={token}"
         
         return Response({
             'code': invitation.code,
@@ -93,6 +203,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
 
 
 class GlobalConfigViewSet(viewsets.ViewSet):
+    """Configurazione globale (solo admin)"""
     def list(self, request):
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config)
@@ -106,8 +217,9 @@ class GlobalConfigViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+
 class AccommodationViewSet(viewsets.ModelViewSet):
-    """CRUD completo per Alloggi"""
+    """CRUD completo per Alloggi (solo admin)"""
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
@@ -115,15 +227,6 @@ class AccommodationViewSet(viewsets.ModelViewSet):
     def auto_assign(self, request):
         """
         Algoritmo di assegnazione automatica GRANULARE: Person -> Room.
-        
-        Regole:
-        1. Solo invitati CONFERMATI con accommodation_requested=True
-        2. Invitati affini hanno priorità nella stessa stanza/struttura
-        3. Invitati non-affini NON possono coesistere nella stessa stanza
-        4. CAPACITY LOGIC:
-           - Un BAMBINO può occupare un posto ADULTO
-           - Un ADULTO NON può occupare un posto BAMBINO
-        5. Assegnazione a livello di Person (ogni persona viene assegnata a una Room specifica)
         """
         try:
             # Reset assegnazioni precedenti
@@ -136,7 +239,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             invitations = Invitation.objects.filter(
                 status=Invitation.Status.CONFIRMED,
                 accommodation_requested=True,
-                guests__assigned_room__isnull=True  # Almeno un guest non assegnato
+                guests__assigned_room__isnull=True
             ).distinct().prefetch_related('guests', 'affinities', 'non_affinities')
 
             # Fetch alloggi con stanze
@@ -146,23 +249,13 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             assignment_log = []
 
             def can_fit_in_room(room, person):
-                """
-                Verifica se una persona può essere assegnata a una stanza.
-                Considera la logica adulti/bambini.
-                """
                 slots = room.available_slots()
-                
                 if person.is_child:
-                    # Bambino: può usare posti bambini o adulti
                     return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
                 else:
-                    # Adulto: solo posti adulti
                     return slots['adult_slots_free'] > 0
 
             def has_non_affinity_in_room(room, invitation):
-                """
-                Verifica se nella stanza c'è già un invitato non-affine.
-                """
                 non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
                 room_guests = room.assigned_guests.all()
                 for guest in room_guests:
@@ -171,43 +264,28 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 return False
 
             def assign_group_to_accommodation(group_invitations, accommodation):
-                """
-                Assegna un gruppo di invitati affini alle stanze di un alloggio.
-                Cerca di mantenerli vicini (stessa stanza se possibile).
-                """
                 nonlocal assigned_count, assignment_log
                 
-                # Raccogli tutte le persone del gruppo
                 all_persons = []
                 for inv in group_invitations:
                     all_persons.extend(inv.guests.filter(assigned_room__isnull=True))
 
-                # Verifica non-affinità
-                non_affine_ids = set()
-                for inv in group_invitations:
-                    non_affine_ids.update(inv.non_affinities.values_list('id', flat=True))
-
-                # Ordina stanze per capienza (più grandi prima)
                 rooms = sorted(
                     accommodation.rooms.all(),
                     key=lambda r: r.total_capacity(),
                     reverse=True
                 )
 
-                # Prova ad assegnare tutte le persone
                 for person in all_persons:
                     assigned = False
                     for room in rooms:
-                        # Check non-affinità
                         if has_non_affinity_in_room(room, person.invitation):
                             continue
                         
-                        # Check capienza
                         if can_fit_in_room(room, person):
                             person.assigned_room = room
                             person.save()
                             
-                            # Aggiorna accommodation dell'invito (se non già fatto)
                             if not person.invitation.accommodation:
                                 person.invitation.accommodation = accommodation
                                 person.invitation.save()
@@ -223,7 +301,6 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                             break
                     
                     if not assigned:
-                        # Non c'è spazio per questa persona
                         logger.warning(f"Impossibile assegnare {person} dell'invito {person.invitation.name}")
                         return False
                 
@@ -236,7 +313,6 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 if invitation.id in processed_invitations:
                     continue
 
-                # Cerca affinità non ancora assegnate
                 affine_invitations = [invitation] + list(
                     invitation.affinities.filter(
                         status=Invitation.Status.CONFIRMED,
@@ -245,10 +321,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     ).distinct()
                 )
 
-                # Cerca alloggio con capienza sufficiente
                 for acc in accommodations:
                     if assign_group_to_accommodation(affine_invitations, acc):
-                        # Successo
                         for inv in affine_invitations:
                             processed_invitations.add(inv.id)
                         logger.info(f"Gruppo affine assegnato a {acc.name}: {[i.name for i in affine_invitations]}")
@@ -267,7 +341,6 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         logger.info(f"Invito singolo assegnato a {acc.name}: {invitation.name}")
                         break
 
-            # Conta non assegnati
             unassigned_persons = Person.objects.filter(
                 invitation__status=Invitation.Status.CONFIRMED,
                 invitation__accommodation_requested=True,
@@ -288,11 +361,12 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+
 class DashboardStatsView(APIView):
+    """Statistiche dashboard (solo admin)"""
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
-        # 1. GUESTS
         confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
         pending_invitations = Invitation.objects.filter(status=Invitation.Status.PENDING)
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
@@ -315,7 +389,6 @@ class DashboardStatsView(APIView):
             'children_declined': children_declined,
         }
 
-        # 2. LOGISTICS (Confirmed)
         acc_confirmed_adults = 0
         acc_confirmed_children = 0
         trans_confirmed = 0
@@ -331,7 +404,6 @@ class DashboardStatsView(APIView):
             if inv.transfer_requested:
                 trans_confirmed += (inv_adults + inv_children)
 
-        # 3. FINANCIALS
         def calculate_cost(adults, children, acc_adults, acc_children, transfers):
             total = 0
             total += float(adults) * float(config.price_adult_meal)
@@ -341,14 +413,12 @@ class DashboardStatsView(APIView):
             total += float(transfers) * float(config.price_transfer)
             return total
 
-        # Costo Confermato
         cost_confirmed = calculate_cost(
             adults_confirmed, children_confirmed,
             acc_confirmed_adults, acc_confirmed_children,
             trans_confirmed
         )
 
-        # Costo Ipotizzato (Confermato + Pending)
         est_acc_adults = acc_confirmed_adults
         est_acc_children = acc_confirmed_children
         est_trans = trans_confirmed
@@ -390,3 +460,6 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
+
+
+import os  # Aggiunto per FRONTEND_PUBLIC_URL
