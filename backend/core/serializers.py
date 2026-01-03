@@ -24,6 +24,44 @@ class PersonSerializer(serializers.ModelSerializer):
     def get_assigned_room_number(self, obj):
         return obj.assigned_room.room_number if obj.assigned_room else None
 
+class PublicPersonSerializer(serializers.ModelSerializer):
+    """Serializer ridotto per visualizzazione pubblica (solo nome)"""
+    class Meta:
+        model = Person
+        fields = ['first_name', 'last_name', 'is_child']
+
+class PublicInvitationSerializer(serializers.ModelSerializer):
+    """Serializer per endpoint pubblico con lettera renderizzata"""
+    guests = PublicPersonSerializer(many=True, read_only=True)
+    letter_content = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invitation
+        fields = [
+            'name', 'guests', 'letter_content',
+            'accommodation_offered', 'transfer_offered', 'status'
+        ]
+
+    def get_letter_content(self, obj):
+        """Renderizza il template della lettera con placeholder sostituiti"""
+        config = self.context.get('config')
+        if not config:
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        
+        template = config.letter_text
+        
+        # Genera lista nomi ospiti
+        guest_names = ', '.join([
+            f"{g.first_name} {g.last_name or ''}" for g in obj.guests.all()
+        ])
+        
+        # Sostituzioni placeholder
+        rendered = template.replace('{guest_names}', guest_names)
+        rendered = rendered.replace('{family_name}', obj.name)
+        rendered = rendered.replace('{code}', obj.code)
+        
+        return rendered
+
 class RoomDetailSerializer(serializers.ModelSerializer):
     """Serializer completo per stanze con ospiti assegnati"""
     assigned_guests = PersonSerializer(many=True, read_only=True)
