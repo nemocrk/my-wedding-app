@@ -2,8 +2,8 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import Sidebar from './components/layout/Sidebar';
 import Dashboard from './pages/Dashboard';
-import InvitationsPage from './pages/InvitationsPage';
-import ConfigPage from './pages/ConfigPage';
+import InvitationList from './pages/InvitationList';
+import Configuration from './pages/Configuration';
 import AccommodationsPage from './pages/AccommodationsPage';
 import './App.css';
 
@@ -17,9 +17,9 @@ function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/invitations" element={<InvitationsPage />} />
+              <Route path="/invitations" element={<InvitationList />} />
               <Route path="/accommodations" element={<AccommodationsPage />} />
-              <Route path="/config" element={<ConfigPage />} />
+              <Route path="/config" element={<Configuration />} />
             </Routes>
           </main>
         </div>
