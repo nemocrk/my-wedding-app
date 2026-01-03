@@ -39,8 +39,8 @@ RUN apk add --no-cache wget
 # Copia i file compilati dallo stage di build
 COPY --from=build /app/dist /usr/share/nginx/html
 
-# Copia configurazione nginx custom
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copia configurazione nginx custom (Main config overwrite)
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Crea utente non-root (nginx già usa nginx user)
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
