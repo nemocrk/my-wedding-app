@@ -1,10 +1,12 @@
 import pytest
-from core.models import Invitation, Person
+from core.models import Invitation, Person, Accommodation, Room
 
 @pytest.mark.django_db
 class TestAssignmentLogic:
     def test_basic_assignment(self, api_client, accommodation_with_rooms, invitation_factory):
-        # 1 Invitation, 2 Adults -> Should fit in Room 101
+        # 1 Invitation, 2 Adults -> Should fit in Room 102 (Largest room picked first)
+        # Room 102: 2A + 1C (Total 3)
+        # Room 101: 2A + 0C (Total 2)
         inv = invitation_factory("assign-1", "Assign 1", [
             {'first_name': 'A', 'is_child': False},
             {'first_name': 'B', 'is_child': False}
@@ -19,10 +21,15 @@ class TestAssignmentLogic:
         
         inv.refresh_from_db()
         assert inv.accommodation == accommodation_with_rooms
-        assert inv.guests.first().assigned_room.room_number == "101"
+        # Expect 102 because logic sorts by capacity desc
+        assert inv.guests.first().assigned_room.room_number == "102"
 
-    def test_capacity_overflow(self, api_client, accommodation_with_rooms, invitation_factory):
-        # 3 Adults -> Should not fit in any room (max 2 adults per room)
+    def test_capacity_overflow(self, api_client, invitation_factory):
+        # Create a small accommodation with ONLY 1 room of 2 person max
+        small_acc = Accommodation.objects.create(name="Tiny House", address="Tiny Lane")
+        Room.objects.create(accommodation=small_acc, room_number="T1", capacity_adults=2, capacity_children=0)
+        
+        # 3 Adults -> Should NOT fit in a 2-person room
         inv = invitation_factory("assign-fail", "Assign Fail", [
             {'first_name': 'A', 'is_child': False},
             {'first_name': 'B', 'is_child': False},
