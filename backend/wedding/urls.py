@@ -5,7 +5,8 @@ from core.views import (
     # Admin Views
     InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet,
     # Public Views
-    PublicInvitationAuthView, PublicInvitationView, PublicRSVPView
+    PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
+    PublicLogInteractionView, PublicLogHeatmapView
 )
 from django.http import HttpResponse
 
@@ -51,4 +52,8 @@ urlpatterns = [
     
     # 3. RSVP - Conferma/Declino (richiede sessione attiva)
     path('api/public/rsvp/', PublicRSVPView.as_view(), name='public-rsvp'),
+    
+    # 4. Analytics & Tracking
+    path('api/public/log-interaction/', PublicLogInteractionView.as_view(), name='public-log-interaction'),
+    path('api/public/log-heatmap/', PublicLogHeatmapView.as_view(), name='public-log-heatmap'),
 ]
