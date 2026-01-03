@@ -17,12 +17,12 @@ Documentare l'infrastruttura CI/CD, regole AI e configurazione server.
     - Configurazione Nginx dettagliata (differenze `public.conf` vs `intranet.conf`).
     - Spiegazione `docker-compose.yml` (Healthchecks, Volumes).
 
-## Fase 3: Backend Deep Dive (In Corso 🚧)
+## Fase 3: Backend Deep Dive (Completato ✅)
 Approfondimento del codice sorgente Python/Django.
-- [ ] **06-BACKEND-CORE.md**:
+- [x] **06-BACKEND-CORE.md**:
     - Analisi `backend/core/models.py` (Logica custom metodo `save`, segnali).
     - Analisi `backend/core/admin.py` (Customizzazioni pannello admin).
-- [ ] **07-BACKEND-API.md**:
+- [x] **07-BACKEND-API.md**:
     - Dettaglio `backend/api/serializers.py` (Validazione dati).
     - Dettaglio `backend/api/views` (Logica ViewSets, Permissions).
     - Autenticazione custom (HMAC, Session).
