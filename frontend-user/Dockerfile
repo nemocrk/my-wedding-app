@@ -37,7 +37,7 @@ FROM nginx:alpine AS production
 RUN apk add --no-cache wget
 
 # Copia i file compilati dallo stage di build
-COPY --from=build /app/build /usr/share/nginx/html
+COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copia configurazione nginx custom
 COPY nginx.conf /etc/nginx/conf.d/default.conf
@@ -73,4 +73,4 @@ COPY . .
 EXPOSE 3000
 
 # Comando per avviare dev server con hot-reload
-CMD ["npm", "start"]
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "3000"]
