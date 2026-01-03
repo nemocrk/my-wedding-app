@@ -15,7 +15,7 @@ def health_check(request):
 # ========================================
 # ADMIN ROUTER (Intranet Only)
 # ========================================
-admin_router = DefaultRouter()
+admin_router = DefaultRouter(trailing_slash=True)  # Forza trailing slash
 admin_router.register(r'invitations', InvitationViewSet, basename='admin-invitation')
 admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-accommodation')
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
