@@ -1,5 +1,5 @@
 import React from 'react';
-import { Trash2, Users, Home } from 'lucide-react';
+import { Trash2, Users, Home, User, Baby } from 'lucide-react';
 
 const AccommodationList = ({ accommodations, onDelete, onAutoAssign }) => {
     
@@ -59,16 +59,46 @@ const AccommodationList = ({ accommodations, onDelete, onAutoAssign }) => {
                             </div>
                         </div>
 
-                        {/* Rooms Grid */}
-                        <div className="bg-gray-50 rounded-lg p-4">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Stanze Configurate</h4>
-                            <div className="flex flex-wrap gap-2">
-                                {acc.rooms.map(room => (
-                                    <span key={room.id} className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white border border-gray-200 text-gray-800 shadow-sm">
-                                        <span className="font-bold mr-1">{room.room_number}</span>
-                                        <span className="text-gray-500">(A:{room.capacity_adults} B:{room.capacity_children})</span>
-                                    </span>
-                                ))}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Rooms Grid */}
+                            <div className="bg-gray-50 rounded-lg p-4">
+                                <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Stanze Configurate</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {acc.rooms.map(room => (
+                                        <span key={room.id} className="inline-flex items-center px-2.5 py-0.5 rounded text-xs font-medium bg-white border border-gray-200 text-gray-800 shadow-sm">
+                                            <span className="font-bold mr-1">{room.room_number}</span>
+                                            <span className="text-gray-500">(A:{room.capacity_adults} B:{room.capacity_children})</span>
+                                        </span>
+                                    ))}
+                                </div>
+                            </div>
+
+                            {/* Assigned Guests List */}
+                            <div className="bg-blue-50 rounded-lg p-4">
+                                <h4 className="text-xs font-bold text-blue-700 uppercase tracking-wider mb-3">Ospiti Assegnati</h4>
+                                {acc.assigned_invitations && acc.assigned_invitations.length > 0 ? (
+                                    <ul className="space-y-2">
+                                        {acc.assigned_invitations.map(inv => (
+                                            <li key={inv.id} className="flex justify-between items-center bg-white p-2 rounded border border-blue-100 shadow-sm">
+                                                <span className="text-sm font-medium text-gray-800 truncate" title={inv.name}>
+                                                    {inv.name}
+                                                </span>
+                                                <div className="flex gap-2 text-xs text-gray-500 shrink-0">
+                                                    <span className="flex items-center" title="Adulti">
+                                                        <User size={12} className="mr-0.5" /> {inv.adults_count}
+                                                    </span>
+                                                    {inv.children_count > 0 && (
+                                                        <span className="flex items-center" title="Bambini">
+                                                            <Baby size={12} className="mr-0.5" /> {inv.children_count}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className="text-sm text-blue-400 italic">Nessun ospite assegnato a questa struttura.</p>
+                                )}
                             </div>
                         </div>
                     </div>
