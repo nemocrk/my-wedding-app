@@ -1,4 +1,4 @@
-const API_URL = import.meta.env.REACT_APP_API_URL || 'http://localhost:8080/api';
+const API_URL = import.meta.env.REACT_APP_API_URL || '/api';
 
 const handleResponse = async (response) => {
     if (!response.ok) {
