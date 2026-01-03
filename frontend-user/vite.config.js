@@ -11,6 +11,29 @@ export default defineConfig({
       '/api': {
         target: 'http://backend:8000',
         changeOrigin: true,
+        // Error handling robusto per il proxy
+        configure: (proxy, options) => {
+          proxy.on('error', (err, req, res) => {
+            console.error('Proxy Error:', err);
+            
+            // Se la risposta non è stata ancora inviata
+            if (!res.headersSent) {
+              res.writeHead(502, {
+                'Content-Type': 'application/json',
+              });
+              
+              const errorResponse = {
+                error: 'Bad Gateway',
+                message: `Proxy connection failed: ${err.message}`,
+                code: err.code,
+                path: req.url,
+                timestamp: new Date().toISOString()
+              };
+              
+              res.end(JSON.stringify(errorResponse));
+            }
+          });
+        }
       },
     },
   },
