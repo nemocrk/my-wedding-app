@@ -6,12 +6,35 @@
 const API_BASE = '/api/public';
 
 /**
+ * Recupera dati GeoIP dal client
+ */
+const fetchGeoLocation = async () => {
+    try {
+        const response = await fetch('https://ipapi.co/json/');
+        if (response.ok) {
+            return await response.json();
+        }
+    } catch (error) {
+        console.warn('Geo fetch failed', error);
+    }
+    return null;
+};
+
+/**
  * Invia un log di interazione generico
  * @param {string} eventType - Tipo di evento (es. 'click_cta', 'rsvp_reset')
  * @param {object} metadata - Dati aggiuntivi opzionali
  */
 export const logInteraction = async (eventType, metadata = {}) => {
   try {
+    // Se è la prima visita, arricchisci con GeoData
+    if (eventType === 'view_letter' || eventType === 'visit') {
+        const geoData = await fetchGeoLocation();
+        if (geoData) {
+            metadata = { ...metadata, geo: geoData };
+        }
+    }
+
     await fetch(`${API_BASE}/log-interaction/`, {
       method: 'POST',
       credentials: 'include',
@@ -91,7 +114,6 @@ class HeatmapTracker {
     const url = `${API_BASE}/log-heatmap/`;
     
     // Use simple fetch for reliability within component lifecycle
-    // (navigator.sendBeacon requires different header handling often problematic with JSON + CSRF)
     try {
       await fetch(url, {
         method: 'POST',
