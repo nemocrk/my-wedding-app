@@ -8,6 +8,7 @@ __pycache__/
 venv/
 .env
 db.sqlite3
+**/.venv/**
 
 # Node / React
 node_modules/
@@ -18,3 +19,4 @@ dist/
 # Docker
 .docker_data/
 postgres_data/
+
