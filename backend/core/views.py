@@ -10,6 +10,7 @@ from .serializers import (
     AccommodationSerializer, PublicInvitationSerializer
 )
 import logging
+import os
 
 logger = logging.getLogger(__name__)
 
@@ -223,7 +224,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
-    @action(detail=False, methods=['post'])
+    # CRITICAL FIX: explicitly set url_path to match kebab-case from frontend
+    @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
         """
         Algoritmo di assegnazione automatica GRANULARE: Person -> Room.
@@ -460,6 +462,3 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
-
-
-import os  # Aggiunto per FRONTEND_PUBLIC_URL
