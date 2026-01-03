@@ -27,9 +27,9 @@ Approfondimento del codice sorgente Python/Django.
     - Dettaglio `backend/api/views` (Logica ViewSets, Permissions).
     - Autenticazione custom (HMAC, Session).
 
-## Fase 4: Frontend User (Dettaglio Componenti)
+## Fase 4: Frontend User (Completato ✅)
 Documentazione specifica per l'app React pubblica.
-- [ ] **08-FRONTEND-USER-COMPONENTS.md**:
+- [x] **08-FRONTEND-USER-COMPONENTS.md**:
     - Struttura `src/components` (Envelope, RSVPForm).
     - Gestione Stato (`src/hooks` o Context).
     - Routing e Pagine (`src/pages`).
