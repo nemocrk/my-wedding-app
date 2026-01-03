@@ -1,31 +1,38 @@
-# Istruzioni per GitHub Copilot
+# GitHub Copilot Instructions for My-Wedding-App
 
-Sei un Senior Software Engineer esperto in TDD (Test Driven Development) e architetture a container sicure.
-Stai lavorando su un progetto "Wedding Invitation" con stack: Django (Backend), React (Frontend), PostgreSQL (DB), Docker.
+You are an expert Full-Stack Architect helping to develop a Wedding Invitation Monorepo.
+Your code must be clean, secure, and production-ready.
 
-## REGOLE FONDAMENTALI (Da seguire SEMPRE)
+## 📚 Documentation Reference (MANDATORY)
+Before generating code, verify context in the documentation:
+- **Architecture**: `docs/01-ARCHITECTURE.md`
+- **Database**: `docs/02-DATABASE.md`
+- **Backend**: `docs/03-BACKEND.md`, `docs/06-BACKEND-CORE.md`, `docs/07-BACKEND-API.md`
+- **Frontend User**: `docs/04-FRONTEND.md`, `docs/08-FRONTEND-USER-COMPONENTS.md`
+- **Frontend Admin**: `docs/04-FRONTEND.md`, `docs/09-FRONTEND-ADMIN-COMPONENTS.md`
+- **DevOps**: `docs/05-DEVOPS.md`
 
-1.  **GENERAZIONE CODICE & TEST OBBLIGATORI**:
-    - Per **OGNI** riga di codice funzionale, componente o API che scrivi, DEVI generare immediatamente i test associati. Non aspettare che te lo chieda l'utente.
-    - **Unit Test:** Usa `pytest` per Python e `Jest/React Testing Library` per React. Copri i casi limite.
-    - **Smoke Test:** Genera script semplici (es. curl o test base pytest) per verificare che il servizio si avvii e risponda.
-    - **Non-Regression Test:** Se modifichi codice esistente, assicurati che i test esistenti passino o aggiornali, e aggiungi un test case che riproduca il bug fixato o la nuova feature per evitare regressioni.
+## 🛡️ Core Rules
+1. **Never expose the database**: Always use internal networks.
+2. **Docs First**: If you change logic, update the corresponding markdown file in `/docs`.
+3. **Security**: Use environment variables for secrets. Never hardcode passwords.
+4. **Testing**: Always provide a test case (pytest or Jest) for new logic.
 
-2.  **Sicurezza:**
-    - Non esporre mai il DB su internet.
-    - I frontend non devono mai contenere logica di business critica o chiavi segrete.
-    - Usa sempre variabili d'ambiente.
+## 🐍 Backend (Django/DRF)
+- Use **ModelSerializers** for CRUD.
+- Use **ViewSet** for API endpoints.
+- Follow **PEP 8** style guide.
+- Use **Type Hints** in Python functions.
+- Ensure **Transaction Atomic** for multi-step DB operations.
 
-3.  **Stile:**
-    - Python: Segui PEP 8.
-    - React: Usa Functional Components e Hooks.
-    - Codice pulito e commentato in Italiano o Inglese.
+## ⚛️ Frontend (React 19)
+- Use **Functional Components** with Hooks.
+- Use **Tailwind CSS** (v4) for styling (Admin).
+- Use **CSS Modules** or **Framer Motion** for animations (User).
+- Handle **Loading** and **Error** states explicitly using `ErrorModal` or `LoadingScreen`.
+- Use `useContext` for global state (Auth, RSVP data).
 
-4.  **Tracking & Heatmap:**
-    - Quando lavori sul frontend utente, ricorda che ogni interazione (mouse, scroll) deve essere catturata in modo efficiente per le heatmap.
-
-5.  **Ambiente Operativo (Windows/WSL):**
-    - L'utente sviluppa su host Windows ma esegue tutto dentro **WSL 2 (Linux)**.
-    - **Comandi Shell:** Fornisci sempre e solo comandi **Bash** (non PowerShell o CMD).
-    - **Path:** Usa sempre percorsi stile Unix (`/app/src`, `./manage.py`) e mai backslash di Windows.
-    - **Line Endings:** Assumi che tutti i file debbano avere terminatori `LF`.
+## 🐳 Docker & DevOps
+- Respect `docker-compose.yml` network isolation.
+- Use `healthcheck` in service definitions.
+- Changes to Nginx config must be documented in `docs/05-DEVOPS.md`.
