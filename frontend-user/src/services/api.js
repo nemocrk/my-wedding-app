@@ -5,25 +5,45 @@
 
 const API_BASE = '/api/public';
 
+const triggerGlobalError = (error) => {
+  const event = new CustomEvent('api-error', { detail: error });
+  window.dispatchEvent(event);
+};
+
 /**
  * Configurazione fetch con credenziali (cookie sessione)
  */
 const fetchWithCredentials = async (url, options = {}) => {
-  const response = await fetch(url, {
-    ...options,
-    credentials: 'include', // CRITICAL: invia/ricevi cookie
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
+  try {
+    const response = await fetch(url, {
+      ...options,
+      credentials: 'include', // CRITICAL: invia/ricevi cookie
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
+    });
 
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
-    throw new Error(error.message || `HTTP ${response.status}`);
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
+      const error = new Error(errorData.message || `HTTP ${response.status}`);
+      triggerGlobalError(error);
+      throw error;
+    }
+
+    return response.json();
+  } catch (err) {
+    // Se l'errore è già stato gestito (lanciato sopra), lo rilanciamo e basta.
+    // Se è un errore di rete (fetch fallito), lo intercettiamo.
+    if (err.message && err.message.startsWith("HTTP")) {
+      throw err;
+    }
+    
+    // Errore di rete / fetch failed
+    const networkError = new Error("Errore di connessione al server.");
+    triggerGlobalError(networkError);
+    throw networkError;
   }
-
-  return response.json();
 };
 
 /**
