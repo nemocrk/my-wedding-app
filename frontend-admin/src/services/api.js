@@ -88,6 +88,12 @@ export const api = {
     return handleResponse(response);
   },
 
+  // Analytics
+  getInvitationHeatmaps: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/heatmaps/`);
+    return handleResponse(response);
+  },
+
   // Dashboard Stats
   getDashboardStats: async () => {
     const response = await safeFetch(`${API_BASE_URL}/dashboard/stats/`);
