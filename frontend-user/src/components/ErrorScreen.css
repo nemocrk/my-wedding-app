@@ -1,0 +1,22 @@
+.error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  padding: 2rem;
+  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+}
+
+.error-screen h1 {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.error-screen p {
+  font-size: 1.2rem;
+  color: #555;
+  max-width: 500px;
+  font-family: 'Georgia', serif;
+}
