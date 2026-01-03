@@ -11,7 +11,7 @@ const Header = () => {
   const menuItems = [
     { title: 'Dashboard', icon: <Home size={20} />, path: '/' },
     { title: 'Inviti', icon: <Users size={20} />, path: '/invitations' },
-    { title: 'Impostazioni', icon: <Settings size={20} />, path: '/settings' },
+    { title: 'Impostazioni', icon: <Settings size={20} />, path: '/config' }, // Corrected route
   ];
 
   return (
@@ -22,7 +22,7 @@ const Header = () => {
           Wedding<span className="text-pink-600">Admin</span>
         </div>
 
-        {/* Desktop Navigation */}
+        {/* Desktop Navigation (Visible only if Sidebar is hidden/not used, kept for robustness) */}
         <nav className="hidden md:flex space-x-6">
           {menuItems.map((item) => (
             <Link
