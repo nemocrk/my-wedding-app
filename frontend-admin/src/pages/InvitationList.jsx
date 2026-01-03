@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import { api } from '../services/api';
@@ -14,6 +14,10 @@ const InvitationList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
+  // Link generation state
+  const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
+  const [generatedLink, setGeneratedLink] = useState(null);
+
   const fetchInvitations = async () => {
     setLoading(true);
     try {
@@ -21,7 +25,6 @@ const InvitationList = () => {
       setInvitations(data.results || data);
     } catch (error) {
       console.error("Failed to load invitations", error);
-      // Global error handler in App.jsx will catch api-error
     } finally {
       setLoading(false);
     }
@@ -61,6 +64,31 @@ const InvitationList = () => {
     } catch (error) {
       setIsDeleteModalOpen(false);
       console.error("Impossibile eliminare l'invito", error);
+    }
+  };
+
+  const handleGenerateLink = async (id) => {
+    if (generatingLinkFor === id) return; // Prevent double click
+    
+    setGeneratingLinkFor(id);
+    setGeneratedLink(null);
+    
+    try {
+      const data = await api.generateInvitationLink(id);
+      setGeneratedLink({ id, url: data.url });
+      
+      // Auto-copy to clipboard
+      await navigator.clipboard.writeText(data.url);
+      
+      // Reset status after 3 seconds
+      setTimeout(() => {
+        setGeneratedLink(null);
+        setGeneratingLinkFor(null);
+      }, 3000);
+      
+    } catch (error) {
+      console.error("Error generating link", error);
+      setGeneratingLinkFor(null);
     }
   };
 
@@ -181,7 +209,7 @@ const InvitationList = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <code className="px-2 py-1 bg-gray-100 rounded text-pink-600 font-mono text-xs border border-gray-200">
+                      <code className="px-2 py-1 bg-gray-100 rounded text-pink-600 font-mono text-xs border border-gray-200 select-all">
                         {invitation.code}
                       </code>
                     </td>
@@ -213,26 +241,51 @@ const InvitationList = () => {
                       {getStatusBadge(invitation.status)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-3">
+                      <div className="flex justify-end space-x-2">
+                        {/* GENERATE LINK ACTION */}
+                        <div className="relative">
+                          <button 
+                            onClick={() => handleGenerateLink(invitation.id)}
+                            className={`p-1.5 rounded-md transition-all ${
+                              generatedLink?.id === invitation.id 
+                                ? 'bg-green-100 text-green-700' 
+                                : generatingLinkFor === invitation.id
+                                  ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                            }`}
+                            title={generatedLink?.id === invitation.id ? "Link Copiato!" : "Copia Link Pubblico"}
+                            disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
+                          >
+                             {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                               <Loader size={18} className="animate-spin" />
+                             ) : generatedLink?.id === invitation.id ? (
+                               <CheckCircle size={18} />
+                             ) : (
+                               <Copy size={18} />
+                             )}
+                          </button>
+                        </div>
+
                         <a 
-                          href={`http://localhost/?code=${invitation.code}`}
+                          href={generatedLink?.id === invitation.id ? generatedLink.url : `http://localhost/?code=${invitation.code}`}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-gray-400 hover:text-blue-600 transition-colors"
-                          title="Apri Anteprima"
+                          className={`p-1.5 rounded-md text-gray-400 hover:text-pink-600 hover:bg-pink-50 transition-colors ${!generatedLink?.id && invitation.id ? 'opacity-50 hover:opacity-100' : ''}`}
+                          title={generatedLink?.id === invitation.id ? "Apri Anteprima Sicura" : "Apri Anteprima (potrebbe richiedere token)"}
                         >
                           <ExternalLink size={18} />
                         </a>
+
                         <button 
                           onClick={() => handleEdit(invitation.id)}
-                          className="text-gray-400 hover:text-indigo-600 transition-colors"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                           title="Modifica"
                         >
                           <Edit2 size={18} />
                         </button>
                         <button 
                           onClick={() => handleDeleteClick(invitation.id)}
-                          className="text-gray-400 hover:text-red-600 transition-colors"
+                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Elimina"
                         >
                           <Trash2 size={18} />
