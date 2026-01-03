@@ -94,6 +94,11 @@ export const api = {
     return handleResponse(response);
   },
 
+  getInvitationInteractions: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/interactions/`);
+    return handleResponse(response);
+  },
+
   // Dashboard Stats
   getDashboardStats: async () => {
     const response = await safeFetch(`${API_BASE_URL}/dashboard/stats/`);
