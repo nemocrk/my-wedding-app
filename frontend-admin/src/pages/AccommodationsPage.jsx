@@ -1,22 +1,27 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Home, Sparkles } from 'lucide-react';
+import { Plus, Home, Sparkles, AlertCircle } from 'lucide-react';
 import AccommodationList from '../components/accommodations/AccommodationList';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
-import { accommodationService } from '../services/accommodationService';
+import { api } from '../services/api'; // Use centralized api service
 import ErrorModal from '../components/common/ErrorModal';
 
 const AccommodationsPage = () => {
     const [accommodations, setAccommodations] = useState([]);
+    const [unassignedInvitations, setUnassignedInvitations] = useState([]);
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
 
-    const fetchAccommodations = async () => {
+    const fetchData = async () => {
         try {
             setIsLoading(true);
-            const data = await accommodationService.getAll();
-            setAccommodations(data);
+            const [accData, unassignedData] = await Promise.all([
+                api.fetchAccommodations(),
+                api.fetchUnassignedInvitations()
+            ]);
+            setAccommodations(accData);
+            setUnassignedInvitations(unassignedData);
         } catch (err) {
             setError(err);
         } finally {
@@ -25,14 +30,15 @@ const AccommodationsPage = () => {
     };
 
     useEffect(() => {
-        fetchAccommodations();
+        fetchData();
     }, []);
 
     const handleCreate = async (data) => {
         try {
-            await accommodationService.create(data);
+            await api.createAccommodation(data);
             setSuccessMsg('Alloggio creato con successo!');
-            fetchAccommodations();
+            fetchData();
+            setIsModalOpen(false); // Close modal on success
         } catch (err) {
             setError(err);
         }
@@ -41,9 +47,9 @@ const AccommodationsPage = () => {
     const handleDelete = async (id) => {
         if (!window.confirm("Sei sicuro di voler eliminare questo alloggio?")) return;
         try {
-            await accommodationService.delete(id);
+            await api.deleteAccommodation(id);
             setSuccessMsg('Alloggio eliminato.');
-            fetchAccommodations();
+            fetchData();
         } catch (err) {
             setError(err);
         }
@@ -52,9 +58,9 @@ const AccommodationsPage = () => {
     const handleAutoAssign = async () => {
         if (!window.confirm("Avviare l'assegnazione automatica? Questo assegnerà gli invitati agli alloggi disponibili.")) return;
         try {
-            const result = await accommodationService.autoAssign();
+            const result = await api.triggerAutoAssign(true); // reset previous
             setSuccessMsg(`Assegnazione completata! ${result.assigned_count} invitati assegnati.`);
-            fetchAccommodations(); // Ricarica per aggiornare le capienze
+            fetchData();
         } catch (err) {
             setError(err);
         }
@@ -88,9 +94,35 @@ const AccommodationsPage = () => {
             {successMsg && (
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
                     <span className="block sm:inline">{successMsg}</span>
-                    <span className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setSuccessMsg('')}>
+                    <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setSuccessMsg('')}>
+                        <span className="sr-only">Chiudi</span>
                         <svg className="fill-current h-6 w-6 text-green-500" role="button" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><title>Close</title><path d="M14.348 14.849a1.2 1.2 0 0 1-1.697 0L10 11.819l-2.651 3.029a1.2 1.2 0 1 1-1.697-1.697l2.758-3.15-2.759-3.152a1.2 1.2 0 1 1 1.697-1.697L10 8.183l2.651-3.031a1.2 1.2 0 1 1 1.697 1.697l-2.758 3.152 2.758 3.15a1.2 1.2 0 0 1 0 1.698z"/></svg>
-                    </span>
+                    </button>
+                </div>
+            )}
+
+            {/* Unassigned Invitations Alert */}
+            {unassignedInvitations.length > 0 && (
+                <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
+                    <div className="flex">
+                        <div className="flex-shrink-0">
+                            <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                        </div>
+                        <div className="ml-3">
+                            <h3 className="text-sm font-medium text-yellow-800">
+                                Attenzione: {unassignedInvitations.length} gruppi/inviti non assegnati
+                            </h3>
+                            <div className="mt-2 text-sm text-yellow-700">
+                                <ul className="list-disc pl-5 space-y-1">
+                                    {unassignedInvitations.map((inv) => (
+                                        <li key={inv.id}>
+                                            <span className="font-semibold">{inv.name}</span> ({inv.adults_count} Adulti, {inv.children_count} Bambini)
+                                        </li>
+                                    ))}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -105,7 +137,7 @@ const AccommodationsPage = () => {
                 onSave={handleCreate} 
             />
 
-            {error && <ErrorModal error={error} onClose={() => setError(null)} />}
+            {error && <ErrorModal errorDetails={error} onClose={() => setError(null)} isOpen={!!error} />}
         </div>
     );
 };
