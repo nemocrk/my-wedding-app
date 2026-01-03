@@ -424,75 +424,102 @@ class AccommodationViewSet(viewsets.ModelViewSet):
     @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
         """
-        Algoritmo di assegnazione automatica ATOMICO: Person -> Room.
-        Se un invito non può essere completamente assegnato, rollback.
+        Algoritmo di assegnazione ATOMICO con regole stringenti:
+        
+        REGOLA 1: Una stanza = Un solo invito (isolamento totale)
+        REGOLA 2: Una struttura = Solo inviti affini o neutrali (no non-affinità)
+        REGOLA 3: Tutte le persone di un invito nella stessa struttura (possono avere stanze diverse)
+        REGOLA 4: Bambini possono usare slot adulti, adulti NO slot bambini
         """
         try:
-            # Reset assegnazioni precedenti
             if request.data.get('reset_previous', False):
                 Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
                 Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
                 logger.info("Reset assegnazioni precedenti completato")
 
-            # Fetch invitati da processare
             invitations = Invitation.objects.filter(
                 status=Invitation.Status.CONFIRMED,
                 accommodation_requested=True,
                 guests__assigned_room__isnull=True
             ).distinct().prefetch_related('guests', 'affinities', 'non_affinities')
 
-            # Fetch alloggi con stanze
-            accommodations = Accommodation.objects.prefetch_related('rooms__assigned_guests').all()
+            accommodations = Accommodation.objects.prefetch_related(
+                'rooms__assigned_guests__invitation',
+                'assigned_invitations__non_affinities'
+            ).all()
 
             assigned_count = 0
             assignment_log = []
 
-            def can_fit_in_room(room, person):
+            def get_room_owner(room):
+                """Ritorna l'invitation_id che "possiede" questa stanza (None se vuota)"""
+                guests = room.assigned_guests.all()
+                if not guests.exists():
+                    return None
+                return guests.first().invitation_id
+
+            def is_accommodation_compatible(accommodation, invitation):
+                """
+                REGOLA 2: Verifica che la struttura non contenga inviti incompatibili.
+                """
+                non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
+                existing_invitations = accommodation.assigned_invitations.all()
+                
+                for existing_inv in existing_invitations:
+                    if existing_inv.id in non_affine_ids:
+                        return False
+                return True
+
+            def can_person_fit_in_room(room, person, invitation_id):
+                """
+                REGOLA 1 + REGOLA 4: 
+                - Stanza vuota o già occupata dallo stesso invito
+                - Rispetta vincoli slot (bambini->bambini o adulti, adulti->solo adulti)
+                """
+                owner = get_room_owner(room)
+                if owner is not None and owner != invitation_id:
+                    return False  # Stanza già occupata da altro invito
+                
                 slots = room.available_slots()
+                
                 if person.is_child:
+                    # Bambino: preferisce slot bambini, fallback su adulti
                     return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
                 else:
+                    # Adulto: solo slot adulti
                     return slots['adult_slots_free'] > 0
 
-            def has_non_affinity_in_room(room, invitation):
-                non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
-                room_guests = room.assigned_guests.all()
-                for guest in room_guests:
-                    if guest.invitation_id in non_affine_ids:
-                        return True
-                return False
-
-            def assign_group_to_accommodation(group_invitations, accommodation):
+            def assign_invitation_to_accommodation(invitation, accommodation):
                 """
-                Assegna atomicamente un gruppo di inviti.
-                Ritorna True se TUTTI possono essere assegnati, altrimenti False.
+                REGOLA 3: Assegna TUTTE le persone di un invito a una struttura atomicamente.
+                Possono usare stanze diverse, ma sempre nella stessa struttura.
                 """
                 nonlocal assigned_count, assignment_log
                 
-                all_persons = []
-                for inv in group_invitations:
-                    all_persons.extend(inv.guests.filter(assigned_room__isnull=True))
-
+                # Check REGOLA 2 upfront
+                if not is_accommodation_compatible(accommodation, invitation):
+                    return False
+                
+                persons = list(invitation.guests.filter(assigned_room__isnull=True))
+                if not persons:
+                    return True  # Già tutti assegnati
+                
                 rooms = sorted(
                     accommodation.rooms.all(),
                     key=lambda r: r.total_capacity(),
                     reverse=True
                 )
-
-                # Simulazione: Verifica se TUTTI possono essere assegnati
-                temp_assignments = []  # [(person, room)]
+                
+                temp_assignments = []
                 
                 with transaction.atomic():
                     sid = transaction.savepoint()
                     
-                    for person in all_persons:
+                    for person in persons:
                         assigned = False
+                        
                         for room in rooms:
-                            if has_non_affinity_in_room(room, person.invitation):
-                                continue
-                            
-                            if can_fit_in_room(room, person):
-                                # Assegnazione temporanea
+                            if can_person_fit_in_room(room, person, invitation.id):
                                 person.assigned_room = room
                                 person.save()
                                 temp_assignments.append((person, room))
@@ -500,54 +527,62 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                                 break
                         
                         if not assigned:
-                            # ROLLBACK: Non tutti possono essere assegnati
-                            logger.warning(f"Impossibile assegnare completamente {person.invitation.name}: manca posto per {person}")
+                            # ATOMICO: Se anche una persona non entra, rollback tutto
+                            logger.warning(
+                                f"Impossibile assegnare {person} di {invitation.name} a {accommodation.name}"
+                            )
                             transaction.savepoint_rollback(sid)
                             return False
                     
                     # COMMIT: Tutti assegnati con successo
                     transaction.savepoint_commit(sid)
                 
-                # Conferma assegnazione Invitation -> Accommodation
-                for inv in group_invitations:
-                    inv.accommodation = accommodation
-                    inv.save()
-                    assigned_count += inv.guests.filter(assigned_room__isnull=False).count()
+                # Conferma assegnazione a livello di Invitation
+                invitation.accommodation = accommodation
+                invitation.save()
+                assigned_count += len(temp_assignments)
                 
                 # Log
                 for person, room in temp_assignments:
                     assignment_log.append({
                         'person': f"{person.first_name} {person.last_name or ''}",
-                        'invitation': person.invitation.name,
+                        'invitation': invitation.name,
                         'room': f"{accommodation.name} - {room.room_number}",
                         'is_child': person.is_child
                     })
                 
                 return True
 
-            # Fase 1: Assegna gruppi affini insieme
-            processed_invitations = set()
+            # Fase 1: Gruppi affini (prova ad assegnarli alla stessa struttura)
+            processed = set()
             
             for invitation in invitations:
-                if invitation.id in processed_invitations:
+                if invitation.id in processed:
                     continue
-
-                affine_invitations = [invitation] + list(
+                
+                affine_group = [invitation] + list(
                     invitation.affinities.filter(
                         status=Invitation.Status.CONFIRMED,
                         accommodation_requested=True,
                         guests__assigned_room__isnull=True
                     ).distinct()
                 )
-
+                
+                # Prova ad assegnare tutto il gruppo alla stessa struttura
                 for acc in accommodations:
-                    if assign_group_to_accommodation(affine_invitations, acc):
-                        for inv in affine_invitations:
-                            processed_invitations.add(inv.id)
-                        logger.info(f"Gruppo affine assegnato a {acc.name}: {[i.name for i in affine_invitations]}")
+                    all_fit = True
+                    for inv in affine_group:
+                        if not assign_invitation_to_accommodation(inv, acc):
+                            all_fit = False
+                            break
+                    
+                    if all_fit:
+                        for inv in affine_group:
+                            processed.add(inv.id)
+                        logger.info(f"Gruppo affine assegnato a {acc.name}: {[i.name for i in affine_group]}")
                         break
 
-            # Fase 2: Assegna invitati singoli rimasti
+            # Fase 2: Inviti singoli rimasti
             remaining = Invitation.objects.filter(
                 status=Invitation.Status.CONFIRMED,
                 accommodation_requested=True,
@@ -556,7 +591,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
             for invitation in remaining:
                 for acc in accommodations:
-                    if assign_group_to_accommodation([invitation], acc):
+                    if assign_invitation_to_accommodation(invitation, acc):
                         logger.info(f"Invito singolo assegnato a {acc.name}: {invitation.name}")
                         break
 
