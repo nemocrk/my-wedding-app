@@ -56,12 +56,19 @@ class AccommodationViewSet(viewsets.ModelViewSet):
         Algoritmo di assegnazione automatica invitati -> alloggi.
         
         Regole:
-        1. Solo invitati con accommodation_requested=True
+        1. Solo invitati CONFERMATI con accommodation_requested=True
         2. Invitati affini hanno priorità nello stesso alloggio
         3. Invitati non-affini NON possono mai coesistere
+        4. CAPACITY LOGIC:
+           - Un BAMBINO può occupare un posto ADULTO (flessibilità verso l'alto)
+           - Un ADULTO NON può occupare un posto BAMBINO (rigidità verso il basso)
+           - Esempio: Stanza con (A:2, B:1)
+             * OK: 3 bambini (usano 2 adulti + 1 bambino)
+             * OK: 2 adulti + 1 bambino
+             * NO: 3 adulti (non possono usare il posto bambino)
         """
         try:
-            # Reset assegnazioni precedenti (opzionale, configura via param)
+            # Reset assegnazioni precedenti (opzionale)
             if request.data.get('reset_previous', False):
                 Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
                 logger.info("Reset assegnazioni precedenti completato")
@@ -79,14 +86,52 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             assigned_count = 0
             assignment_log = []
 
+            def check_capacity(accommodation, adults_needed, children_needed):
+                """
+                Controlla se l'alloggio può ospitare il gruppo.
+                
+                Logica:
+                - Calcola posti adulti disponibili (può ospitare adulti o bambini)
+                - Calcola posti bambini disponibili (solo per bambini)
+                - Assegna prima i bambini ai posti bambini, poi eventualmente ai posti adulti
+                - Gli adulti possono usare SOLO i posti adulti
+                """
+                total_adult_slots = sum(room.capacity_adults for room in accommodation.rooms.all())
+                total_child_slots = sum(room.capacity_children for room in accommodation.rooms.all())
+
+                # Sottrai posti già occupati
+                for inv in accommodation.assigned_invitations.all():
+                    occupied_adults = inv.guests.filter(is_child=False).count()
+                    occupied_children = inv.guests.filter(is_child=True).count()
+                    
+                    # Gli adulti occupano sempre i posti adulti
+                    total_adult_slots -= occupied_adults
+                    
+                    # I bambini occupano prima i posti bambini, poi quelli adulti se necessario
+                    if occupied_children <= total_child_slots:
+                        total_child_slots -= occupied_children
+                    else:
+                        # Overflow: i bambini extra vanno sui posti adulti
+                        overflow = occupied_children - total_child_slots
+                        total_child_slots = 0
+                        total_adult_slots -= overflow
+
+                # Verifica se ci sta il nuovo gruppo
+                # Step 1: Assegna bambini
+                children_in_child_slots = min(children_needed, total_child_slots)
+                children_in_adult_slots = children_needed - children_in_child_slots
+                
+                # Step 2: Verifica adulti (solo posti adulti)
+                total_needed_adult_slots = adults_needed + children_in_adult_slots
+                
+                if total_needed_adult_slots <= total_adult_slots:
+                    return True
+                return False
+
             # Fase 1: Assegna gruppi affini insieme
             for invitation in invitations:
                 if invitation.accommodation:
                     continue  # Già assegnato in iterazione precedente
-
-                # Calcola capienza richiesta
-                adults = invitation.guests.filter(is_child=False).count()
-                children = invitation.guests.filter(is_child=True).count()
 
                 # Cerca affinità non ancora assegnate
                 affine_invitations = [invitation] + list(
@@ -102,6 +147,10 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 for inv in affine_invitations:
                     non_affine_ids.update(inv.non_affinities.values_list('id', flat=True))
 
+                # Calcola capienza richiesta dal gruppo
+                total_adults = sum(i.guests.filter(is_child=False).count() for i in affine_invitations)
+                total_children = sum(i.guests.filter(is_child=True).count() for i in affine_invitations)
+
                 # Cerca alloggio compatibile
                 for acc in accommodations:
                     # Check: nessun invitato non-affine già nell'alloggio
@@ -109,11 +158,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     if any(e.id in non_affine_ids for e in existing):
                         continue
 
-                    # Check capienza
-                    total_adults = sum(i.guests.filter(is_child=False).count() for i in affine_invitations)
-                    total_children = sum(i.guests.filter(is_child=True).count() for i in affine_invitations)
-
-                    if acc.available_capacity() >= (total_adults + total_children):
+                    # Check capienza con nuova logica
+                    if check_capacity(acc, total_adults, total_children):
                         # Assegna gruppo
                         for inv in affine_invitations:
                             inv.accommodation = acc
@@ -144,7 +190,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     if any(e.id in non_affine_ids for e in existing):
                         continue
 
-                    if acc.available_capacity() >= (adults + children):
+                    if check_capacity(acc, adults, children):
                         invitation.accommodation = acc
                         invitation.save()
                         assigned_count += 1
@@ -204,7 +250,6 @@ class DashboardStatsView(APIView):
         }
 
         # 2. LOGISTICS (Confirmed)
-        # Se accommodation_requested=True su invito CONFERMATO, contiamo tutti gli ospiti dell'invito
         acc_confirmed_adults = 0
         acc_confirmed_children = 0
         trans_confirmed = 0
@@ -238,7 +283,6 @@ class DashboardStatsView(APIView):
         )
 
         # Costo Ipotizzato (Confermato + Pending)
-        # Pending Logic: Se offerto, assumiamo richiesto (Scenario Pessimistico)
         est_acc_adults = acc_confirmed_adults
         est_acc_children = acc_confirmed_children
         est_trans = trans_confirmed
