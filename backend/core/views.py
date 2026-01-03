@@ -145,6 +145,9 @@ class PublicRSVPView(APIView):
             
             invitation.save()
             
+            # Log RSVP submit interaction directly
+            _log_interaction(request, invitation, 'rsvp_submit', metadata=request.data)
+            
             logger.info(f"RSVP aggiornato per invito {invitation.code}: {new_status}")
             
             return Response({
@@ -157,6 +160,86 @@ class PublicRSVPView(APIView):
                 'success': False,
                 'message': 'Invito non trovato.'
             }, status=status.HTTP_404_NOT_FOUND)
+
+def _log_interaction(request, invitation, event_type, metadata=None):
+    """Helper interno per loggare interazioni"""
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+        
+    device_type = 'desktop'
+    if 'mobile' in user_agent.lower(): device_type = 'mobile'
+    elif 'tablet' in user_agent.lower(): device_type = 'tablet'
+    
+    # Estrazione Geo Dati (passati dal frontend nel metadata)
+    geo_country = None
+    geo_city = None
+    if metadata and 'geo' in metadata:
+        geo_data = metadata['geo']
+        geo_country = geo_data.get('country_name') or geo_data.get('country')
+        geo_city = geo_data.get('city')
+        
+    GuestInteraction.objects.create(
+        invitation=invitation,
+        event_type=event_type,
+        ip_address=ip,
+        user_agent=user_agent,
+        device_type=device_type,
+        geo_country=geo_country,
+        geo_city=geo_city,
+        metadata=metadata or {}
+    )
+
+class PublicLogInteractionView(APIView):
+    """
+    Endpoint per loggare interazioni generiche (click, visite, reset).
+    """
+    def post(self, request):
+        invitation_id = request.session.get('invitation_id')
+        if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
+            
+        event_type = request.data.get('event_type')
+        metadata = request.data.get('metadata', {})
+        
+        if event_type:
+            try:
+                invitation = Invitation.objects.get(pk=invitation_id)
+                _log_interaction(request, invitation, event_type, metadata)
+                return Response({"logged": True})
+            except Invitation.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        
+        return Response(status=status.HTTP_400_BAD_REQUEST)
+
+class PublicLogHeatmapView(APIView):
+    """
+    Endpoint per loggare dati heatmap (mouse tracking).
+    """
+    def post(self, request):
+        invitation_id = request.session.get('invitation_id')
+        if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
+            
+        mouse_data = request.data.get('mouse_data', [])
+        screen_w = request.data.get('screen_width', 0)
+        screen_h = request.data.get('screen_height', 0)
+        session_id = request.data.get('session_id', 'unknown')
+        
+        if mouse_data:
+            try:
+                # Verifica esistenza invito per integrità dati
+                Invitation.objects.get(pk=invitation_id)
+                GuestHeatmap.objects.create(
+                    invitation_id=invitation_id,
+                    session_id=session_id,
+                    mouse_data=mouse_data,
+                    screen_width=screen_w,
+                    screen_height=screen_h
+                )
+                return Response({"logged": True})
+            except Invitation.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+                
+        return Response({"logged": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
 # ========================================
