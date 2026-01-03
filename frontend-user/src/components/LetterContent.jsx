@@ -14,35 +14,47 @@ const LetterContent = ({ data }) => {
   // State per gestire la "modalità modifica"
   const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
 
-  // Initialize Analytics & Replay Listener
+  // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
     heatmapTracker.start();
     logInteraction('view_letter');
 
-    // Listener per la modalità "Replay" dall'Admin
     const handleReplayMessage = (event) => {
-      // In produzione dovremmo verificare event.origin per sicurezza, 
-      // ma in questo contesto controllato monorepo accettiamo comandi di replay.
-      if (event.data?.type === 'REPLAY_ACTION') {
-          const { action, details } = event.data.payload;
-          
-          console.log("Replay Action received:", action, details);
+      // Hardening minimo: richiede payload con type noto
+      if (!event?.data?.type) return;
 
-          if (action === 'rsvp_reset') {
-              setIsEditing(true);
-              setMessage(null);
+      if (event.data.type === 'REPLAY_RESET') {
+        // Stato base deterministico per il replay
+        setRsvpStatus('pending');
+        setAccommodationRequested(false);
+        setTransferRequested(false);
+        setIsEditing(true);
+        setMessage(null);
+        setSubmitting(false);
+        return;
+      }
+
+      if (event.data.type === 'REPLAY_ACTION') {
+        const { action, details } = event.data.payload || {};
+        if (!action) return;
+
+        // Eventi gestiti
+        if (action === 'rsvp_reset') {
+          setIsEditing(true);
+          setMessage(null);
+          return;
+        }
+
+        // click_rsvp: mostra lo stato come se l'utente avesse confermato/declinato
+        if (action === 'click_rsvp' || action === 'rsvp_submit') {
+          const status = details?.status_chosen || details?.status;
+          if (status === 'confirmed' || status === 'declined') {
+            setRsvpStatus(status);
+            setIsEditing(false);
+            setMessage(null);
           }
-          
-          if (action === 'click_rsvp' || action === 'rsvp_submit') {
-              // Se riceviamo un click o un submit, simuliamo lo stato finale
-              // Ipotizziamo che 'status_chosen' sia nei dettagli o lo inferiamo
-              const status = details?.status_chosen || details?.status; 
-              if (status) {
-                  setRsvpStatus(status);
-                  setIsEditing(false);
-                  setMessage({ type: 'success', text: "Risposta registrata (Simulazione Replay)" });
-              }
-          }
+          return;
+        }
       }
     };
 
@@ -69,14 +81,17 @@ const LetterContent = ({ data }) => {
       );
 
       if (result.success) {
+        logInteraction('rsvp_submit', { status, result: 'success' });
         setRsvpStatus(status);
         setIsEditing(false); // Switch to confirmed view
         setMessage({ type: 'success', text: result.message });
       } else {
+        logInteraction('rsvp_submit', { status, result: 'error' });
         setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
+      logInteraction('rsvp_submit', { status, result: 'error', error: err.message });
       setMessage({ type: 'error', text: err.message || 'Errore di connessione. Riprova.' });
     } finally {
       setSubmitting(false);
