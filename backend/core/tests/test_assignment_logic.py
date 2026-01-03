@@ -26,10 +26,10 @@ class TestAssignmentLogic:
 
     def test_capacity_overflow(self, api_client, invitation_factory):
         """
-        Test partial assignment behavior:
+        Test atomic assignment behavior:
         - 3 Adults try to fit in 1 room with capacity 2
-        - Algorithm does best-effort: assigns 2, leaves 1 unassigned
-        - This reflects production behavior (partial success)
+        - Algorithm does NOT do partial assignment: ALL or NOTHING
+        - Expect 0 assigned, 3 unassigned (rollback)
         """
         small_acc = Accommodation.objects.create(name="Tiny House", address="Tiny Lane")
         Room.objects.create(accommodation=small_acc, room_number="T1", capacity_adults=2, capacity_children=0)
@@ -45,9 +45,9 @@ class TestAssignmentLogic:
         
         response = api_client.post('/api/admin/accommodations/auto-assign/', {'reset_previous': True})
         assert response.status_code == 200
-        # Expect 2 assigned (best effort), 1 unassigned
-        assert response.data['assigned_count'] == 2
-        assert response.data['unassigned_count'] == 1
+        # Atomic behavior: no partial assignments
+        assert response.data['assigned_count'] == 0
+        assert response.data['unassigned_count'] == 3
 
     def test_affinity_grouping(self, api_client, accommodation_with_rooms, invitation_factory):
         # Inv1 (2 adults) affine to Inv2 (2 adults)
