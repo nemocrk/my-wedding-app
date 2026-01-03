@@ -8,18 +8,40 @@ class GlobalConfigSerializer(serializers.ModelSerializer):
 
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
+    assigned_room_number = serializers.SerializerMethodField(read_only=True)
 
     class Meta:
         model = Person
         fields = [
             'id', 'first_name', 'last_name', 'is_child', 
-            'dietary_requirements'
+            'dietary_requirements', 'assigned_room', 'assigned_room_number'
         ]
         extra_kwargs = {
-            'last_name': {'required': False, 'allow_blank': True, 'allow_null': True}
+            'last_name': {'required': False, 'allow_blank': True, 'allow_null': True},
+            'assigned_room': {'required': False, 'allow_null': True}
         }
 
+    def get_assigned_room_number(self, obj):
+        return obj.assigned_room.room_number if obj.assigned_room else None
+
+class RoomDetailSerializer(serializers.ModelSerializer):
+    """Serializer completo per stanze con ospiti assegnati"""
+    assigned_guests = PersonSerializer(many=True, read_only=True)
+    occupied_count = serializers.IntegerField(read_only=True)
+    available_slots = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Room
+        fields = [
+            'id', 'room_number', 'capacity_adults', 'capacity_children',
+            'assigned_guests', 'occupied_count', 'available_slots'
+        ]
+
+    def get_available_slots(self, obj):
+        return obj.available_slots()
+
 class RoomSerializer(serializers.ModelSerializer):
+    """Serializer leggero per creazione/aggiornamento alloggi"""
     class Meta:
         model = Room
         fields = ['id', 'room_number', 'capacity_adults', 'capacity_children']
@@ -40,7 +62,8 @@ class InvitationAssignmentSerializer(serializers.ModelSerializer):
         return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    rooms = RoomSerializer(many=True)
+    rooms = RoomDetailSerializer(many=True, read_only=True)
+    rooms_config = RoomSerializer(many=True, write_only=True, source='rooms')
     assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
     total_capacity = serializers.IntegerField(read_only=True)
     available_capacity = serializers.IntegerField(read_only=True)
@@ -48,7 +71,7 @@ class AccommodationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Accommodation
         fields = [
-            'id', 'name', 'address', 'rooms', 'assigned_invitations',
+            'id', 'name', 'address', 'rooms', 'rooms_config', 'assigned_invitations',
             'total_capacity', 'available_capacity',
             'created_at', 'updated_at'
         ]
@@ -108,12 +131,12 @@ class InvitationSerializer(serializers.ModelSerializer):
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
 
-        # 1. Update Invitation Fields (status, logistics, name, etc.)
+        # 1. Update Invitation Fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
-        # 2. Update Guests
+        # 2. Update Guests (preserva assigned_room se presente)
         if guests_data is not None:
             existing_guests = {g.id: g for g in instance.guests.all()}
             incoming_guest_ids = []
@@ -127,7 +150,7 @@ class InvitationSerializer(serializers.ModelSerializer):
                     if 'last_name' in g_data: guest.last_name = g_data['last_name']
                     if 'is_child' in g_data: guest.is_child = g_data['is_child']
                     if 'dietary_requirements' in g_data: guest.dietary_requirements = g_data['dietary_requirements']
-                    # Logistics removed from guest
+                    if 'assigned_room' in g_data: guest.assigned_room_id = g_data['assigned_room']
                         
                     guest.save()
                     incoming_guest_ids.append(g_id)
