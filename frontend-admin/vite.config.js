@@ -1,44 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(),
-  ],
+  plugins: [react()],
   server: {
-    port: 3001,
-    host: true, // Needed for Docker
-    proxy: {
-      '/api': {
-        target: 'http://backend:8000',
-        changeOrigin: true,
-        // Error handling robusto per il proxy
-        configure: (proxy, options) => {
-          proxy.on('error', (err, req, res) => {
-            console.error('Proxy Error:', err);
-            
-            // Se la risposta non è stata ancora inviata
-            if (!res.headersSent) {
-              res.writeHead(502, {
-                'Content-Type': 'application/json',
-              });
-              
-              const errorResponse = {
-                error: 'Bad Gateway',
-                message: `Proxy connection failed: ${err.message}`,
-                code: err.code,
-                path: req.url,
-                timestamp: new Date().toISOString()
-              };
-              
-              res.end(JSON.stringify(errorResponse));
-            }
-          });
-        }
-      },
-    },
-  },
+    host: '0.0.0.0', // Expose to all network interfaces (needed for Docker)
+    port: 80,
+    watch: {
+        usePolling: true,
+    }
+  }
 })
