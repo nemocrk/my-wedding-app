@@ -1,59 +1,88 @@
+/**
+ * API Service Layer for Public User Frontend
+ * Gestisce tutte le chiamate al backend con session-based auth
+ */
+
 const API_BASE = '/api/public';
 
 /**
- * Helper to get session ID from storage
+ * Helper to get session ID from storage (same logic as analytics.js)
  */
 const getSessionId = () => {
     return sessionStorage.getItem('wedding_analytics_sid') || null;
 };
 
-export const authenticateInvitation = async (code, token) => {
-  try {
-    const response = await fetch(`${API_BASE}/auth/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ code, token }),
-    });
-    return await response.json();
-  } catch (error) {
-    console.error("Auth error", error);
-    return { valid: false, message: "Errore di connessione" };
-  }
+const triggerGlobalError = (error) => {
+  const event = new CustomEvent('api-error', { detail: error });
+  window.dispatchEvent(event);
 };
 
-export const getInvitation = async () => {
+/**
+ * Configurazione fetch con credenziali (cookie sessione)
+ */
+const fetchWithCredentials = async (url, options = {}) => {
   try {
-    const response = await fetch(`${API_BASE}/invitation/`, {
-      method: 'GET',
+    const response = await fetch(url, {
+      ...options,
+      credentials: 'include', // CRITICAL: invia/ricevi cookie
+      headers: {
+        'Content-Type': 'application/json',
+        ...options.headers,
+      },
     });
-    if (response.status === 401 || response.status === 403) {
-      throw new Error("Session expired");
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
+      // Crea un errore custom con flag per evitare double-handling
+      const error = new Error(errorData.message || `HTTP ${response.status}`);
+      error.isHandled = true; 
+      triggerGlobalError(error);
+      throw error;
     }
-    return await response.json();
-  } catch (error) {
-    throw error;
+
+    return response.json();
+  } catch (err) {
+    // Se l'errore è già stato gestito (lanciato sopra con isHandled), lo rilanciamo senza fare altro.
+    if (err.isHandled) {
+      throw err;
+    }
+    
+    // Se è un errore di rete (fetch fallito) o altro imprevisto
+    const networkError = new Error("Errore di connessione al server.");
+    networkError.isHandled = true;
+    triggerGlobalError(networkError);
+    throw networkError;
   }
 };
 
-export const submitRSVP = async (status, accommodation_requested, transfer_requested) => {
-  const session_id = getSessionId();
-  
-  const payload = {
-      status,
-      accommodation_requested,
-      transfer_requested,
-      session_id
-  };
+/**
+ * Autenticazione iniziale: valida code + token e crea sessione
+ */
+export const authenticateInvitation = async (code, token) => {
+  return fetchWithCredentials(`${API_BASE}/auth/`, {
+    method: 'POST',
+    body: JSON.stringify({ code, token }),
+  });
+};
 
-  try {
-    const response = await fetch(`${API_BASE}/rsvp/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-    });
-    return await response.json();
-  } catch (error) {
-    console.error("RSVP error", error);
-    return { success: false, message: "Errore durante l'invio della risposta" };
-  }
+/**
+ * Recupera dettagli invito (richiede sessione attiva)
+ */
+export const getInvitationDetails = async () => {
+  return fetchWithCredentials(`${API_BASE}/invitation/`);
+};
+
+/**
+ * Invia RSVP (conferma/declino)
+ */
+export const submitRSVP = async (status, accommodationRequested = false, transferRequested = false) => {
+  return fetchWithCredentials(`${API_BASE}/rsvp/`, {
+    method: 'POST',
+    body: JSON.stringify({
+      status,
+      accommodation_requested: accommodationRequested,
+      transfer_requested: transferRequested,
+      session_id: getSessionId()
+    }),
+  });
 };
