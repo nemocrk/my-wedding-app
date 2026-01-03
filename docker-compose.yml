@@ -57,6 +57,7 @@ services:
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
       DEBUG: ${DEBUG:-False}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
     networks:
       - db_network
       - backend_network
