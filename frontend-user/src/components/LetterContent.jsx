@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { submitRSVP } from '../services/api';
 import './LetterContent.css';
 
 const LetterContent = ({ data }) => {
@@ -14,20 +15,11 @@ const LetterContent = ({ data }) => {
     setMessage(null);
 
     try {
-      const response = await fetch('/api/public/rsvp/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include', // CRITICAL: invia cookie sessione
-        body: JSON.stringify({
-          status,
-          accommodation_requested: status === 'confirmed' ? accommodationRequested : false,
-          transfer_requested: status === 'confirmed' ? transferRequested : false
-        })
-      });
-
-      const result = await response.json();
+      const result = await submitRSVP(
+        status,
+        status === 'confirmed' ? accommodationRequested : false,
+        status === 'confirmed' ? transferRequested : false
+      );
 
       if (result.success) {
         setRsvpStatus(status);
@@ -37,7 +29,7 @@ const LetterContent = ({ data }) => {
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
-      setMessage({ type: 'error', text: 'Errore di connessione. Riprova.' });
+      setMessage({ type: 'error', text: err.message || 'Errore di connessione. Riprova.' });
     } finally {
       setSubmitting(false);
     }
