@@ -1,10 +1,8 @@
-// frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import { api } from '../services/api';
-import ErrorModal from '../components/common/ErrorModal';
 
 const InvitationList = () => {
   const [invitations, setInvitations] = useState([]);
@@ -16,9 +14,6 @@ const InvitationList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  const [errorModalOpen, setErrorModalOpen] = useState(false);
-  const [errorMessage, setErrorMessage] = useState('');
-
   const fetchInvitations = async () => {
     setLoading(true);
     try {
@@ -26,8 +21,7 @@ const InvitationList = () => {
       setInvitations(data.results || data);
     } catch (error) {
       console.error("Failed to load invitations", error);
-      setErrorMessage(error.message);
-      setErrorModalOpen(true);
+      // Global error handler in App.jsx will catch api-error
     } finally {
       setLoading(false);
     }
@@ -43,8 +37,7 @@ const InvitationList = () => {
       setEditingInvitation(fullData);
       setIsModalOpen(true);
     } catch (error) {
-      setErrorMessage("Impossibile caricare i dettagli per la modifica: " + error.message);
-      setErrorModalOpen(true);
+      console.error("Impossibile caricare i dettagli per la modifica", error);
     }
   };
 
@@ -67,8 +60,7 @@ const InvitationList = () => {
       fetchInvitations(); 
     } catch (error) {
       setIsDeleteModalOpen(false);
-      setErrorMessage("Impossibile eliminare l'invito: " + error.message);
-      setErrorModalOpen(true);
+      console.error("Impossibile eliminare l'invito", error);
     }
   };
 
@@ -272,12 +264,6 @@ const InvitationList = () => {
         confirmText="Sì, elimina"
         cancelText="Annulla"
         isDangerous={true}
-      />
-
-      <ErrorModal 
-        isOpen={errorModalOpen} 
-        onClose={() => setErrorModalOpen(false)} 
-        errorDetails={errorMessage} 
       />
     </div>
   );
