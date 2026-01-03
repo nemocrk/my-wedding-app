@@ -1,201 +1,92 @@
+version: '3.8'
+
 services:
-  # ---------------------------------------------
-  # 1. DATABASE - Completamente isolato
-  # ---------------------------------------------
-  db:
-    image: postgres:alpine
-    restart: always
-    environment:
-      POSTGRES_DB: wedding_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - db_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ---------------------------------------------
-  # 1b. ADMINER - Web GUI per Database
-  # ---------------------------------------------
-  adminer:
-    image: adminer
-    restart: always
-    ports:
-      - "8081:8080"
-    networks:
-      - db_network               # Per parlare con il DB
-      - frontend_intranet_network # Per essere raggiungibile dall'host (bypass internal flag)
-    depends_on:
-      - db
-    environment:
-      ADMINER_DEFAULT_SERVER: db
-
-  # ---------------------------------------------
-  # 2. BACKEND API - Gunicorn per produzione
-  # ---------------------------------------------
   backend:
-    build:
+    build: 
       context: ./backend
-      dockerfile: Dockerfile
-      target: ${BUILD_TARGET:-production}
-    command: gunicorn wedding.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    container_name: backend
+    command: sh -c "python manage.py migrate && python manage.py collectstatic --noinput && python manage.py runserver 0.0.0.0:8000"
     volumes:
       - ./backend:/app
-      - static_volume:/app/staticfiles
-      - media_volume:/app/media
-    depends_on:
-      db:
-        condition: service_healthy
+    ports:
+      - "8000:8000"
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@db:5432/wedding_db
-      DJANGO_SETTINGS_MODULE: wedding.settings
-      SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
-      DEBUG: ${DEBUG:-False}
+      - DEBUG=1
+      - DJANGO_ALLOWED_HOSTS=*
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:3001
+      - DB_NAME=wedding_db
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_HOST=db
+      - DB_PORT=5432
+    depends_on:
+      - db
     networks:
-      - db_network
-      - backend_network
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
-    expose:
-      - "8000"
+      - wedding-network
 
-  # ---------------------------------------------
-  # 3. FRONTEND USER - Internet pubblico via Nginx
-  # ---------------------------------------------
   frontend-user:
     build:
       context: ./frontend-user
-      dockerfile: Dockerfile
-      target: ${BUILD_TARGET:-production}
-      args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost/api}
+      target: development
+    container_name: frontend-user
     volumes:
-      - ./frontend-user/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend-user:/app
+      - /app/node_modules
+    ports:
+      - "3000:3000"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      - backend
     networks:
-      - frontend_public_network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    expose:
-      - "80"
+      - wedding-network
 
-  # ---------------------------------------------
-  # 4. FRONTEND ADMIN - Solo Intranet
-  # ---------------------------------------------
   frontend-admin:
     build:
       context: ./frontend-admin
-      dockerfile: Dockerfile
-      target: ${BUILD_TARGET:-production}
-      args:
-        REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://localhost:8080/api}
+      target: development
+    container_name: frontend-admin
     volumes:
-      - ./frontend-admin/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./frontend-admin:/app
+      - /app/node_modules
+    ports:
+      - "3001:3001"
+    environment:
+      - VITE_API_URL=http://backend:8000
+    depends_on:
+      - backend
     networks:
-      - frontend_intranet_network
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:80/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 20s
-    expose:
-      - "80"
+      - wedding-network
 
-  # ---------------------------------------------
-  # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
-  # ---------------------------------------------
-  nginx-public:
+  db:
+    image: postgres:15-alpine
+    container_name: postgres-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=wedding_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    networks:
+      - wedding-network
+
+  nginx-proxy:
     image: nginx:alpine
+    container_name: nginx-proxy
     ports:
       - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/public.conf:/etc/nginx/nginx.conf:ro
-      - ./nginx/certs:/etc/nginx/certs:ro
-      - static_volume:/var/www/static:ro
-      - media_volume:/var/www/media:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d
     depends_on:
-      frontend-user:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
+      - frontend-user
+      - frontend-admin
+      - backend
     networks:
-      - frontend_public_network
-      - backend_network
-    restart: always
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      - wedding-network
 
-  # ---------------------------------------------
-  # 6. NGINX INTRANET - Gateway Intranet (solo frontend-admin)
-  # ---------------------------------------------
-  nginx-intranet:
-    image: nginx:alpine
-    ports:
-      - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
-    volumes:
-      - ./nginx/intranet.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      frontend-admin:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-    networks:
-      - frontend_intranet_network
-      - backend_network
-    restart: always
-    healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-
-# ---------------------------------------------
-# RETI - Isolamento completo tra componenti
-# ---------------------------------------------
 networks:
-  # Rete database - completamente isolata da Internet
-  db_network:
-    internal: true
-    driver: bridge
-  
-  # Rete backend - isolata, solo per comunicazione backend<->nginx
-  backend_network:
-    internal: true
-    driver: bridge
-  
-  # Rete frontend pubblico - accessibile da Internet via nginx-public
-  frontend_public_network:
-    driver: bridge
-  
-  # Rete frontend intranet - accessibile solo via localhost
-  frontend_intranet_network:
+  wedding-network:
     driver: bridge
 
-# ---------------------------------------------
-# VOLUMI PERSISTENTI
-# ---------------------------------------------
 volumes:
   postgres_data:
-    driver: local
-  static_volume:
-    driver: local
-  media_volume:
-    driver: local
