@@ -73,6 +73,32 @@ class Room(models.Model):
     def __str__(self):
         return f"{self.accommodation.name} - {self.room_number} (A:{self.capacity_adults}, B:{self.capacity_children})"
 
+    def total_capacity(self):
+        """Capienza totale della singola stanza"""
+        return self.capacity_adults + self.capacity_children
+
+    def occupied_count(self):
+        """Numero di persone assegnate a questa stanza"""
+        return self.assigned_guests.count()
+
+    def available_slots(self):
+        """Posti disponibili (considerando la logica adulti/bambini)"""
+        adults_assigned = self.assigned_guests.filter(is_child=False).count()
+        children_assigned = self.assigned_guests.filter(is_child=True).count()
+        
+        # Logica: bambini usano prima i posti bambini, poi quelli adulti
+        children_in_child_slots = min(children_assigned, self.capacity_children)
+        children_in_adult_slots = children_assigned - children_in_child_slots
+        
+        used_adult_slots = adults_assigned + children_in_adult_slots
+        used_child_slots = children_in_child_slots
+        
+        return {
+            'adult_slots_free': self.capacity_adults - used_adult_slots,
+            'child_slots_free': self.capacity_children - used_child_slots,
+            'total_free': (self.capacity_adults - used_adult_slots) + (self.capacity_children - used_child_slots)
+        }
+
     class Meta:
         verbose_name = "Stanza"
         verbose_name_plural = "Stanze"
@@ -99,11 +125,10 @@ class Invitation(models.Model):
         default=Status.PENDING,
         verbose_name="Stato RSVP"
     )
-    # Se true, si applica a tutto il gruppo (o si assume il conteggio totale degli ospiti)
     accommodation_requested = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
     transfer_requested = models.BooleanField(default=False, verbose_name="Richiede Transfer")
     
-    # LOGISTICA (Assegnazione)
+    # LOGISTICA (Assegnazione a livello di Struttura - manteniamo per backward compatibility)
     accommodation = models.ForeignKey(
         Accommodation,
         null=True,
@@ -128,16 +153,29 @@ class Invitation(models.Model):
     def __str__(self):
         return f"{self.name} ({self.code})"
 
+
 class Person(models.Model):
     invitation = models.ForeignKey(Invitation, related_name='guests', on_delete=models.CASCADE)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100, blank=True, null=True)
     is_child = models.BooleanField(default=False)
     
-    # Dettagli personali che rimangono al singolo
+    # Dettagli personali
     dietary_requirements = models.TextField(blank=True, null=True, verbose_name="Allergie/Intolleranze")
     
-    # RIMOSSI: requires_accommodation, requires_transfer (spostati su Invitation)
+    # ASSEGNAZIONE CAMERA (Livello Granulare)
+    assigned_room = models.ForeignKey(
+        Room,
+        null=True,
+        blank=True,
+        related_name='assigned_guests',
+        on_delete=models.SET_NULL,
+        verbose_name="Stanza Assegnata"
+    )
 
     def __str__(self):
         return f"{self.first_name} {self.last_name or ''}".strip()
+
+    class Meta:
+        verbose_name = "Persona"
+        verbose_name_plural = "Persone"
