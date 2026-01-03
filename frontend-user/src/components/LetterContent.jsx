@@ -1,18 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { submitRSVP } from '../services/api';
+import { logInteraction, heatmapTracker } from '../services/analytics';
 import './LetterContent.css';
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
-  const [accommodationRequested, setAccommodationRequested] = useState(false);
-  const [transferRequested, setTransferRequested] = useState(false);
+  const [accommodationRequested, setAccommodationRequested] = useState(data.accommodation_requested || false);
+  const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
+  
+  // State per gestire la "modalità modifica"
+  const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
+
+  // Initialize Analytics
+  useEffect(() => {
+    heatmapTracker.start();
+    logInteraction('view_letter');
+
+    return () => {
+      heatmapTracker.stop();
+    };
+  }, []);
 
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
+
+    // Track button click
+    logInteraction('click_rsvp', { status_chosen: status });
 
     try {
       const result = await submitRSVP(
@@ -23,6 +40,7 @@ const LetterContent = ({ data }) => {
 
       if (result.success) {
         setRsvpStatus(status);
+        setIsEditing(false); // Switch to confirmed view
         setMessage({ type: 'success', text: result.message });
       } else {
         setMessage({ type: 'error', text: result.message });
@@ -33,6 +51,12 @@ const LetterContent = ({ data }) => {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleReset = () => {
+      logInteraction('rsvp_reset');
+      setIsEditing(true);
+      setMessage(null);
   };
 
   return (
@@ -75,8 +99,8 @@ const LetterContent = ({ data }) => {
           </div>
         )}
 
-        {/* RSVP Section */}
-        {rsvpStatus === 'pending' && (
+        {/* RSVP FORM Section - Show if PENDING or EDITING */}
+        {isEditing && (
           <div className="rsvp-section">
             <h3>Conferma la tua partecipazione</h3>
             
@@ -105,34 +129,59 @@ const LetterContent = ({ data }) => {
 
             <div className="button-group">
               <button 
-                className="rsvp-button confirm"
+                className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
                 onClick={() => handleRSVP('confirmed')}
                 disabled={submitting}
               >
                 {submitting ? 'Invio...' : '✔️ Conferma Partecipazione'}
               </button>
               <button 
-                className="rsvp-button decline"
+                className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
                 onClick={() => handleRSVP('declined')}
                 disabled={submitting}
               >
                 {submitting ? 'Invio...' : '❌ Non Potrò Partecipare'}
               </button>
             </div>
+            {/* Cancel Edit Button if previously had a status */}
+            {data.status && data.status !== 'pending' && (
+                <button className="text-gray-400 text-xs mt-2 underline" onClick={() => setIsEditing(false)}>
+                    Annulla modifiche
+                </button>
+            )}
           </div>
         )}
 
-        {rsvpStatus === 'confirmed' && (
-          <div className="rsvp-confirmed">
+        {/* CONFIRMED/DECLINED VIEW - Show if NOT editing */}
+        {!isEditing && rsvpStatus === 'confirmed' && (
+          <div className="rsvp-confirmed animate-fadeIn">
             <h3>✅ Partecipazione Confermata!</h3>
             <p>Non vediamo l'ora di vedervi al nostro matrimonio!</p>
+            <div className="mt-4">
+                <p className="text-sm text-gray-500 mb-2">Hai cambiato idea? Nessun Problema</p>
+                <button 
+                    onClick={handleReset}
+                    className="text-pink-600 font-semibold underline hover:text-pink-800 text-sm"
+                >
+                    Clicca qui per modificare la risposta
+                </button>
+            </div>
           </div>
         )}
 
-        {rsvpStatus === 'declined' && (
-          <div className="rsvp-declined">
+        {!isEditing && rsvpStatus === 'declined' && (
+          <div className="rsvp-declined animate-fadeIn">
             <h3>😔 Ci dispiace che non possiate partecipare</h3>
             <p>Grazie comunque per averci avvisato.</p>
+            <div className="mt-4">
+                <p className="text-sm text-gray-500 mb-2">Hai cambiato idea? Nessun Problema</p>
+                <button 
+                    onClick={handleReset}
+                    className="text-gray-600 font-semibold underline hover:text-gray-800 text-sm"
+                >
+                    Clicca qui per modificare la risposta
+                </button>
+            </div>
           </div>
         )}
 
