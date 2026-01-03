@@ -1,79 +1,97 @@
-import { api } from './api';
+const API_URL = '/api/accommodations';
+
+const triggerGlobalError = (error) => {
+  const event = new CustomEvent('api-error', { detail: error });
+  window.dispatchEvent(event);
+};
+
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const contentType = response.headers.get("content-type");
+    let errorDetail = `HTTP Error ${response.status}`;
+    
+    try {
+        if (contentType && contentType.includes("application/json")) {
+            const json = await response.json();
+            errorDetail = json.detail || json.message || JSON.stringify(json);
+        } else {
+            errorDetail = await response.text();
+        }
+    } catch (e) {
+        // Fallback se il parsing fallisce
+    }
+
+    const error = new Error(errorDetail);
+    error.status = response.status;
+    throw error;
+  }
+  return response.json();
+};
 
 export const accommodationService = {
-  getAccommodations: async () => {
+  getAll: async () => {
     try {
-      const response = await fetch('/api/accommodations/');
-      if (!response.ok) {
-        // Usa lo standard di gestione errori di api.js se possibile, altrimenti lancia errore manuale
-        // Ma per coerenza globale, proviamo a usare la logica di api.js
-        const errorText = await response.text();
-        throw new Error(errorText || `HTTP ${response.status}`);
-      }
-      return await response.json();
+      const response = await fetch(`${API_URL}/`);
+      return await handleResponse(response);
     } catch (error) {
-      // Dispatch global error
-      const event = new CustomEvent('api-error', { detail: error });
-      window.dispatchEvent(event);
+      triggerGlobalError(error);
       throw error;
     }
   },
 
-  createAccommodation: async (data) => {
+  create: async (data) => {
     try {
-      const response = await fetch('/api/accommodations/', {
+      const response = await fetch(`${API_URL}/`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) {
-         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-         throw new Error(errorData.detail || errorData.message || 'Error creating accommodation');
-      }
-      return await response.json();
+      return await handleResponse(response);
     } catch (error) {
-      const event = new CustomEvent('api-error', { detail: error });
-      window.dispatchEvent(event);
+      triggerGlobalError(error);
       throw error;
     }
   },
 
-  updateAccommodation: async (id, data) => {
+  update: async (id, data) => {
     try {
-      const response = await fetch(`/api/accommodations/${id}/`, {
+      const response = await fetch(`${API_URL}/${id}/`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       });
-      if (!response.ok) {
-         const errorData = await response.json().catch(() => ({ detail: response.statusText }));
-         throw new Error(errorData.detail || errorData.message || 'Error updating accommodation');
-      }
-      return await response.json();
+      return await handleResponse(response);
     } catch (error) {
-       const event = new CustomEvent('api-error', { detail: error });
-       window.dispatchEvent(event);
-       throw error;
+      triggerGlobalError(error);
+      throw error;
     }
   },
 
-  deleteAccommodation: async (id) => {
+  delete: async (id) => {
     try {
-      const response = await fetch(`/api/accommodations/${id}/`, {
+      const response = await fetch(`${API_URL}/${id}/`, {
         method: 'DELETE',
       });
       if (!response.ok) {
-         throw new Error(`Failed to delete accommodation: ${response.status}`);
+          throw new Error('Impossibile eliminare l\'alloggio');
       }
       return true;
     } catch (error) {
-       const event = new CustomEvent('api-error', { detail: error });
-       window.dispatchEvent(event);
-       throw error;
+      triggerGlobalError(error);
+      throw error;
+    }
+  },
+
+  autoAssign: async () => {
+    try {
+      const response = await fetch(`${API_URL}/auto-assign/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      return await handleResponse(response);
+    } catch (error) {
+      triggerGlobalError(error);
+      throw error;
     }
   }
 };
