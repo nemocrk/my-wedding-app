@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, PlayCircle } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import SessionReplayModal from '../components/analytics/SessionReplayModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -13,6 +14,9 @@ const InvitationList = () => {
   
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
+
+  // Replay Modal State
+  const [replayInvitation, setReplayInvitation] = useState(null);
 
   // Link generation state
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
@@ -273,6 +277,15 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
+                        {/* REPLAY SESSION BUTTON */}
+                        <button 
+                          onClick={() => setReplayInvitation({ id: invitation.id, name: invitation.name })}
+                          className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                          title="Replay Sessione Ospite"
+                        >
+                          <PlayCircle size={18} />
+                        </button>
+
                         {/* COPY LINK ACTION */}
                         <div className="relative">
                           <button 
@@ -344,6 +357,15 @@ const InvitationList = () => {
           onClose={() => setIsModalOpen(false)} 
           onSuccess={fetchInvitations}
           initialData={editingInvitation}
+        />
+      )}
+
+      {/* REPLAY MODAL */}
+      {replayInvitation && (
+        <SessionReplayModal
+            invitationId={replayInvitation.id}
+            invitationName={replayInvitation.name}
+            onClose={() => setReplayInvitation(null)}
         />
       )}
 
