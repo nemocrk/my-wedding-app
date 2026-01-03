@@ -1,27 +1,15 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import InvitationPage from './pages/InvitationPage';
 import ErrorModal from './components/ErrorModal';
+import useApiErrorModal from './hooks/useApiErrorModal';
 import './App.css';
 
 function App() {
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    const handleError = (event) => {
-      console.log("Global Error Caught:", event.detail);
-      setError(event.detail);
-    };
-
-    window.addEventListener('api-error', handleError);
-
-    return () => {
-      window.removeEventListener('api-error', handleError);
-    };
-  }, []);
+  const { error, clearError } = useApiErrorModal();
 
   return (
     <div className="app">
-      <ErrorModal error={error} onClose={() => setError(null)} />
+      <ErrorModal error={error} onClose={clearError} />
       <InvitationPage />
     </div>
   );
