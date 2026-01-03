@@ -1,80 +1,44 @@
-/**
- * API Service Layer for Public User Frontend
- * Gestisce tutte le chiamate al backend con session-based auth
- */
-
 const API_BASE = '/api/public';
 
-const triggerGlobalError = (error) => {
-  const event = new CustomEvent('api-error', { detail: error });
-  window.dispatchEvent(event);
+/**
+ * Helper to get session ID from storage (same logic as analytics.js)
+ */
+const getSessionId = () => {
+    return sessionStorage.getItem('wedding_analytics_sid') || null;
 };
 
-/**
- * Configurazione fetch con credenziali (cookie sessione)
- */
-const fetchWithCredentials = async (url, options = {}) => {
-  try {
-    const response = await fetch(url, {
-      ...options,
-      credentials: 'include', // CRITICAL: invia/ricevi cookie
-      headers: {
-        'Content-Type': 'application/json',
-        ...options.headers,
-      },
+export const api = {
+  authenticate: async (code, token) => {
+    const response = await fetch(`${API_BASE}/auth/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code, token }),
     });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
-      // Crea un errore custom con flag per evitare double-handling
-      const error = new Error(errorData.message || `HTTP ${response.status}`);
-      error.isHandled = true; 
-      triggerGlobalError(error);
-      throw error;
-    }
-
     return response.json();
-  } catch (err) {
-    // Se l'errore è già stato gestito (lanciato sopra con isHandled), lo rilanciamo senza fare altro.
-    if (err.isHandled) {
-      throw err;
+  },
+
+  getInvitation: async () => {
+    const response = await fetch(`${API_BASE}/invitation/`, {
+      method: 'GET',
+    });
+    if (response.status === 401 || response.status === 403) {
+      throw new Error("Session expired");
     }
-    
-    // Se è un errore di rete (fetch fallito) o altro imprevisto
-    const networkError = new Error("Errore di connessione al server.");
-    networkError.isHandled = true;
-    triggerGlobalError(networkError);
-    throw networkError;
+    return response.json();
+  },
+
+  submitRSVP: async (data) => {
+    // Inject session_id into payload for backend tracking
+    const payload = {
+        ...data,
+        session_id: getSessionId()
+    };
+
+    const response = await fetch(`${API_BASE}/rsvp/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    return response.json();
   }
-};
-
-/**
- * Autenticazione iniziale: valida code + token e crea sessione
- */
-export const authenticateInvitation = async (code, token) => {
-  return fetchWithCredentials(`${API_BASE}/auth/`, {
-    method: 'POST',
-    body: JSON.stringify({ code, token }),
-  });
-};
-
-/**
- * Recupera dettagli invito (richiede sessione attiva)
- */
-export const getInvitationDetails = async () => {
-  return fetchWithCredentials(`${API_BASE}/invitation/`);
-};
-
-/**
- * Invia RSVP (conferma/declino)
- */
-export const submitRSVP = async (status, accommodationRequested = false, transferRequested = false) => {
-  return fetchWithCredentials(`${API_BASE}/rsvp/`, {
-    method: 'POST',
-    body: JSON.stringify({
-      status,
-      accommodation_requested: accommodationRequested,
-      transfer_requested: transferRequested,
-    }),
-  });
 };
