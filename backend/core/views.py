@@ -4,10 +4,54 @@ from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from .models import Invitation, GlobalConfig, Person, Accommodation, Room
-from .serializers import InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, AccommodationSerializer
+from .serializers import (
+    InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
+    AccommodationSerializer, PublicInvitationSerializer
+)
 import logging
 
 logger = logging.getLogger(__name__)
+
+class PublicInvitationView(APIView):
+    """
+    Endpoint pubblico per accesso inviti da parte degli ospiti.
+    Richiede: code + token di verifica.
+    """
+    def get(self, request):
+        code = request.query_params.get('code')
+        token = request.query_params.get('token')
+        
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        
+        if not code or not token:
+            return Response({
+                'valid': False,
+                'message': config.unauthorized_message
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            invitation = Invitation.objects.get(code=code)
+            
+            # Verifica token
+            if not invitation.verify_token(token, config.invitation_link_secret):
+                return Response({
+                    'valid': False,
+                    'message': config.unauthorized_message
+                }, status=status.HTTP_403_FORBIDDEN)
+            
+            # Token valido: serializza invito
+            serializer = PublicInvitationSerializer(invitation, context={'config': config})
+            return Response({
+                'valid': True,
+                'invitation': serializer.data
+            })
+            
+        except Invitation.DoesNotExist:
+            return Response({
+                'valid': False,
+                'message': config.unauthorized_message
+            }, status=status.HTTP_404_NOT_FOUND)
+
 
 class InvitationViewSet(viewsets.ModelViewSet):
     queryset = Invitation.objects.all().order_by('-created_at')
@@ -29,6 +73,23 @@ class InvitationViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         except Invitation.DoesNotExist:
             return Response({'error': 'Invitation not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=True, methods=['get'])
+    def generate_link(self, request, pk=None):
+        """Genera link pubblico con token per un invito (Admin Only)"""
+        invitation = self.get_object()
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        token = invitation.generate_verification_token(config.invitation_link_secret)
+        
+        # Costruisci URL pubblico
+        base_url = request.build_absolute_uri('/').rstrip('/')
+        public_url = f"{base_url}?code={invitation.code}&token={token}"
+        
+        return Response({
+            'code': invitation.code,
+            'token': token,
+            'url': public_url
+        })
 
 
 class GlobalConfigViewSet(viewsets.ViewSet):
