@@ -14,13 +14,43 @@ const LetterContent = ({ data }) => {
   // State per gestire la "modalità modifica"
   const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
 
-  // Initialize Analytics
+  // Initialize Analytics & Replay Listener
   useEffect(() => {
     heatmapTracker.start();
     logInteraction('view_letter');
 
+    // Listener per la modalità "Replay" dall'Admin
+    const handleReplayMessage = (event) => {
+      // In produzione dovremmo verificare event.origin per sicurezza, 
+      // ma in questo contesto controllato monorepo accettiamo comandi di replay.
+      if (event.data?.type === 'REPLAY_ACTION') {
+          const { action, details } = event.data.payload;
+          
+          console.log("Replay Action received:", action, details);
+
+          if (action === 'rsvp_reset') {
+              setIsEditing(true);
+              setMessage(null);
+          }
+          
+          if (action === 'click_rsvp' || action === 'rsvp_submit') {
+              // Se riceviamo un click o un submit, simuliamo lo stato finale
+              // Ipotizziamo che 'status_chosen' sia nei dettagli o lo inferiamo
+              const status = details?.status_chosen || details?.status; 
+              if (status) {
+                  setRsvpStatus(status);
+                  setIsEditing(false);
+                  setMessage({ type: 'success', text: "Risposta registrata (Simulazione Replay)" });
+              }
+          }
+      }
+    };
+
+    window.addEventListener('message', handleReplayMessage);
+
     return () => {
       heatmapTracker.stop();
+      window.removeEventListener('message', handleReplayMessage);
     };
   }, []);
 
