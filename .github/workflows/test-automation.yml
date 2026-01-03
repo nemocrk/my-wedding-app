@@ -1,0 +1,131 @@
+name: Test Automation Suite
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. UNIT TESTS & SMOKE TESTS (Parallel Execution)
+  # ------------------------------------------------------------------
+  
+  backend-test:
+    name: Backend Unit & Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+          
+      - name: Install Dependencies
+        run: |
+          pip install -r backend/requirements.txt
+          
+      - name: Run Unit Tests with Coverage
+        run: |
+          cd backend
+          pytest --cov=. --cov-report=xml
+          
+      # Basic Smoke Test: Verify key files exist and import works
+      - name: Backend Smoke Test
+        run: |
+          cd backend
+          python -c "import django; print(django.get_version())"
+          python manage.py check
+
+  frontend-user-test:
+    name: Frontend User Unit & Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-user/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./frontend-user
+        run: npm ci || npm install
+        
+      - name: Run Unit Tests
+        working-directory: ./frontend-user
+        run: npm test -- run
+
+      - name: Build Smoke Test
+        working-directory: ./frontend-user
+        run: npm run build
+
+  frontend-admin-test:
+    name: Frontend Admin Unit & Smoke Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-admin/package-lock.json
+
+      - name: Install Dependencies
+        working-directory: ./frontend-admin
+        run: npm ci || npm install
+        
+      - name: Run Unit Tests
+        working-directory: ./frontend-admin
+        run: npm test -- run
+        
+      - name: Build Smoke Test
+        working-directory: ./frontend-admin
+        run: npm run build
+
+  # ------------------------------------------------------------------
+  # 2. FUNCTIONAL & NON-REGRESSION TESTS (E2E)
+  # ------------------------------------------------------------------
+  
+  e2e-functional-test:
+    name: E2E Functional & Non-Regression Tests
+    runs-on: ubuntu-latest
+    needs: [backend-test, frontend-user-test, frontend-admin-test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and Start Stack
+        run: |
+          # Create env file for docker
+          cp .env.example .env
+          # Start services detached
+          docker compose up -d --build
+          
+      - name: Wait for Healthchecks
+        run: |
+          timeout 60s bash -c 'until docker compose ps | grep "healthy"; do sleep 5; done' || docker compose logs
+          
+      - name: Install Playwright
+        working-directory: ./tests/e2e
+        run: |
+          npm install
+          npx playwright install --with-deps
+          
+      - name: Run E2E Tests
+        working-directory: ./tests/e2e
+        run: npx playwright test
+        env:
+          BASE_URL: http://localhost
+          
+      - name: Dump Docker Logs on Failure
+        if: failure()
+        run: docker compose logs
