@@ -145,8 +145,11 @@ class PublicRSVPView(APIView):
             
             invitation.save()
             
-            # Log RSVP submit interaction directly
-            _log_interaction(request, invitation, 'rsvp_submit', metadata=request.data)
+            # Log RSVP submit interaction directly with SESSION ID
+            # Extract session_id from body to link with analytics
+            meta = request.data.copy()
+            # Explicitly pass metadata that contains session_id
+            _log_interaction(request, invitation, 'rsvp_submit', metadata=meta)
             
             logger.info(f"RSVP aggiornato per invito {invitation.code}: {new_status}")
             
