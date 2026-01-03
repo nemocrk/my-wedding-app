@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, DollarSign, FileText } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, FileText, Lock } from 'lucide-react';
 import { api } from '../services/api';
 
 const Configuration = () => {
@@ -9,7 +9,9 @@ const Configuration = () => {
     price_accommodation_adult: '',
     price_accommodation_child: '',
     price_transfer: '',
-    letter_text: ''
+    letter_text: '',
+    invitation_link_secret: '',
+    unauthorized_message: ''
   });
   
   const [loading, setLoading] = useState(true);
@@ -58,11 +60,11 @@ const Configuration = () => {
   if (loading) return <div className="p-8 text-center text-gray-500">Caricamento configurazione...</div>;
 
   return (
-    <div className="animate-fadeIn max-w-4xl mx-auto">
+    <div className="animate-fadeIn max-w-4xl mx-auto pb-12">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Configurazione</h1>
-          <p className="text-sm text-gray-500">Gestisci prezzi e testi globali dell'applicazione</p>
+          <p className="text-sm text-gray-500">Gestisci prezzi, testi e sicurezza dell'applicazione</p>
         </div>
       </div>
 
@@ -160,11 +162,50 @@ const Configuration = () => {
           </div>
         </div>
 
+        {/* SECTION 3: SECURITY */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+            <Lock className="text-pink-600 mr-2" size={20}/>
+            <h2 className="text-lg font-semibold text-gray-800">Sicurezza Link Pubblici</h2>
+          </div>
+          
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Chiave Segreta per Link
+                <span className="ml-2 text-xs text-red-500 font-normal">
+                  (ATTENZIONE: Modificando questo valore, tutti i link inviati precedentemente smetteranno di funzionare)
+                </span>
+              </label>
+              <input
+                type="text"
+                name="invitation_link_secret"
+                value={config.invitation_link_secret}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500 font-mono bg-gray-50"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Messaggio di Errore (Link Scaduto/Invalido)
+              </label>
+              <input
+                type="text"
+                name="unauthorized_message"
+                value={config.unauthorized_message}
+                onChange={handleChange}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+              />
+            </div>
+          </div>
+        </div>
+
         <div className="flex justify-end pt-4">
            <button
             type="submit"
             disabled={saving}
-            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg flex items-center shadow-sm disabled:opacity-50"
+            className="bg-pink-600 hover:bg-pink-700 text-white px-6 py-2.5 rounded-lg flex items-center shadow-sm disabled:opacity-50 transition-colors"
           >
             {saving ? (
               <>
