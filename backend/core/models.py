@@ -1,5 +1,6 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+import hashlib
 
 class GlobalConfig(models.Model):
     """Singleton model for global configurations (prices, texts)"""
@@ -15,6 +16,19 @@ class GlobalConfig(models.Model):
         default="Caro {guest_names},\nSiamo lieti di invitarti al nostro matrimonio...",
         help_text="Placeholder disponibili: {guest_names}, {family_name}, {code}",
         verbose_name="Testo Lettera"
+    )
+    
+    # Sicurezza Inviti Pubblici
+    invitation_link_secret = models.CharField(
+        max_length=64,
+        default="my-secret-wedding-key-2026",
+        help_text="Chiave segreta per generare token di verifica link inviti",
+        verbose_name="Chiave Segreta Link"
+    )
+    
+    unauthorized_message = models.TextField(
+        default="Spiacenti, questo invito non è valido o è scaduto. Contatta gli sposi per maggiori informazioni.",
+        verbose_name="Messaggio Non Autorizzato"
     )
 
     def save(self, *args, **kwargs):
@@ -152,6 +166,16 @@ class Invitation(models.Model):
 
     def __str__(self):
         return f"{self.name} ({self.code})"
+
+    def generate_verification_token(self, secret_key):
+        """Genera token HMAC per validazione link pubblico"""
+        data = f"{self.code}-{self.id}".encode('utf-8')
+        return hashlib.sha256(data + secret_key.encode('utf-8')).hexdigest()[:16]
+
+    def verify_token(self, token, secret_key):
+        """Verifica token di accesso"""
+        expected = self.generate_verification_token(secret_key)
+        return token == expected
 
 
 class Person(models.Model):
