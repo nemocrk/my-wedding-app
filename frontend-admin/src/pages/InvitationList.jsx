@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, PlayCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import SessionReplayModal from '../components/analytics/SessionReplayModal';
+import InteractionsModal from '../components/analytics/InteractionsModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -15,8 +15,8 @@ const InvitationList = () => {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
 
-  // Replay Modal State
-  const [replayInvitation, setReplayInvitation] = useState(null);
+  // Replay/Interactions Modal State
+  const [interactionInvitation, setInteractionInvitation] = useState(null);
 
   // Link generation state
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
@@ -277,13 +277,13 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {/* REPLAY SESSION BUTTON */}
+                        {/* INTERACTIONS BUTTON */}
                         <button 
-                          onClick={() => setReplayInvitation({ id: invitation.id, name: invitation.name })}
+                          onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
                           className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                          title="Replay Sessione Ospite"
+                          title="Log Interazioni & Replay"
                         >
-                          <PlayCircle size={18} />
+                          <Activity size={18} />
                         </button>
 
                         {/* COPY LINK ACTION */}
@@ -360,12 +360,12 @@ const InvitationList = () => {
         />
       )}
 
-      {/* REPLAY MODAL */}
-      {replayInvitation && (
-        <SessionReplayModal
-            invitationId={replayInvitation.id}
-            invitationName={replayInvitation.name}
-            onClose={() => setReplayInvitation(null)}
+      {/* INTERACTIONS MODAL */}
+      {interactionInvitation && (
+        <InteractionsModal
+            invitationId={interactionInvitation.id}
+            invitationName={interactionInvitation.name}
+            onClose={() => setInteractionInvitation(null)}
         />
       )}
 
