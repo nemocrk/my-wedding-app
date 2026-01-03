@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Invitation, Person, GlobalConfig
+from .models import Invitation, Person, GlobalConfig, Accommodation, Room
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -19,14 +19,56 @@ class PersonSerializer(serializers.ModelSerializer):
             'last_name': {'required': False, 'allow_blank': True, 'allow_null': True}
         }
 
+class RoomSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Room
+        fields = ['id', 'room_number', 'capacity_adults', 'capacity_children']
+
+
+class AccommodationSerializer(serializers.ModelSerializer):
+    rooms = RoomSerializer(many=True)
+    total_capacity = serializers.IntegerField(read_only=True)
+    available_capacity = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = Accommodation
+        fields = [
+            'id', 'name', 'address', 'rooms',
+            'total_capacity', 'available_capacity',
+            'created_at', 'updated_at'
+        ]
+
+    def create(self, validated_data):
+        rooms_data = validated_data.pop('rooms')
+        accommodation = Accommodation.objects.create(**validated_data)
+        for room_data in rooms_data:
+            Room.objects.create(accommodation=accommodation, **room_data)
+        return accommodation
+
+    def update(self, instance, validated_data):
+        rooms_data = validated_data.pop('rooms', None)
+        instance.name = validated_data.get('name', instance.name)
+        instance.address = validated_data.get('address', instance.address)
+        instance.save()
+
+        if rooms_data is not None:
+            # Strategia: cancella e ricrea (safe per Admin UI)
+            instance.rooms.all().delete()
+            for room_data in rooms_data:
+                Room.objects.create(accommodation=instance, **room_data)
+
+        return instance
+
+
 class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
+    accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
     
     class Meta:
         model = Invitation
         fields = [
             'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
-            'accommodation_requested', 'transfer_requested',
+            'accommodation_requested', 'transfer_requested', 'accommodation',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status'
         ]
         read_only_fields = ['id', 'created_at']
@@ -102,6 +144,7 @@ class InvitationSerializer(serializers.ModelSerializer):
 class InvitationListSerializer(serializers.ModelSerializer):
     guests_count = serializers.IntegerField(source='guests.count', read_only=True)
     guests = PersonSerializer(many=True, read_only=True)
+    accommodation_name = serializers.CharField(source='accommodation.name', read_only=True)
 
     class Meta:
         model = Invitation
@@ -109,5 +152,5 @@ class InvitationListSerializer(serializers.ModelSerializer):
             'id', 'name', 'code', 'guests_count', 'guests', 
             'accommodation_offered', 'transfer_offered', 
             'accommodation_requested', 'transfer_requested',
-            'status'
+            'status', 'accommodation_name'
         ]
