@@ -70,7 +70,8 @@ RUN npm install && \
 # Copia tutto il codice
 COPY . .
 
-EXPOSE 3000
+EXPOSE 80
 
-# Comando per avviare dev server con hot-reload
-CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "3000"]
+# Comando per avviare dev server con hot-reload su porta 80 (richiede permessi root se non cambiato user)
+# Vite di default non corre come root, ma node:alpine sì.
+CMD ["npm", "start", "--", "--host", "0.0.0.0", "--port", "80"]
