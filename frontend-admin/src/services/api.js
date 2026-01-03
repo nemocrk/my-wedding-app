@@ -82,6 +82,11 @@ export const api = {
     }
     return handleResponse(response);
   },
+  
+  generateInvitationLink: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/generate_link/`);
+    return handleResponse(response);
+  },
 
   // Dashboard Stats
   getDashboardStats: async () => {
