@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from core.views import InvitationViewSet, GlobalConfigViewSet, DashboardStatsView
+from core.views import InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet
 from django.http import HttpResponse
 
 def health_check(request):
@@ -9,6 +9,7 @@ def health_check(request):
 
 router = DefaultRouter()
 router.register(r'invitations', InvitationViewSet)
+router.register(r'accommodations', AccommodationViewSet, basename='accommodation')
 router.register(r'config', GlobalConfigViewSet, basename='config')
 
 urlpatterns = [
