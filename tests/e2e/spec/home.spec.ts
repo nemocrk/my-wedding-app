@@ -8,5 +8,5 @@ test('homepage loads successfully', async ({ page }) => {
   expect(response?.status()).toBe(200);
 
   // Take a screenshot for debugging
-  await page.screenshot({ path: 'homepage.png' });
+  await page.screenshot({ path: 'test-results/homepage.png' });
 });

@@ -20,6 +20,8 @@ test.describe('Negative Authentication Scenarios', () => {
     // Based on ErrorModal.jsx:
     // Header is "Ops! Qualcosa non va"
     await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible({ timeout: 5000 });
+    // Take a screenshot for debugging
+    await page.screenshot({ path: 'test-results/negative-auth-code.png' });
     
     // Click "Mostra dettagli errore" to reveal technical message
     // Button has text "Mostra dettagli errore"
@@ -54,6 +56,8 @@ test.describe('Negative Authentication Scenarios', () => {
 
     // Expect Error
     await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible();
+    // Take a screenshot for debugging
+    await page.screenshot({ path: 'test-results/negative-auth-token.png' });
   });
 
   test('User cannot access invitation without parameters', async ({ page }) => {
@@ -66,6 +70,9 @@ test.describe('Negative Authentication Scenarios', () => {
     
     // Let's check the Header
     await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible();
+
+    // Take a screenshot for debugging
+    await page.screenshot({ path: 'test-results/negative-auth-params.png' });
     
     // And checking specific text might be inside "Mostra dettagli" or the main paragraph if passed as userMessage
     // Given InvitationPage implementation: `const customError = new Error(errorMsg);`
