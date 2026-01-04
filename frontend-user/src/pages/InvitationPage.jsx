@@ -3,7 +3,7 @@ import { AnimatePresence } from 'motion/react';
 import { authenticateInvitation } from '../services/api';
 import EnvelopeAnimation from '../components/invitation/EnvelopeAnimation';
 import LetterContent from '../components/invitation/LetterContent';
-import LoadingScreen from '../components/LoadingScreen';
+import LoadingScreen from '../components/common/LoadingScreen';
 import './InvitationPage.css';
 
 const InvitationPage = () => {

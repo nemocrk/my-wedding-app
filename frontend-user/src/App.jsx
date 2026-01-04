@@ -1,6 +1,6 @@
 import React from 'react';
 import InvitationPage from './pages/InvitationPage';
-import ErrorModal from './components/ErrorModal';
+import ErrorModal from './components/common/ErrorModal';
 import useApiErrorModal from './hooks/useApiErrorModal';
 import './App.css';
 
