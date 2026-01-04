@@ -40,7 +40,6 @@ jobs:
           echo "## 🐍 Backend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          # Clean up any potential ANSI codes just in case and take the last 30 lines
           sed 's/\x1b\[[0-9;]*m//g' backend/pytest-coverage.txt | tail -n 30 >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
@@ -77,7 +76,6 @@ jobs:
           FORCE_COLOR: 0
         run: |
           set -o pipefail
-          # Add --no-color to explicitly disable Vitest coloring
           npm run test -- --run --coverage --no-color | tee coverage-output.txt
       
       - name: Generate User Frontend Summary
@@ -87,7 +85,6 @@ jobs:
           echo "## ⚛️ User Frontend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          # Use sed to strip any remaining ANSI escape codes
           sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
@@ -124,7 +121,6 @@ jobs:
           FORCE_COLOR: 0
         run: |
           set -o pipefail
-          # Add --no-color to explicitly disable Vitest coloring
           npm run test -- --run --coverage --no-color | tee coverage-output.txt
       
       - name: Generate Admin Frontend Summary
@@ -134,7 +130,6 @@ jobs:
           echo "## 🛠️ Admin Frontend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          # Use sed to strip any remaining ANSI escape codes
           sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
@@ -181,7 +176,6 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: ./tests/e2e
-        # Matches 'npx playwright install chromium' + deps from script
         run: |
           npx playwright install chromium
           npx playwright install-deps chromium
@@ -192,37 +186,45 @@ jobs:
         env:
           BASE_URL: http://localhost
       
-      - name: Generate E2E Summary with Screenshots
+      - name: Generate E2E Summary with Embed Images
         if: always()
         working-directory: ./tests/e2e
-        # NOTE: Images in GITHUB_STEP_SUMMARY must be publicly accessible URLs or base64 data URIs.
-        # Since local paths don't render in the web UI summary, we cannot display the images directly here 
-        # without uploading them to a public storage first (e.g. S3, Imgur) or using a complex Base64 hack 
-        # (which has size limits).
-        # However, listing them helps confirm they exist.
-        # Below is a "best effort" to list captured screenshots.
         run: |
           echo "## 🎭 E2E Test Execution" >> $GITHUB_STEP_SUMMARY
           echo "✅ **Test Suite Completed**" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📸 Captured Screenshots" >> $GITHUB_STEP_SUMMARY
-          echo "Screenshots are available in the 'playwright-results' artifact." >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📸 Captured Screenshots (Embedded)" >> $GITHUB_STEP_SUMMARY
           
           if [ -d "test-results" ]; then
-            echo "| Screenshot Name | Found |" >> $GITHUB_STEP_SUMMARY
-            echo "|---|---|" >> $GITHUB_STEP_SUMMARY
-            find test-results -name "*.png" | while read img; do
+            count=0
+            # Limit to 5 images to avoid hitting GitHub summary size limits (approx 1MB text limit)
+            MAX_IMAGES=5
+            
+            find test-results -name "*.png" | head -n $MAX_IMAGES | while read img; do
               filename=$(basename "$img")
-              echo "| $filename | ✅ |" >> $GITHUB_STEP_SUMMARY
+              echo "Processing $filename..."
+              
+              # Convert to base64 (remove newlines)
+              b64data=$(base64 -w 0 "$img")
+              
+              # Append to summary as HTML image tag with Data URI
+              echo "#### 🖼️ $filename" >> $GITHUB_STEP_SUMMARY
+              echo "<img src=\"data:image/png;base64,$b64data\" width=\"800\" alt=\"$filename\" />" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              count=$((count+1))
             done
+            
+            total_found=$(find test-results -name "*.png" | wc -l)
+            if [ "$total_found" -gt "$MAX_IMAGES" ]; then
+              echo "⚠️ _Shown first $MAX_IMAGES images only. Download artifacts to see all $(($total_found)) images._" >> $GITHUB_STEP_SUMMARY
+            elif [ "$count" -eq "0" ]; then
+              echo "No screenshots found." >> $GITHUB_STEP_SUMMARY
+            fi
+            
           else
-             echo "No screenshots found (tests passed without failures or manual snapshots)." >> $GITHUB_STEP_SUMMARY
+             echo "No screenshots directory found." >> $GITHUB_STEP_SUMMARY
           fi
-          
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "### 📊 Artifacts" >> $GITHUB_STEP_SUMMARY
-          echo "- 📄 **Playwright HTML Report**: Download 'playwright-results' to view." >> $GITHUB_STEP_SUMMARY
 
       - name: Upload Test Results (Report & Screenshots)
         if: always() # Upload results even if tests fail
