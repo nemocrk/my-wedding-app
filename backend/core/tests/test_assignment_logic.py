@@ -15,9 +15,16 @@ class TestAssignmentLogic:
         inv.accommodation_requested = True
         inv.save()
         
-        response = api_client.post('/api/admin/accommodations/auto-assign/', {'reset_previous': True})
+        # Use STANDARD strategy to trigger execution mode
+        response = api_client.post('/api/admin/accommodations/auto-assign/', {
+            'reset_previous': True,
+            'strategy': 'STANDARD'
+        })
         assert response.status_code == 200
-        assert response.data['assigned_count'] == 2
+        
+        # Access nested result and correct key names
+        result = response.data['result']
+        assert result['assigned_guests'] == 2
         
         inv.refresh_from_db()
         assert inv.accommodation == accommodation_with_rooms
@@ -43,11 +50,16 @@ class TestAssignmentLogic:
         inv.accommodation_requested = True
         inv.save()
         
-        response = api_client.post('/api/admin/accommodations/auto-assign/', {'reset_previous': True})
+        response = api_client.post('/api/admin/accommodations/auto-assign/', {
+            'reset_previous': True,
+            'strategy': 'STANDARD'
+        })
         assert response.status_code == 200
+        
+        result = response.data['result']
         # Atomic behavior: no partial assignments
-        assert response.data['assigned_count'] == 0
-        assert response.data['unassigned_count'] == 3
+        assert result['assigned_guests'] == 0
+        assert result['unassigned_guests'] == 3
 
     def test_affinity_grouping(self, api_client, accommodation_with_rooms, invitation_factory):
         # Inv1 (2 adults) affine to Inv2 (2 adults)
@@ -61,9 +73,14 @@ class TestAssignmentLogic:
         
         inv1.affinities.add(inv2)
         
-        response = api_client.post('/api/admin/accommodations/auto-assign/', {'reset_previous': True})
+        response = api_client.post('/api/admin/accommodations/auto-assign/', {
+            'reset_previous': True,
+            'strategy': 'STANDARD'
+        })
         assert response.status_code == 200
-        assert response.data['assigned_count'] == 4
+        
+        result = response.data['result']
+        assert result['assigned_guests'] == 4
         
         inv1.refresh_from_db()
         inv2.refresh_from_db()
