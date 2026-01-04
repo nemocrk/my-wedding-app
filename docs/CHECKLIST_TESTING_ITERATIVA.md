@@ -52,8 +52,8 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
   - [x] Test rendering stats charts (mock data).
   - [ ] Test navigazione menu.
 
-- [ ] **Step 3: Heatmap**
-  - [ ] Test rendering canvas/layer heatmap.
+- [x] **Step 3: Heatmap**
+  - [x] Test rendering canvas/layer heatmap.
 
 ## E2E Functional (`tests/e2e/`)
 
