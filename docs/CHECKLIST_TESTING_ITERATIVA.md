@@ -30,12 +30,12 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 ## Frontend User (`frontend-user/`)
 
-- [ ] **Step 1: Setup**
+- [x] **Step 1: Setup**
   - [x] Configurare `vitest` e `setupTests.ts`.
-  - [ ] Creare cartella `src/components/__tests__/`.
+  - [x] Creare cartella `src/components/__tests__/`.
 
 - [ ] **Step 2: Componenti Base**
-  - [ ] Test render `Envelope.jsx` (o equivalente).
+  - [x] Test render `Envelope.jsx` (o equivalente).
   - [ ] Test form `RsvpForm.jsx` (validazione input).
 
 - [ ] **Step 3: Non-Regression (Snapshot)**
