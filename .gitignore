@@ -20,3 +20,7 @@ dist/
 .docker_data/
 postgres_data/
 
+# Test Output
+*.snap
+**/playwright-report/**
+**/test-results/**

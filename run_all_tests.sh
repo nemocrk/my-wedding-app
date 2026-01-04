@@ -77,6 +77,8 @@ echo "📦 Installazione dipendenze E2E..."
 npm install
 # Assicuriamoci che i browser siano installati
 npx playwright install chromium
+# Install OS dependencies (requires sudo/root)
+npx playwright install-deps chromium
 npx playwright test
 cd ../..
 echo "✅ E2E Tests Completati con successo."
