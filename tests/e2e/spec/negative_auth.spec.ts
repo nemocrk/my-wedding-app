@@ -21,12 +21,12 @@ test.describe('Negative Authentication Scenarios', () => {
     const invalidCode = 'INVALID-CODE-123';
     const validToken = 'valid-token'; 
     
-    const url = `http://localhost:8080/invitation?code=${invalidCode}&token=${validToken}`;
+    // CORRECTED PORT: 80 (Public Frontend) instead of 8080 (Admin Intranet)
+    // The Invitation flow belongs to the User App.
+    const url = `http://localhost:80/invitation?code=${invalidCode}&token=${validToken}`;
     
     await page.goto(url);
     
-    // Check for Header "Ops! Qualcosa non va"
-    // Use a try/catch block for explicit debugging screenshot if specific step fails
     try {
         await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible({ timeout: 5000 });
     } catch (e) {
@@ -48,7 +48,8 @@ test.describe('Negative Authentication Scenarios', () => {
     });
 
     const invalidToken = 'INVALID-TOKEN';
-    const url = `http://localhost:8080/invitation?code=${inv.code}&token=${invalidToken}`;
+    // CORRECTED PORT: 80
+    const url = `http://localhost:80/invitation?code=${inv.code}&token=${invalidToken}`;
 
     await page.goto(url);
 
@@ -61,7 +62,8 @@ test.describe('Negative Authentication Scenarios', () => {
   });
 
   test('User cannot access invitation without parameters', async ({ page }) => {
-    await page.goto('http://localhost:8080/invitation');
+    // CORRECTED PORT: 80
+    await page.goto('http://localhost:80/invitation');
 
     try {
         await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible();
