@@ -3,6 +3,22 @@
 # Uscita immediata in caso di errore
 set -e
 
+# Funzione per eseguire comandi come appuser se esiste e siamo root
+run_as_appuser() {
+    if [ "$(id -u)" = "0" ] && id "appuser" > /dev/null 2>&1; then
+        gosu appuser "$@"
+    else
+        "$@"
+    fi
+}
+
+# Se siamo root e esiste appuser, fixiamo permessi delle cartelle critiche
+if [ "$(id -u)" = "0" ] && id "appuser" > /dev/null 2>&1; then
+    echo "Fixing permissions for appuser..."
+    mkdir -p /app/staticfiles /app/media
+    chown -R appuser:appuser /app/staticfiles /app/media
+fi
+
 echo "Waiting for PostgreSQL..."
 # Loop di attesa finché il DB non è pronto (usa nc se disponibile o un check python)
 while ! nc -z db 5432; do
@@ -11,17 +27,21 @@ done
 echo "Database ready."
 
 echo "Creating migrations for 'core'..."
-python manage.py makemigrations core
+run_as_appuser python manage.py makemigrations core
 
 echo "Applying all migrations..."
-python manage.py migrate
+run_as_appuser python manage.py migrate
 
 echo "Done."
 
 echo "Collecting static files..."
 # Raccoglie i file statici (utile in produzione)
-python manage.py collectstatic --noinput
+run_as_appuser python manage.py collectstatic --noinput
 
 echo "Starting server..."
-# Esegue il comando passato come argomento al container (es. gunicorn o runserver)
-exec "$@"
+# Se siamo root ed esiste appuser, usa gosu per lanciare il comando finale (es. gunicorn)
+if [ "$(id -u)" = "0" ] && id "appuser" > /dev/null 2>&1; then
+    exec gosu appuser "$@"
+else
+    exec "$@"
+fi

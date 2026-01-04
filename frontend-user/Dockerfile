@@ -11,8 +11,8 @@ WORKDIR /app
 # Copia package files per layer caching
 COPY package*.json ./
 
-# Installa dipendenze
-RUN npm ci --only=production && \
+# Installa dipendenze (DEV deps necessarie per buildare con Vite)
+RUN npm ci && \
     npm cache clean --force
 
 # Copia tutto il codice sorgente

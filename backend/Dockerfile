@@ -15,11 +15,13 @@ WORKDIR /app
 
 # Installa dipendenze di sistema necessarie
 # netcat-openbsd serve per lo script di wait-for-db
+# gosu serve per il downgrade dei privilegi nell'entrypoint
 RUN apt-get update && apt-get install -y \
     gcc \
     libpq-dev \
     netcat-openbsd \
     curl \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # ==============================================
@@ -36,7 +38,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copia tutto il codice sorgente
+# Copia tutto il codice sorgente (il file .dockerignore filtra venv, .git, ecc.)
 COPY . /app/
 
 # Espone la porta
@@ -62,14 +64,16 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copia tutto il codice sorgente
+# Copia tutto il codice sorgente (il file .dockerignore filtra venv, .git, ecc.)
 COPY . /app/
 
-# Crea utente non-root per sicurezza
+# Crea utente non-root per sicurezza (ma non switchiamo qui, lo fa l'entrypoint)
 RUN useradd -m -u 1000 appuser && \
+    mkdir -p /app/staticfiles /app/media && \
     chown -R appuser:appuser /app
 
-USER appuser
+# NOTA: Rimossa istruzione USER appuser per permettere a entrypoint.sh
+# di girare come root per fixare i permessi dei volumi, poi userà gosu.
 
 # Espone la porta
 EXPOSE 8000
