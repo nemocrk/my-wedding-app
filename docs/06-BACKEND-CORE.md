@@ -38,8 +38,21 @@ Il modello `Room` implementa una logica smart per il calcolo della disponibilit�
 3.  Se i posti bambino sono esauriti, i bambini "traboccano" sui posti adulto.
 4.  Restituisce un dizionario con posti liberi distinti per tipo.
 
-### Algoritmo Assegnazione Automatica (Auto-Assign)
-Il processo di assegnazione automatica segue regole rigorose (file: `backend/core/views.py`):
+### Algoritmo Assegnazione Automatica (Arena delle Strategie)
+Il sistema implementa una **Arena Multi-Strategia** per l'assegnazione ottimale degli ospiti.
+L'endpoint `/auto-assign` può essere chiamato in due modalità:
+1. **SIMULATION**: Esegue in parallelo (in transazioni safe-rollback) diverse strategie e restituisce un report comparativo (spazio sprecato, % copertura).
+2. **EXECUTION**: Applica la strategia scelta e committa le modifiche al DB.
+
+#### Le Strategie Disponibili
+1. **STANDARD**: Priorità Affinità, Stanze Grandi prima. (Classico).
+2. **SPACE_OPTIMIZER**: (Tetris) Inviti Grandi prima, Stanze Piccole (Best Fit).
+3. **CHILDREN_FIRST**: Priorità Inviti con bambini, Stanze con letti bambino.
+4. **PERFECT_MATCH**: Cerca solo incastri perfetti (Capienza == Ospiti).
+5. **SMALLEST_FIRST**: Inviti Piccoli prima, Stanze Piccole prima.
+6. **AFFINITY_CLUSTER**: Tratta i gruppi affini come blocchi monolitici.
+
+#### Regole Inviolabili (Tutte le strategie)
 1. **Regola 1 (Isolamento)**: Una stanza può contenere SOLO persone dello stesso invito.
 2. **Regola 2 (Compatibilità)**: Una struttura non può ospitare inviti tra loro "non affini".
 3. **Regola 3 (Atomicità)**: Tutte le persone di un invito devono trovare posto nella stessa struttura (in una o più stanze), altrimenti l'intero invito non viene assegnato (Rollback).
