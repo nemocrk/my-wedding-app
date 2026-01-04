@@ -1,6 +1,7 @@
 // frontend-admin/src/components/common/ErrorModal.jsx
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
 
 const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -26,25 +27,11 @@ const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
           {/* Custom SVG Sad Face */}
           <div className="mb-6 relative">
             <div className="absolute inset-0 bg-red-100 rounded-full blur-xl opacity-50 animate-pulse"></div>
-            <svg 
-              width="80" 
-              height="80" 
-              viewBox="0 0 24 24" 
-              fill="none" 
-              stroke="currentColor" 
-              strokeWidth="1.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              className="text-red-500 relative z-10"
-            >
-              <circle cx="12" cy="12" r="10" />
-              <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
-              <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
-              {/* Sad Mouth Curve */}
-              <path d="M16 16 C16 16 14.5 14 12 14 C9.5 14 8 16 8 16" strokeWidth="2" />
-              {/* Teardrop (optional detail) */}
-              <path d="M15 10.5 C15 10.5 15.5 12.5 15 13" strokeWidth="1" className="opacity-60" />
-            </svg>
+            <img 
+              src={sadFaceUrl} 
+              alt="Sad Face" 
+              className="relative z-10 w-20 h-20 text-red-500" 
+            />
           </div>
 
           <h3 className="text-2xl font-bold text-gray-800 mb-2">
