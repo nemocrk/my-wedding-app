@@ -29,8 +29,19 @@ jobs:
           
       - name: Run Pytest with Coverage
         run: |
+          set -o pipefail
           cd backend
-          pytest -v --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term
+          # Run pytest with --color=no to ensure clean logs
+          pytest -v --color=no --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term | tee pytest-coverage.txt
+      
+      - name: Generate Backend Summary
+        if: always()
+        run: |
+          echo "## 🐍 Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          sed 's/\x1b\[[0-9;]*m//g' backend/pytest-coverage.txt | tail -n 30 >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Backend Coverage
         uses: actions/upload-artifact@v4
@@ -61,7 +72,21 @@ jobs:
         
       - name: Run Vitest with Coverage
         working-directory: ./frontend-user
-        run: npm run test -- --run --coverage
+        env:
+          FORCE_COLOR: 0
+        run: |
+          set -o pipefail
+          npm run test -- --run --coverage --no-color | tee coverage-output.txt
+      
+      - name: Generate User Frontend Summary
+        if: always()
+        working-directory: ./frontend-user
+        run: |
+          echo "## ⚛️ User Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload User Coverage
         uses: actions/upload-artifact@v4
@@ -92,7 +117,21 @@ jobs:
         
       - name: Run Vitest with Coverage
         working-directory: ./frontend-admin
-        run: npm run test -- --run --coverage
+        env:
+          FORCE_COLOR: 0
+        run: |
+          set -o pipefail
+          npm run test -- --run --coverage --no-color | tee coverage-output.txt
+      
+      - name: Generate Admin Frontend Summary
+        if: always()
+        working-directory: ./frontend-admin
+        run: |
+          echo "## 🛠️ Admin Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Admin Coverage
         uses: actions/upload-artifact@v4
@@ -137,7 +176,6 @@ jobs:
 
       - name: Install Playwright Browsers
         working-directory: ./tests/e2e
-        # Matches 'npx playwright install chromium' + deps from script
         run: |
           npx playwright install chromium
           npx playwright install-deps chromium
@@ -147,7 +185,47 @@ jobs:
         run: npx playwright test
         env:
           BASE_URL: http://localhost
+      
+      - name: Generate E2E Summary with Embed Images
+        if: always()
+        working-directory: ./tests/e2e
+        run: |
+          echo "## 🎭 E2E Test Execution" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Test Suite Completed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📸 Captured Screenshots (Embedded)" >> $GITHUB_STEP_SUMMARY
           
+          if [ -d "test-results" ]; then
+            count=0
+            # Limit to 5 images to avoid hitting GitHub summary size limits (approx 1MB text limit)
+            MAX_IMAGES=5
+            
+            find test-results -name "*.png" | head -n $MAX_IMAGES | while read img; do
+              filename=$(basename "$img")
+              echo "Processing $filename..."
+              
+              # Convert to base64 (remove newlines)
+              b64data=$(base64 -w 0 "$img")
+              
+              # Append to summary as HTML image tag with Data URI
+              echo "#### 🖼️ $filename" >> $GITHUB_STEP_SUMMARY
+              echo "<img src=\"data:image/png;base64,$b64data\" width=\"800\" alt=\"$filename\" />" >> $GITHUB_STEP_SUMMARY
+              echo "" >> $GITHUB_STEP_SUMMARY
+              
+              count=$((count+1))
+            done
+            
+            total_found=$(find test-results -name "*.png" | wc -l)
+            if [ "$total_found" -gt "$MAX_IMAGES" ]; then
+              echo "⚠️ _Shown first $MAX_IMAGES images only. Download artifacts to see all $(($total_found)) images._" >> $GITHUB_STEP_SUMMARY
+            elif [ "$count" -eq "0" ]; then
+              echo "No screenshots found." >> $GITHUB_STEP_SUMMARY
+            fi
+            
+          else
+             echo "No screenshots directory found." >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload Test Results (Report & Screenshots)
         if: always() # Upload results even if tests fail
         uses: actions/upload-artifact@v4
