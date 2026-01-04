@@ -1,3 +1,4 @@
+[![Full Stack Test Suite](https://github.com/nemocrk/my-wedding-app/actions/workflows/test-automation.yml/badge.svg)](https://github.com/nemocrk/my-wedding-app/actions/workflows/test-automation.yml)
 # Wedding Invitation & RSVP Tracking System
 
 ## Panoramica

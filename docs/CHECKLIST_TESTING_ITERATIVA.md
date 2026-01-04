@@ -44,24 +44,24 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 ## Frontend Admin (`frontend-admin/`)
 
-- [ ] **Step 1: Setup**
+- [x] **Step 1: Setup**
   - [x] Configurare `vitest` e `setupTests.ts`.
-  - [ ] Creare cartella `src/__tests__/`.
+  - [x] Creare cartella `src/__tests__/`.
 
-- [ ] **Step 2: Dashboard**
-  - [ ] Test rendering stats charts (mock data).
-  - [ ] Test navigazione menu.
+- [x] **Step 2: Dashboard**
+  - [x] Test rendering stats charts (mock data).
+  - [x] Test navigazione menu.
 
-- [ ] **Step 3: Heatmap**
-  - [ ] Test rendering canvas/layer heatmap.
+- [x] **Step 3: Heatmap**
+  - [x] Test rendering canvas/layer heatmap.
 
 ## E2E Functional (`tests/e2e/`)
 
-- [ ] **Step 1: Setup**
+- [x] **Step 1: Setup**
   - [x] Configurare Playwright e Docker workflow.
   - [x] Creare `api.ts` helper.
 
-- [ ] **Step 2: Scenari**
+- [x] **Step 2: Scenari**
   - [x] Scenario "Complex Flow" (Happy Path).
-  - [ ] Scenario "Negative Auth" (Token errato).
-  - [ ] Scenario "Concurrency" (Multipli utenti simultanei - opzionale).
+  - [x] Scenario "Negative Auth" (Token errato).
+  - [x] Scenario "Concurrency" (Multipli utenti simultanei - opzionale).

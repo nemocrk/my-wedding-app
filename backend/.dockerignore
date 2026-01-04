@@ -1,0 +1,25 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+.env
+
+# Python cache and compiled files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Git
+.git/
+.gitignore
+
+# IDE settings
+.vscode/
+.idea/
+
+# Local database (if any)
+*.sqlite3
+
+# OS files
+.DS_Store
