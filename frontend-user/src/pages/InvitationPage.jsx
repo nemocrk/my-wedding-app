@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { authenticateInvitation } from '../services/api';
-import EnvelopeAnimation from '../components/EnvelopeAnimation';
-import LetterContent from '../components/LetterContent';
+import EnvelopeAnimation from '../components/invitation/EnvelopeAnimation';
+import LetterContent from '../components/invitation/LetterContent';
 import LoadingScreen from '../components/LoadingScreen';
 import './InvitationPage.css';
 
