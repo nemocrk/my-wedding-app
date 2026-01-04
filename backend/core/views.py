@@ -432,27 +432,44 @@ class AccommodationViewSet(viewsets.ModelViewSet):
         REGOLA 4: Bambini possono usare slot adulti, adulti NO slot bambini
         """
         try:
+            logger.info("="*80)
+            logger.info("INIZIO ALGORITMO AUTO-ASSIGN")
+            logger.info("="*80)
+            
             if request.data.get('reset_previous', False):
+                reset_count = Person.objects.filter(assigned_room__isnull=False).count()
                 Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
                 Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
-                logger.info("Reset assegnazioni precedenti completato")
+                logger.info(f"✅ Reset completato: {reset_count} persone rimosse dalle assegnazioni precedenti")
 
             invitations = Invitation.objects.filter(
                 status=Invitation.Status.CONFIRMED,
                 accommodation_requested=True,
                 guests__assigned_room__isnull=True
             ).distinct().prefetch_related('guests', 'affinities', 'non_affinities')
+            
+            logger.info(f"👥 Trovati {invitations.count()} inviti da processare")
+            for inv in invitations:
+                adults = inv.guests.filter(is_child=False).count()
+                children = inv.guests.filter(is_child=True).count()
+                logger.info(f"  - {inv.name}: {adults}A + {children}B")
 
             accommodations = Accommodation.objects.prefetch_related(
                 'rooms__assigned_guests__invitation',
                 'assigned_invitations__non_affinities'
             ).all()
+            
+            logger.info(f"🏠 Strutture disponibili: {accommodations.count()}")
+            for acc in accommodations:
+                total_rooms = acc.rooms.count()
+                total_capacity = sum(r.total_capacity() for r in acc.rooms.all())
+                logger.info(f"  - {acc.name}: {total_rooms} stanze, capienza {total_capacity}")
 
             assigned_count = 0
             assignment_log = []
 
             def get_room_owner(room):
-                """Ritorna l'invitation_id che "possiede" questa stanza (None se vuota)"""
+                """Ritorna l'invitation_id che 'possiede' questa stanza (None se vuota)"""
                 guests = room.assigned_guests.all()
                 if not guests.exists():
                     return None
@@ -463,10 +480,14 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 REGOLA 2: Verifica che la struttura non contenga inviti incompatibili.
                 """
                 non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
+                if non_affine_ids:
+                    logger.debug(f"    ⚠️  {invitation.name} ha {len(non_affine_ids)} non-affinità")
+                
                 existing_invitations = accommodation.assigned_invitations.all()
                 
                 for existing_inv in existing_invitations:
                     if existing_inv.id in non_affine_ids:
+                        logger.debug(f"    ❌ REGOLA 2 violata: {existing_inv.name} già presente in {accommodation.name}")
                         return False
                 return True
 
@@ -478,16 +499,19 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 """
                 owner = get_room_owner(room)
                 if owner is not None and owner != invitation_id:
-                    return False  # Stanza già occupata da altro invito
+                    logger.debug(f"      ❌ REGOLA 1 violata: stanza {room.room_number} già occupata da invito ID {owner}")
+                    return False
                 
                 slots = room.available_slots()
                 
                 if person.is_child:
-                    # Bambino: preferisce slot bambini, fallback su adulti
-                    return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
+                    can_fit = (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
+                    logger.debug(f"      {'✅' if can_fit else '❌'} Bambino {person.first_name}: slot B={slots['child_slots_free']}, A={slots['adult_slots_free']}")
+                    return can_fit
                 else:
-                    # Adulto: solo slot adulti
-                    return slots['adult_slots_free'] > 0
+                    can_fit = slots['adult_slots_free'] > 0
+                    logger.debug(f"      {'✅' if can_fit else '❌'} Adulto {person.first_name}: slot A={slots['adult_slots_free']}")
+                    return can_fit
 
             def assign_invitation_to_accommodation(invitation, accommodation):
                 """
@@ -496,13 +520,19 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 """
                 nonlocal assigned_count, assignment_log
                 
+                logger.info(f"  🔄 Tentativo assegnazione: '{invitation.name}' -> '{accommodation.name}'")
+                
                 # Check REGOLA 2 upfront
                 if not is_accommodation_compatible(accommodation, invitation):
+                    logger.warning(f"    ❌ Incompatibilità rilevata (non-affinità)")
                     return False
                 
                 persons = list(invitation.guests.filter(assigned_room__isnull=True))
                 if not persons:
-                    return True  # Già tutti assegnati
+                    logger.debug(f"    ℹ️ Tutti già assegnati")
+                    return True
+                
+                logger.info(f"    👥 {len(persons)} persone da assegnare")
                 
                 rooms = sorted(
                     accommodation.rooms.all(),
@@ -517,24 +547,25 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     
                     for person in persons:
                         assigned = False
+                        logger.debug(f"    🔍 Cerco stanza per {person.first_name} ({'B' if person.is_child else 'A'})")
                         
                         for room in rooms:
                             if can_person_fit_in_room(room, person, invitation.id):
                                 person.assigned_room = room
                                 person.save()
                                 temp_assignments.append((person, room))
+                                logger.info(f"      ✅ Assegnato/a a stanza {room.room_number}")
                                 assigned = True
                                 break
                         
                         if not assigned:
-                            # ATOMICO: Se anche una persona non entra, rollback tutto
-                            logger.warning(
-                                f"Impossibile assegnare {person} di {invitation.name} a {accommodation.name}"
-                            )
+                            logger.warning(f"      ❌ REGOLA 3 violata: impossibile assegnare {person.first_name}")
+                            logger.warning(f"    🔙 ROLLBACK: annullo tutte le assegnazioni di '{invitation.name}'")
                             transaction.savepoint_rollback(sid)
                             return False
                     
                     # COMMIT: Tutti assegnati con successo
+                    logger.info(f"    ✅ COMMIT: tutti assegnati con successo!")
                     transaction.savepoint_commit(sid)
                 
                 # Conferma assegnazione a livello di Invitation
@@ -554,6 +585,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 return True
 
             # Fase 1: Gruppi affini (prova ad assegnarli alla stessa struttura)
+            logger.info("🔶 FASE 1: Assegnazione gruppi affini")
             processed = set()
             
             for invitation in invitations:
@@ -568,6 +600,11 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     ).distinct()
                 )
                 
+                if len(affine_group) > 1:
+                    logger.info(f"🤝 Gruppo affine rilevato ({len(affine_group)} inviti):")
+                    for inv in affine_group:
+                        logger.info(f"   - {inv.name}")
+                
                 # Prova ad assegnare tutto il gruppo alla stessa struttura
                 for acc in accommodations:
                     all_fit = True
@@ -579,27 +616,45 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     if all_fit:
                         for inv in affine_group:
                             processed.add(inv.id)
-                        logger.info(f"Gruppo affine assegnato a {acc.name}: {[i.name for i in affine_group]}")
+                        logger.info(f"✅ Gruppo affine completamente assegnato a '{acc.name}'")
                         break
+                else:
+                    if len(affine_group) > 1:
+                        logger.warning(f"❌ Impossibile assegnare gruppo affine insieme")
 
             # Fase 2: Inviti singoli rimasti
+            logger.info("🔶 FASE 2: Assegnazione inviti singoli rimasti")
             remaining = Invitation.objects.filter(
                 status=Invitation.Status.CONFIRMED,
                 accommodation_requested=True,
                 guests__assigned_room__isnull=True
             ).distinct()
+            
+            logger.info(f"👤 {remaining.count()} inviti singoli da processare")
 
             for invitation in remaining:
+                logger.info(f"Processo invito singolo: '{invitation.name}'")
+                assigned = False
                 for acc in accommodations:
                     if assign_invitation_to_accommodation(invitation, acc):
-                        logger.info(f"Invito singolo assegnato a {acc.name}: {invitation.name}")
+                        logger.info(f"✅ Invito '{invitation.name}' assegnato a '{acc.name}'")
+                        assigned = True
                         break
+                
+                if not assigned:
+                    logger.warning(f"❌ Invito '{invitation.name}' NON assegnato (nessuna struttura compatibile)")
 
             unassigned_persons = Person.objects.filter(
                 invitation__status=Invitation.Status.CONFIRMED,
                 invitation__accommodation_requested=True,
                 assigned_room__isnull=True
             ).count()
+            
+            logger.info("="*80)
+            logger.info("RIEPILOGO FINALE")
+            logger.info(f"✅ Persone assegnate: {assigned_count}")
+            logger.info(f"❌ Persone NON assegnate: {unassigned_persons}")
+            logger.info("="*80)
 
             return Response({
                 'success': True,
@@ -609,7 +664,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_200_OK)
 
         except Exception as e:
-            logger.error(f"Errore assegnazione alloggi: {str(e)}", exc_info=True)
+            logger.error(f"❌❌❌ ERRORE CRITICO nell'assegnazione alloggi: {str(e)}", exc_info=True)
             return Response({
                 'success': False,
                 'error': str(e)
