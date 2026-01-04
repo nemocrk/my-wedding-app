@@ -20,6 +20,14 @@ export class ApiHelper {
     return response.json();
   }
 
+  async deleteInvitation(id: number) {
+    const response = await this.request.delete(`${ADMIN_API}/invitations/${id}/`);
+    if (!response.ok()) {
+      console.warn(`Failed to delete invitation ${id}: ${await response.text()}`);
+    }
+    return response.ok();
+  }
+
   async getInvitationLink(id: number) {
     const response = await this.request.get(`${ADMIN_API}/invitations/${id}/generate_link/`);
     if (!response.ok()) {
@@ -30,12 +38,10 @@ export class ApiHelper {
 
   async createAccommodation(data: any) {
     // FIX: AccommodationSerializer uses 'rooms_config' (write_only) for input, not 'rooms' (read_only).
-    // The test passes 'rooms', so we map it here.
     const payload = {
         ...data,
         rooms_config: data.rooms || data.rooms_config 
     };
-    // Remove 'rooms' from payload to avoid confusion, though DRF ignores read-only fields usually.
     if (payload.rooms) delete payload.rooms;
 
     const response = await this.request.post(`${ADMIN_API}/accommodations/`, {
@@ -47,7 +53,15 @@ export class ApiHelper {
     return response.json();
   }
 
-  async triggerAutoAssignment(reset: boolean = true) {
+  async deleteAccommodation(id: number) {
+    const response = await this.request.delete(`${ADMIN_API}/accommodations/${id}/`);
+    if (!response.ok()) {
+      console.warn(`Failed to delete accommodation ${id}: ${await response.text()}`);
+    }
+    return response.ok();
+  }
+
+  async triggerAutoAssign(reset: boolean = true) {
     const response = await this.request.post(`${ADMIN_API}/accommodations/auto-assign/`, {
       data: { reset_previous: reset, strategy: 'STANDARD' }
     });
