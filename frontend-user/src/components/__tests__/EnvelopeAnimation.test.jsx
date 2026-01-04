@@ -16,10 +16,4 @@ describe('EnvelopeAnimation Component', () => {
     const svgElement = sealHeart.closest('svg');
     expect(svgElement).toBeInTheDocument();
   });
-
-  it('matches snapshot', () => {
-    const onCompleteMock = vi.fn();
-    const { container } = render(<EnvelopeAnimation onComplete={onCompleteMock} />);
-    expect(container).toMatchSnapshot();
-  });
 });

@@ -41,12 +41,14 @@ const InvitationPage = () => {
           // Rimuovi parametri dall'URL per sicurezza
           window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-           // Should be handled by api.js global dispatcher, but fallback:
-           throw new Error(data.message || 'Invito non valido');
+           const errMsg = data.message || 'Invito non valido';
+           throw new Error(errMsg);
         }
       } catch (err) {
         console.error('Errore autenticazione:', err);
-        setError('Errore di connessione. Riprova più tardi.');
+        setError('Errore di connessione.');
+        // Dispatch global error for the Modal to show up
+        window.dispatchEvent(new CustomEvent('api-error', { detail: err }));
       } finally {
         setLoading(false);
       }
