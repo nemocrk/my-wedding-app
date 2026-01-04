@@ -22,7 +22,6 @@ test.describe('Negative Authentication Scenarios', () => {
     const validToken = 'valid-token'; 
     
     // CORRECTED PORT: 80 (Public Frontend) instead of 8080 (Admin Intranet)
-    // The Invitation flow belongs to the User App.
     const url = `http://localhost:80/invitation?code=${invalidCode}&token=${validToken}`;
     
     await page.goto(url);
@@ -40,24 +39,34 @@ test.describe('Negative Authentication Scenarios', () => {
   });
 
   test('User cannot access invitation with invalid token', async ({ request, page }) => {
-    const inv = await api.createInvitation({
-        code: `auth-test-${Date.now()}`,
-        name: `Auth Test Family`,
-        status: 'pending',
-        guests: [{ first_name: 'Test', last_name: 'User', is_child: false }]
-    });
-
-    const invalidToken = 'INVALID-TOKEN';
-    // CORRECTED PORT: 80
-    const url = `http://localhost:80/invitation?code=${inv.code}&token=${invalidToken}`;
-
-    await page.goto(url);
-
+    let createdInvId: number | null = null;
+    
     try {
-        await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible();
-    } catch (e) {
-        await page.screenshot({ path: 'test-results/debug-invalid-token-fail.png' });
-        throw e;
+        // First create a valid invitation to get a real code
+        const inv = await api.createInvitation({
+            code: `auth-test-${Date.now()}`,
+            name: `Auth Test Family`,
+            status: 'pending',
+            guests: [{ first_name: 'Test', last_name: 'User', is_child: false }]
+        });
+        createdInvId = inv.id;
+
+        const invalidToken = 'INVALID-TOKEN';
+        // CORRECTED PORT: 80
+        const url = `http://localhost:80/invitation?code=${inv.code}&token=${invalidToken}`;
+
+        await page.goto(url);
+
+        try {
+            await expect(page.getByText('Ops! Qualcosa non va')).toBeVisible();
+        } catch (e) {
+            await page.screenshot({ path: 'test-results/debug-invalid-token-fail.png' });
+            throw e;
+        }
+    } finally {
+        if (createdInvId) {
+            await api.deleteInvitation(createdInvId);
+        }
     }
   });
 
