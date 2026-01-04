@@ -29,8 +29,17 @@ export class ApiHelper {
   }
 
   async createAccommodation(data: any) {
+    // FIX: AccommodationSerializer uses 'rooms_config' (write_only) for input, not 'rooms' (read_only).
+    // The test passes 'rooms', so we map it here.
+    const payload = {
+        ...data,
+        rooms_config: data.rooms || data.rooms_config 
+    };
+    // Remove 'rooms' from payload to avoid confusion, though DRF ignores read-only fields usually.
+    if (payload.rooms) delete payload.rooms;
+
     const response = await this.request.post(`${ADMIN_API}/accommodations/`, {
-      data
+      data: payload
     });
     if (!response.ok()) {
       throw new Error(`Failed to create accommodation: ${await response.text()}`);
@@ -40,7 +49,7 @@ export class ApiHelper {
 
   async triggerAutoAssign(reset: boolean = true) {
     const response = await this.request.post(`${ADMIN_API}/accommodations/auto-assign/`, {
-      data: { reset_previous: reset }
+      data: { reset_previous: reset, strategy: 'STANDARD' }
     });
     if (!response.ok()) {
       throw new Error(`Failed to auto assign: ${await response.text()}`);
