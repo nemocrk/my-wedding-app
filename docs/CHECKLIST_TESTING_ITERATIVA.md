@@ -57,11 +57,11 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 ## E2E Functional (`tests/e2e/`)
 
-- [ ] **Step 1: Setup**
+- [x] **Step 1: Setup**
   - [x] Configurare Playwright e Docker workflow.
   - [x] Creare `api.ts` helper.
 
-- [ ] **Step 2: Scenari**
+- [x] **Step 2: Scenari**
   - [x] Scenario "Complex Flow" (Happy Path).
   - [x] Scenario "Negative Auth" (Token errato).
-  - [ ] Scenario "Concurrency" (Multipli utenti simultanei - opzionale).
+  - [x] Scenario "Concurrency" (Multipli utenti simultanei - opzionale).
