@@ -38,6 +38,17 @@ Il modello `Room` implementa una logica smart per il calcolo della disponibilit�
 3.  Se i posti bambino sono esauriti, i bambini "traboccano" sui posti adulto.
 4.  Restituisce un dizionario con posti liberi distinti per tipo.
 
+### Algoritmo Assegnazione Automatica (Auto-Assign)
+Il processo di assegnazione automatica segue regole rigorose (file: `backend/core/views.py`):
+1. **Regola 1 (Isolamento)**: Una stanza può contenere SOLO persone dello stesso invito.
+2. **Regola 2 (Compatibilità)**: Una struttura non può ospitare inviti tra loro "non affini".
+3. **Regola 3 (Atomicità)**: Tutte le persone di un invito devono trovare posto nella stessa struttura (in una o più stanze), altrimenti l'intero invito non viene assegnato (Rollback).
+4. **Regola 4 (Slot)**: Adulti solo in slot adulti; Bambini in slot bambini o adulti.
+
+> **⚠️ NOTA TECNICA IMPORTANTE (Prefetch vs Live Query)**
+> L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
+> Usare i dati prefetched (`room.assigned_guests.all()`) causerebbe letture "stale" (vecchie) all'interno della stessa transazione, portando alla violazione della Regola 1 (più inviti nella stessa stanza).
+
 ## 4. Analytics (`GuestInteraction` & `GuestHeatmap`)
 Sistema di tracciamento integrato.
 - **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
