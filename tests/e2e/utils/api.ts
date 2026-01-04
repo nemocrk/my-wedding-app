@@ -47,7 +47,7 @@ export class ApiHelper {
     return response.json();
   }
 
-  async triggerAutoAssign(reset: boolean = true) {
+  async triggerAutoAssignment(reset: boolean = true) {
     const response = await this.request.post(`${ADMIN_API}/accommodations/auto-assign/`, {
       data: { reset_previous: reset, strategy: 'STANDARD' }
     });
