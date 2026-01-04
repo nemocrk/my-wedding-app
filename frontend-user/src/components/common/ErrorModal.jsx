@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
-import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
+import sadFaceUrl from '../assets/illustrations/sad-face.svg';
 
 const ErrorModal = ({ error, onClose }) => {
   const [showDetails, setShowDetails] = useState(false);
