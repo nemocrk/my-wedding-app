@@ -24,3 +24,6 @@ postgres_data/
 *.snap
 **/playwright-report/**
 **/test-results/**
+**/coverage/**
+**/.coverage/**
+**/.coverage
