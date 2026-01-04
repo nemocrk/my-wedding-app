@@ -58,6 +58,25 @@ L'interfaccia è costruita su componenti modulari stylati con Tailwind.
 - **Layout**: `Sidebar`, `TopBar` (struttura persistente).
 - **Analytics**: Wrapper per i grafici Recharts per garantire consistenza di colori e font.
 
+## 5. Gestione Asset Grafici
+
+L'applicazione segue uno standard rigoroso per la gestione delle immagini e delle icone per garantire performance e manutenibilità.
+
+### Struttura Directory
+- `src/assets/icons/`: Icone UI riutilizzabili (es. `react-logo.svg`).
+- `src/assets/illustrations/`: Illustrazioni complesse (es. `sad-face.svg` per messaggi di errore).
+- `public/`: Asset statici serviti direttamente (es. `vite.svg`, favicon) che non richiedono bundling.
+
+### Standard di Implementazione
+1. **Icone UI**: Utilizzare preferibilmente la libreria `lucide-react` per coerenza stilistica (es. `<X />`, `<Loader />`).
+2. **Import SVG**: Per file custom, importare l'URL o il componente React:
+   ```javascript
+   // Metodo Immagine (Preferito per illustrazioni complesse)
+   import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
+   <img src={sadFaceUrl} alt="Error" className="w-20 h-20" />
+   ```
+3. **Vietato**: Non inserire SVG inline (`<svg>...</svg>`) direttamente nel codice JSX dei componenti per evitare "pollution" del codice.
+
 ## Flusso Operativo Tipico
 1.  Admin accede a `/invitations`.
 2.  Crea un nuovo invito "Famiglia Rossi" (Create Modal).
