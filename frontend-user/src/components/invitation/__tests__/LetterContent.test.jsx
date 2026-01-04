@@ -1,15 +1,15 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LetterContent from '../LetterContent';
-import * as apiService from '../../services/api';
-import * as analyticsService from '../../services/analytics';
+import * as apiService from '../../../services/api';
+import * as analyticsService from '../../../services/analytics';
 
 // Mock services
-vi.mock('../../services/api', () => ({
+vi.mock('../../../services/api', () => ({
   submitRSVP: vi.fn(),
 }));
 
-vi.mock('../../services/analytics', () => ({
+vi.mock('../../../services/analytics', () => ({
   logInteraction: vi.fn(),
   heatmapTracker: {
     start: vi.fn(),

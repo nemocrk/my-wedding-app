@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { submitRSVP } from '../services/api';
-import { logInteraction, heatmapTracker } from '../services/analytics';
+import { submitRSVP } from '../../services/api';
+import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
 
 const LetterContent = ({ data }) => {

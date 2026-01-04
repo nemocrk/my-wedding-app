@@ -48,7 +48,26 @@ Modulo per il tracking granulare.
 - **Funzioni**: `trackVisit`, `trackClick`, `trackMouse`.
 - **Debounce**: Implementa logica per non inondare il backend di eventi mousemove (invio a batch o throttled).
 
-## 5. Pagine (`src/pages/`)
+## 5. Gestione Asset Grafici
+
+L'applicazione segue uno standard rigoroso per la gestione delle immagini e delle icone per garantire performance e manutenibilità.
+
+### Struttura Directory
+- `src/assets/icons/`: Icone UI riutilizzabili (es. `react-logo.svg`, `x.svg`, `chevron-down.svg`).
+- `src/assets/illustrations/`: Illustrazioni complesse (es. `sad-face.svg` per messaggi di errore).
+- `public/`: Asset statici serviti direttamente (es. `vite.svg`, favicon) che non richiedono bundling.
+
+### Standard di Implementazione
+1. **Icone UI**: Utilizzare `lucide-react` per la maggior parte delle icone (es. `<X />`, `<ChevronDown />`).
+2. **Import SVG**: Per file custom, importare l'URL o il componente React:
+   ```javascript
+   // Metodo Immagine (Preferito per illustrazioni complesse)
+   import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
+   <img src={sadFaceUrl} alt="Sad Face" className="w-20 h-20" />
+   ```
+3. **Vietato**: Non inserire SVG inline (`<svg>...</svg>`) direttamente nel codice JSX dei componenti.
+
+## 6. Pagine (`src/pages/`)
 
 ### `InvitationPage.jsx`
 Il contenitore logico principale.
