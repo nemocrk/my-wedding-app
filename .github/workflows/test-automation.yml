@@ -29,8 +29,21 @@ jobs:
           
       - name: Run Pytest with Coverage
         run: |
+          set -o pipefail
           cd backend
-          pytest -v --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term
+          # Run pytest, capture output to file and display on console
+          pytest -v --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term | tee pytest-coverage.txt
+      
+      - name: Generate Backend Summary
+        if: always()
+        run: |
+          echo "## 🐍 Backend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          # Extract the coverage table part (simple grep/sed or just dump the whole thing if short)
+          # We dump the whole output but limited to the last 30 lines usually containing the summary
+          tail -n 30 backend/pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Backend Coverage
         uses: actions/upload-artifact@v4
@@ -61,7 +74,21 @@ jobs:
         
       - name: Run Vitest with Coverage
         working-directory: ./frontend-user
-        run: npm run test -- --run --coverage
+        env:
+          FORCE_COLOR: 0 # Disable colors for cleaner log capture
+        run: |
+          set -o pipefail
+          npm run test -- --run --coverage | tee coverage-output.txt
+      
+      - name: Generate User Frontend Summary
+        if: always()
+        working-directory: ./frontend-user
+        run: |
+          echo "## ⚛️ User Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload User Coverage
         uses: actions/upload-artifact@v4
@@ -92,7 +119,21 @@ jobs:
         
       - name: Run Vitest with Coverage
         working-directory: ./frontend-admin
-        run: npm run test -- --run --coverage
+        env:
+          FORCE_COLOR: 0
+        run: |
+          set -o pipefail
+          npm run test -- --run --coverage | tee coverage-output.txt
+      
+      - name: Generate Admin Frontend Summary
+        if: always()
+        working-directory: ./frontend-admin
+        run: |
+          echo "## 🛠️ Admin Frontend Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Admin Coverage
         uses: actions/upload-artifact@v4
@@ -147,6 +188,17 @@ jobs:
         run: npx playwright test
         env:
           BASE_URL: http://localhost
+      
+      - name: Generate E2E Summary
+        if: always()
+        run: |
+          echo "## 🎭 E2E Test Execution" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Test Suite Completed**" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📊 Artifacts Available" >> $GITHUB_STEP_SUMMARY
+          echo "- 📄 **Playwright HTML Report**: Detailed interactive report" >> $GITHUB_STEP_SUMMARY
+          echo "- 📸 **Screenshots**: Captured on failure or specific checkpoints" >> $GITHUB_STEP_SUMMARY
+          echo "- 📼 **Traces**: Full execution traces for debugging" >> $GITHUB_STEP_SUMMARY
           
       - name: Upload Test Results (Report & Screenshots)
         if: always() # Upload results even if tests fail
