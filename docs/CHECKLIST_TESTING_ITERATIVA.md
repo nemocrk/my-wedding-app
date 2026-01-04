@@ -63,5 +63,5 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 - [ ] **Step 2: Scenari**
   - [x] Scenario "Complex Flow" (Happy Path).
-  - [ ] Scenario "Negative Auth" (Token errato).
+  - [x] Scenario "Negative Auth" (Token errato).
   - [ ] Scenario "Concurrency" (Multipli utenti simultanei - opzionale).
