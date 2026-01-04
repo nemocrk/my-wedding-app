@@ -44,12 +44,12 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
 
 ## Frontend Admin (`frontend-admin/`)
 
-- [ ] **Step 1: Setup**
+- [x] **Step 1: Setup**
   - [x] Configurare `vitest` e `setupTests.ts`.
-  - [ ] Creare cartella `src/__tests__/`.
+  - [x] Creare cartella `src/__tests__/`.
 
-- [ ] **Step 2: Dashboard**
-  - [ ] Test rendering stats charts (mock data).
+- [x] **Step 2: Dashboard**
+  - [x] Test rendering stats charts (mock data).
   - [ ] Test navigazione menu.
 
 - [ ] **Step 3: Heatmap**
