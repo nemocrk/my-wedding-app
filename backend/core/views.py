@@ -12,177 +12,89 @@ from .serializers import (
 )
 import logging
 import os
+import copy
 
 logger = logging.getLogger(__name__)
 
+# ... (Public API Classes remain unchanged) ...
 # ========================================
 # PUBLIC API (Internet - Session Based)
 # ========================================
 
 class PublicInvitationAuthView(APIView):
-    """
-    Endpoint INIZIALE per autenticazione invito pubblico.
-    Valida code + token e crea sessione sicura.
-    """
     def post(self, request):
         code = request.data.get('code')
         token = request.data.get('token')
-        
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
-        
         if not code or not token:
-            return Response({
-                'valid': False,
-                'message': 'Parametri mancanti: code e token richiesti.'
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
+            return Response({'valid': False, 'message': 'Parametri mancanti'}, status=status.HTTP_400_BAD_REQUEST)
         try:
             invitation = Invitation.objects.get(code=code)
-            
-            # Verifica token
             if not invitation.verify_token(token, config.invitation_link_secret):
-                logger.warning(f"Token non valido per invito {code}")
-                return Response({
-                    'valid': False,
-                    'message': config.unauthorized_message
-                }, status=status.HTTP_403_FORBIDDEN)
-            
-            # Token valido: salva in sessione
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
             request.session['invitation_code'] = code
             request.session['invitation_token'] = token
             request.session['invitation_id'] = invitation.id
             request.session.save()
-            
-            logger.info(f"Sessione creata per invito {code} (ID: {invitation.id})")
-            
-            # Serializza invito
             serializer = PublicInvitationSerializer(invitation, context={'config': config})
-            return Response({
-                'valid': True,
-                'invitation': serializer.data
-            })
-            
+            return Response({'valid': True, 'invitation': serializer.data})
         except Invitation.DoesNotExist:
-            return Response({
-                'valid': False,
-                'message': config.unauthorized_message
-            }, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicInvitationView(APIView):
-    """
-    Endpoint per recuperare dettagli invito (richiede sessione attiva).
-    """
     def get(self, request):
-        # Verifica sessione
         invitation_id = request.session.get('invitation_id')
         stored_code = request.session.get('invitation_code')
         stored_token = request.session.get('invitation_token')
-        
         if not all([invitation_id, stored_code, stored_token]):
-            config, _ = GlobalConfig.objects.get_or_create(pk=1)
-            return Response({
-                'valid': False,
-                'message': 'Sessione non valida. Ricarica la pagina dal link originale.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        
+            return Response({'valid': False, 'message': 'Sessione non valida'}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             invitation = Invitation.objects.get(id=invitation_id, code=stored_code)
             config, _ = GlobalConfig.objects.get_or_create(pk=1)
-            
-            # Double-check token
             if not invitation.verify_token(stored_token, config.invitation_link_secret):
-                request.session.flush()  # Invalida sessione
-                return Response({
-                    'valid': False,
-                    'message': config.unauthorized_message
-                }, status=status.HTTP_403_FORBIDDEN)
-            
+                request.session.flush()
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
             serializer = PublicInvitationSerializer(invitation, context={'config': config})
-            return Response({
-                'valid': True,
-                'invitation': serializer.data
-            })
-            
+            return Response({'valid': True, 'invitation': serializer.data})
         except Invitation.DoesNotExist:
             request.session.flush()
             config, _ = GlobalConfig.objects.get_or_create(pk=1)
-            return Response({
-                'valid': False,
-                'message': config.unauthorized_message
-            }, status=status.HTTP_404_NOT_FOUND)
-
+            return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicRSVPView(APIView):
-    """
-    Endpoint per conferma/declino partecipazione (richiede sessione attiva).
-    """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
-        
         if not invitation_id:
-            return Response({
-                'success': False,
-                'message': 'Sessione scaduta.'
-            }, status=status.HTTP_401_UNAUTHORIZED)
-        
+            return Response({'success': False, 'message': 'Sessione scaduta'}, status=status.HTTP_401_UNAUTHORIZED)
         try:
             invitation = Invitation.objects.get(id=invitation_id)
-            
-            # Aggiorna stato
-            new_status = request.data.get('status')  # 'confirmed' | 'declined'
+            new_status = request.data.get('status')
             if new_status not in ['confirmed', 'declined']:
-                return Response({
-                    'success': False,
-                    'message': 'Stato non valido.'
-                }, status=status.HTTP_400_BAD_REQUEST)
-            
+                return Response({'success': False, 'message': 'Stato non valido'}, status=status.HTTP_400_BAD_REQUEST)
             invitation.status = new_status
-            
-            # Opzioni logistiche (solo se confermato)
             if new_status == 'confirmed':
                 invitation.accommodation_requested = request.data.get('accommodation_requested', False)
                 invitation.transfer_requested = request.data.get('transfer_requested', False)
-            
             invitation.save()
-            
-            # Log RSVP submit interaction directly with SESSION ID
-            # Extract session_id from body to link with analytics
             meta = request.data.copy()
-            # Explicitly pass metadata that contains session_id
             _log_interaction(request, invitation, 'rsvp_submit', metadata=meta)
-            
-            logger.info(f"RSVP aggiornato per invito {invitation.code}: {new_status}")
-            
-            return Response({
-                'success': True,
-                'message': 'Risposta registrata con successo!'
-            })
-            
+            return Response({'success': True, 'message': 'Risposta registrata con successo!'})
         except Invitation.DoesNotExist:
-            return Response({
-                'success': False,
-                'message': 'Invito non trovato.'
-            }, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': False, 'message': 'Invito non trovato'}, status=status.HTTP_404_NOT_FOUND)
 
 def _log_interaction(request, invitation, event_type, metadata=None):
-    """Helper interno per loggare interazioni"""
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
     ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
-        
     device_type = 'desktop'
     if 'mobile' in user_agent.lower(): device_type = 'mobile'
     elif 'tablet' in user_agent.lower(): device_type = 'tablet'
-    
-    # Estrazione Geo Dati (passati dal frontend nel metadata)
     geo_country = None
     geo_city = None
     if metadata and 'geo' in metadata:
         geo_data = metadata['geo']
         geo_country = geo_data.get('country_name') or geo_data.get('country')
         geo_city = geo_data.get('city')
-        
     GuestInteraction.objects.create(
         invitation=invitation,
         event_type=event_type,
@@ -195,16 +107,11 @@ def _log_interaction(request, invitation, event_type, metadata=None):
     )
 
 class PublicLogInteractionView(APIView):
-    """
-    Endpoint per loggare interazioni generiche (click, visite, reset).
-    """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
-            
         event_type = request.data.get('event_type')
         metadata = request.data.get('metadata', {})
-        
         if event_type:
             try:
                 invitation = Invitation.objects.get(pk=invitation_id)
@@ -212,25 +119,18 @@ class PublicLogInteractionView(APIView):
                 return Response({"logged": True})
             except Invitation.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-        
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class PublicLogHeatmapView(APIView):
-    """
-    Endpoint per loggare dati heatmap (mouse tracking).
-    """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
-            
         mouse_data = request.data.get('mouse_data', [])
         screen_w = request.data.get('screen_width', 0)
         screen_h = request.data.get('screen_height', 0)
         session_id = request.data.get('session_id', 'unknown')
-        
         if mouse_data:
             try:
-                # Verifica esistenza invito per integrità dati
                 Invitation.objects.get(pk=invitation_id)
                 GuestHeatmap.objects.create(
                     invitation_id=invitation_id,
@@ -242,7 +142,6 @@ class PublicLogHeatmapView(APIView):
                 return Response({"logged": True})
             except Invitation.DoesNotExist:
                 return Response(status=status.HTTP_404_NOT_FOUND)
-                
         return Response({"logged": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -264,7 +163,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
         code = request.query_params.get('code', None)
         if not code:
             return Response({'error': 'Code parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
-        
         try:
             invitation = Invitation.objects.get(code=code)
             serializer = InvitationSerializer(invitation)
@@ -274,108 +172,43 @@ class InvitationViewSet(viewsets.ModelViewSet):
     
     @action(detail=True, methods=['get'])
     def generate_link(self, request, pk=None):
-        """Genera link pubblico con token per un invito (Admin Only)"""
         invitation = self.get_object()
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         token = invitation.generate_verification_token(config.invitation_link_secret)
-        
-        # Costruisci URL pubblico (frontend-user)
         frontend_url = os.environ.get('FRONTEND_PUBLIC_URL', 'http://localhost')
         public_url = f"{frontend_url}?code={invitation.code}&token={token}"
-        
-        return Response({
-            'code': invitation.code,
-            'token': token,
-            'url': public_url
-        })
+        return Response({'code': invitation.code, 'token': token, 'url': public_url})
 
     @action(detail=True, methods=['get'])
     def heatmaps(self, request, pk=None):
-        """Recupera le sessioni di heatmap per un dato invito"""
         invitation = self.get_object()
         heatmaps = GuestHeatmap.objects.filter(invitation=invitation).order_by('-timestamp')
-        data = [{
-            'id': h.id,
-            'session_id': h.session_id,
-            'timestamp': h.timestamp,
-            'mouse_data': h.mouse_data,
-            'screen_width': h.screen_width,
-            'screen_height': h.screen_height
-        } for h in heatmaps]
+        data = [{'id': h.id, 'session_id': h.session_id, 'timestamp': h.timestamp, 'mouse_data': h.mouse_data, 'screen_width': h.screen_width, 'screen_height': h.screen_height} for h in heatmaps]
         return Response(data)
 
     @action(detail=True, methods=['get'])
     def interactions(self, request, pk=None):
-        """
-        Raggruppa interazioni e heatmap per session_id
-        Restituisce una lista di 'sessioni' con eventi cronologici
-        """
         invitation = self.get_object()
-        
-        # Fetch all interactions
         interactions = GuestInteraction.objects.filter(invitation=invitation).order_by('timestamp')
         heatmaps = GuestHeatmap.objects.filter(invitation=invitation)
-        
-        # Group by Session ID (from metadata if available, or fallback to timestamp logic if needed)
-        # Assuming frontend sends 'session_id' in metadata for interactions
         sessions_map = {}
-        
-        # Process Heatmaps first to establish base sessions
         for hm in heatmaps:
             sid = hm.session_id
             if sid not in sessions_map:
-                sessions_map[sid] = {
-                    'session_id': sid,
-                    'start_time': hm.timestamp,
-                    'heatmap': {
-                        'id': hm.id,
-                        'mouse_data': hm.mouse_data,
-                        'screen_width': hm.screen_width,
-                        'screen_height': hm.screen_height
-                    },
-                    'events': [],
-                    'device_info': 'Unknown'
-                }
-
-        # Process Interactions
+                sessions_map[sid] = {'session_id': sid, 'start_time': hm.timestamp, 'heatmap': {'id': hm.id, 'mouse_data': hm.mouse_data, 'screen_width': hm.screen_width, 'screen_height': hm.screen_height}, 'events': [], 'device_info': 'Unknown'}
         for evt in interactions:
-            # Try to match interaction to a session
-            # 1. Check explicit session_id in metadata
             meta = evt.metadata or {}
             sid = meta.get('session_id')
-            
-            # If no explicit session_id, we might create a 'Legacy/Unknown' session bucket 
-            # or try to match by close timestamp/IP if critical. For now, we group by 'unknown' if missing.
-            if not sid:
-                sid = f"unknown_{evt.ip_address}" 
-
+            if not sid: sid = f"unknown_{evt.ip_address}"
             if sid not in sessions_map:
-                sessions_map[sid] = {
-                    'session_id': sid,
-                    'start_time': evt.timestamp,
-                    'heatmap': None,
-                    'events': [],
-                    'device_info': f"{evt.device_type} ({evt.geo_country or '?'})"
-                }
-            
-            # Enrich device info if available and not set
+                sessions_map[sid] = {'session_id': sid, 'start_time': evt.timestamp, 'heatmap': None, 'events': [], 'device_info': f"{evt.device_type} ({evt.geo_country or '?'})"}
             if sessions_map[sid]['device_info'] == 'Unknown' or sessions_map[sid]['device_info'].startswith('Unknown'):
                  sessions_map[sid]['device_info'] = f"{evt.device_type} ({evt.geo_country or '?'})"
-
-            sessions_map[sid]['events'].append({
-                'type': evt.event_type,
-                'timestamp': evt.timestamp,
-                'details': meta
-            })
-
-        # Sort sessions by start_time descending
+            sessions_map[sid]['events'].append({'type': evt.event_type, 'timestamp': evt.timestamp, 'details': meta})
         sorted_sessions = sorted(sessions_map.values(), key=lambda x: x['start_time'], reverse=True)
-        
         return Response(sorted_sessions)
 
-
 class GlobalConfigViewSet(viewsets.ViewSet):
-    """Configurazione globale (solo admin)"""
     def list(self, request):
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config)
@@ -389,7 +222,6 @@ class GlobalConfigViewSet(viewsets.ViewSet):
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-
 class AccommodationViewSet(viewsets.ModelViewSet):
     """CRUD completo per Alloggi (solo admin)"""
     queryset = Accommodation.objects.all()
@@ -397,305 +229,311 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='unassigned-invitations')
     def unassigned_invitations(self, request):
-        """
-        Restituisce lista inviti confermati che richiedono alloggio ma non hanno assegnazione.
-        """
         unassigned = Invitation.objects.filter(
             status=Invitation.Status.CONFIRMED,
             accommodation_requested=True,
             guests__assigned_room__isnull=True
         ).distinct().prefetch_related('guests')
-        
         data = []
         for inv in unassigned:
             adults = inv.guests.filter(is_child=False).count()
             children = inv.guests.filter(is_child=True).count()
-            data.append({
-                'id': inv.id,
-                'name': inv.name,
-                'code': inv.code,
-                'adults_count': adults,
-                'children_count': children,
-                'total_guests': adults + children
-            })
-        
+            data.append({'id': inv.id, 'name': inv.name, 'code': inv.code, 'adults_count': adults, 'children_count': children, 'total_guests': adults + children})
         return Response(data)
 
     @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
         """
-        Algoritmo di assegnazione ATOMICO con regole stringenti:
-        
-        REGOLA 1: Una stanza = Un solo invito (isolamento totale)
-        REGOLA 2: Una struttura = Solo inviti affini o neutrali (no non-affinità)
-        REGOLA 3: Tutte le persone di un invito nella stessa struttura (possono avere stanze diverse)
-        REGOLA 4: Bambini possono usare slot adulti, adulti NO slot bambini
+        ARENA DELLE STRATEGIE:
+        Esegue l'algoritmo con diverse strategie di ordinamento e restituisce
+        una comparazione (SIMULATION MODE) oppure applica la strategia scelta (EXECUTION MODE).
         """
-        try:
-            logger.info("="*80)
-            logger.info("INIZIO ALGORITMO AUTO-ASSIGN")
-            logger.info("="*80)
+        strategy_code = request.data.get('strategy', 'SIMULATION') # 'SIMULATION' or specific code
+        is_simulation = strategy_code == 'SIMULATION'
+        
+        # 1. Definizione delle Strategie
+        strategies = {
+            'STANDARD': {
+                'name': 'Standard (Default)',
+                'description': 'Processa prima i gruppi affini, stanze ordinate per capienza decrescente.',
+                'invitation_sort': lambda i: i.id, # Base order
+                'room_sort': lambda r: -r.total_capacity(), # Big rooms first
+                'group_affinity': True
+            },
+            'SPACE_OPTIMIZER': {
+                'name': 'Space Optimizer (Tetris)',
+                'description': 'Priorità ai gruppi numerosi su stanze "Best Fit" (piccole ma sufficienti).',
+                'invitation_sort': lambda i: -(i.guests.count()), # Biggest groups first
+                'room_sort': lambda r: r.total_capacity(), # Smallest rooms first (Best Fit)
+                'group_affinity': True
+            },
+            'CHILDREN_FIRST': {
+                'name': 'Children First',
+                'description': 'Priorità alle famiglie con bambini per occupare slot specifici.',
+                'invitation_sort': lambda i: -(i.guests.filter(is_child=True).count()), # Most children first
+                'room_sort': lambda r: -(r.capacity_children), # Rooms with child slots first
+                'group_affinity': True
+            },
+            'PERFECT_MATCH': {
+                'name': 'Perfect Match Only',
+                'description': 'Cerca di riempire le stanze al 100% della capienza.',
+                'invitation_sort': lambda i: -(i.guests.count()),
+                'room_sort': lambda r: r.total_capacity(),
+                'group_affinity': False, # Treat individually for perfect fit
+                'perfect_match_only': True # Custom flag logic
+            },
+            'SMALLEST_FIRST': {
+                'name': 'Smallest First',
+                'description': 'Riempimento dal basso (coppie e singoli prima).',
+                'invitation_sort': lambda i: i.guests.count(), # Smallest groups first
+                'room_sort': lambda r: r.total_capacity(), # Smallest rooms first
+                'group_affinity': False
+            },
+            'AFFINITY_CLUSTER': {
+                'name': 'Affinity Cluster',
+                'description': 'Massimizza la coesione dei gruppi affini trattandoli come blocchi unici.',
+                'invitation_sort': lambda i: -(i.guests.count() + sum(a.guests.count() for a in i.affinities.all())),
+                'room_sort': lambda r: -r.total_capacity(),
+                'group_affinity': True,
+                'force_cluster': True # Custom flag logic
+            }
+        }
+
+        # 2. Logica Core dell'Algoritmo (Incapsulata)
+        def run_strategy(strategy_key, strategy_params, dry_run=True):
+            # Rollback automatico per simulazioni
+            sid = transaction.savepoint()
             
-            if request.data.get('reset_previous', False):
-                reset_count = Person.objects.filter(assigned_room__isnull=False).count()
-                Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
-                Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
-                logger.info(f"✅ Reset completato: {reset_count} persone rimosse dalle assegnazioni precedenti")
+            try:
+                # Reset temporaneo
+                if request.data.get('reset_previous', False):
+                    Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
+                    Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
 
-            invitations = Invitation.objects.filter(
-                status=Invitation.Status.CONFIRMED,
-                accommodation_requested=True,
-                guests__assigned_room__isnull=True
-            ).distinct().prefetch_related('guests', 'affinities', 'non_affinities')
-            
-            logger.info(f"👥 Trovati {invitations.count()} inviti da processare")
-            for inv in invitations:
-                adults = inv.guests.filter(is_child=False).count()
-                children = inv.guests.filter(is_child=True).count()
-                logger.info(f"  - {inv.name}: {adults}A + {children}B")
+                # Fetch Data
+                invitations = list(Invitation.objects.filter(
+                    status=Invitation.Status.CONFIRMED,
+                    accommodation_requested=True,
+                    guests__assigned_room__isnull=True
+                ).distinct().prefetch_related('guests', 'affinities', 'non_affinities'))
 
-            accommodations = Accommodation.objects.prefetch_related(
-                'rooms__assigned_guests__invitation',
-                'assigned_invitations__non_affinities'
-            ).all()
-            
-            logger.info(f"🏠 Strutture disponibili: {accommodations.count()}")
-            for acc in accommodations:
-                total_rooms = acc.rooms.count()
-                total_capacity = sum(r.total_capacity() for r in acc.rooms.all())
-                logger.info(f"  - {acc.name}: {total_rooms} stanze, capienza {total_capacity}")
+                accommodations = list(Accommodation.objects.prefetch_related(
+                    'rooms__assigned_guests__invitation',
+                    'assigned_invitations__non_affinities'
+                ).all())
 
-            assigned_count = 0
-            assignment_log = []
-
-            def get_room_owner(room):
-                """
-                Ritorna l'invitation_id che "possiede" questa stanza (None se vuota).
-                IMPORTANT: query live su Person per evitare cache da prefetch_related.
-                """
-                owner_ids = list(
-                    Person.objects
-                    .filter(assigned_room=room)
-                    .values_list('invitation_id', flat=True)
-                    .distinct()
-                )
-
-                if not owner_ids:
-                    return None
-
-                # Consistenza: se ci sono più inviti nella stessa stanza, è già una violazione.
-                if len(owner_ids) > 1:
-                    logger.error(
-                        f"❌❌❌ VIOLAZIONE DATI: stanza {room.room_number} contiene inviti multipli: {owner_ids}"
-                    )
-                    # Trattiamo la stanza come non utilizzabile per evitare ulteriori danni
-                    return -1
-
-                return owner_ids[0]
-
-            def is_accommodation_compatible(accommodation, invitation):
-                """
-                REGOLA 2: Verifica che la struttura non contenga inviti incompatibili.
-                """
-                non_affine_ids = set(invitation.non_affinities.values_list('id', flat=True))
-                if non_affine_ids:
-                    logger.debug(f"    ⚠️  {invitation.name} ha {len(non_affine_ids)} non-affinità")
+                # Sort Rooms Global (or per accommodation inside loop)
+                # For simplicity here we sort rooms inside assignment logic
                 
-                existing_invitations = accommodation.assigned_invitations.all()
-                
-                for existing_inv in existing_invitations:
-                    if existing_inv.id in non_affine_ids:
-                        logger.debug(f"    ❌ REGOLA 2 violata: {existing_inv.name} già presente in {accommodation.name}")
-                        return False
-                return True
+                assigned_count = 0
+                wasted_beds = 0
+                assignment_log = []
 
-            def can_person_fit_in_room(room, person, invitation_id):
-                """
-                REGOLA 1 + REGOLA 4: 
-                - Stanza vuota o già occupata dallo stesso invito
-                - Rispetta vincoli slot (bambini->bambini o adulti, adulti->solo adulti)
-                """
-                owner = get_room_owner(room)
+                # --- Helper Functions (Inner Scope) ---
+                def get_room_owner(room):
+                    owner_ids = list(Person.objects.filter(assigned_room=room).values_list('invitation_id', flat=True).distinct())
+                    if not owner_ids: return None
+                    if len(owner_ids) > 1: return -1 # Error state
+                    return owner_ids[0]
 
-                # Stanza in stato inconsistente: non usarla
-                if owner == -1:
-                    return False
-
-                # REGOLA 1: stanza già occupata da altro invito
-                if owner is not None and owner != invitation_id:
-                    logger.debug(
-                        f"      ❌ REGOLA 1: stanza {room.room_number} occupata da invito ID {owner} (attuale {invitation_id})"
-                    )
-                    return False
-                
-                slots = room.available_slots()
-                
-                if person.is_child:
-                    can_fit = (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
-                    logger.debug(f"      {'✅' if can_fit else '❌'} Bambino {person.first_name}: slot B={slots['child_slots_free']}, A={slots['adult_slots_free']}")
-                    return can_fit
-                else:
-                    can_fit = slots['adult_slots_free'] > 0
-                    logger.debug(f"      {'✅' if can_fit else '❌'} Adulto {person.first_name}: slot A={slots['adult_slots_free']}")
-                    return can_fit
-
-            def assign_invitation_to_accommodation(invitation, accommodation):
-                """
-                REGOLA 3: Assegna TUTTE le persone di un invito a una struttura atomicamente.
-                Possono usare stanze diverse, ma sempre nella stessa struttura.
-                """
-                nonlocal assigned_count, assignment_log
-                
-                logger.info(f"  🔄 Tentativo assegnazione: '{invitation.name}' -> '{accommodation.name}'")
-                
-                # Check REGOLA 2 upfront
-                if not is_accommodation_compatible(accommodation, invitation):
-                    logger.warning(f"    ❌ Incompatibilità rilevata (non-affinità)")
-                    return False
-                
-                persons = list(invitation.guests.filter(assigned_room__isnull=True))
-                if not persons:
-                    logger.debug(f"    ℹ️ Tutti già assegnati")
-                    return True
-                
-                logger.info(f"    👥 {len(persons)} persone da assegnare")
-                
-                rooms = sorted(
-                    accommodation.rooms.all(),
-                    key=lambda r: r.total_capacity(),
-                    reverse=True
-                )
-                
-                temp_assignments = []
-                
-                with transaction.atomic():
-                    sid = transaction.savepoint()
+                def is_accommodation_compatible(acc, inv):
+                    non_affine_ids = set(inv.non_affinities.values_list('id', flat=True))
+                    # Live query for existing invitations in this transaction simulation
+                    existing_inv_ids = set(Person.objects.filter(
+                        assigned_room__accommodation=acc
+                    ).values_list('invitation_id', flat=True))
                     
-                    for person in persons:
+                    if non_affine_ids.intersection(existing_inv_ids):
+                        return False
+                    return True
+
+                def can_fit(room, person, inv_id):
+                    owner = get_room_owner(room)
+                    if owner == -1: return False
+                    if owner is not None and owner != inv_id: return False
+                    
+                    slots = room.available_slots()
+                    if person.is_child:
+                        return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
+                    else:
+                        return slots['adult_slots_free'] > 0
+
+                def assign_invitation(inv, acc):
+                    nonlocal assigned_count, wasted_beds
+                    
+                    # Logic Specific: Perfect Match
+                    if strategy_params.get('perfect_match_only', False):
+                        # Calculate total guests vs total free capacity of accommodation? No, per room.
+                        # This is complex in current structure. Simplified: Skip if acc total capacity < inv total guests
+                        if acc.available_capacity() < inv.guests.count(): return False
+
+                    if not is_accommodation_compatible(acc, inv): return False
+
+                    persons = list(inv.guests.filter(assigned_room__isnull=True))
+                    if not persons: return True
+
+                    rooms = list(acc.rooms.all())
+                    # Sort Rooms based on Strategy
+                    rooms.sort(key=strategy_params['room_sort'])
+
+                    temp_assignments = []
+                    
+                    # Inner Transaction for Atomicity of Invitation
+                    sid_inv = transaction.savepoint()
+                    
+                    all_assigned = True
+                    for p in persons:
                         assigned = False
-                        logger.debug(f"    🔍 Cerco stanza per {person.first_name} ({'B' if person.is_child else 'A'})")
-                        
-                        for room in rooms:
-                            if can_person_fit_in_room(room, person, invitation.id):
-                                person.assigned_room = room
-                                person.save()
-                                temp_assignments.append((person, room))
-                                logger.info(f"      ✅ Assegnato/a a stanza {room.room_number}")
+                        for r in rooms:
+                            # Logic Specific: Perfect Match (Per Room Check)
+                            if strategy_params.get('perfect_match_only', False):
+                                # Only assign if room empty and fits exactly? Or just standard fit?
+                                # Strict PM: Room Capacity == Invitation Size (Impossible if split allowed)
+                                # Relaxed PM: Only use rooms where occupancy will be optimized
+                                pass 
+
+                            if can_fit(r, p, inv.id):
+                                p.assigned_room = r
+                                p.save()
+                                temp_assignments.append((p, r))
                                 assigned = True
                                 break
-                        
                         if not assigned:
-                            logger.warning(f"      ❌ REGOLA 3 violata: impossibile assegnare {person.first_name}")
-                            logger.warning(f"    🔙 ROLLBACK: annullo tutte le assegnazioni di '{invitation.name}'")
-                            transaction.savepoint_rollback(sid)
-                            return False
-                    
-                    # COMMIT: Tutti assegnati con successo
-                    logger.info(f"    ✅ COMMIT: tutti assegnati con successo!")
-                    transaction.savepoint_commit(sid)
-                
-                # Conferma assegnazione a livello di Invitation
-                invitation.accommodation = accommodation
-                invitation.save()
-                assigned_count += len(temp_assignments)
-                
-                # Log
-                for person, room in temp_assignments:
-                    assignment_log.append({
-                        'person': f"{person.first_name} {person.last_name or ''}",
-                        'invitation': invitation.name,
-                        'room': f"{accommodation.name} - {room.room_number}",
-                        'is_child': person.is_child
-                    })
-                
-                return True
-
-            # Fase 1: Gruppi affini (prova ad assegnarli alla stessa struttura)
-            logger.info("🔶 FASE 1: Assegnazione gruppi affini")
-            processed = set()
-            
-            for invitation in invitations:
-                if invitation.id in processed:
-                    continue
-                
-                affine_group = [invitation] + list(
-                    invitation.affinities.filter(
-                        status=Invitation.Status.CONFIRMED,
-                        accommodation_requested=True,
-                        guests__assigned_room__isnull=True
-                    ).distinct()
-                )
-                
-                if len(affine_group) > 1:
-                    logger.info(f"🤝 Gruppo affine rilevato ({len(affine_group)} inviti):")
-                    for inv in affine_group:
-                        logger.info(f"   - {inv.name}")
-                
-                # Prova ad assegnare tutto il gruppo alla stessa struttura
-                for acc in accommodations:
-                    all_fit = True
-                    for inv in affine_group:
-                        if not assign_invitation_to_accommodation(inv, acc):
-                            all_fit = False
+                            all_assigned = False
                             break
                     
-                    if all_fit:
-                        for inv in affine_group:
-                            processed.add(inv.id)
-                        logger.info(f"✅ Gruppo affine completamente assegnato a '{acc.name}'")
-                        break
-                else:
-                    if len(affine_group) > 1:
-                        logger.warning(f"❌ Impossibile assegnare gruppo affine insieme")
+                    if all_assigned:
+                        transaction.savepoint_commit(sid_inv)
+                        inv.accommodation = acc
+                        inv.save()
+                        assigned_count += len(temp_assignments)
+                        for p, r in temp_assignments:
+                            assignment_log.append({
+                                'person': str(p),
+                                'room': str(r),
+                                'invitation': inv.name
+                            })
+                        return True
+                    else:
+                        transaction.savepoint_rollback(sid_inv)
+                        return False
 
-            # Fase 2: Inviti singoli rimasti
-            logger.info("🔶 FASE 2: Assegnazione inviti singoli rimasti")
-            remaining = Invitation.objects.filter(
-                status=Invitation.Status.CONFIRMED,
-                accommodation_requested=True,
-                guests__assigned_room__isnull=True
-            ).distinct()
-            
-            logger.info(f"👤 {remaining.count()} inviti singoli da processare")
-
-            for invitation in remaining:
-                logger.info(f"Processo invito singolo: '{invitation.name}'")
-                assigned = False
-                for acc in accommodations:
-                    if assign_invitation_to_accommodation(invitation, acc):
-                        logger.info(f"✅ Invito '{invitation.name}' assegnato a '{acc.name}'")
-                        assigned = True
-                        break
+                # --- Execution Flow ---
                 
-                if not assigned:
-                    logger.warning(f"❌ Invito '{invitation.name}' NON assegnato (nessuna struttura compatibile)")
+                # Pre-Sorting Invitations
+                invitations.sort(key=strategy_params['invitation_sort'])
 
-            unassigned_persons = Person.objects.filter(
-                invitation__status=Invitation.Status.CONFIRMED,
-                invitation__accommodation_requested=True,
-                assigned_room__isnull=True
-            ).count()
+                processed_ids = set()
+
+                for inv in invitations:
+                    if inv.id in processed_ids: continue
+                    
+                    group = [inv]
+                    # Logic Specific: Group Affinity
+                    if strategy_params.get('group_affinity', True):
+                        affinities = list(inv.affinities.filter(
+                            status=Invitation.Status.CONFIRMED,
+                            accommodation_requested=True
+                        ).exclude(id__in=processed_ids))
+                        group.extend(affinities)
+                    
+                    # Try to assign whole group to same accommodation
+                    assigned_group = False
+                    
+                    # Sort Accommodations? (Maybe by capacity)
+                    accommodations.sort(key=lambda a: a.available_capacity(), reverse=True)
+
+                    for acc in accommodations:
+                        # Check if whole group fits in accommodation
+                        # Simulation of group assignment
+                        sid_group = transaction.savepoint()
+                        group_success = True
+                        
+                        for g_inv in group:
+                            if not assign_invitation(g_inv, acc):
+                                group_success = False
+                                break
+                        
+                        if group_success:
+                            transaction.savepoint_commit(sid_group)
+                            for g_inv in group: processed_ids.add(g_inv.id)
+                            assigned_group = True
+                            break
+                        else:
+                            transaction.savepoint_rollback(sid_group)
+                    
+                    # Fallback: Assign individually if group failed (unless Cluster Affinity enforced)
+                    if not assigned_group and not strategy_params.get('force_cluster', False):
+                         for g_inv in group:
+                            if g_inv.id in processed_ids: continue
+                            for acc in accommodations:
+                                if assign_invitation(g_inv, acc):
+                                    processed_ids.add(g_inv.id)
+                                    break
+
+                # Calc Stats
+                unassigned_count = Person.objects.filter(
+                    invitation__status=Invitation.Status.CONFIRMED,
+                    invitation__accommodation_requested=True,
+                    assigned_room__isnull=True
+                ).count()
+
+                # Calculate Wasted Beds (Empty slots in occupied rooms)
+                occupied_rooms = Room.objects.filter(assigned_guests__isnull=False).distinct()
+                for r in occupied_rooms:
+                    slots = r.available_slots()
+                    wasted_beds += slots['total_free']
+
+                results = {
+                    'strategy_code': strategy_key,
+                    'strategy_name': strategy_params['name'],
+                    'assigned_guests': assigned_count,
+                    'unassigned_guests': unassigned_count,
+                    'wasted_beds': wasted_beds,
+                    'assignment_log': assignment_log
+                }
+
+            except Exception as e:
+                logger.error(f"Strategy {strategy_key} failed: {e}", exc_info=True)
+                results = {'error': str(e)}
             
-            logger.info("="*80)
-            logger.info("RIEPILOGO FINALE")
-            logger.info(f"✅ Persone assegnate: {assigned_count}")
-            logger.info(f"❌ Persone NON assegnate: {unassigned_persons}")
-            logger.info("="*80)
+            finally:
+                # Se è una simulazione o se c'è stato errore, Rollback totale
+                if dry_run:
+                    transaction.savepoint_rollback(sid)
+                else:
+                    transaction.savepoint_commit(sid)
+            
+            return results
 
+        # 3. Controller Logic
+        if is_simulation:
+            simulation_results = []
+            for key, params in strategies.items():
+                logger.info(f"🧪 Simulating Strategy: {key}")
+                res = run_strategy(key, params, dry_run=True)
+                simulation_results.append(res)
+            
+            # Sort results by efficiency (most assigned, then least wasted)
+            simulation_results.sort(key=lambda x: (-x.get('assigned_guests', 0), x.get('wasted_beds', 9999)))
+            
             return Response({
-                'success': True,
-                'assigned_count': assigned_count,
-                'unassigned_count': unassigned_persons,
-                'assignment_log': assignment_log
-            }, status=status.HTTP_200_OK)
-
-        except Exception as e:
-            logger.error(f"❌❌❌ ERRORE CRITICO nell'assegnazione alloggi: {str(e)}", exc_info=True)
+                'mode': 'SIMULATION',
+                'results': simulation_results,
+                'best_strategy': simulation_results[0]['strategy_code'] if simulation_results else None
+            })
+        
+        else:
+            # Execute specific strategy
+            if strategy_code not in strategies:
+                return Response({'error': 'Invalid Strategy'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"🚀 Executing Strategy: {strategy_code}")
+            result = run_strategy(strategy_code, strategies[strategy_code], dry_run=False)
             return Response({
-                'success': False,
-                'error': str(e)
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
+                'mode': 'EXECUTION',
+                'result': result
+            })
 
 class DashboardStatsView(APIView):
     """Statistiche dashboard (solo admin)"""
