@@ -49,7 +49,6 @@ describe('Dashboard Component', () => {
   });
 
   it('renders loading state initially', () => {
-    // Return a promise that never resolves (or delays) to check loading state
     api.getDashboardStats.mockReturnValue(new Promise(() => {}));
     render(<Dashboard />);
     expect(screen.getByText('Caricamento dashboard...')).toBeInTheDocument();
@@ -59,37 +58,37 @@ describe('Dashboard Component', () => {
     api.getDashboardStats.mockResolvedValue(mockStats);
     render(<Dashboard />);
 
-    // Wait for data to load
     await waitFor(() => {
       expect(screen.queryByText('Caricamento dashboard...')).not.toBeInTheDocument();
     });
 
-    // Check Header
     expect(screen.getByText('Dashboard')).toBeInTheDocument();
 
     // Check KPI Cards values
-    expect(screen.getByText('55')).toBeInTheDocument(); // 50 adults + 5 children
+    expect(screen.getByText('55')).toBeInTheDocument(); 
     expect(screen.getByText(/di cui 5 bambini/i)).toBeInTheDocument();
     
     // Check Financials
-    // toLocaleString() might vary by locale, but let's check basic presence of numbers
-    // Using regex loosely for currency formatting "8.000" or "8,000"
-    expect(screen.getByText(/€ 15[.,]000/)).toBeInTheDocument();
-    expect(screen.getByText(/€ 8[.,]000/)).toBeInTheDocument();
+    // "confirmed" amount appears twice: in KPI card and in Financial Details list
+    // Use getAllByText and check length, or check specific occurrence
+    const confirmedPrices = screen.getAllByText(/€ 8[.,]000/);
+    expect(confirmedPrices.length).toBeGreaterThanOrEqual(1);
 
-    // Check Pending count (20 + 2)
+    expect(screen.getByText(/€ 15[.,]000/)).toBeInTheDocument();
+
+    // Check Pending count
     expect(screen.getByText('22')).toBeInTheDocument();
 
-    // Check Charts existence (mocked)
+    // Check Charts existence
     expect(screen.getByText('Stato Ospiti')).toBeInTheDocument();
     expect(screen.getByText('Pie Chart Mock')).toBeInTheDocument();
 
     // Check Logistics
     expect(screen.getByText('Alloggio Confermato')).toBeInTheDocument();
-    expect(screen.getByText('15')).toBeInTheDocument(); // Accommodation total
+    expect(screen.getByText('15')).toBeInTheDocument(); 
 
     expect(screen.getByText('Transfer Confermato')).toBeInTheDocument();
-    expect(screen.getByText('10')).toBeInTheDocument(); // Transfer total
+    expect(screen.getByText('10')).toBeInTheDocument();
   });
 
   it('handles API error gracefully', async () => {
