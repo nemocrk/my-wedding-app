@@ -98,4 +98,9 @@ describe('LetterContent Component', () => {
       expect(screen.getByText(/Network Error/i)).toBeInTheDocument();
     });
   });
+
+  it('matches snapshot', () => {
+    const { container } = render(<LetterContent data={mockData} />);
+    expect(container).toMatchSnapshot();
+  });
 });
