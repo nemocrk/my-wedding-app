@@ -38,9 +38,9 @@ Questa checklist guida l'implementazione incrementale della test suite per copri
   - [x] Test render `Envelope.jsx` (o equivalente).
   - [x] Test form RSVP (integrato in `LetterContent.jsx`).
 
-- [ ] **Step 3: Non-Regression (Snapshot)**
-  - [ ] Snapshot stato iniziale busta chiusa.
-  - [ ] Snapshot stato busta aperta con lettera.
+- [x] **Step 3: Non-Regression (Snapshot)**
+  - [x] Snapshot stato iniziale busta chiusa.
+  - [x] Snapshot stato busta aperta con lettera.
 
 ## Frontend Admin (`frontend-admin/`)
 
