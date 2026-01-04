@@ -2,13 +2,15 @@ import React, { useState, useEffect } from 'react';
 import { Plus, Home, Sparkles, AlertCircle } from 'lucide-react';
 import AccommodationList from '../components/accommodations/AccommodationList';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
-import { api } from '../services/api'; // Use centralized api service
+import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
+import { api } from '../services/api';
 import ErrorModal from '../components/common/ErrorModal';
 
 const AccommodationsPage = () => {
     const [accommodations, setAccommodations] = useState([]);
     const [unassignedInvitations, setUnassignedInvitations] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
@@ -38,7 +40,7 @@ const AccommodationsPage = () => {
             await api.createAccommodation(data);
             setSuccessMsg('Alloggio creato con successo!');
             fetchData();
-            setIsModalOpen(false); // Close modal on success
+            setIsCreateModalOpen(false);
         } catch (err) {
             setError(err);
         }
@@ -55,15 +57,9 @@ const AccommodationsPage = () => {
         }
     };
 
-    const handleAutoAssign = async () => {
-        if (!window.confirm("Avviare l'assegnazione automatica? Questo assegnerà gli invitati agli alloggi disponibili.")) return;
-        try {
-            const result = await api.triggerAutoAssign(true); // reset previous
-            setSuccessMsg(`Assegnazione completata! ${result.assigned_count} invitati assegnati.`);
-            fetchData();
-        } catch (err) {
-            setError(err);
-        }
+    const handleStrategySuccess = (result) => {
+        setSuccessMsg(`Assegnazione completata! ${result.assigned_guests} invitati assegnati con la strategia scelta.`);
+        fetchData();
     };
 
     return (
@@ -75,14 +71,14 @@ const AccommodationsPage = () => {
                 </div>
                 <div className="flex gap-3">
                     <button 
-                        onClick={handleAutoAssign}
-                        className="flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg hover:bg-purple-200 transition-colors"
+                        onClick={() => setIsStrategyModalOpen(true)}
+                        className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
                     >
                         <Sparkles size={20} />
-                        Assegnazione Auto
+                        Auto Assign (Arena)
                     </button>
                     <button 
-                        onClick={() => setIsModalOpen(true)}
+                        onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors shadow-sm"
                     >
                         <Plus size={20} />
@@ -132,9 +128,16 @@ const AccommodationsPage = () => {
             />
 
             <CreateAccommodationModal 
-                isOpen={isModalOpen} 
-                onClose={() => setIsModalOpen(false)} 
+                isOpen={isCreateModalOpen} 
+                onClose={() => setIsCreateModalOpen(false)} 
                 onSave={handleCreate} 
+            />
+
+            <AutoAssignStrategyModal
+                isOpen={isStrategyModalOpen}
+                onClose={() => setIsStrategyModalOpen(false)}
+                onSuccess={handleStrategySuccess}
+                onError={setError}
             />
 
             {error && <ErrorModal errorDetails={error} onClose={() => setError(null)} isOpen={!!error} />}
