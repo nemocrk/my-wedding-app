@@ -39,14 +39,16 @@ test.describe('Concurrency Scenarios', () => {
         const token = urlObj.searchParams.get('token');
 
         // Step A: Auth
-        // POST to /api/public/auth/ to establish session
-        const authResponse = await context.post(`http://localhost:8000/api/public/auth/`, {
+        // CORRECTED PORT: 80 (Public Nginx Gateway) instead of 8000 (Internal Backend)
+        // The backend is not directly exposed to the host, only via Nginx.
+        const authResponse = await context.post(`http://localhost:80/api/public/auth/`, {
             data: { code, token }
         });
         expect(authResponse.ok()).toBeTruthy();
 
         // Step B: RSVP
-        const rsvpResponse = await context.post('http://localhost:8000/api/public/rsvp/', {
+        // CORRECTED PORT: 80
+        const rsvpResponse = await context.post('http://localhost:80/api/public/rsvp/', {
             data: {
                 status: 'confirmed',
                 accommodation_requested: true, // Everyone wants a room to stress test logic
@@ -76,6 +78,7 @@ test.describe('Concurrency Scenarios', () => {
     // 5. Verify Backend State (Admin side)
     // Check that all 10 are actually confirmed
     for (const inv of invitations) {
+        // Admin API is on port 8080 (nginx-intranet)
         const response = await request.get(`http://localhost:8080/api/admin/invitations/${inv.id}/`);
         expect(response.ok()).toBeTruthy();
         const updatedInv = await response.json();
