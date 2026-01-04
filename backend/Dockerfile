@@ -38,7 +38,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copia tutto il codice sorgente
+# Copia tutto il codice sorgente (il file .dockerignore filtra venv, .git, ecc.)
 COPY . /app/
 
 # Espone la porta
@@ -64,7 +64,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Copia tutto il codice sorgente
+# Copia tutto il codice sorgente (il file .dockerignore filtra venv, .git, ecc.)
 COPY . /app/
 
 # Crea utente non-root per sicurezza (ma non switchiamo qui, lo fa l'entrypoint)
