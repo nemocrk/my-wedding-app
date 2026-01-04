@@ -469,11 +469,29 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             assignment_log = []
 
             def get_room_owner(room):
-                """Ritorna l'invitation_id che 'possiede' questa stanza (None se vuota)"""
-                guests = room.assigned_guests.all()
-                if not guests.exists():
+                """
+                Ritorna l'invitation_id che "possiede" questa stanza (None se vuota).
+                IMPORTANT: query live su Person per evitare cache da prefetch_related.
+                """
+                owner_ids = list(
+                    Person.objects
+                    .filter(assigned_room=room)
+                    .values_list('invitation_id', flat=True)
+                    .distinct()
+                )
+
+                if not owner_ids:
                     return None
-                return guests.first().invitation_id
+
+                # Consistenza: se ci sono più inviti nella stessa stanza, è già una violazione.
+                if len(owner_ids) > 1:
+                    logger.error(
+                        f"❌❌❌ VIOLAZIONE DATI: stanza {room.room_number} contiene inviti multipli: {owner_ids}"
+                    )
+                    # Trattiamo la stanza come non utilizzabile per evitare ulteriori danni
+                    return -1
+
+                return owner_ids[0]
 
             def is_accommodation_compatible(accommodation, invitation):
                 """
@@ -498,8 +516,16 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 - Rispetta vincoli slot (bambini->bambini o adulti, adulti->solo adulti)
                 """
                 owner = get_room_owner(room)
+
+                # Stanza in stato inconsistente: non usarla
+                if owner == -1:
+                    return False
+
+                # REGOLA 1: stanza già occupata da altro invito
                 if owner is not None and owner != invitation_id:
-                    logger.debug(f"      ❌ REGOLA 1 violata: stanza {room.room_number} già occupata da invito ID {owner}")
+                    logger.debug(
+                        f"      ❌ REGOLA 1: stanza {room.room_number} occupata da invito ID {owner} (attuale {invitation_id})"
+                    )
                     return False
                 
                 slots = room.available_slots()
