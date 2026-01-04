@@ -8,7 +8,8 @@ test.describe('Concurrency Scenarios', () => {
     api = new ApiHelper(request);
   });
 
-  test('Multiple users RSVP simultaneously', async ({ request }) => {
+  // Inject 'playwright' fixture to create new contexts
+  test('Multiple users RSVP simultaneously', async ({ request, playwright }) => {
     // 1. Create multiple invitations
     const userCount = 10;
     const invitations = [];
@@ -29,30 +30,8 @@ test.describe('Concurrency Scenarios', () => {
     console.log('Firing concurrent RSVPs...');
     
     const rsvpPromises = invitations.map(async (inv) => {
-        // We simulate the API call directly to test backend concurrency handling
-        // Playwright runs in Node, so Promise.all will send requests in parallel (mostly)
-        
-        // Simulating the exact payload the frontend sends
-        const rsvpPayload = {
-            status: 'confirmed',
-            accommodation_requested: true, // Everyone wants a room to stress test logic
-            transfer_requested: false
-        };
-
-        // We need to use the public API endpoint: /api/public/rsvp/
-        // But first we need to "authenticate" (establish session) for each user.
-        // In a real browser test, we'd open N pages/contexts. 
-        // For pure concurrency load testing, API context is lighter and faster.
-        
-        const context = await request.newContext();
-        
-        // 2a. Auth (GET to valid link sets cookies)
-        // Note: Using the internal API helper might use admin auth. 
-        // We want to simulate PUBLIC user flow.
-        // Backend usually expects session cookie.
-        
-        // Let's use the public auth endpoint directly if available or mimic the link visit.
-        // Based on backend, GET /api/public/invitation/?code=X&token=Y sets the session.
+        // Create a FRESH context for each user to simulate isolated sessions (cookies)
+        const context = await playwright.request.newContext();
         
         const linkData = await api.getInvitationLink(inv.id);
         const urlObj = new URL(linkData.url);
@@ -60,18 +39,28 @@ test.describe('Concurrency Scenarios', () => {
         const token = urlObj.searchParams.get('token');
 
         // Step A: Auth
-        const authResponse = await context.get(`http://localhost:8000/api/public/invitation/?code=${code}&token=${token}`);
+        // POST to /api/public/auth/ to establish session
+        const authResponse = await context.post(`http://localhost:8000/api/public/auth/`, {
+            data: { code, token }
+        });
         expect(authResponse.ok()).toBeTruthy();
 
         // Step B: RSVP
         const rsvpResponse = await context.post('http://localhost:8000/api/public/rsvp/', {
-            data: rsvpPayload
+            data: {
+                status: 'confirmed',
+                accommodation_requested: true, // Everyone wants a room to stress test logic
+                transfer_requested: false
+            }
         });
         
+        const ok = rsvpResponse.ok();
+        await context.dispose(); // Cleanup
+
         return { 
             id: inv.id, 
             status: rsvpResponse.status(), 
-            ok: rsvpResponse.ok() 
+            ok 
         };
     });
 
@@ -87,7 +76,10 @@ test.describe('Concurrency Scenarios', () => {
     // 5. Verify Backend State (Admin side)
     // Check that all 10 are actually confirmed
     for (const inv of invitations) {
-        const updatedInv = await api.getInvitation(inv.id);
+        const response = await request.get(`http://localhost:8080/api/admin/invitations/${inv.id}/`);
+        expect(response.ok()).toBeTruthy();
+        const updatedInv = await response.json();
+        
         expect(updatedInv.status).toBe('confirmed');
         expect(updatedInv.accommodation_requested).toBe(true);
     }
