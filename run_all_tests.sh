@@ -6,8 +6,25 @@
 
 set -e # Interrompe l'esecuzione se un comando fallisce
 
+# Default values
+COVERAGE=false
+
+# Parse arguments
+for arg in "$@"
+do
+    case $arg in
+        --coverage)
+        COVERAGE=true
+        shift
+        ;;
+    esac
+done
+
 echo "========================================================"
 echo "🚀 AVVIO TEST SUITE COMPLETA - MY WEDDING APP"
+if [ "$COVERAGE" = true ]; then
+    echo "📊 MODE: WITH CODE COVERAGE"
+fi
 echo "========================================================"
 echo ""
 
@@ -34,9 +51,16 @@ else
     source venv/bin/activate
 fi
 
-# Esegui pytest con output verboso ridotto ma mostrando i progressi
+# Esegui pytest
 echo "🧪 Esecuzione Pytest..."
-pytest -v
+if [ "$COVERAGE" = true ]; then
+    # Installa pytest-cov se manca
+    pip install pytest-cov > /dev/null 2>&1
+    pytest -v --cov=core --cov-report=html --cov-report=term
+else
+    pytest -v
+fi
+
 cd ..
 echo "✅ Backend Tests Completati con successo."
 echo ""
@@ -49,7 +73,11 @@ cd frontend-user
 # Eseguiamo in modalità CI per evitare che vitest rimanga in watch mode
 echo "📦 Installazione dipendenze Frontend User..."
 npm install
-npm run test -- --run
+if [ "$COVERAGE" = true ]; then
+    npm run test -- --run --coverage
+else
+    npm run test -- --run
+fi
 cd ..
 echo "✅ Frontend User Tests Completati con successo."
 echo ""
@@ -61,7 +89,11 @@ echo "--------------------------------------------------------"
 cd frontend-admin
 echo "📦 Installazione dipendenze Frontend Admin..."
 npm install
-npm run test -- --run
+if [ "$COVERAGE" = true ]; then
+    npm run test -- --run --coverage
+else
+    npm run test -- --run
+fi
 cd ..
 echo "✅ Frontend Admin Tests Completati con successo."
 echo ""
@@ -86,5 +118,11 @@ echo ""
 
 echo "========================================================"
 echo "🎉 TUTTI I TEST SONO PASSATI! IL CODICE È SOLIDO."
+if [ "$COVERAGE" = true ]; then
+    echo "📊 Report di copertura generati:"
+    echo "   - Backend: backend/htmlcov/index.html"
+    echo "   - User: frontend-user/coverage/index.html"
+    echo "   - Admin: frontend-admin/coverage/index.html"
+fi
 echo "========================================================"
 exit 0
