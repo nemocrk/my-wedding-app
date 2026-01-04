@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Sfondo Circolare -->
+  <circle cx="32" cy="32" r="30" fill="#fdf2f8" stroke="#db2777" stroke-width="2"/>
+  
+  <!-- Lui (Sinistra) -->
+  <g transform="translate(14, 18)">
+    <circle cx="8" cy="5" r="5" fill="#1e293b"/> <!-- Testa -->
+    <path d="M3,12 Q8,12 13,12 L13,32 L3,32 Z" fill="#334155"/> <!-- Corpo -->
+    <path d="M8,12 L8,16 L8,12" stroke="white" stroke-width="1"/> <!-- Papillon -->
+  </g>
+
+  <!-- Lei (Destra) -->
+  <g transform="translate(34, 18)">
+    <circle cx="8" cy="5" r="5" fill="#1e293b"/> <!-- Testa -->
+    <path d="M3,12 Q8,35 13,12 L16,32 L0,32 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="0.5"/> <!-- Abito -->
+    <path d="M3,12 Q8,14 13,12" fill="none" stroke="#cbd5e1" stroke-width="0.5"/>
+  </g>
+
+  <!-- Bouquet (Centro) -->
+  <g transform="translate(26, 28)">
+    <circle cx="6" cy="0" r="3" fill="#ec4899"/>
+    <circle cx="3" cy="3" r="3" fill="#f472b6"/>
+    <circle cx="9" cy="3" r="3" fill="#f472b6"/>
+    <path d="M6,6 L6,12" stroke="#166534" stroke-width="2"/>
+  </g>
+</svg>
