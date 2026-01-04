@@ -31,8 +31,8 @@ jobs:
         run: |
           set -o pipefail
           cd backend
-          # Run pytest, capture output to file and display on console
-          pytest -v --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term | tee pytest-coverage.txt
+          # Run pytest with --color=no to ensure clean logs
+          pytest -v --color=no --junitxml=test-results.xml --cov=core --cov-report=xml:coverage.xml --cov-report=term | tee pytest-coverage.txt
       
       - name: Generate Backend Summary
         if: always()
@@ -40,9 +40,8 @@ jobs:
           echo "## 🐍 Backend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          # Extract the coverage table part (simple grep/sed or just dump the whole thing if short)
-          # We dump the whole output but limited to the last 30 lines usually containing the summary
-          tail -n 30 backend/pytest-coverage.txt >> $GITHUB_STEP_SUMMARY
+          # Clean up any potential ANSI codes just in case and take the last 30 lines
+          sed 's/\x1b\[[0-9;]*m//g' backend/pytest-coverage.txt | tail -n 30 >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Backend Coverage
@@ -75,10 +74,11 @@ jobs:
       - name: Run Vitest with Coverage
         working-directory: ./frontend-user
         env:
-          FORCE_COLOR: 0 # Disable colors for cleaner log capture
+          FORCE_COLOR: 0
         run: |
           set -o pipefail
-          npm run test -- --run --coverage | tee coverage-output.txt
+          # Add --no-color to explicitly disable Vitest coloring
+          npm run test -- --run --coverage --no-color | tee coverage-output.txt
       
       - name: Generate User Frontend Summary
         if: always()
@@ -87,7 +87,8 @@ jobs:
           echo "## ⚛️ User Frontend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          # Use sed to strip any remaining ANSI escape codes
+          sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload User Coverage
@@ -123,7 +124,8 @@ jobs:
           FORCE_COLOR: 0
         run: |
           set -o pipefail
-          npm run test -- --run --coverage | tee coverage-output.txt
+          # Add --no-color to explicitly disable Vitest coloring
+          npm run test -- --run --coverage --no-color | tee coverage-output.txt
       
       - name: Generate Admin Frontend Summary
         if: always()
@@ -132,7 +134,8 @@ jobs:
           echo "## 🛠️ Admin Frontend Test Results" >> $GITHUB_STEP_SUMMARY
           echo "### Coverage Report" >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
-          cat coverage-output.txt >> $GITHUB_STEP_SUMMARY
+          # Use sed to strip any remaining ANSI escape codes
+          sed 's/\x1b\[[0-9;]*m//g' coverage-output.txt >> $GITHUB_STEP_SUMMARY
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Admin Coverage
