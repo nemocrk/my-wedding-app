@@ -1,26 +1,8 @@
 // frontend-user/src/components/ErrorModal.jsx
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-
-// Simplified SVG icons since lucide-react might not be fully available or style-consistent in User App
-const XIcon = () => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="18" y1="6" x2="6" y2="18"></line>
-    <line x1="6" y1="6" x2="18" y2="18"></line>
-  </svg>
-);
-
-const ChevronDown = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="6 9 12 15 18 9"></polyline>
-  </svg>
-);
-
-const ChevronUp = () => (
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <polyline points="18 15 12 9 6 15"></polyline>
-  </svg>
-);
+import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
 
 const ErrorModal = ({ error, onClose }) => {
   const [showDetails, setShowDetails] = useState(false);
@@ -78,7 +60,7 @@ const ErrorModal = ({ error, onClose }) => {
               onMouseOver={(e) => e.target.style.color = '#4b5563'}
               onMouseOut={(e) => e.target.style.color = '#9ca3af'}
             >
-              <XIcon />
+              <X size={24} />
             </button>
           </div>
 
@@ -89,23 +71,11 @@ const ErrorModal = ({ error, onClose }) => {
               <div style={{
                 position: 'absolute', inset: 0, backgroundColor: '#fee2e2', borderRadius: '9999px', filter: 'blur(12px)', opacity: 0.5
               }}></div>
-              <svg 
-                width="80" 
-                height="80" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="#ef4444" 
-                strokeWidth="1.5" 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                style={{ position: 'relative', zIndex: 10 }}
-              >
-                <circle cx="12" cy="12" r="10" />
-                <line x1="15" y1="9" x2="15.01" y2="9" strokeWidth="3" />
-                <line x1="9" y1="9" x2="9.01" y2="9" strokeWidth="3" />
-                <path d="M16 16 C16 16 14.5 14 12 14 C9.5 14 8 16 8 16" strokeWidth="2" />
-                <path d="M15 10.5 C15 10.5 15.5 12.5 15 13" strokeWidth="1" opacity="0.6" />
-              </svg>
+              <img 
+                src={sadFaceUrl} 
+                alt="Sad Face" 
+                style={{ width: 80, height: 80, position: 'relative', zIndex: 10 }}
+              />
             </div>
 
             <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
@@ -128,7 +98,7 @@ const ErrorModal = ({ error, onClose }) => {
               >
                 {showDetails ? 'Nascondi dettagli tecnici' : 'Mostra dettagli errore'}
                 <span style={{ marginLeft: '0.25rem', display: 'flex' }}>
-                  {showDetails ? <ChevronUp /> : <ChevronDown />}
+                  {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </span>
               </button>
 
