@@ -150,11 +150,14 @@ export const api = {
     return handleResponse(response);
   },
 
-  triggerAutoAssign: async (resetPrevious = false) => {
+  triggerAutoAssign: async (resetPrevious = false, strategy = 'SIMULATION') => {
     const response = await safeFetch(`${API_BASE_URL}/accommodations/auto-assign/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ reset_previous: resetPrevious })
+      body: JSON.stringify({ 
+        reset_previous: resetPrevious,
+        strategy: strategy 
+      })
     });
     return handleResponse(response);
   },
