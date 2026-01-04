@@ -28,6 +28,16 @@ const generateRandomRoomConfig = () => {
     return rooms;
 }
 
+/**
+ * Helper to wait for page to be fully rendered before screenshot
+ */
+const waitForPageReady = async (page: any) => {
+  // Wait for network to be idle (no more than 2 connections for 500ms)
+  await page.waitForLoadState('networkidle');
+  // Additional small delay for animations/transitions
+  await page.waitForTimeout(500);
+};
+
 test.describe('Complex Wedding Flow', () => {
   let api: ApiHelper;
 
@@ -37,6 +47,7 @@ test.describe('Complex Wedding Flow', () => {
 
   test.afterEach(async ({ page }, testInfo) => {
     if (testInfo.status !== 'passed') {
+      await waitForPageReady(page);
       const screenshotPath = `test-results/failure-${testInfo.title.replace(/\s+/g, '-').toLowerCase()}.png`;
       await page.screenshot({ path: screenshotPath, fullPage: true });
       console.log(`Screenshot saved to: ${screenshotPath}`);
@@ -70,8 +81,13 @@ test.describe('Complex Wedding Flow', () => {
         // 2. ADMIN: Verify Dashboard (via UI or API)
         // Using UI for Admin verification
         await page.goto('http://localhost:8080/dashboard');
-        await expect(page.locator('body')).toContainText('In Attesa'); 
-        await page.screenshot({ path: 'test-results/complex-flow-1-dashboard-initial.png' });
+        
+        // Wait for dashboard to fully render
+        await expect(page.locator('body')).toContainText('In Attesa');
+        await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+        await waitForPageReady(page);
+        
+        await page.screenshot({ path: 'test-results/complex-flow-1-dashboard-initial.png', fullPage: true });
 
         // 3. USER: Interact with invitations
         console.log('Simulating User interactions...');
@@ -85,12 +101,13 @@ test.describe('Complex Wedding Flow', () => {
             // Navigate to public link
             await page.goto(publicUrl);
             
-            // Correct assertion
+            // Wait for envelope animation and content to load
             await expect(page.getByRole('heading', { name: 'Siete Invitati!' })).toBeVisible();
+            await waitForPageReady(page);
 
             // Take screenshot only for the first user interaction to avoid clutter
             if (index === 0) {
-                await page.screenshot({ path: 'test-results/complex-flow-2-user-view.png' });
+                await page.screenshot({ path: 'test-results/complex-flow-2-user-view.png', fullPage: true });
             }
 
             // Random choices
@@ -122,21 +139,33 @@ test.describe('Complex Wedding Flow', () => {
         // 5. ADMIN: Auto Assignment
         console.log('Triggering Auto Assignment...');
         await page.goto('http://localhost:8080/accommodations');
-        await page.screenshot({ path: 'test-results/complex-flow-3-accommodations-before.png' });
+        
+        // Wait for accommodations page to render
+        await expect(page.getByRole('heading', { name: 'Gestione Alloggi' })).toBeVisible();
+        await waitForPageReady(page);
+        
+        await page.screenshot({ path: 'test-results/complex-flow-3-accommodations-before.png', fullPage: true });
         
         // WORKAROUND: Call API directly
         await api.triggerAutoAssignment();
         
-        // Reload page to see results
+        // Reload page to see results and wait for new data
         await page.reload();
-        await page.screenshot({ path: 'test-results/complex-flow-4-accommodations-after.png' });
+        await expect(page.getByRole('heading', { name: 'Gestione Alloggi' })).toBeVisible();
+        await waitForPageReady(page);
+        
+        await page.screenshot({ path: 'test-results/complex-flow-4-accommodations-after.png', fullPage: true });
 
         // 6. ADMIN: Verify Results
         // Check Dashboard again
         await page.goto('http://localhost:8080/dashboard');
-        // Check if "Unassigned" count decreased or "Assigned" increased.
+        
+        // Wait for dashboard to refresh with new data
         await expect(page.getByText('Alloggi')).toBeVisible();
-        await page.screenshot({ path: 'test-results/complex-flow-5-dashboard-final.png' });
+        await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
+        await waitForPageReady(page);
+        
+        await page.screenshot({ path: 'test-results/complex-flow-5-dashboard-final.png', fullPage: true });
 
     } finally {
         // CLEANUP
