@@ -10,8 +10,8 @@
 
 .envelope-wrapper {
     position: relative;
-    width: 800px; /* Adjust based on image native size or use max-width */
-    height: 600px; /* Adjust based on image aspect ratio */
+    width: 620px; /* Adjust based on image native size or use max-width */
+    height: 358px; /* Adjust based on image aspect ratio */
     /* border: 1px dashed #ccc;  Debug border */
 }
 
@@ -62,10 +62,10 @@
 
 .wax-img {
     position: absolute;
-    bottom: -20px; /* Adjust based on flap image */
+    bottom: 70px; /* Adjust based on flap image */
     left: 50%;
     transform: translateX(-50%);
-    width: 80px; /* Adjust size */
+    width: 300px; /* Adjust size */
     height: auto;
 }
 

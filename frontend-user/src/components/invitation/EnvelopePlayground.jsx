@@ -4,7 +4,6 @@ import flapImg from '../../assets/illustrations/flap.png';
 import noFlapImg from '../../assets/illustrations/no-flap.png';
 import pocketImg from '../../assets/illustrations/pocket.png';
 import waxImg from '../../assets/illustrations/wax.png';
-import letterImg from '../../assets/illustrations/letter.svg';
 
 const EnvelopePlayground = () => {
     const [step, setStep] = useState(0); // 0: Closed, 1: Flap Open, 2: Letter Out
@@ -16,21 +15,11 @@ const EnvelopePlayground = () => {
     return (
         <div className="playground-container">
             <h1>Test Posizionamento Busta</h1>
-            <p>Step attuale: {step === 0 ? 'Chiuso' : step === 1 ? 'Aperto' : 'Lettera Fuori'}</p>
-            <button onClick={toggleStep} style={{ padding: '10px 20px', fontSize: '1.2rem', marginBottom: '20px' }}>
-                Prossimo Step
-            </button>
             
             <div className="envelope-wrapper">
                 {/* 1. BACK LAYER (Sfondo interno) */}
                 <img src={noFlapImg} className="layer back" alt="Back" />
                 
-                {/* 2. LETTER LAYER (Lettera) */}
-                <img 
-                    src={letterImg} 
-                    className={`layer letter ${step >= 2 ? 'letter-out' : ''}`} 
-                    alt="Letter" 
-                />
                 
                 {/* 3. POCKET LAYER (Tasca frontale) */}
                 <img src={pocketImg} className="layer pocket" alt="Pocket" />
@@ -43,6 +32,10 @@ const EnvelopePlayground = () => {
                     <img src={waxImg} className="wax-img" alt="Wax" />
                  </div>
             </div>
+            <p>Step attuale: {step === 0 ? 'Chiuso' : step === 1 ? 'Aperto' : 'Lettera Fuori'}</p>
+            <button onClick={toggleStep} style={{ padding: '10px 20px', fontSize: '1.2rem', marginBottom: '20px' }}>
+                Prossimo Step
+            </button>
             
             <div style={{marginTop: '20px', maxWidth: '600px', textAlign: 'left'}}>
                 <h3>Istruzioni Debug:</h3>
