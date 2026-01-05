@@ -165,14 +165,28 @@ jobs:
           timeout 60s bash -c 'until docker compose ps | grep "healthy"; do sleep 5; done' || docker compose logs
       
       # ==========================================================================
+      # SEED TEST DATA (Generate Valid Invitation)
+      # ==========================================================================
+      - name: Create Test Invitation
+        id: seed
+        run: |
+          echo "Creating test data for load test..."
+          output=$(docker compose exec -T backend python manage.py create_test_data)
+          echo "$output"
+          echo "$output" >> $GITHUB_ENV
+          
+      # ==========================================================================
       # LOAD TESTING (Connection Pooling)
       # ==========================================================================
       - name: Install Load Test Deps
         run: pip install requests
         
       - name: Run pgBouncer Load Test
+        env:
+          TEST_CODE: ${{ env.TEST_CODE }}
+          TEST_TOKEN: ${{ env.TEST_TOKEN }}
         run: |
-          echo "Running connection pooling load test..."
+          echo "Running connection pooling load test with valid credentials..."
           python tests/load_test_connections.py > load-test-output.txt
           cat load-test-output.txt
           
