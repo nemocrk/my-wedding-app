@@ -96,7 +96,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         extracted: { 
-            y: -520, 
+            y: "-120vh", // CHANGE: Use viewport height to guarantee exit on any screen size
             zIndex: 2, 
             scale: 1,
             opacity: 1,
@@ -115,11 +115,11 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
     const letterContentVariants = {
         folded: { 
-            height: 300, 
+            height: "15vh", // CHANGE: Use vh for initial folded state too (approx 300px on desktop)
             overflow: "hidden" 
         },
         unfolded: { 
-            height: "75vh", 
+            height: "calc(100vh - 40px)", // CHANGE: Dynamic full height minus margins
             overflowY: "auto", 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
@@ -162,10 +162,6 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             animate="visible"
             onAnimationComplete={handleSequence}
         >
-            {/* 
-                Wrapper scalabile: Applica la scala calcolata in base alla larghezza del device.
-                Usa transform origin center per mantenere tutto centrato.
-            */}
             <div 
                 className="envelope-wrapper" 
                 style={{ 
