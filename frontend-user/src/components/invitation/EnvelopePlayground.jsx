@@ -49,18 +49,29 @@ const EnvelopePlayground = () => {
     };
 
     const letterVariants = {
-        // CORREZIONE: Opacity 1 fin dall'inizio, così si vede dentro la busta
         inside: { 
-            y: 50, // Leggermente più in basso per essere ben nascosta dal flap chiuso
+            y: 20, 
             zIndex: 2, 
-            scale: 0.9, // Un po' più piccola quando è dentro
-            opacity: 1 // Visibile!
+            scale: 1, 
+            opacity: 1 
         },
         outside: { 
             y: -150, 
             zIndex: 5, 
             scale: 1, 
             opacity: 1,
+            transition: { duration: 1.5, ease: "easeOut" } 
+        }
+    };
+
+    // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
+    const letterContentVariants = {
+        folded: { 
+            height: 300, 
+            overflow: "hidden" 
+        },
+        unfolded: { 
+            height: 500, 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
     };
@@ -120,9 +131,18 @@ const EnvelopePlayground = () => {
                         initial="inside"
                         animate={step >= 3 ? "outside" : "inside"}
                     >
-                         <div className="dummy-letter">
-                            <h3>Test Lettera</h3>
-                            <p>Contenuto di prova per il playground...</p>
+                         <motion.div 
+                            className="dummy-letter"
+                            variants={letterContentVariants}
+                            initial="folded"
+                            animate={step >= 3 ? "unfolded" : "folded"}
+                         >
+                            <h3>Invito al Matrimonio</h3>
+                            <p>Carissimi,</p>
+                            <p>Siete invitati a celebrare con noi...</p>
+                            <br/>
+                            <p>Lorem ipsum dolor sit amet...</p>
+                            <p>Dettagli della cerimonia qui sotto.</p>
                             
                             {/* Sigillo che rientra sulla lettera */}
                             <motion.img 
@@ -132,7 +152,7 @@ const EnvelopePlayground = () => {
                                 initial="removed"
                                 animate={step === 4 ? "reentry" : "removed"}
                             />
-                         </div>
+                         </motion.div>
                     </motion.div>
 
                     {/* POCKET */}
