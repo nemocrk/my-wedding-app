@@ -66,7 +66,13 @@ const EnvelopeAnimation = ({ onComplete }) => {
 
     // 4. LETTER ANIMATION (Uscita Lettera)
     const letterVariants = {
-        inside: { y: 20, zIndex: 2, scale: 0.8, opacity: 0 },
+        // CORREZIONE: Opacity 1 fin dall'inizio, così si vede dentro la busta
+        inside: { 
+            y: 50, // Leggermente più in basso per essere ben nascosta dal flap chiuso
+            zIndex: 2, 
+            scale: 0.9, // Un po' più piccola quando è dentro
+            opacity: 1 // Visibile!
+        },
         outside: { 
             y: -150, 
             zIndex: 5, 
@@ -117,7 +123,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                 <motion.div 
                     className="layer letter-container"
                     variants={letterVariants}
-                    initial="inside"
+                    initial="inside" // Parte dallo stato 'inside' che ora è visibile
                     animate={step >= 3 ? "outside" : "inside"}
                 >
                      {/* Qui potremmo iniettare il vero contenuto o un'immagine placeholder per ora */}
