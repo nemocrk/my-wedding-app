@@ -39,32 +39,42 @@ services:
   # 1c. PGBOUNCER - Connection Pooler per PostgreSQL
   # ---------------------------------------------
   pgbouncer:
-    image: pgbouncer/pgbouncer:latest
+    # Usciamo dall'immagine ufficiale (dns issues) e usiamo la più robusta edoburu
+    image: edoburu/pgbouncer:latest
     restart: always
     environment:
-      DATABASES_HOST: db
-      DATABASES_PORT: 5432
-      DATABASES_USER: postgres
-      DATABASES_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
-      DATABASES_DBNAME: wedding_db
-      PGBOUNCER_POOL_MODE: transaction
-      PGBOUNCER_MAX_CLIENT_CONN: 200
-      PGBOUNCER_DEFAULT_POOL_SIZE: 25
-      PGBOUNCER_MIN_POOL_SIZE: 5
-      PGBOUNCER_RESERVE_POOL_SIZE: 5
-      PGBOUNCER_SERVER_IDLE_TIMEOUT: 600
-      PGBOUNCER_LISTEN_PORT: 5432
-      # FIX CRITICO: disabilita auth_file check rigoroso per backend
-      # e permette login con password passata via env vars
-      PGBOUNCER_AUTH_TYPE: trust
-      PGBOUNCER_AUTH_USER: postgres
+      # Configurazione Backend DB
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
+      DB_NAME: wedding_db
+      
+      # Configurazione Pooling
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_IDLE_TIMEOUT: 600
+      
+      # Configurazione Auth e Network
+      LISTEN_PORT: 5432
+      AUTH_TYPE: trust
+      AUTH_USER: postgres
+      ADMIN_USERS: postgres
+      
+      # Fix DNS Docker issues
+      DNS_MAX_TTL: 15
+      DNS_ZONE_CHECK_PERIOD: 0
     networks:
       - db_network
     depends_on:
       db:
         condition: service_healthy
+    # Healthcheck basato su connessione TCP aperta
     healthcheck:
-      test: ["CMD-SHELL", "ps | grep -q '[p]gbouncer'"]
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5432 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
