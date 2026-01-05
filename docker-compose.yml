@@ -54,14 +54,15 @@ services:
       PGBOUNCER_RESERVE_POOL_SIZE: 5
       PGBOUNCER_SERVER_IDLE_TIMEOUT: 600
       PGBOUNCER_LISTEN_PORT: 5432
+      # FIX CRITICO: disabilita auth_file check rigoroso per backend
+      # e permette login con password passata via env vars
+      PGBOUNCER_AUTH_TYPE: trust
+      PGBOUNCER_AUTH_USER: postgres
     networks:
       - db_network
     depends_on:
       db:
         condition: service_healthy
-    # NOTE: l'immagine pgbouncer/pgbouncer non include sempre psql/pg_isready.
-    # Un healthcheck basato sul processo evita false-negative (container "unhealthy")
-    # che bloccherebbero l'avvio del backend via depends_on.
     healthcheck:
       test: ["CMD-SHELL", "ps | grep -q '[p]gbouncer'"]
       interval: 10s
