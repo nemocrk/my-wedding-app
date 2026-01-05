@@ -4,6 +4,7 @@ import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
+import rightArrow from '../../assets/illustrations/right-arrow.png';
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -164,12 +165,12 @@ const LetterContent = ({ data }) => {
                 
                 {/* Navigation to Back */}
                 <button 
-                    className="nav-button" 
+                    className="nav-button pulse-animation" 
                     onClick={() => handleFlip(true)}
                     aria-label="Vedi dettagli"
                     title="Vedi dettagli e conferma"
                 >
-                    <span role="img" aria-label="arrow-right">➡️</span>
+                    <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
                 </button>
             </div>
 
