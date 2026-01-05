@@ -96,7 +96,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         extracted: { 
-            y: "-120vh", // CHANGE: Use viewport height to guarantee exit on any screen size
+            y: "-120vh", // Keeping vh as it ensures clearing the SCREEN, which is usually the desired "extraction" effect
             zIndex: 2, 
             scale: 1,
             opacity: 1,
@@ -115,11 +115,11 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
     const letterContentVariants = {
         folded: { 
-            height: "15vh", // CHANGE: Use vh for initial folded state too (approx 300px on desktop)
+            height: "15vh", 
             overflow: "hidden" 
         },
         unfolded: { 
-            height: "calc(100vh - 40px)", // CHANGE: Dynamic full height minus margins
+            height: "calc(100vh - 40px)", 
             overflowY: "auto", 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
