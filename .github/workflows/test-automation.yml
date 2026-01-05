@@ -141,10 +141,10 @@ jobs:
           retention-days: 7
 
   # ==============================================================================
-  # 4. E2E TESTS (Matches run_all_tests.sh Section 4)
+  # 4. E2E & LOAD TESTS (Matches run_all_tests.sh Section 4)
   # ==============================================================================
   e2e-test:
-    name: 🎭 E2E Tests (Playwright)
+    name: 🎭 E2E & Load Tests
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-user-test, frontend-admin-test]
     steps:
@@ -157,12 +157,50 @@ jobs:
       - name: Build and Start Stack
         run: |
           if [ -f .env.example ]; then cp .env.example .env; fi
+          # Force rebuilding pgbouncer to ensure latest config
           docker compose up -d --build
           
       - name: Wait for Stack Health
         run: |
           timeout 60s bash -c 'until docker compose ps | grep "healthy"; do sleep 5; done' || docker compose logs
+      
+      # ==========================================================================
+      # SEED TEST DATA (Generate Valid Invitation)
+      # ==========================================================================
+      - name: Create Test Invitation
+        id: seed
+        run: |
+          echo "Creating test data for load test..."
+          output=$(docker compose exec -T backend python manage.py create_test_data)
+          echo "$output"
+          echo "$output" >> $GITHUB_ENV
           
+      # ==========================================================================
+      # LOAD TESTING (Connection Pooling)
+      # ==========================================================================
+      - name: Install Load Test Deps
+        run: pip install requests
+        
+      - name: Run pgBouncer Load Test
+        env:
+          TEST_CODE: ${{ env.TEST_CODE }}
+          TEST_TOKEN: ${{ env.TEST_TOKEN }}
+        run: |
+          echo "Running connection pooling load test with valid credentials..."
+          python tests/load_test_connections.py > load-test-output.txt
+          cat load-test-output.txt
+          
+      - name: Generate Load Test Summary
+        if: always()
+        run: |
+          echo "## ⚖️ Connection Load Test (pgBouncer)" >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`text" >> $GITHUB_STEP_SUMMARY
+          cat load-test-output.txt >> $GITHUB_STEP_SUMMARY
+          echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
+
+      # ==========================================================================
+      # PLAYWRIGHT E2E TESTING
+      # ==========================================================================
       - name: Set up Node.js for Playwright
         uses: actions/setup-node@v4
         with:
