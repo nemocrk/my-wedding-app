@@ -66,25 +66,30 @@ const EnvelopeAnimation = ({ onComplete }) => {
 
     // 4. LETTER ANIMATION (Uscita Lettera)
     const letterVariants = {
-        // CORREZIONE: Opacity 1 fin dall'inizio, così si vede dentro la busta
         inside: { 
-            y: 50, // Leggermente più in basso per essere ben nascosta dal flap chiuso
+            y: 20, // Posizione iniziale dentro la busta
             zIndex: 2, 
-            scale: 0.9, // Un po' più piccola quando è dentro
-            opacity: 1 // Visibile!
+            scale: 1, 
+            opacity: 1 
         },
         outside: { 
-            y: -150, 
+            y: -150, // Esce verso l'alto
             zIndex: 5, 
             scale: 1, 
             opacity: 1,
             transition: { duration: 1.5, ease: "easeOut" } 
+        }
+    };
+
+    // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
+    const letterContentVariants = {
+        folded: { 
+            height: 300, // Tagliata inizialmente per stare nella busta
+            overflow: "hidden" 
         },
-        reading: {
-            y: 0,
-            scale: 1.1,
-            zIndex: 10,
-            transition: { duration: 1 }
+        unfolded: { 
+            height: 500, // Altezza finale completa (o "auto" se framer supporta bene auto)
+            transition: { duration: 1.5, ease: "easeOut" } 
         }
     };
 
@@ -98,7 +103,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
         setStep(2); // Apri busta
 
         await new Promise(r => setTimeout(r, 1000));
-        setStep(3); // Esci lettera
+        setStep(3); // Esci lettera (e espandi altezza)
         
         await new Promise(r => setTimeout(r, 1500));
         setStep(4); // Rientra ceralacca su lettera
@@ -123,13 +128,23 @@ const EnvelopeAnimation = ({ onComplete }) => {
                 <motion.div 
                     className="layer letter-container"
                     variants={letterVariants}
-                    initial="inside" // Parte dallo stato 'inside' che ora è visibile
+                    initial="inside" 
                     animate={step >= 3 ? "outside" : "inside"}
                 >
-                     {/* Qui potremmo iniettare il vero contenuto o un'immagine placeholder per ora */}
-                     <div className="dummy-letter">
+                     {/* Contenuto interno con clipping animato */}
+                     <motion.div 
+                        className="dummy-letter"
+                        variants={letterContentVariants}
+                        initial="folded"
+                        animate={step >= 3 ? "unfolded" : "folded"}
+                     >
                         <h3>Invito al Matrimonio</h3>
-                        <p>Siete invitati...</p>
+                        <p>Carissimi,</p>
+                        <p>Siete invitati a celebrare con noi...</p>
+                        <br/>
+                        <p>Lorem ipsum dolor sit amet...</p>
+                        <p>Dettagli della cerimonia qui sotto.</p>
+                        
                         {/* Sigillo che rientra */}
                         <motion.img 
                             src={waxImg} 
@@ -138,7 +153,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                             initial="removed"
                             animate={step === 4 ? "reentry" : "removed"}
                         />
-                     </div>
+                     </motion.div>
                 </motion.div>
 
                 {/* POCKET */}
