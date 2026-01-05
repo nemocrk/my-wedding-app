@@ -75,7 +75,7 @@
     z-index: 1;
 }
 
-/* Text Styles - Preserved */
+/* Text Styles */
 .spacer-top { height: 15%; width: 100%; flex-shrink: 0; }
 
 .text-names {
@@ -156,31 +156,53 @@
   text-align: justify;
 }
 
-/* Navigation Buttons */
+/* Navigation Buttons Animation */
+@keyframes attention-pulse {
+    0% { transform: scale(1); filter: brightness(1); }
+    50% { transform: scale(1.15); filter: brightness(1.1); }
+    100% { transform: scale(1); filter: brightness(1); }
+}
+
 .nav-button {
     position: absolute;
-    bottom: 15px;
-    right: 15px;
-    width: 44px;
-    height: 44px;
+    bottom: 20px;
+    right: 20px;
+    width: 50px; /* Slightly larger for the image */
+    height: 50px;
     border-radius: 50%;
-    background: rgba(255, 255, 255, 0.9);
-    border: 1px solid #ddd;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    background: transparent; /* Transparent to show the arrow nicely, or keep white if image is not round */
+    border: none;
+    box-shadow: none; /* Shadow might look weird if image has transparency, letting the image handle it or adding a specific class */
     display: flex;
     align-items: center;
     justify-content: center;
     cursor: pointer;
     z-index: 20;
     transition: all 0.3s ease;
-    font-size: 1.2rem;
-    color: #555;
+    padding: 0;
+}
+
+/* Add a background circle if the image is just an arrow without background */
+.nav-button.with-bg {
+    background: rgba(255, 255, 255, 0.8);
+    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+    border: 1px solid #ddd;
+}
+
+.nav-button.pulse-animation {
+    animation: attention-pulse 2s infinite ease-in-out;
 }
 
 .nav-button:hover {
-    transform: scale(1.1);
-    background: #fff;
-    color: #000;
+    transform: scale(1.2); /* Override animation on hover or combine? */
+    animation: none; /* Stop pulsing on hover */
+}
+
+.nav-arrow-img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
 }
 
 /* RSVP styles - Preserved */
