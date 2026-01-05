@@ -49,7 +49,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             x: 0, 
             y: 0,
             opacity: 1,
-            scale: 3, // USER FIX: Increased scale
+            scale: 3, 
             transition: { delay: 0.5, duration: 0.8, type: "spring" }
         }
     };
@@ -61,7 +61,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             rotateX: 180, 
             transition: { duration: 0.8, ease: "easeInOut" } 
         },
-        openBack: { // USER FIX: Specific state for when letter is out
+        openBack: { 
             rotateX: 180, 
             zIndex: 1
         }
@@ -73,20 +73,23 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             y: 20, 
             zIndex: 2, 
             scale: 1, 
-            opacity: 1 
+            opacity: 1,
+            pointerEvents: "none"
         },
         extracted: { 
-            y: -520, // USER FIX: Increased extraction height
+            y: -520, 
             zIndex: 2, 
             scale: 1,
             opacity: 1,
-            transition: { duration: 1.2, ease: "easeOut" } 
+            transition: { duration: 1.2, ease: "easeOut" },
+            pointerEvents: "none"
         },
         final: {
-            y: -50, 
+            y: -50, // Slightly higher to account for longer content
             zIndex: 10, 
             scale: 1,
-            transition: { duration: 0.8, ease: "easeInOut" }
+            transition: { duration: 0.8, ease: "easeInOut" },
+            pointerEvents: "auto" // CRITICAL: Enable interactions (scrolling, clicks)
         }
     };
 
@@ -97,7 +100,8 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             overflow: "hidden" 
         },
         unfolded: { 
-            height: 500, 
+            height: "75vh", // Responsive height for reading
+            overflowY: "auto", // Enable scrolling for long content
             transition: { duration: 1.5, ease: "easeOut" } 
         }
     };
@@ -105,7 +109,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // Orchestratore della sequenza
     const handleSequence = async () => {
         // Step 1: Arrivo completato (gestito da 'visible')
-        await new Promise(r => setTimeout(r, 500)); // USER FIX: Reduced initial wait
+        await new Promise(r => setTimeout(r, 500)); 
         setStep(1); // Rimuovi ceralacca
 
         await new Promise(r => setTimeout(r, 1000));
@@ -157,7 +161,15 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         initial="folded"
                         animate={step >= 3 ? "unfolded" : "folded"}
                      >
-                        <LetterContent data={invitationData} />
+                        {/* 
+                           Mostra LetterContent solo se invitationData è presente.
+                           Se è null/undefined, renderizzerebbe nulla o causerebbe errori.
+                        */}
+                        {invitationData ? (
+                            <LetterContent data={invitationData} />
+                        ) : (
+                            <div style={{padding: '2rem'}}>Caricamento invito...</div>
+                        )}
                         
                         {/* Sigillo che rientra */}
                         <motion.img 
