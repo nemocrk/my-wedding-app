@@ -142,13 +142,13 @@ nano .env
 echo "BUILD_TARGET=development" >> .env
 
 # Avvia i servizi con hot-reload
-docker-compose up --build
+docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # I servizi saranno disponibili su:
 # - Frontend User: http://localhost (porta 80)
 # - Frontend Admin: http://localhost:8080
 # - Adminer (DB): http://localhost:8081
-# - Backend API: accessibile tramite nginx
+# - Backend API: accessibile tramite nginx (hot-reload attivo)
 ```
 
 ### 3. Avvio Produzione (Production)
@@ -275,6 +275,7 @@ my-wedding-app/
 │   ├── 02-DATABASE.md
 │   └── ...
 ├── docker-compose.yml     # Orchestrazione servizi
+├── docker-compose.dev.yml # Override per sviluppo locale
 ├── .env.example           # Template variabili ambiente
 ├── AI_RULES.md            # Regole sviluppo AI (Test, Log, Errori)
 └── README.md             # Questo file
