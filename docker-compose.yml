@@ -60,11 +60,12 @@ services:
       
       # Configurazione Auth e Network
       LISTEN_PORT: 5432
-      # FIX SCRAM AUTH: PostgreSQL 14+ usa SCRAM-SHA-256 di default.
-      # 'trust' fallisce perché pgbouncer prova ad inoltrare auth request in modo errato.
-      # 'any' permette a pgbouncer di accettare la password dal client e usarla verso il server.
-      AUTH_TYPE: any
-      AUTH_USER: postgres
+      # FIX: Postgres 14 usa SCRAM-SHA-256. 
+      # AUTH_TYPE=any richiederebbe auth_user, ma l'immagine non supporta AUTH_USER env var.
+      # Usiamo scram-sha-256 che è il default corretto.
+      # L'immagine edoburu genera userlist.txt con la password in chiaro (da DB_PASSWORD),
+      # permettendo a pgbouncer di fare l'handshake SCRAM.
+      AUTH_TYPE: scram-sha-256
       ADMIN_USERS: postgres
       
       # Fix DNS Docker issues
