@@ -34,7 +34,7 @@ const EnvelopePlayground = () => {
             x: 0, 
             y: 0,
             opacity: 1,
-            scale: 0.8,
+            scale: 3,
             transition: { delay: 0.5, duration: 0.8, type: "spring" }
         }
     };
@@ -43,8 +43,11 @@ const EnvelopePlayground = () => {
         closed: { rotateX: 0, zIndex: 4 },
         open: { 
             rotateX: 180, 
-            zIndex: 1, 
             transition: { duration: 0.8, ease: "easeInOut" } 
+        },
+        openBack: { 
+            rotateX: 180, 
+            zIndex: 1
         }
     };
 
@@ -56,8 +59,8 @@ const EnvelopePlayground = () => {
             opacity: 1 
         },
         extracted: { 
-            y: -350, // Esce COMPLETAMENTE verso l'alto
-            zIndex: 5, 
+            y: -520, // Esce COMPLETAMENTE verso l'alto
+            zIndex: 2, 
             scale: 1,
             opacity: 1,
             transition: { duration: 1.2, ease: "easeOut" } 
@@ -96,7 +99,7 @@ const EnvelopePlayground = () => {
         await new Promise(r => setTimeout(r, 100));
         
         // Sequenza automatica
-        await new Promise(r => setTimeout(r, 2500)); 
+        await new Promise(r => setTimeout(r, 500)); 
         setStep(1); // Rimuovi ceralacca
 
         await new Promise(r => setTimeout(r, 1000));
@@ -179,7 +182,7 @@ const EnvelopePlayground = () => {
                     <motion.div 
                         className="layer flap-container"
                         variants={flapVariants}
-                        animate={step >= 2 ? "open" : "closed"}
+                        animate={step >= 3 ? "openBack" : (step == 2 ? "open" : "closed")}
                         style={{ transformOrigin: "top" }}
                     >
                         <img src={flapImg} className="flap-img" alt="Flap" />
