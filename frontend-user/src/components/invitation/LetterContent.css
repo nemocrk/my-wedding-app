@@ -1,58 +1,65 @@
+/* Refactored to fit inside EnvelopeAnimation container */
 .letter-content {
-  width: 100vw;
-  height: 100vh;
+  width: 100%;
+  height: 100%;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 2rem;
-  overflow-y: auto;
+  /* Removed 100vw/100vh and fixed positioning */
 }
 
 .letter-paper {
   background: #fffef7;
-  max-width: 700px;
-  padding: 3rem;
-  border-radius: 8px;
-  box-shadow: 0 10px 50px rgba(0, 0, 0, 0.2);
-  border: 1px solid #e0d8c8;
+  width: 100%;
+  max-width: 100%; /* Adapts to parent width */
+  padding: 2rem;
+  border-radius: 4px;
+  /* Box shadow handled by parent or kept minimal here */
+  box-shadow: none; 
+  border: none;
+  /* We remove the border/shadow from here because dummy-letter or the envelope context might handle the "paper" feel, 
+     OR we keep it if we remove it from dummy-letter. 
+     Let's keep it clean: LetterContent just provides the layout of text.
+  */
 }
 
 .letter-title {
-  font-size: 2.5rem;
+  font-size: 1.8rem; /* Slightly smaller for the embedded view */
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.5rem;
   color: #8b7355;
   font-family: 'Georgia', serif;
 }
 
 .letter-body p {
-  font-size: 1.1rem;
-  line-height: 1.8;
-  margin-bottom: 1rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 0.8rem;
   color: #333;
   text-align: justify;
 }
 
 .guests-list {
-  margin-top: 2rem;
-  padding: 1.5rem;
+  margin-top: 1.5rem;
+  padding: 1rem;
   background: #f9f7f1;
   border-left: 4px solid #c9a581;
 }
 
 .guests-list h3 {
-  font-size: 1.3rem;
-  margin-bottom: 1rem;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
   color: #8b7355;
 }
 
 .guests-list ul {
   list-style: none;
+  padding: 0;
 }
 
 .guests-list li {
-  padding: 0.5rem 0;
-  font-size: 1.1rem;
+  padding: 0.3rem 0;
+  font-size: 1rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -61,69 +68,63 @@
 .guests-list .badge {
   background: #ffd89b;
   color: #8b5a00;
-  padding: 0.2rem 0.6rem;
-  border-radius: 12px;
-  font-size: 0.75rem;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
   font-weight: bold;
 }
 
 .offer-badge {
   display: inline-block;
-  margin-top: 1rem;
-  margin-right: 1rem;
-  padding: 0.5rem 1rem;
+  margin-top: 0.8rem;
+  margin-right: 0.8rem;
+  padding: 0.4rem 0.8rem;
   background: #e8f5e9;
-  border-radius: 8px;
-  font-size: 0.95rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
   color: #2e7d32;
 }
 
 /* RSVP Section */
 .rsvp-section {
-  margin-top: 2.5rem;
-  padding: 2rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
   background: #f0f8ff;
-  border-radius: 10px;
-  border: 2px solid #c9a581;
+  border-radius: 8px;
+  border: 1px solid #c9a581;
 }
 
 .rsvp-section h3 {
   color: #8b7355;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   text-align: center;
+  font-size: 1.2rem;
 }
 
 .checkbox-label {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  font-size: 1rem;
-  margin-bottom: 1rem;
-  cursor: pointer;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 20px;
-  height: 20px;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.8rem;
   cursor: pointer;
 }
 
 .button-group {
   display: flex;
-  gap: 1rem;
-  margin-top: 2rem;
-  flex-wrap: wrap;
+  flex-direction: column; /* Stack buttons on smaller embedded view */
+  gap: 0.8rem;
+  margin-top: 1.5rem;
 }
 
 .rsvp-button {
-  flex: 1;
-  min-width: 200px;
+  width: 100%;
   border: none;
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
-  border-radius: 50px;
+  padding: 0.8rem;
+  font-size: 1rem;
+  border-radius: 25px;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
   transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
   font-weight: 600;
 }
@@ -138,57 +139,19 @@
   color: white;
 }
 
-.rsvp-button.confirm:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-}
-
 .rsvp-button.decline {
   background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
   color: white;
 }
 
-.rsvp-button.decline:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
-}
-
-/* RSVP Confirmed/Declined States */
-.rsvp-confirmed,
-.rsvp-declined {
-  margin-top: 2.5rem;
-  padding: 2rem;
-  border-radius: 10px;
-  text-align: center;
-}
-
-.rsvp-confirmed {
-  background: #e8f5e9;
-  border: 2px solid #4caf50;
-}
-
-.rsvp-confirmed h3 {
-  color: #2e7d32;
-  margin-bottom: 1rem;
-}
-
-.rsvp-declined {
-  background: #ffebee;
-  border: 2px solid #f44336;
-}
-
-.rsvp-declined h3 {
-  color: #c62828;
-  margin-bottom: 1rem;
-}
-
 /* Messages */
 .message {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  border-radius: 8px;
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 6px;
   text-align: center;
   font-weight: 600;
+  font-size: 0.9rem;
 }
 
 .message.success {
