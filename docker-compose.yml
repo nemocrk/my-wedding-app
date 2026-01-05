@@ -36,6 +36,38 @@ services:
       ADMINER_DEFAULT_SERVER: db
 
   # ---------------------------------------------
+  # 1c. PGBOUNCER - Connection Pooler per PostgreSQL
+  # ---------------------------------------------
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    restart: always
+    environment:
+      DATABASES_HOST: db
+      DATABASES_PORT: 5432
+      DATABASES_USER: postgres
+      DATABASES_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
+      DATABASES_DBNAME: wedding_db
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 200
+      PGBOUNCER_DEFAULT_POOL_SIZE: 25
+      PGBOUNCER_MIN_POOL_SIZE: 5
+      PGBOUNCER_RESERVE_POOL_SIZE: 5
+      PGBOUNCER_SERVER_IDLE_TIMEOUT: 600
+      PGBOUNCER_LISTEN_PORT: 5432
+    networks:
+      - db_network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "psql", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "wedding_db", "-c", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    expose:
+      - "5432"
+
+  # ---------------------------------------------
   # 2. BACKEND API - Gunicorn per produzione
   # ---------------------------------------------
   backend:
@@ -51,8 +83,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@db:5432/wedding_db
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
       DJANGO_SETTINGS_MODULE: wedding.settings
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
