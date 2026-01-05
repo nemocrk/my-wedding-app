@@ -49,6 +49,25 @@ Tutti i Dockerfile utilizzano pattern multi-stage per:
 - `.dockerignore` esclude `venv/`, `.git/`, `node_modules/` locali
 - Cache npm/pip dependencies in layer separati
 
+## 1.1 Sviluppo Locale (Hot Reload)
+
+Per sviluppare con ricaricamento automatico (Hot Reload) senza dover ricostruire i container ad ogni modifica, utilizzare la configurazione override `docker-compose.dev.yml`.
+
+### Avvio in modalità Development
+Eseguire il comando combinando i due file di configurazione:
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+```
+
+### Cosa cambia rispetto alla Produzione?
+1.  **Backend**: Passa da `gunicorn` a `manage.py runserver`. Il codice è montato come volume, quindi le modifiche ai file `.py` riavviano automaticamente il server.
+2.  **Frontend**: Passa da `Nginx statico` a `Vite dev server`. Le modifiche ai file React (`.jsx`, `.css`) vengono iniettate nel browser istantaneamente (HMR).
+3.  **Volumi**: Viene utilizzata la tecnica dell'"anonymous volume" (`/app/node_modules`) per garantire che le dipendenze installate nel container Docker abbiano la precedenza su quelle locali.
+
+### Nota su Nginx
+Non è necessario modificare Nginx. I file di configurazione `public.conf` e `intranet.conf` sono già configurati per supportare i WebSocket (`proxy_set_header Upgrade $http_upgrade`), permettendo al traffico HMR di Vite di funzionare attraverso il proxy.
+
 ## 2. Gateway Configuration (Nginx)
 
 ### Nginx Public (`nginx/public.conf`)

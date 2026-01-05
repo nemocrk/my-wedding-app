@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  # ---------------------------------------------
+  # BACKEND - Abilita Django Dev Server
+  # ---------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      target: development
+    # Sovrascrive il comando gunicorn di produzione
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      # Monta il codice sorgente per rilevare modifiche .py
+      - ./backend:/app
+      # Assicura che i media files siano accessibili
+      - media_volume:/app/media
+    environment:
+      - DEBUG=True
+
+  # ---------------------------------------------
+  # FRONTEND USER - Abilita Vite Dev Server
+  # ---------------------------------------------
+  frontend-user:
+    build:
+      context: ./frontend-user
+      target: development
+    volumes:
+      # Sync bidirezionale codice host <-> container
+      - ./frontend-user:/app
+      # CRITICO: Preserva i node_modules del container evitando
+      # che vengano sovrascritti dalla cartella locale (se assente)
+      - /app/node_modules
+    environment:
+      # Polling necessario su alcuni sistemi (es. WSL2, Docker Desktop Windows)
+      - CHOKIDAR_USEPOLLING=true
+
+  # ---------------------------------------------
+  # FRONTEND ADMIN - Abilita Vite Dev Server
+  # ---------------------------------------------
+  frontend-admin:
+    build:
+      context: ./frontend-admin
+      target: development
+    volumes:
+      - ./frontend-admin:/app
+      - /app/node_modules
+    environment:
+      - CHOKIDAR_USEPOLLING=true
