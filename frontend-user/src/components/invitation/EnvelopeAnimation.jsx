@@ -106,16 +106,19 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const letterVariants = {
         inside: { 
             zIndex: 2, 
-            scale: 1, 
+            y: 0, // Parte dal basso (dentro)
+            scale: 0.95, // Leggermente più piccola dentro
             opacity: 1,
-            pointerEvents: "none"
+            pointerEvents: "none",
+            transition: { duration: 0 }
         },
         extracted: { 
             y: -targetFinalHeight, 
             zIndex: 2, 
             scale: 1,
             opacity: 1,
-            transition: { duration: 1},
+            // SINCRONIZZAZIONE: Usa targetExtractionDuration per allinearsi
+            transition: { duration: targetExtractionDuration, ease: "easeInOut"},
             pointerEvents: "none"
         },
         final: {
@@ -128,15 +131,13 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     };
 
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
+    // FIX: Rimossa animazione altezza, ora gestita dalla maschera div
     const letterContentVariants = {
         folded: { 
-            height: "20vh", 
-            overflow: "hidden" 
+            opacity: 1
         },
         unfolded: { 
-            height: targetFinalHeight, 
-            overflowY: "auto", 
-            transition: { duration: targetExtractionDuration} 
+            opacity: 1
         }
     };
 
@@ -200,6 +201,10 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         variants={letterContentVariants}
                         initial="folded"
                         animate={step >= 3 ? "unfolded" : "folded"}
+                        style={{ 
+                             height: targetFinalHeight, 
+                             overflowY: 'auto' 
+                        }}
                      >
                         {invitationData ? (
                             <LetterContent data={invitationData} />
@@ -217,6 +222,23 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         />
                      </motion.div>
                 </motion.div>
+
+                {/* --- MASK DIV (FIX GLITCH) --- */}
+                {/* Copre la parte inferiore della lettera che "sborda" sotto la pocket */}
+                <div 
+                    className="layer letter-mask" 
+                    style={{
+                        top: '40%', 
+                        height: '200%', 
+                        width: '98%', 
+                        left: '1%',
+                        // Questo colore deve coincidere con lo sfondo per essere invisibile
+                        // Se lo sfondo cambia, aggiornare qui o usare clip-path
+                        background: '#ffffff', 
+                        zIndex: 2,
+                        pointerEvents: 'none'
+                    }} 
+                />
 
                 {/* POCKET */}
                 <img src={pocketImg} className="layer pocket" alt="Pocket" />
