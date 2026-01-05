@@ -31,8 +31,8 @@ const EnvelopePlayground = () => {
             transition: { duration: 0.8, ease: "backIn" }
         },
         reentry: {
-            x: -250, 
-            y: -250,
+            x: 0, // Reset to 0 so it lands exactly where CSS positions it (top:20, left:20)
+            y: 0,
             opacity: 1,
             scale: 0.8,
             transition: { delay: 0.5, duration: 0.8, type: "spring" }
