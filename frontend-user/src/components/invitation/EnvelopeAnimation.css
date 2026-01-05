@@ -41,7 +41,7 @@
   margin: 0 auto;
   
   /* Constraints requested by user */
-  width: calc(620px - 50px); /* Envelope width (620) - margins (~25px each side) to fit inside glue lines */
+  width: calc(620px - 50px);
   height: auto;
   position: absolute;
   top: 0;
@@ -51,10 +51,13 @@
 }
 
 .dummy-letter {
-  background: white;
+  /* BACKGROUND AND PADDING DELEGATED TO LETTERCONTENT */
+  background: transparent;
   width: 100%;
-  padding: 20px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  padding: 0;
+  /* Shadow also delegated */
+  box-shadow: none;
+  
   font-family: 'Georgia', serif;
   text-align: center;
   color: #333;
@@ -62,7 +65,6 @@
   
   /* Clipping logic for initial state */
   overflow: hidden;
-  /* Height will be animated via Framer Motion */
 }
 
 .pocket {
@@ -96,4 +98,5 @@
   left: 20px;
   width: 60px;
   height: auto;
+  z-index: 20; /* Ensure it stays on top of text */
 }
