@@ -174,8 +174,8 @@ const LetterContent = ({ data }) => {
                 </button>
             </div>
 
-            {/* BACK FACE: Original Logic */}
-            <div className="flip-card-back">
+            {/* BACK FACE: With same background image and gradient overlay */}
+            <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
                 <div className="letter-paper">
                     {/* Navigation to Front */}
                     <button 
