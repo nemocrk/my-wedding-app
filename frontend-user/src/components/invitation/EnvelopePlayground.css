@@ -1,3 +1,9 @@
+/* 
+  EnvelopePlayground.css
+  Most styles are now imported from EnvelopeAnimation.css to ensure consistency.
+  Only playground-specific layout styles remain here.
+*/
+
 .playground-container {
     display: flex;
     flex-direction: column;
@@ -6,71 +12,4 @@
     min-height: 100vh;
     background-color: #f0f0f0;
     gap: 20px;
-}
-
-.envelope-wrapper {
-    position: relative;
-    width: 620px; /* Adjust based on image native size or use max-width */
-    height: 358px; /* Adjust based on image aspect ratio */
-    /* border: 1px dashed #ccc;  Debug border */
-}
-
-.layer {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    transition: all 0.5s ease-in-out;
-}
-
-/* Z-INDEX STACKING */
-.back {
-    z-index: 1;
-}
-
-.letter {
-    z-index: 2;
-    transform: translateY(20px); /* Tucked in */
-    width: 80%; /* Letter is usually smaller */
-    left: 10%; /* Center it horizontally */
-    height: auto;
-    top: 20%;
-}
-
-.pocket {
-    z-index: 3;
-}
-
-.flap-container {
-    z-index: 4;
-    transform-origin: top; /* Pivot from top */
-    transition: transform 0.6s ease-in-out;
-}
-
-/* ANIMATION STATES */
-.flap-open {
-    transform: rotateX(180deg);
-    z-index: 1; /* Moves behind the envelope body when fully open? Or just stays top but rotated */
-}
-
-.letter-out {
-    transform: translateY(-150px);
-    z-index: 5; /* Comes in front of pocket when pulled out */
-}
-
-.wax-img {
-    position: absolute;
-    bottom: 70px; /* Adjust based on flap image */
-    left: 50%;
-    transform: translateX(-50%);
-    width: 300px; /* Adjust size */
-    height: auto;
-}
-
-.flap-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
 }
