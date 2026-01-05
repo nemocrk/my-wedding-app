@@ -31,7 +31,7 @@ const EnvelopePlayground = () => {
             transition: { duration: 0.8, ease: "backIn" }
         },
         reentry: {
-            x: 0, // Reset to 0 so it lands exactly where CSS positions it (top:20, left:20)
+            x: 0, 
             y: 0,
             opacity: 1,
             scale: 0.8,
@@ -55,12 +55,18 @@ const EnvelopePlayground = () => {
             scale: 1, 
             opacity: 1 
         },
-        outside: { 
-            y: -150, 
+        extracted: { 
+            y: -350, // Esce COMPLETAMENTE verso l'alto
             zIndex: 5, 
-            scale: 1, 
+            scale: 1,
             opacity: 1,
-            transition: { duration: 1.5, ease: "easeOut" } 
+            transition: { duration: 1.2, ease: "easeOut" } 
+        },
+        final: {
+            y: -50, // Ritorna al centro per la lettura
+            zIndex: 10,
+            scale: 1,
+            transition: { duration: 0.8, ease: "easeInOut" }
         }
     };
 
@@ -74,6 +80,13 @@ const EnvelopePlayground = () => {
             height: 500, 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
+    };
+
+    // Helper per determinare lo stato corrente della lettera
+    const getLetterState = () => {
+        if (step < 3) return "inside";
+        if (step === 3) return "extracted";
+        return "final";
     };
 
     // Funzione per resettare e riavviare
@@ -90,10 +103,13 @@ const EnvelopePlayground = () => {
         setStep(2); // Apri busta
 
         await new Promise(r => setTimeout(r, 1000));
-        setStep(3); // Esci lettera
+        setStep(3); // Esci lettera COMPLETAMENTE
         
         await new Promise(r => setTimeout(r, 1500));
-        setStep(4); // Rientra ceralacca
+        setStep(4); // Posiziona per lettura
+        
+        await new Promise(r => setTimeout(r, 1000));
+        setStep(5); // Rientra ceralacca
     };
 
     return (
@@ -108,8 +124,9 @@ const EnvelopePlayground = () => {
                     <button onClick={() => setStep(0)}>Reset</button>
                     <button onClick={() => setStep(1)}>1. Togli Sigillo</button>
                     <button onClick={() => setStep(2)}>2. Apri Busta</button>
-                    <button onClick={() => setStep(3)}>3. Esci Lettera</button>
-                    <button onClick={() => setStep(4)}>4. Sigillo su Lettera</button>
+                    <button onClick={() => setStep(3)}>3. Estrai Lettera</button>
+                    <button onClick={() => setStep(4)}>4. Posiziona Lettera</button>
+                    <button onClick={() => setStep(5)}>5. Sigillo su Lettera</button>
                 </div>
             </div>
 
@@ -129,7 +146,7 @@ const EnvelopePlayground = () => {
                         className="layer letter-container"
                         variants={letterVariants}
                         initial="inside"
-                        animate={step >= 3 ? "outside" : "inside"}
+                        animate={getLetterState()}
                     >
                          <motion.div 
                             className="dummy-letter"
@@ -150,7 +167,7 @@ const EnvelopePlayground = () => {
                                 className="wax-on-letter"
                                 variants={waxVariants}
                                 initial="removed"
-                                animate={step === 4 ? "reentry" : "removed"}
+                                animate={step === 5 ? "reentry" : "removed"}
                             />
                          </motion.div>
                     </motion.div>
