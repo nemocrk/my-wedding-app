@@ -67,28 +67,34 @@ const EnvelopeAnimation = ({ onComplete }) => {
     // 4. LETTER ANIMATION (Uscita Lettera)
     const letterVariants = {
         inside: { 
-            y: 20, // Posizione iniziale dentro la busta
+            y: 20, 
             zIndex: 2, 
             scale: 1, 
             opacity: 1 
         },
-        outside: { 
-            y: -150, // Esce verso l'alto
-            zIndex: 5, 
-            scale: 1, 
+        extracted: { 
+            y: -350, // Esce COMPLETAMENTE verso l'alto (fuori dalla tasca)
+            zIndex: 5, // Diventa sopra la tasca
+            scale: 1,
             opacity: 1,
-            transition: { duration: 1.5, ease: "easeOut" } 
+            transition: { duration: 1.2, ease: "easeOut" } 
+        },
+        final: {
+            y: -50, // Ritorna giù in posizione di lettura centrale
+            zIndex: 10, // Massimo livello
+            scale: 1,
+            transition: { duration: 0.8, ease: "easeInOut" }
         }
     };
 
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
     const letterContentVariants = {
         folded: { 
-            height: 300, // Tagliata inizialmente per stare nella busta
+            height: 300, 
             overflow: "hidden" 
         },
         unfolded: { 
-            height: 500, // Altezza finale completa (o "auto" se framer supporta bene auto)
+            height: 500, 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
     };
@@ -103,13 +109,23 @@ const EnvelopeAnimation = ({ onComplete }) => {
         setStep(2); // Apri busta
 
         await new Promise(r => setTimeout(r, 1000));
-        setStep(3); // Esci lettera (e espandi altezza)
+        setStep(3); // Esci lettera COMPLETAMENTE (extracted)
         
         await new Promise(r => setTimeout(r, 1500));
-        setStep(4); // Rientra ceralacca su lettera
+        setStep(4); // Posiziona lettera per lettura (final)
+        
+        await new Promise(r => setTimeout(r, 1000));
+        setStep(5); // Rientra ceralacca
         
         // Callback fine animazione (opzionale, se serve al padre)
         if (onComplete) setTimeout(onComplete, 3000);
+    };
+
+    // Helper per determinare lo stato corrente della lettera
+    const getLetterState = () => {
+        if (step < 3) return "inside";
+        if (step === 3) return "extracted";
+        return "final";
     };
 
     return (
@@ -129,7 +145,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                     className="layer letter-container"
                     variants={letterVariants}
                     initial="inside" 
-                    animate={step >= 3 ? "outside" : "inside"}
+                    animate={getLetterState()}
                 >
                      {/* Contenuto interno con clipping animato */}
                      <motion.div 
@@ -151,7 +167,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                             className="wax-on-letter"
                             variants={waxVariants}
                             initial="removed"
-                            animate={step === 4 ? "reentry" : "removed"}
+                            animate={step === 5 ? "reentry" : "removed"}
                         />
                      </motion.div>
                 </motion.div>
