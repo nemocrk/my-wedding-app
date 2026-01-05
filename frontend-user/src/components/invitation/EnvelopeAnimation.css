@@ -9,14 +9,15 @@
 }
 
 .envelope-wrapper {
+  margin: 1rem;
   position: relative;
   width: 620px;
-  height: 358px;
+  height: calc(min(calc(100vw - 2rem), 620px) * 358 / 620);
   transform-style: preserve-3d; /* CRITICAL: Ensures children 3D transforms work with parent scale */
   
   /* FIX GLITCH: Taglia via la parte inferiore (60%) nascondendo la lettera che sborda */
   /* Questo approccio è indipendente dal colore di sfondo */
-  clip-path: inset(0 0 60% 0);
+  clip-path: inset(-200% 0 0 0);
 }
 
 .layer {

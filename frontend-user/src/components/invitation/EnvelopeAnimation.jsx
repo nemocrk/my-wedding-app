@@ -22,7 +22,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             const availableWidth = window.innerWidth - margin;
             const renderedWidth = Math.min(620, window.innerWidth - margin)
             
-            const newScale = renderedWidth == 620 ? 1 : Math.min(1, availableWidth / baseWidth);
+            const newScale = 1; //renderedWidth == 620 ? 1 : Math.min(1, availableWidth / baseWidth);
             setScale(newScale);
 
             // CALCOLO POSIZIONE FINALE DINAMICA:
@@ -31,7 +31,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             // Spostamento necessario = -(Metà altezza viewport) + 20px
             // Esempio: Su schermo alto 800px, il centro è 400. Vogliamo andare a 20.
             // Spostamento = -400 + 20 = -380px.
-            const calculatedFinalY = -((window.innerHeight - 358 * newScale) / 2) / newScale;
+            const calculatedFinalY = -((window.innerHeight - (Math.min(window.innerWidth - 32, 620) * 358 / 620) * newScale) / 2) / newScale;
             const targetFinalHeight = window.innerHeight/newScale;
             const targetExtractionDuration = 1 - ((window.innerHeight * 0.2) / targetFinalHeight);
             setTargetFinalHeight(targetFinalHeight)
@@ -178,11 +178,13 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             animate="visible"
             onAnimationComplete={handleSequence}
         >
-            <div 
-                className="envelope-wrapper" 
+            <motion.div 
+                className="envelope-wrapper"
+                initial="clipped"
                 style={{ 
                     transform: `scale(${scale})`,
-                    transformOrigin: 'center center'
+                    transformOrigin: 'center center',
+                    clipPath: step < 4 ? "inset(-200% 0 0 0)" : "none"
                 }}
             >
                 {/* BACK */}
@@ -249,7 +251,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         )}
                     </AnimatePresence>
                 </motion.div>
-            </div>
+            </motion.div>
         </motion.div>
     );
 };
