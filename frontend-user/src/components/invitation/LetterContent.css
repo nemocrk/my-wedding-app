@@ -2,7 +2,7 @@
   width: 100%;
   height: 100%;
   perspective: 1000px;
-  -webkit-perspective: 1000px; /* Safari/Chrome */
+  -webkit-perspective: 1000px;
   display: block;
   padding: 0;
   background: transparent;
@@ -16,7 +16,7 @@
   text-align: center;
   transition: transform 0.8s;
   transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d; /* Essential for Safari */
+  -webkit-transform-style: preserve-3d;
 }
 
 .flip-card.flipped .flip-card-inner {
@@ -32,7 +32,7 @@
   text-align: center;
   transition: transform 0.8s;
   transform-style: preserve-3d;
-  -webkit-transform-style: preserve-3d; /* Essential for Safari */
+  -webkit-transform-style: preserve-3d;
 }
 
 /* FACES Common */
@@ -42,13 +42,12 @@
   left: 0;
   width: 100%;
   height: 100%;
-  -webkit-backface-visibility: hidden; /* Safari */
+  -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   border-radius: 4px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   overflow: hidden;
-  background-color: #fffef7; /* Solid background is crucial */
-  /* Hardware acceleration fix */
+  background-color: #fffef7; /* Fallback color */
   -webkit-transform: translate3d(0,0,0);
 }
 
@@ -57,7 +56,7 @@
   color: black;
   background-size: cover;
   background-position: center;
-  z-index: 2; /* Ensure front is on top initially */
+  z-index: 2;
   transform: rotateY(0deg);
   -webkit-transform: rotateY(0deg);
 }
@@ -127,13 +126,43 @@
   display: flex;
   flex-direction: column;
   overflow-y: auto; 
-  z-index: 1; /* Initially below */
-  background: #fffef7; /* Reinforce solid background */
+  z-index: 1;
+  /* 
+     Background handling:
+     We want the image to be visible but faded at the top (white/transparent) and solid at the bottom (or vice versa depending on interpretation).
+     "sfumalo in alto rendendolo solid in basso" -> Faded at top (white overlay), Solid at bottom.
+     However, usually for readability of forms, we want a white overlay that is stronger where the text is.
+     
+     Implementation:
+     Layer 1 (Top): Linear Gradient from White (95%) to Transparent or White (40%) to ensure readability.
+     Layer 2 (Bottom): The Image.
+     
+     Actually, "sfumalo in alto rendendolo solid in basso" usually means the *image* is faded out at the top (becoming white) and solid (fully visible) at the bottom?
+     OR does it mean the *overlay* is faded?
+     
+     Let's assume the user wants the image to be the background, but since there is text/form on top, we probably need a white overlay.
+     "sfumalo in alto" -> The image fades out at the top (becomes white).
+     "solid in basso" -> The image is solid (fully visible) at the bottom.
+     
+     So: Top = White, Bottom = Image.
+  */
+  background-size: cover;
+  background-position: center;
+  /* background-image set inline in JSX */
 }
 
-/* Content wrapper inside back face */
+/* Content wrapper inside back face - Glassmorphism / Overlay */
 .letter-paper {
-  background: transparent;
+  /* 
+     We add a gradient background here to achieve the "fade" effect over the image 
+     Top: Solid White (to hide image behind title) or Semi-transparent white
+     Bottom: Transparent (to show the solid image)
+     
+     Wait, if the user wants "solid in basso" (image visible at bottom) and "sfumato in alto" (image faded/white at top).
+     We can achieve this by putting a white gradient ON TOP of the image.
+     Gradient: White (100% at 0%) -> Transparent (0% at 100%).
+  */
+  background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 40%, rgba(255,255,255,0.3) 100%);
   width: 100%;
   min-height: 100%;
   padding: 1.5rem;
@@ -154,6 +183,7 @@
   margin-bottom: 0.8rem;
   color: #333;
   text-align: justify;
+  /* Add slight background to text if needed for readability */
 }
 
 /* Navigation Buttons Animation */
@@ -167,12 +197,12 @@
     position: absolute;
     bottom: 20px;
     right: 20px;
-    width: 50px; /* Slightly larger for the image */
+    width: 50px;
     height: 50px;
     border-radius: 50%;
-    background: transparent; /* Transparent to show the arrow nicely, or keep white if image is not round */
+    background: transparent;
     border: none;
-    box-shadow: none; /* Shadow might look weird if image has transparency, letting the image handle it or adding a specific class */
+    box-shadow: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -182,20 +212,13 @@
     padding: 0;
 }
 
-/* Add a background circle if the image is just an arrow without background */
-.nav-button.with-bg {
-    background: rgba(255, 255, 255, 0.8);
-    box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-    border: 1px solid #ddd;
-}
-
 .nav-button.pulse-animation {
     animation: attention-pulse 2s infinite ease-in-out;
 }
 
 .nav-button:hover {
-    transform: scale(1.2); /* Override animation on hover or combine? */
-    animation: none; /* Stop pulsing on hover */
+    transform: scale(1.2);
+    animation: none;
 }
 
 .nav-arrow-img {
@@ -205,14 +228,38 @@
     display: block;
 }
 
-/* RSVP styles - Preserved */
-.guests-list { margin-top: 1.5rem; padding: 1rem; background: #f9f7f1; border-left: 4px solid #c9a581; }
+/* RSVP styles */
+/* Increase opacity/background of containers for readability against image */
+.guests-list { 
+    margin-top: 1.5rem; 
+    padding: 1rem; 
+    background: rgba(249, 247, 241, 0.9); /* More opaque */
+    border-left: 4px solid #c9a581; 
+}
 .guests-list h3 { font-size: 1.1rem; margin-bottom: 0.8rem; color: #8b7355; }
 .guests-list ul { list-style: none; padding: 0; }
 .guests-list li { padding: 0.3rem 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
 .guests-list .badge { background: #ffd89b; color: #8b5a00; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; font-weight: bold; }
-.offer-badge { display: inline-block; margin-top: 0.8rem; margin-right: 0.8rem; padding: 0.4rem 0.8rem; background: #e8f5e9; border-radius: 6px; font-size: 0.85rem; color: #2e7d32; }
-.rsvp-section { margin-top: 2rem; padding: 1.5rem; background: #f0f8ff; border-radius: 8px; border: 1px solid #c9a581; }
+
+.offer-badge { 
+    display: inline-block; 
+    margin-top: 0.8rem; 
+    margin-right: 0.8rem; 
+    padding: 0.4rem 0.8rem; 
+    background: rgba(232, 245, 233, 0.95); 
+    border-radius: 6px; 
+    font-size: 0.85rem; 
+    color: #2e7d32; 
+}
+
+.rsvp-section { 
+    margin-top: 2rem; 
+    padding: 1.5rem; 
+    background: rgba(240, 248, 255, 0.95); /* More opaque */
+    border-radius: 8px; 
+    border: 1px solid #c9a581; 
+}
+
 .rsvp-section h3 { color: #8b7355; margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
 .checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; margin-bottom: 0.8rem; cursor: pointer; }
 .button-group { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem; }
@@ -220,11 +267,18 @@
 .rsvp-button:disabled { opacity: 0.6; cursor: not-allowed; }
 .rsvp-button.confirm { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; }
 .rsvp-button.decline { background: linear-gradient(135deg, #f44336 0%, #c62828 100%); color: white; }
-.rsvp-confirmed, .rsvp-declined { margin-top: 2rem; padding: 1.5rem; border-radius: 8px; text-align: center; }
-.rsvp-confirmed { background: #e8f5e9; border: 2px solid #4caf50; }
+
+.rsvp-confirmed, .rsvp-declined { 
+    margin-top: 2rem; 
+    padding: 1.5rem; 
+    border-radius: 8px; 
+    text-align: center; 
+}
+.rsvp-confirmed { background: rgba(232, 245, 233, 0.95); border: 2px solid #4caf50; }
 .rsvp-confirmed h3 { color: #2e7d32; margin-bottom: 1rem; }
-.rsvp-declined { background: #ffebee; border: 2px solid #f44336; }
+.rsvp-declined { background: rgba(255, 235, 238, 0.95); border: 2px solid #f44336; }
 .rsvp-declined h3 { color: #c62828; margin-bottom: 1rem; }
+
 .message { margin-top: 1rem; padding: 0.8rem; border-radius: 6px; text-align: center; font-weight: 600; font-size: 0.9rem; }
 .message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
 .message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
