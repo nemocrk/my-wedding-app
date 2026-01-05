@@ -60,7 +60,10 @@ services:
       
       # Configurazione Auth e Network
       LISTEN_PORT: 5432
-      AUTH_TYPE: trust
+      # FIX SCRAM AUTH: PostgreSQL 14+ usa SCRAM-SHA-256 di default.
+      # 'trust' fallisce perché pgbouncer prova ad inoltrare auth request in modo errato.
+      # 'any' permette a pgbouncer di accettare la password dal client e usarla verso il server.
+      AUTH_TYPE: any
       AUTH_USER: postgres
       ADMIN_USERS: postgres
       
