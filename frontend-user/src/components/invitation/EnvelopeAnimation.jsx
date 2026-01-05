@@ -46,8 +46,8 @@ const EnvelopeAnimation = ({ onComplete }) => {
             transition: { duration: 0.8, ease: "backIn" }
         },
         reentry: {
-            x: -250, // In alto a sinistra rispetto al centro della lettera
-            y: -250,
+            x: 0, // Reset position to respect CSS top/left placement
+            y: 0,
             opacity: 1,
             scale: 0.8,
             transition: { delay: 0.5, duration: 0.8, type: "spring" }
