@@ -7,7 +7,7 @@ import pocketImg from '../../assets/illustrations/pocket.png';
 import waxImg from '../../assets/illustrations/wax.png';
 import LetterContent from './LetterContent';
 
-const EnvelopeAnimation = ({ onComplete }) => {
+const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const [step, setStep] = useState(0);
 
     // 1. FLY-IN ANIMATION (Arrivo della busta)
@@ -157,12 +157,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                         initial="folded"
                         animate={step >= 3 ? "unfolded" : "folded"}
                      >
-                        <h3>Invito al Matrimonio</h3>
-                        <p>Carissimi,</p>
-                        <p>Siete invitati a celebrare con noi...</p>
-                        <br/>
-                        <p>Lorem ipsum dolor sit amet...</p>
-                        <p>Dettagli della cerimonia qui sotto.</p>
+                        <LetterContent data={invitationData} />
                         
                         {/* Sigillo che rientra */}
                         <motion.img 
