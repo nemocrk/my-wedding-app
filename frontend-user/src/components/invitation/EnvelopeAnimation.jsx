@@ -15,8 +15,8 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // Gestione Responsività: Scala tutto in base alla larghezza del device
     useEffect(() => {
         const handleResize = () => {
-            const baseWidth = 620;
-            const margin = 40; 
+            const baseWidth = window.innerWidth;
+            const margin = 40; // 20px per lato di margine di sicurezza
             const availableWidth = window.innerWidth - margin;
             
             const newScale = Math.min(1, availableWidth / baseWidth);
@@ -28,10 +28,11 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             // Spostamento necessario = -(Metà altezza viewport) + 20px
             // Esempio: Su schermo alto 800px, il centro è 400. Vogliamo andare a 20.
             // Spostamento = -400 + 20 = -380px.
-            const calculatedFinalY = -(window.innerHeight / 2) + 20;
+            const calculatedFinalY = -((window.innerHeight - 358) / 2);
             setFinalY(calculatedFinalY);
         };
 
+        // Calcolo iniziale e listener
         handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -97,22 +98,21 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // 4. LETTER ANIMATION (Uscita Lettera)
     const letterVariants = {
         inside: { 
-            y: 20, 
             zIndex: 2, 
             scale: 1, 
             opacity: 1,
             pointerEvents: "none"
         },
         extracted: { 
-            y: "-120vh", 
+            y: "-100vh", 
             zIndex: 2, 
             scale: 1,
             opacity: 1,
-            transition: { duration: 1.2, ease: "easeOut" },
+            transition: { duration: 1},
             pointerEvents: "none"
         },
         final: {
-            y: finalY, // Use dynamically calculated Y position (Top of screen + 20px)
+            y: finalY, 
             zIndex: 10, 
             scale: 1,
             transition: { duration: 0.8, ease: "easeInOut" },
@@ -123,13 +123,13 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
     const letterContentVariants = {
         folded: { 
-            height: "15vh", 
+            height: "20vh", 
             overflow: "hidden" 
         },
         unfolded: { 
-            height: "calc(100vh - 40px)", 
+            height: "100vh", 
             overflowY: "auto", 
-            transition: { duration: 1.5, ease: "easeOut" } 
+            transition: { duration: 0.8} 
         }
     };
 
@@ -138,7 +138,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
         // Step 1: Arrivo completato (gestito da 'visible')
         await new Promise(r => setTimeout(r, 500)); 
         setStep(1); // Rimuovi ceralacca
-
+        
         await new Promise(r => setTimeout(r, 1000));
         setStep(2); // Apri busta
 

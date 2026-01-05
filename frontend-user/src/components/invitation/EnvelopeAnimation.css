@@ -21,13 +21,13 @@
   top: 0;
   left: 0;
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: contain;
   pointer-events: none;
   
   /* Rendering optimizations */
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
+  /*backface-visibility: hidden;*/
+  /*-webkit-backface-visibility: hidden;*/
   will-change: transform;
 }
 
@@ -44,9 +44,10 @@
   left: 0;
   right: 0;
   margin: 0 auto;
+  padding: 10px;
   
-  width: calc(620px - 50px);
-  height: auto;
+  /*width: calc(620px - 50px);*/
+  /*height: auto;*/
   position: absolute;
   top: 0;
   
@@ -70,8 +71,6 @@
 
 .pocket {
   z-index: 3;
-  /* Pocket needs to be "flat" but in front */
-  transform: translateZ(2px); /* Tiny Z push to avoid z-fighting with back/letter */
 }
 
 .flap-container {
@@ -82,7 +81,7 @@
 
 .flap-img {
   width: 100%;
-  height: 100%;
+  height: auto;
   object-fit: contain;
   /* Fix for some mobile browsers treating images weirdly in 3D */
   display: block; 
@@ -90,10 +89,10 @@
 
 .wax-img {
   position: absolute;
-  bottom: 70px;
+  bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
-  width: 300px;
+  width: 80%;
   height: auto;
   z-index: 10;
   transform-style: preserve-3d;
