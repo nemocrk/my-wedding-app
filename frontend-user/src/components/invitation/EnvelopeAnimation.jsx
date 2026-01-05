@@ -10,20 +10,28 @@ import LetterContent from './LetterContent';
 const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const [step, setStep] = useState(0);
     const [scale, setScale] = useState(1);
+    const [finalY, setFinalY] = useState(-50); // Default fallback
 
     // Gestione Responsività: Scala tutto in base alla larghezza del device
     useEffect(() => {
         const handleResize = () => {
             const baseWidth = 620;
-            const margin = 40; // 20px per lato di margine di sicurezza
+            const margin = 40; 
             const availableWidth = window.innerWidth - margin;
             
-            // Calcola scala: se lo schermo è più piccolo di 620+margin, scala giù. Altrimenti 1.
             const newScale = Math.min(1, availableWidth / baseWidth);
             setScale(newScale);
+
+            // CALCOLO POSIZIONE FINALE DINAMICA:
+            // La lettera parte dal centro esatto dello schermo (perché il container è flex-center).
+            // Vogliamo che la parte superiore della lettera arrivi a 20px dal top della viewport.
+            // Spostamento necessario = -(Metà altezza viewport) + 20px
+            // Esempio: Su schermo alto 800px, il centro è 400. Vogliamo andare a 20.
+            // Spostamento = -400 + 20 = -380px.
+            const calculatedFinalY = -(window.innerHeight / 2) + 20;
+            setFinalY(calculatedFinalY);
         };
 
-        // Calcolo iniziale e listener
         handleResize();
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
@@ -96,7 +104,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         extracted: { 
-            y: "-120vh", // Keeping vh as it ensures clearing the SCREEN, which is usually the desired "extraction" effect
+            y: "-120vh", 
             zIndex: 2, 
             scale: 1,
             opacity: 1,
@@ -104,7 +112,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         final: {
-            y: -50, 
+            y: finalY, // Use dynamically calculated Y position (Top of screen + 20px)
             zIndex: 10, 
             scale: 1,
             transition: { duration: 0.8, ease: "easeInOut" },
