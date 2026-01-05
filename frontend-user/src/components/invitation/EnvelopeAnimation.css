@@ -4,7 +4,7 @@
   justify-content: center;
   height: 100vh;
   width: 100vw;
-  perspective: 1000px;
+  perspective: 1200px; /* Increased slightly to soften distortion on mobile */
   overflow: hidden;
   background-color: #f0f0f0;
 }
@@ -13,6 +13,7 @@
   position: relative;
   width: 620px;
   height: 358px;
+  transform-style: preserve-3d; /* CRITICAL: Ensures children 3D transforms work with parent scale */
 }
 
 .layer {
@@ -23,6 +24,11 @@
   height: 100%;
   object-fit: contain;
   pointer-events: none;
+  
+  /* Rendering optimizations */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: transform;
 }
 
 /* Z-INDEX MANAGEMENT */
@@ -35,51 +41,51 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  /* Positioning logic: Center horizontally relative to wrapper */
   left: 0;
   right: 0;
   margin: 0 auto;
   
-  /* Constraints requested by user */
   width: calc(620px - 50px);
   height: auto;
   position: absolute;
   top: 0;
   
-  /* Ensure no overflow during animation */
   transform-origin: center top;
+  transform-style: preserve-3d; /* Maintain 3D context for letter too */
 }
 
 .dummy-letter {
-  /* BACKGROUND AND PADDING DELEGATED TO LETTERCONTENT */
   background: transparent;
   width: 100%;
   padding: 0;
-  /* Shadow also delegated */
   box-shadow: none;
-  
   font-family: 'Georgia', serif;
   text-align: center;
   color: #333;
   position: relative;
-  
-  /* Clipping logic for initial state */
   overflow: hidden;
+  /* Ensure content doesn't flicker during 3D moves */
+  backface-visibility: hidden; 
 }
 
 .pocket {
   z-index: 3;
+  /* Pocket needs to be "flat" but in front */
+  transform: translateZ(2px); /* Tiny Z push to avoid z-fighting with back/letter */
 }
 
 .flap-container {
   z-index: 4;
   transform-style: preserve-3d;
+  transform-origin: top; /* Explicit anchor */
 }
 
 .flap-img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  /* Fix for some mobile browsers treating images weirdly in 3D */
+  display: block; 
 }
 
 .wax-img {
@@ -90,6 +96,7 @@
   width: 300px;
   height: auto;
   z-index: 10;
+  transform-style: preserve-3d;
 }
 
 .wax-on-letter {
@@ -98,5 +105,5 @@
   left: 20px;
   width: 60px;
   height: auto;
-  z-index: 20; /* Ensure it stays on top of text */
+  z-index: 20;
 }
