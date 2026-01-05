@@ -1,108 +1,169 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import './EnvelopeAnimation.css';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import './EnvelopeAnimation.css'; // Manteniamo il CSS per layout di base
+import flapImg from '../../assets/illustrations/flap.png';
+import noFlapImg from '../../assets/illustrations/no-flap.png';
+import pocketImg from '../../assets/illustrations/pocket.png';
+import waxImg from '../../assets/illustrations/wax.png';
+import LetterContent from './LetterContent';
 
 const EnvelopeAnimation = ({ onComplete }) => {
-  const envelopeVariants = {
-    initial: {
-      scale: 0.1,
-      rotate: 0,
-      x: '-50vw',
-      y: '50vh',
-      opacity: 0
-    },
-    flying: {
-      scale: [0.1, 0.5, 0.8, 1],
-      rotate: [0, 360, 720, 1080],
-      x: ['50vw', '-30vw', '20vw', 0],
-      y: ['-50vh', '30vh', '-20vh', 0],
-      opacity: 1,
-      transition: {
-        duration: 3,
-        times: [0, 0.3, 0.6, 1],
-        ease: 'easeInOut'
-      }
-    },
-    centered: {
-      scale: 1,
-      rotate: 1080,
-      x: 0,
-      y: 0,
-      transition: { duration: 0.5 }
-    }
-  };
+    const [step, setStep] = useState(0);
 
-  const flapVariants = {
-    closed: { rotateX: 0 },
-    open: {
-      rotateX: -180,
-      transition: { delay: 3.5, duration: 1, ease: 'easeOut' }
-    }
-  };
+    // 1. FLY-IN ANIMATION (Arrivo della busta)
+    const containerVariants = {
+        hidden: { 
+            scale: 0.1, 
+            opacity: 0, 
+            x: '-100vw', 
+            rotate: -720 
+        },
+        visible: { 
+            scale: 1, 
+            opacity: 1, 
+            x: 0, 
+            rotate: 0,
+            transition: { 
+                duration: 2, 
+                ease: "circOut",
+                when: "beforeChildren"
+            }
+        },
+        exit: {
+            opacity: 0,
+            transition: { duration: 1 }
+        }
+    };
 
-  const letterVariants = {
-    hidden: { y: 0, opacity: 0 },
-    visible: {
-      y: -300,
-      opacity: 1,
-      transition: { delay: 4.5, duration: 1.5, ease: 'easeOut' }
-    }
-  };
+    // 2. WAX SEAL ANIMATION (Rimozione Sigillo)
+    const waxVariants = {
+        attached: { scale: 1, x: '-50%', y: 0, opacity: 1 },
+        removed: { 
+            x: 200, 
+            y: -200, 
+            opacity: 0, 
+            scale: 0.5,
+            transition: { duration: 0.8, ease: "backIn" }
+        },
+        reentry: {
+            x: -250, // In alto a sinistra rispetto al centro della lettera
+            y: -250,
+            opacity: 1,
+            scale: 0.8,
+            transition: { delay: 0.5, duration: 0.8, type: "spring" }
+        }
+    };
 
-  return (
-    <motion.div
-      className="envelope-container"
-      initial="initial"
-      animate="flying"
-      onAnimationComplete={onComplete}
-    >
-      <motion.svg
-        width="400"
-        height="300"
-        viewBox="0 0 400 300"
-        variants={envelopeVariants}
-        style={{ filter: 'drop-shadow(0 10px 30px rgba(0,0,0,0.3))' }}
-      >
-        {/* Corpo Busta */}
-        <motion.rect
-          x="50"
-          y="100"
-          width="300"
-          height="180"
-          fill="#f4e8d8"
-          stroke="#d4c4b4"
-          strokeWidth="2"
-        />
+    // 3. FLAP ANIMATION (Apertura Busta)
+    const flapVariants = {
+        closed: { rotateX: 0, zIndex: 4 },
+        open: { 
+            rotateX: 180, 
+            zIndex: 1, 
+            transition: { duration: 0.8, ease: "easeInOut" } 
+        }
+    };
 
-        {/* Linguetta (Flap) */}
-        <motion.g
-          style={{ transformOrigin: '200px 100px', transformStyle: 'preserve-3d' }}
-          variants={flapVariants}
-          initial="closed"
-          animate="open"
+    // 4. LETTER ANIMATION (Uscita Lettera)
+    const letterVariants = {
+        inside: { y: 20, zIndex: 2, scale: 0.8, opacity: 0 },
+        outside: { 
+            y: -150, 
+            zIndex: 5, 
+            scale: 1, 
+            opacity: 1,
+            transition: { duration: 1.5, ease: "easeOut" } 
+        },
+        reading: {
+            y: 0,
+            scale: 1.1,
+            zIndex: 10,
+            transition: { duration: 1 }
+        }
+    };
+
+    // Orchestratore della sequenza
+    const handleSequence = async () => {
+        // Step 1: Arrivo completato (gestito da 'visible')
+        await new Promise(r => setTimeout(r, 2500)); 
+        setStep(1); // Rimuovi ceralacca
+
+        await new Promise(r => setTimeout(r, 1000));
+        setStep(2); // Apri busta
+
+        await new Promise(r => setTimeout(r, 1000));
+        setStep(3); // Esci lettera
+        
+        await new Promise(r => setTimeout(r, 1500));
+        setStep(4); // Rientra ceralacca su lettera
+        
+        // Callback fine animazione (opzionale, se serve al padre)
+        if (onComplete) setTimeout(onComplete, 3000);
+    };
+
+    return (
+        <motion.div 
+            className="envelope-container-3d"
+            variants={containerVariants}
+            initial="hidden"
+            animate="visible"
+            onAnimationComplete={handleSequence}
         >
-          <polygon
-            points="50,100 200,50 350,100"
-            fill="#e8d8c8"
-            stroke="#d4c4b4"
-            strokeWidth="2"
-          />
-        </motion.g>
+            <div className="envelope-wrapper">
+                {/* BACK */}
+                <img src={noFlapImg} className="layer back" alt="Back" />
 
-        {/* Decorazione Sigillo */}
-        <circle cx="200" cy="100" r="15" fill="#c9a581" opacity="0.8" />
-        <text x="200" y="107" fontSize="16" fill="#fff" textAnchor="middle">♥</text>
+                {/* LETTER (Sostituisce LetterContent SVG statico) */}
+                <motion.div 
+                    className="layer letter-container"
+                    variants={letterVariants}
+                    initial="inside"
+                    animate={step >= 3 ? "outside" : "inside"}
+                >
+                     {/* Qui potremmo iniettare il vero contenuto o un'immagine placeholder per ora */}
+                     <div className="dummy-letter">
+                        <h3>Invito al Matrimonio</h3>
+                        <p>Siete invitati...</p>
+                        {/* Sigillo che rientra */}
+                        <motion.img 
+                            src={waxImg} 
+                            className="wax-on-letter"
+                            variants={waxVariants}
+                            initial="removed"
+                            animate={step === 4 ? "reentry" : "removed"}
+                        />
+                     </div>
+                </motion.div>
 
-        {/* Lettera che esce */}
-        <motion.g variants={letterVariants} initial="hidden" animate="visible">
-          <rect x="80" y="120" width="240" height="160" fill="#fffef7" stroke="#333" strokeWidth="1" />
-          <line x1="100" y1="145" x2="280" y2="145" stroke="#333" strokeWidth="1" opacity="0.3" />
-          <line x1="100" y1="165" x2="280" y2="165" stroke="#333" strokeWidth="1" opacity="0.3" />
-          <line x1="100" y1="185" x2="280" y2="185" stroke="#333" strokeWidth="1" opacity="0.3" />
-        </motion.g>
-      </motion.svg>
-    </motion.div>
-  );
+                {/* POCKET */}
+                <img src={pocketImg} className="layer pocket" alt="Pocket" />
+
+                {/* FLAP */}
+                <motion.div 
+                    className="layer flap-container"
+                    variants={flapVariants}
+                    animate={step >= 2 ? "open" : "closed"}
+                    style={{ transformOrigin: "top" }}
+                >
+                    <img src={flapImg} className="flap-img" alt="Flap" />
+                    
+                    {/* WAX SEAL (Iniziale) */}
+                    <AnimatePresence>
+                        {step < 1 && (
+                            <motion.img 
+                                src={waxImg} 
+                                className="wax-img" 
+                                variants={waxVariants}
+                                initial="attached"
+                                exit="removed"
+                                alt="Wax Seal"
+                            />
+                        )}
+                    </AnimatePresence>
+                </motion.div>
+            </div>
+        </motion.div>
+    );
 };
 
 export default EnvelopeAnimation;
