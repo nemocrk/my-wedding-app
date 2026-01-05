@@ -20,6 +20,7 @@ Il sistema offre un'esperienza utente unica (apertura busta animata) e una conso
 | [**07-BACKEND-API.md**](docs/07-BACKEND-API.md) | Serializers, Views e Autenticazione API |
 | [**08-FRONTEND-USER.md**](docs/08-FRONTEND-USER-COMPONENTS.md) | Componenti e Logica App Pubblica |
 | [**09-FRONTEND-ADMIN.md**](docs/09-FRONTEND-ADMIN-COMPONENTS.md) | Componenti e Logica Dashboard Gestionale |
+| [**PGBOUNCER.md**](docs/PGBOUNCER.md) | Connection Pooling PostgreSQL con pgBouncer |
 | [**CHECKLIST_DOCUMENTATION.md**](docs/CHECKLIST_DOCUMENTATION.md) | Piano iterativo documentazione |
 
 **Regola d'oro**: Ogni modifica al codice richiede l'aggiornamento della documentazione corrispondente.
@@ -28,24 +29,25 @@ Il sistema offre un'esperienza utente unica (apertura busta animata) e una conso
 Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 
 1.  **Database (PostgreSQL):** Persistenza dati (invitati, RSVP, tracking analytics). **Isolato da Internet** tramite rete `db_network` interna.
-2.  **Adminer (DB GUI):** Interfaccia web leggera per gestione database PostgreSQL. Accessibile su porta 8081.
-3.  **Backend (Django + DRF):** API REST. Gestisce logica di business, autenticazione e raccolta dati di tracking. **Non accessibile direttamente dall'esterno** - solo tramite nginx.
-4.  **Frontend User (React):** Esposto su **Internet** tramite `nginx-public`. Mostra l'invito animato. Accesso tramite query param univoco.
-5.  **Frontend Admin (React):** Esposto **SOLO su localhost:8080** tramite `nginx-intranet`. Dashboard per gestione adesioni e visualizzazione Heatmap/Navigazione. **Richiede SSH tunnel o VPN per accesso remoto**.
-6.  **Nginx Public:** Gateway Internet che espone solo frontend-user e API pubbliche su porta 80/443.
-7.  **Nginx Intranet:** Gateway amministrativo che espone frontend-admin su `127.0.0.1:8080`.
+2.  **pgBouncer (Connection Pooler):** Gestisce il pool di connessioni tra Backend Django e PostgreSQL (25 connessioni pool vs 200 client). Previene l'errore "too many clients" di PostgreSQL.
+3.  **Adminer (DB GUI):** Interfaccia web leggera per gestione database PostgreSQL. Accessibile su porta 8081.
+4.  **Backend (Django + DRF):** API REST. Gestisce logica di business, autenticazione e raccolta dati di tracking. **Non accessibile direttamente dall'esterno** - solo tramite nginx.
+5.  **Frontend User (React):** Esposto su **Internet** tramite `nginx-public`. Mostra l'invito animato. Accesso tramite query param univoco.
+6.  **Frontend Admin (React):** Esposto **SOLO su localhost:8080** tramite `nginx-intranet`. Dashboard per gestione adesioni e visualizzazione Heatmap/Navigazione. **Richiede SSH tunnel o VPN per accesso remoto**.
+7.  **Nginx Public:** Gateway Internet che espone solo frontend-user e API pubbliche su porta 80/443.
+8.  **Nginx Intranet:** Gateway amministrativo che espone frontend-admin su `127.0.0.1:8080`.
 
 ### Isolamento di Rete
 
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     INTERNET                            │
-└─────────────┬───────────────────────────────────────┘
+└─────────────┬─────────────────────────────────────────┘
               │ :80/:443
               ▼
       ┌───────────────┐
       │ nginx-public  │
-      └───────┬───────┘
+      └───────┬────────┘
               │
     ┌─────────┴──────────┐
     │                    │
@@ -53,24 +55,30 @@ Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 ┌────────────┐    ┌────────────┐          ┌────────────┐
 │ frontend-  │    │  backend   │◄─────────┤ adminer    │
 │   user     │    │   (API)    │          │ :8081      │
-└────────────┘    └─────┬──────┘          └─────┬──────┘
+└────────────┘    └─────┬───────┘          └─────┬───────┘
                         │                       │
-                        ▼                       ▼
-                  ┌──────────┐        ┌──────────────┐
+                        ▼                       │
+                  ┌─────────────┐               │
+                  │ pgBouncer  │               │
+                  │ (Pooler)  │               │
+                  └─────┬───────┘               │
+                        │                       │
+                        ▼                       │
+                  ┌──────────┐        ┌──────┬───────┘
                   │    DB    │◄───────┤ db_network   │
                   │ (isolato)│        │ (internal)   │
                   └──────────┘        └──────────────┘
                                       │
-┌────────────────────────────────┐   │
-│  INTRANET (localhost only)     │   │
-└────────┬───────────────────────┘   │
+┌────────────────────────────────┐ │
+│  INTRANET (localhost only)     │ │
+└────────┬───────────────────────┘ │
          │ :8080                      │
          ▼                            │
    ┌─────────────┐                   │
    │nginx-intra  │                   │
-   └──────┬──────┘                   │
-          │                          │
-          ▼                          │
+   └──────┬───────┘                   │
+          │                            │
+          ▼                            │
     ┌──────────┐                     │
     │frontend- │─────────────────────┘
     │  admin   │
@@ -248,6 +256,9 @@ docker-compose exec frontend-admin npm test
 # Coverage report
 docker-compose exec backend coverage run --source='.' manage.py test
 docker-compose exec backend coverage report
+
+# pgBouncer connection pooling load test
+python tests/load_test_connections.py
 ```
 
 ## Struttura Directory
@@ -273,7 +284,10 @@ my-wedding-app/
 ├── docs/                  # Documentazione tecnica completa
 │   ├── 01-ARCHITECTURE.md
 │   ├── 02-DATABASE.md
+│   ├── PGBOUNCER.md       # Connection pooling guide
 │   └── ...
+├── tests/                 # Test suite monorepo
+│   └── load_test_connections.py  # pgBouncer load test
 ├── docker-compose.yml     # Orchestrazione servizi
 ├── docker-compose.dev.yml # Override per sviluppo locale
 ├── .env.example           # Template variabili ambiente
@@ -333,6 +347,31 @@ docker-compose exec backend python manage.py collectstatic --noinput
 ```
 
 ## Troubleshooting
+
+### PostgreSQL "too many clients already"
+
+Se vedi errori `psycopg2.OperationalError: sorry, too many clients already`:
+
+```bash
+# Verifica connessioni attive PostgreSQL
+docker exec my-wedding-app-db-1 psql -U postgres -d wedding_db \
+  -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Verifica pool pgBouncer
+docker exec my-wedding-app-pgbouncer-1 psql -h 127.0.0.1 -p 5432 -U postgres -d pgbouncer \
+  -c "SHOW POOLS;"
+
+# Controlla log pgBouncer
+docker logs my-wedding-app-pgbouncer-1
+
+# Se il problema persiste, aumenta DEFAULT_POOL_SIZE in docker-compose.yml:
+# PGBOUNCER_DEFAULT_POOL_SIZE: 50  # da 25
+
+# Riavvia il servizio
+docker-compose restart pgbouncer backend
+```
+
+**Soluzione permanente**: Il progetto ora utilizza pgBouncer per il connection pooling. Vedi [docs/PGBOUNCER.md](docs/PGBOUNCER.md) per dettagli.
 
 ### DB Relation does not exist
 Se vedi errori `relation "core_invitation" does not exist`:

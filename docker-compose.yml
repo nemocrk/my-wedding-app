@@ -36,6 +36,56 @@ services:
       ADMINER_DEFAULT_SERVER: db
 
   # ---------------------------------------------
+  # 1c. PGBOUNCER - Connection Pooler per PostgreSQL
+  # ---------------------------------------------
+  pgbouncer:
+    # Usciamo dall'immagine ufficiale (dns issues) e usiamo la più robusta edoburu
+    image: edoburu/pgbouncer:latest
+    restart: always
+    environment:
+      # Configurazione Backend DB
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
+      DB_NAME: wedding_db
+      
+      # Configurazione Pooling
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_IDLE_TIMEOUT: 600
+      
+      # Configurazione Auth e Network
+      LISTEN_PORT: 5432
+      # FIX: Postgres 14 usa SCRAM-SHA-256. 
+      # AUTH_TYPE=any richiederebbe auth_user, ma l'immagine non supporta AUTH_USER env var.
+      # Usiamo scram-sha-256 che è il default corretto.
+      # L'immagine edoburu genera userlist.txt con la password in chiaro (da DB_PASSWORD),
+      # permettendo a pgbouncer di fare l'handshake SCRAM.
+      AUTH_TYPE: scram-sha-256
+      ADMIN_USERS: postgres
+      
+      # Fix DNS Docker issues
+      DNS_MAX_TTL: 15
+      DNS_ZONE_CHECK_PERIOD: 0
+    networks:
+      - db_network
+    depends_on:
+      db:
+        condition: service_healthy
+    # Healthcheck basato su connessione TCP aperta
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    expose:
+      - "5432"
+
+  # ---------------------------------------------
   # 2. BACKEND API - Gunicorn per produzione
   # ---------------------------------------------
   backend:
@@ -51,8 +101,10 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@db:5432/wedding_db
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
       DJANGO_SETTINGS_MODULE: wedding.settings
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
