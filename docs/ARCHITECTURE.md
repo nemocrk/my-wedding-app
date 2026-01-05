@@ -9,6 +9,7 @@
 ### Backend
 - **Framework**: Django 5.1.4 + Django REST Framework (DRF) 3.15.2
 - **Database**: PostgreSQL (ultima versione stabile)
+- **Connection Pooler**: pgBouncer (transaction mode)
 - **WSGI Server**: Gunicorn (produzione) / Django dev server (sviluppo)
 - **Linguaggio**: Python 3.x
 
@@ -56,6 +57,11 @@ L'applicazione è suddivisa in servizi indipendenti:
  │ (React)    │   API   │  + DRF     │
  └────────────┘         └─────┬──────┘
                               │
+                       ┌──────▼────────┐
+                       │  pgBouncer    │  Connection Pooler
+                       │ (25 → 200)    │  Transaction Mode
+                       └──────┬────────┘
+                              │
                        ┌──────▼──────┐
                        │ PostgreSQL  │
                        │ (Database)  │
@@ -78,20 +84,78 @@ L'applicazione è suddivisa in servizi indipendenti:
             └─────────────┘
 ```
 
+### Database Layer: Connection Pooling con pgBouncer
+
+**Problema risolto**: L'errore `FATAL: sorry, too many clients already` di PostgreSQL si verifica quando il numero di connessioni concorrenti supera il limite `max_connections` (default: 100). Con Gunicorn multi-worker (4 worker × N connessioni), il limite veniva raggiunto facilmente sotto carico.
+
+**Soluzione**: pgBouncer agisce come intermediario tra Django e PostgreSQL, gestendo un pool di connessioni riutilizzabili:
+
+```
+Django Workers (4×50=200 connessioni client)
+          ↓
+    pgBouncer Pool
+    (max_client_conn: 200)
+    (default_pool_size: 25)
+          ↓
+   PostgreSQL Server
+   (max_connections: 100)
+   Utilizza solo 25 connessioni attive
+```
+
+**Configurazione pgBouncer**:
+- **Pool Mode**: `transaction` - rilascia connessioni DB dopo ogni transazione SQL
+- **Max Client Connections**: 200 - limite client (worker Gunicorn + overhead)
+- **Default Pool Size**: 25 - connessioni effettive verso PostgreSQL
+- **Reserve Pool**: 5 - connessioni di emergenza per burst traffic
+- **Server Idle Timeout**: 600s - chiusura connessioni idle dopo 10min
+
+**Vantaggi**:
+1. Riduce il carico su PostgreSQL (25 vs 200 connessioni)
+2. Elimina l'errore "too many clients"
+3. Migliora le performance sotto carico (connection reuse)
+4. Isola completamente il database nella rete `db_network`
+
+**Integrazione Django**:
+```python
+# backend/wedding/settings.py
+DATABASES = {
+    'default': dj_database_url.config(
+        default='postgres://postgres:password@pgbouncer:5432/wedding_db',
+        conn_max_age=60,  # Ridotto da 600s - pgBouncer gestisce la persistenza
+        conn_health_checks=True,  # Django 4.1+ valida connessioni prima del riuso
+    )
+}
+
+# Development: CONN_MAX_AGE=0 (delega pooling a pgBouncer)
+# Production: CONN_MAX_AGE=60 (connessioni riutilizzabili brevi)
+```
+
+Per dettagli completi sulla configurazione e monitoring, vedi [docs/PGBOUNCER.md](./PGBOUNCER.md).
+
 ### Isolamento di Rete
 
-**Principio Zero-Trust**: Il database PostgreSQL è accessibile **SOLO** dal backend Django all'interno della rete Docker interna. Nessun frontend può accedere direttamente al database.
+**Principio Zero-Trust**: Il database PostgreSQL è accessibile **SOLO** dal backend Django e da pgBouncer all'interno della rete Docker interna. Nessun frontend può accedere direttamente al database.
 
 ```yaml
 networks:
-  wedding-network:
+  db_network:
+    internal: true  # Isolamento totale da Internet
     driver: bridge
 
 services:
   db:
     networks:
-      - wedding-network
+      - db_network
     # NO port mapping → isolamento totale
+  
+  pgbouncer:
+    networks:
+      - db_network  # Accesso esclusivo a PostgreSQL
+  
+  backend:
+    networks:
+      - db_network      # Per comunicare con pgBouncer
+      - backend_network # Per comunicare con nginx
 ```
 
 ### Multi-Stage Build
@@ -178,25 +242,32 @@ my-wedding-app/
 │       ├── cert.pem
 │       └── key.pem
 │
+├── tests/                  # Test suite monorepo
+│   └── load_test_connections.py  # Test pgBouncer connection pooling
+│
 └── docs/                   # Documentazione estesa
     ├── ARCHITECTURE.md     # Questo file
     ├── API_DOCUMENTATION.md
     ├── SETUP_GUIDE.md
-    ├── DEPLOYMENT_GUIDE.md
+    ├── PGBOUNCER.md        # Guida pgBouncer connection pooling
     └── TESTING_GUIDE.md
 ```
 
 ## Flusso Dati
 
-### Frontend User → Backend
+### Frontend User → Backend → Database
 
 1. **Utente** apre `http://yourdomain.com` (o `localhost` in dev)
 2. **Nginx Public** serve il React build da `frontend-user`
 3. React effettua chiamate API a `http://yourdomain.com/api/*`
 4. **Nginx Public** proxy reverse verso `backend:8000`
-5. **Django** processa la richiesta, interroga PostgreSQL
-6. Risposta JSON serializzata verso frontend
-7. React aggiorna lo stato e UI
+5. **Django/Gunicorn** accetta la richiesta (worker pool)
+6. **Django ORM** richiede connessione DB a `pgbouncer:5432`
+7. **pgBouncer** assegna una connessione dal pool (o la riutilizza)
+8. **PostgreSQL** esegue la query SQL
+9. pgBouncer rilascia la connessione al pool dopo il COMMIT
+10. Django serializza i dati in JSON
+11. Risposta ritorna attraverso nginx → React frontend
 
 ### Frontend Admin → Backend
 
@@ -204,19 +275,20 @@ my-wedding-app/
 2. **Nginx Intranet** serve il React build da `frontend-admin`
 3. React effettua chiamate API a `http://localhost:8080/api/*`
 4. **Nginx Intranet** proxy reverse verso `backend:8000`
-5. Django processa (con autenticazione admin)
+5. Django processa (con autenticazione admin) attraverso pgBouncer
 6. Dati analytics/heatmap restituiti in JSON
 
 ## Sicurezza
 
 ### Livelli di Protezione
 
-1. **Network Isolation**: Database non esposto all'esterno
-2. **Authentication**: Token DRF per admin API
-3. **HTTPS**: Certificati SSL configurabili
-4. **CORS**: Configurazione restrittiva per origini consentite
-5. **Environment Variables**: Secrets mai committati (`.env` gitignored)
-6. **Input Validation**: Django Forms + DRF Serializers
+1. **Network Isolation**: Database + pgBouncer isolati in `db_network` (internal: true)
+2. **Connection Pooling**: pgBouncer limita le connessioni dirette al DB (DoS mitigation)
+3. **Authentication**: Token DRF per admin API
+4. **HTTPS**: Certificati SSL configurabili
+5. **CORS**: Configurazione restrittiva per origini consentite
+6. **Environment Variables**: Secrets mai committati (`.env` gitignored)
+7. **Input Validation**: Django Forms + DRF Serializers
 
 ### Configurazione ALLOWED_HOSTS
 
@@ -233,6 +305,7 @@ DEBUG=False
 
 - **Frontend**: Build statici serviti da CDN (es. Cloudflare)
 - **Backend**: Replicas Gunicorn workers (configurabile)
+- **pgBouncer**: Pool size scalabile in base al traffico
 - **Database**: PostgreSQL replica set con read replicas
 
 ### Verticale
@@ -261,7 +334,20 @@ LOGGING = {
 
 - **Django Admin**: Pannello `/admin/` per analytics base
 - **Adminer**: Tool DB UI accessibile in dev (`http://localhost:8081`)
+- **pgBouncer Stats**: Query diretta `SHOW POOLS;` per monitoring pool
 - **Custom Dashboard**: Frontend Admin con Recharts
+
+### Monitoring pgBouncer
+
+```bash
+# Connessioni attive PostgreSQL
+docker exec my-wedding-app-db-1 psql -U postgres -d wedding_db \
+  -c "SELECT count(*) FROM pg_stat_activity;"
+
+# Statistiche pool pgBouncer
+docker exec my-wedding-app-pgbouncer-1 psql -h 127.0.0.1 -p 5432 -U postgres -d pgbouncer \
+  -c "SHOW POOLS;"
+```
 
 ## Performance
 
@@ -269,6 +355,7 @@ LOGGING = {
 
 - **select_related/prefetch_related**: Riduzione query N+1
 - **Database indexes**: Campi ricercati frequentemente
+- **pgBouncer pooling**: Riutilizzo connessioni DB (riduce overhead)
 - **Pagination**: Liste grandi spezzate
 
 ### Ottimizzazioni Frontend
@@ -293,6 +380,7 @@ LOGGING = {
 - **SMS reminders**: Twilio integration
 - **Payment gateway**: Stripe per gift list
 - **Analytics avanzate**: Google Analytics 4
+- **Read Replicas**: PostgreSQL streaming replication con pgBouncer multi-pool
 
 ## Riferimenti
 
@@ -301,3 +389,4 @@ LOGGING = {
 - [React Documentation](https://react.dev/)
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Nginx Configuration](https://nginx.org/en/docs/)
+- [pgBouncer Documentation](https://www.pgbouncer.org/)
