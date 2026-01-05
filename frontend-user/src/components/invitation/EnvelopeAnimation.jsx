@@ -232,9 +232,6 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         height: '200%', 
                         width: '98%', 
                         left: '1%',
-                        // Questo colore deve coincidere con lo sfondo per essere invisibile
-                        // Se lo sfondo cambia, aggiornare qui o usare clip-path
-                        background: '#ffffff', 
                         zIndex: 2,
                         pointerEvents: 'none'
                     }} 

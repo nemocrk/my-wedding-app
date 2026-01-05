@@ -51,6 +51,20 @@
   transform-style: preserve-3d; /* Maintain 3D context for letter too */
 }
 
+/*
+  La maschera deve replicare ESATTAMENTE lo sfondo della pagina.
+  Usiamo una CSS var definita in InvitationPage.css.
+
+  NOTE: background-attachment: fixed aiuta a far "coincidere" il gradiente con la viewport.
+*/
+.letter-mask {
+  background: var(--invitation-page-bg, linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%));
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+  background-size: cover;
+  background-position: center;
+}
+
 .dummy-letter {
   background: transparent;
   width: 100%;

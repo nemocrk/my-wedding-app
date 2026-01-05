@@ -5,5 +5,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+
+  --invitation-page-bg: linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%);
+  background: var(--invitation-page-bg);
 }
