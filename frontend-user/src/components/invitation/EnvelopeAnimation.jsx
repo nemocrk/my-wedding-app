@@ -46,10 +46,10 @@ const EnvelopeAnimation = ({ onComplete }) => {
             transition: { duration: 0.8, ease: "backIn" }
         },
         reentry: {
-            x: 0, // Reset position to respect CSS top/left placement
+            x: 0, 
             y: 0,
             opacity: 1,
-            scale: 0.8,
+            scale: 3, // USER FIX: Increased scale
             transition: { delay: 0.5, duration: 0.8, type: "spring" }
         }
     };
@@ -59,8 +59,11 @@ const EnvelopeAnimation = ({ onComplete }) => {
         closed: { rotateX: 0, zIndex: 4 },
         open: { 
             rotateX: 180, 
-            zIndex: 1, 
             transition: { duration: 0.8, ease: "easeInOut" } 
+        },
+        openBack: { // USER FIX: Specific state for when letter is out
+            rotateX: 180, 
+            zIndex: 1
         }
     };
 
@@ -73,15 +76,15 @@ const EnvelopeAnimation = ({ onComplete }) => {
             opacity: 1 
         },
         extracted: { 
-            y: -350, // Esce COMPLETAMENTE verso l'alto (fuori dalla tasca)
-            zIndex: 5, // Diventa sopra la tasca
+            y: -520, // USER FIX: Increased extraction height
+            zIndex: 2, 
             scale: 1,
             opacity: 1,
             transition: { duration: 1.2, ease: "easeOut" } 
         },
         final: {
-            y: -50, // Ritorna giù in posizione di lettura centrale
-            zIndex: 10, // Massimo livello
+            y: -50, 
+            zIndex: 10, 
             scale: 1,
             transition: { duration: 0.8, ease: "easeInOut" }
         }
@@ -102,17 +105,17 @@ const EnvelopeAnimation = ({ onComplete }) => {
     // Orchestratore della sequenza
     const handleSequence = async () => {
         // Step 1: Arrivo completato (gestito da 'visible')
-        await new Promise(r => setTimeout(r, 2500)); 
+        await new Promise(r => setTimeout(r, 500)); // USER FIX: Reduced initial wait
         setStep(1); // Rimuovi ceralacca
 
         await new Promise(r => setTimeout(r, 1000));
         setStep(2); // Apri busta
 
         await new Promise(r => setTimeout(r, 1000));
-        setStep(3); // Esci lettera COMPLETAMENTE (extracted)
+        setStep(3); // Esci lettera COMPLETAMENTE
         
         await new Promise(r => setTimeout(r, 1500));
-        setStep(4); // Posiziona lettera per lettura (final)
+        setStep(4); // Posiziona per lettura
         
         await new Promise(r => setTimeout(r, 1000));
         setStep(5); // Rientra ceralacca
@@ -179,7 +182,7 @@ const EnvelopeAnimation = ({ onComplete }) => {
                 <motion.div 
                     className="layer flap-container"
                     variants={flapVariants}
-                    animate={step >= 2 ? "open" : "closed"}
+                    animate={step >= 3 ? "openBack" : (step === 2 ? "open" : "closed")}
                     style={{ transformOrigin: "top" }}
                 >
                     <img src={flapImg} className="flap-img" alt="Flap" />
