@@ -8,6 +8,8 @@ Simula 100 richieste concorrenti all'endpoint di autenticazione per testare il p
 con pgBouncer.
 
 Usage:
+    export TEST_CODE="test-load-user"
+    export TEST_TOKEN="valid-token-from-backend"
     python tests/load_test_connections.py
 
 Requirements:
@@ -16,6 +18,7 @@ Requirements:
 
 import requests
 import time
+import os
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Tuple
 
@@ -24,12 +27,11 @@ BASE_URL = "http://localhost/api/public/auth/"
 NUM_REQUESTS = 100
 MAX_WORKERS = 50
 
-# Credenziali test (sostituire con valori validi dal tuo DB)
+# Credenziali test (da ENV o defaults)
 TEST_PAYLOAD = {
-    "code": "lore-di-lillo",
-    "token": "1e9f61bbdde3d759"
+    "code": os.environ.get("TEST_CODE", "lore-di-lillo"),
+    "token": os.environ.get("TEST_TOKEN", "1e9f61bbdde3d759")
 }
-
 
 def make_auth_request(request_id: int) -> Tuple[int, int, float]:
     """
@@ -66,6 +68,7 @@ def run_load_test():
     print(f"Target: {BASE_URL}")
     print(f"Concurrent Requests: {NUM_REQUESTS}")
     print(f"Worker Threads: {MAX_WORKERS}")
+    print(f"Test User Code: {TEST_PAYLOAD['code']}")
     print("═" * 60)
     print("\n⏳ Starting load test...\n")
     
@@ -115,7 +118,11 @@ def run_load_test():
     # Verdict Finale
     print("\n" + "═" * 60)
     if errors_5xx == 0 and errors_network == 0:
-        print("✅ TEST PASSED: No server errors or connection issues!")
+        if success_4xx > 0:
+             print("ℹ️  TEST PASSED (with 4xx): No server errors.")
+             print("   Note: 4xx errors are expected if test user doesn't exist.")
+        else:
+             print("✅ TEST PASSED: All requests successful (200 OK)!")
         print("   pgBouncer connection pooling is working correctly.")
     elif errors_5xx > 0:
         print(f"❌ TEST FAILED: {errors_5xx} server errors detected!")
