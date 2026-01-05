@@ -59,8 +59,11 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    # NOTE: l'immagine pgbouncer/pgbouncer non include sempre psql/pg_isready.
+    # Un healthcheck basato sul processo evita false-negative (container "unhealthy")
+    # che bloccherebbero l'avvio del backend via depends_on.
     healthcheck:
-      test: ["CMD", "psql", "-h", "127.0.0.1", "-p", "5432", "-U", "postgres", "-d", "wedding_db", "-c", "SELECT 1"]
+      test: ["CMD-SHELL", "ps | grep -q '[p]gbouncer'"]
       interval: 10s
       timeout: 5s
       retries: 3
