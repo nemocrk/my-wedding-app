@@ -61,13 +61,28 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'wedding.wsgi.application'
 
-# Database
+# ========================================
+# Database - Connection Pooling Ottimizzato
+# ========================================
 import dj_database_url
+
+# Configurazione base del database
+db_config = dj_database_url.config(
+    default=os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
+    conn_max_age=60,  # Ridotto da 600s: pgBouncer gestisce la persistenza
+    conn_health_checks=True,  # Django 4.1+: valida connessioni prima del riuso
+)
+
+# Strategia connection pooling differenziata per ambiente
+if DEBUG:
+    # Development: nessun pooling Django, delega completa a pgBouncer
+    db_config['CONN_MAX_AGE'] = 0
+else:
+    # Production: connessioni riutilizzabili brevi (60s)
+    db_config['CONN_MAX_AGE'] = 60
+
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get('DATABASE_URL', 'sqlite:///db.sqlite3'),
-        conn_max_age=600
-    )
+    'default': db_config
 }
 
 # Password validation
