@@ -13,6 +13,10 @@
   width: 620px;
   height: 358px;
   transform-style: preserve-3d; /* CRITICAL: Ensures children 3D transforms work with parent scale */
+  
+  /* FIX GLITCH: Taglia via la parte inferiore (60%) nascondendo la lettera che sborda */
+  /* Questo approccio è indipendente dal colore di sfondo */
+  clip-path: inset(0 0 60% 0);
 }
 
 .layer {
@@ -49,20 +53,6 @@
   
   transform-origin: center top;
   transform-style: preserve-3d; /* Maintain 3D context for letter too */
-}
-
-/*
-  La maschera deve replicare ESATTAMENTE lo sfondo della pagina.
-  Usiamo una CSS var definita in InvitationPage.css.
-
-  NOTE: background-attachment: fixed aiuta a far "coincidere" il gradiente con la viewport.
-*/
-.letter-mask {
-  background: var(--invitation-page-bg, linear-gradient(135deg, #fdfbfb 0%, #ebedee 100%));
-  background-attachment: fixed;
-  background-repeat: no-repeat;
-  background-size: cover;
-  background-position: center;
 }
 
 .dummy-letter {

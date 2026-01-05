@@ -131,7 +131,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     };
 
     // 5. LETTER CONTENT HEIGHT ANIMATION (Clipping)
-    // FIX: Rimossa animazione altezza, ora gestita dalla maschera div
+    // FIX: Rimossa animazione altezza, ora gestita da clip-path
     const letterContentVariants = {
         folded: { 
             opacity: 1
@@ -223,21 +223,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                      </motion.div>
                 </motion.div>
 
-                {/* --- MASK DIV (FIX GLITCH) --- */}
-                {/* Copre la parte inferiore della lettera che "sborda" sotto la pocket */}
-                <div 
-                    className="layer letter-mask" 
-                    style={{
-                        top: '40%', 
-                        height: '200%', 
-                        width: '98%', 
-                        left: '1%',
-                        zIndex: 2,
-                        pointerEvents: 'none'
-                    }} 
-                />
-
-                {/* POCKET */}
+                {/* POCKET (ora il clipping è fatto sul wrapper) */}
                 <img src={pocketImg} className="layer pocket" alt="Pocket" />
 
                 {/* FLAP */}
