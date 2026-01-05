@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import './EnvelopeAnimation.css'; // Manteniamo il CSS per layout di base
 import flapImg from '../../assets/illustrations/flap.png';
@@ -9,6 +9,25 @@ import LetterContent from './LetterContent';
 
 const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const [step, setStep] = useState(0);
+    const [scale, setScale] = useState(1);
+
+    // Gestione Responsività: Scala tutto in base alla larghezza del device
+    useEffect(() => {
+        const handleResize = () => {
+            const baseWidth = 620;
+            const margin = 40; // 20px per lato di margine di sicurezza
+            const availableWidth = window.innerWidth - margin;
+            
+            // Calcola scala: se lo schermo è più piccolo di 620+margin, scala giù. Altrimenti 1.
+            const newScale = Math.min(1, availableWidth / baseWidth);
+            setScale(newScale);
+        };
+
+        // Calcolo iniziale e listener
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     // 1. FLY-IN ANIMATION (Arrivo della busta)
     const containerVariants = {
@@ -85,11 +104,11 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         final: {
-            y: -50, // Slightly higher to account for longer content
+            y: -50, 
             zIndex: 10, 
             scale: 1,
             transition: { duration: 0.8, ease: "easeInOut" },
-            pointerEvents: "auto" // CRITICAL: Enable interactions (scrolling, clicks)
+            pointerEvents: "auto"
         }
     };
 
@@ -100,8 +119,8 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             overflow: "hidden" 
         },
         unfolded: { 
-            height: "75vh", // Responsive height for reading
-            overflowY: "auto", // Enable scrolling for long content
+            height: "75vh", 
+            overflowY: "auto", 
             transition: { duration: 1.5, ease: "easeOut" } 
         }
     };
@@ -143,7 +162,17 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             animate="visible"
             onAnimationComplete={handleSequence}
         >
-            <div className="envelope-wrapper">
+            {/* 
+                Wrapper scalabile: Applica la scala calcolata in base alla larghezza del device.
+                Usa transform origin center per mantenere tutto centrato.
+            */}
+            <div 
+                className="envelope-wrapper" 
+                style={{ 
+                    transform: `scale(${scale})`,
+                    transformOrigin: 'center center'
+                }}
+            >
                 {/* BACK */}
                 <img src={noFlapImg} className="layer back" alt="Back" />
 
@@ -161,10 +190,6 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                         initial="folded"
                         animate={step >= 3 ? "unfolded" : "folded"}
                      >
-                        {/* 
-                           Mostra LetterContent solo se invitationData è presente.
-                           Se è null/undefined, renderizzerebbe nulla o causerebbe errori.
-                        */}
                         {invitationData ? (
                             <LetterContent data={invitationData} />
                         ) : (
