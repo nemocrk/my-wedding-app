@@ -6,7 +6,6 @@
   width: 100vw;
   perspective: 1200px; /* Increased slightly to soften distortion on mobile */
   overflow: hidden;
-  background-color: #f0f0f0;
 }
 
 .envelope-wrapper {
@@ -44,10 +43,7 @@
   left: 0;
   right: 0;
   margin: 0 auto;
-  padding: 10px;
   
-  /*width: calc(620px - 50px);*/
-  /*height: auto;*/
   position: absolute;
   top: 0;
   

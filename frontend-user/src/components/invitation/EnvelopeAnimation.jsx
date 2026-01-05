@@ -11,6 +11,8 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const [step, setStep] = useState(0);
     const [scale, setScale] = useState(1);
     const [finalY, setFinalY] = useState(-50); // Default fallback
+    const [targetFinalHeight, setTargetFinalHeight] = useState(100); // Default fallback
+    const [targetExtractionDuration, setTargetExtractionDuration] = useState(1); // Default fallback
 
     // Gestione Responsività: Scala tutto in base alla larghezza del device
     useEffect(() => {
@@ -18,8 +20,9 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             const baseWidth = window.innerWidth;
             const margin = 40; // 20px per lato di margine di sicurezza
             const availableWidth = window.innerWidth - margin;
+            const renderedWidth = Math.min(620, window.innerWidth - margin)
             
-            const newScale = Math.min(1, availableWidth / baseWidth);
+            const newScale = renderedWidth == 620 ? 1 : Math.min(1, availableWidth / baseWidth);
             setScale(newScale);
 
             // CALCOLO POSIZIONE FINALE DINAMICA:
@@ -28,8 +31,12 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             // Spostamento necessario = -(Metà altezza viewport) + 20px
             // Esempio: Su schermo alto 800px, il centro è 400. Vogliamo andare a 20.
             // Spostamento = -400 + 20 = -380px.
-            const calculatedFinalY = -((window.innerHeight - 358) / 2);
+            const calculatedFinalY = -((window.innerHeight - 358 * newScale) / 2) / newScale;
+            const targetFinalHeight = window.innerHeight/newScale;
+            const targetExtractionDuration = 1 - ((window.innerHeight * 0.2) / targetFinalHeight);
+            setTargetFinalHeight(targetFinalHeight)
             setFinalY(calculatedFinalY);
+            setTargetExtractionDuration(targetExtractionDuration);
         };
 
         // Calcolo iniziale e listener
@@ -104,7 +111,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none"
         },
         extracted: { 
-            y: "-100vh", 
+            y: -targetFinalHeight, 
             zIndex: 2, 
             scale: 1,
             opacity: 1,
@@ -127,9 +134,9 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             overflow: "hidden" 
         },
         unfolded: { 
-            height: "100vh", 
+            height: targetFinalHeight, 
             overflowY: "auto", 
-            transition: { duration: 0.8} 
+            transition: { duration: targetExtractionDuration} 
         }
     };
 
