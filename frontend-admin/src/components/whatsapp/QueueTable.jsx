@@ -71,10 +71,15 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
                       {msg.session_type}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center group relative">
-                            <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 cursor-help" />
-                            <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10 whitespace-normal text-left">
-                                {msg.message_body}
+                        <div className="flex justify-center items-center relative">
+                            <div className="group relative inline-block">
+                                <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 cursor-help" />
+                                <div className="invisible group-hover:visible absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 whitespace-normal text-left">
+                                    <div className="break-words">{msg.message_body}</div>
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
+                                        <div className="border-8 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </td>
