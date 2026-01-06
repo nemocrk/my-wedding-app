@@ -238,10 +238,11 @@ services:
       backend:
         condition: service_healthy
       whatsapp-integration:
-         condition: service_started
+         condition: service_healthy
     networks:
       - frontend_intranet_network
       - backend_network
+      - whatsapp_intranet_network
     restart: always
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
@@ -266,7 +267,15 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
     volumes:
-      - waha_groom_data:/app/sessions
+      - waha_groom_data:/app/.waha-sessions
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   # WAHA Core - Sposa
   waha-bride:
@@ -280,7 +289,15 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
     volumes:
-      - waha_bride_data:/app/sessions
+      - waha_bride_data:/app/.waha-sessions
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
 
   # Integration Layer (Proxy & Logic)
   whatsapp-integration:
@@ -290,19 +307,28 @@ services:
       target: ${BUILD_TARGET:-production}
     restart: always
     depends_on:
-      - waha-groom
-      - waha-bride
+      waha-groom:
+        condition: service_healthy
+      waha-bride:
+        condition: service_healthy
     environment:
       PORT: 3000
       WAHA_GROOM_URL: 'http://waha-groom:3000'
       WAHA_BRIDE_URL: 'http://waha-bride:3000'
       WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM:-secret}
       WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE:-secret}
+      DJANGO_API_URL: 'http://backend:8000/api/admin'
     networks:
-      - backend_network          # Per ricevere da Nginx Intranet / API
+      - backend_network          # Per comunicare con Django
       - whatsapp_intranet_network # Per parlare con container WAHA
     expose:
       - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # ---------------------------------------------
 # RETI - Isolamento completo tra componenti
