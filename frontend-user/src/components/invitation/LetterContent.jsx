@@ -6,6 +6,7 @@ import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
 import rightArrow from '../../assets/illustrations/right-arrow.png';
 import waxImg from '../../assets/illustrations/wax.png'; // Import del sigillo
+import { FaWhatsapp } from 'react-icons/fa'; // Assicurati che react-icons sia installato
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -22,6 +23,15 @@ const LetterContent = ({ data }) => {
 
   // Animation Control per il Sigillo
   const sealControls = useAnimation();
+  
+  // WhatsApp Config extraction
+  const groomNumber = data.config?.whatsapp_groom_number;
+  const brideNumber = data.config?.whatsapp_bride_number;
+  const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
+  const brideName = data.config?.whatsapp_bride_firstname || "Sposa";
+
+  const getWaLink = (number) => 
+    `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
 
   // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
@@ -354,6 +364,27 @@ const LetterContent = ({ data }) => {
                             >
                                 Modifica risposta
                             </button>
+                        </div>
+                    </div>
+                    )}
+
+                    {/* WHATSAPP CTA SECTION */}
+                    {(groomNumber || brideNumber) && (
+                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
+                        <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">Hai domande?</p>
+                        <div className="flex justify-center gap-4">
+                            {groomNumber && (
+                                <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" 
+                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
+                                <FaWhatsapp size={18} /> {groomName}
+                                </a>
+                            )}
+                            {brideNumber && (
+                                <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" 
+                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
+                                <FaWhatsapp size={18} /> {brideName}
+                                </a>
+                            )}
                         </div>
                     </div>
                     )}
