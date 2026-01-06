@@ -24,8 +24,8 @@ const WhatsAppConfig = () => {
         api.getWhatsAppStatus('groom').catch(() => ({ state: 'error' })),
         api.getWhatsAppStatus('bride').catch(() => ({ state: 'error' }))
       ]);
-      console.log("Groom Status Received:", groom); // DEBUG LOG
-      console.log("Bride Status Received:", bride); // DEBUG LOG
+      console.log("Groom Status Received:", groom); 
+      console.log("Bride Status Received:", bride); 
       setGroomStatus(groom);
       setBrideStatus(bride);
     } catch (error) {
@@ -144,11 +144,20 @@ const WhatsAppConfig = () => {
         {isConnected && profile && (
             <div className="mb-6 p-3 bg-blue-50 rounded-md border border-blue-100">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-blue-100 rounded-full">
-                        <User className="w-5 h-5 text-blue-700" />
-                    </div>
+                    {profile.picture ? (
+                        <img 
+                            src={profile.picture} 
+                            alt="Profile" 
+                            className="w-10 h-10 rounded-full border border-blue-200 object-cover"
+                            onError={(e) => { e.target.onerror = null; e.target.src = ''; e.target.style.display = 'none'; }}
+                        />
+                    ) : (
+                        <div className="p-2 bg-blue-100 rounded-full">
+                            <User className="w-5 h-5 text-blue-700" />
+                        </div>
+                    )}
                     <div>
-                        <p className="text-sm font-bold text-gray-900">{profile.pushName || 'Utente WhatsApp'}</p>
+                        <p className="text-sm font-bold text-gray-900">{profile.pushName || profile.name || 'Utente WhatsApp'}</p>
                         <p className="text-xs text-gray-600 font-mono">{profile.id?.split('@')[0] || profile.wid?.user}</p>
                     </div>
                 </div>
