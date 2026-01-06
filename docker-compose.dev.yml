@@ -74,10 +74,10 @@ services:
   # Integration Layer - Hot Reload Node.js
   whatsapp-integration:
     build:
-      context: ./backend/whatsapp-integration
+      context: ./whatsapp-integration
       target: development
     volumes:
-      - ./backend/whatsapp-integration:/app
+      - ./whatsapp-integration:/app
       - /app/node_modules
     # Esponiamo porta per debug diretto
     ports:
