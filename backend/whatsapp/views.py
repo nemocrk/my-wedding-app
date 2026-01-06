@@ -5,7 +5,7 @@ from django.conf import settings
 import requests
 import os
 import time
-from core.models import WhatsAppSessionStatus
+from core.models import WhatsAppSessionStatus, WhatsAppMessageQueue
 
 # Helper per URL integration
 def get_integration_url():
@@ -138,7 +138,7 @@ def whatsapp_logout(request, session_type):
 @authentication_classes([])
 @permission_classes([AllowAny])
 def whatsapp_send_test(request, session_type):
-    """POST /api/admin/whatsapp/<groom|bride>/test/ - Invia messaggio a se stessi"""
+    """POST /api/admin/whatsapp/<groom|bride>/test/ - Invia messaggio a se stessi tramite CODA"""
     integration_base = get_integration_url()
     
     try:
@@ -168,19 +168,21 @@ def whatsapp_send_test(request, session_type):
         if not my_number:
             return Response({'error': 'Numero di telefono non identificabile'}, status=400)
 
-        # 2. Invia messaggio a se stessi
-        send_url = f"{integration_base}/{session_type}/send"
-        payload = {
-            "phone": my_number,
-            "message": "🔔 *Test My-Wedding-App*\nIl sistema è connesso correttamente e può inviare messaggi."
-        }
+        # 2. Accoda messaggio a se stessi invece di invio diretto
+        msg = WhatsAppMessageQueue.objects.create(
+            session_type=session_type,
+            recipient_number=my_number,
+            message_body="🔔 *Test My-Wedding-App*\nIl sistema è connesso correttamente. Questo messaggio è stato processato dalla coda asincrona.",
+            status=WhatsAppMessageQueue.Status.PENDING
+        )
         
-        send_resp = requests.post(send_url, json=payload, timeout=10)
-        
-        if send_resp.status_code == 200:
-            return Response({'success': True, 'recipient': my_number})
-        else:
-            return Response(send_resp.json(), status=send_resp.status_code)
+        return Response({
+            'success': True, 
+            'recipient': my_number, 
+            'queued': True,
+            'queue_id': msg.id,
+            'message': 'Messaggio di test aggiunto alla coda di invio.'
+        })
             
     except Exception as e:
         return Response({'error': str(e)}, status=503)
