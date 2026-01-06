@@ -71,8 +71,9 @@ app.get('/:session_type/status', async (req, res) => {
   if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
 
   try {
+    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
-      headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
+      headers,
       timeout: 5000
     });
     
@@ -83,6 +84,23 @@ app.get('/:session_type/status', async (req, res) => {
     else if (data.status === 'STARTING') state = 'connecting';
     else if (data.status === 'STOPPED') state = 'disconnected';
     
+    // FETCH PROFILE PICTURE & INFO se connesso
+    if (state === 'connected') {
+        try {
+            // Proviamo a prendere info dettagliate (inclusa picture) da /api/default/me
+            // WAHA Core usa spesso /api/{session}/me
+            const meResp = await axios.get(`${wahaUrl}/api/default/me`, { headers, timeout: 3000 });
+            if (meResp.data) {
+                // Merge 'me' info into data.me or data.raw.me
+                // WAHA /api/sessions/default response usually has 'me' key too, but maybe without picture
+                // We overwrite/extend it
+                data.me = { ...data.me, ...meResp.data };
+            }
+        } catch (e) {
+            console.warn(`Failed to fetch detailed profile info: ${e.message}`);
+        }
+    }
+
     res.json({ state, raw: data });
   } catch (error) {
     res.json({ state: 'error', error: error.message });
@@ -158,10 +176,6 @@ app.post('/:session_type/logout', async (req, res) => {
 
     try {
         const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
-        
-        // Per fare logout completo con WAHA Core:
-        // 1. Logout dalla sessione (disconnette WA Web)
-        // 2. Stop della sessione (ferma il browser)
         
         try {
              await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers });
