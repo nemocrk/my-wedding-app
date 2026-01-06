@@ -52,21 +52,17 @@ services:
   # WHATSAPP INTEGRATION (Dev Overrides)
   # ---------------------------------------------
   
-  # Sessione Sposo - Solo expose porte dashboard
+  # Sessione Sposo
   waha-groom:
-    # In DEV esponiamo la dashboard per debug facile (http://localhost:3001/dashboard)
-    ports:
-      - "3001:3000"
+    # In DEV potremmo volere la dashboard, ma per sicurezza rimuoviamo l'esposizione diretta
+    # Se necessario debuggare, meglio usare docker exec o network container
     environment:
-      # Abilitiamo Swagger in dev per comodità
+      # Swagger comunque utile se raggiunto da dentro la rete
       WHATSAPP_SWAGGER_USERNAME: admin
       WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
 
-  # Sessione Sposa - Solo expose porte dashboard
+  # Sessione Sposa
   waha-bride:
-    # In DEV esponiamo la dashboard per debug facile (http://localhost:3002/dashboard)
-    ports:
-      - "3002:3000"
     environment:
       WHATSAPP_SWAGGER_USERNAME: admin
       WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
