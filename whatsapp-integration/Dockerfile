@@ -1,5 +1,5 @@
 # Stage 1: Base
-FROM node:18-alpine AS base
+FROM node:alpine AS base
 WORKDIR /app
 COPY package*.json ./
 RUN npm install
@@ -12,7 +12,7 @@ COPY . .
 CMD ["npm", "run", "dev"]
 
 # Stage 3: Production
-FROM node:18-alpine AS production
+FROM node:alpine AS production
 WORKDIR /app
 COPY package*.json ./
 RUN npm install --only=production

@@ -134,6 +134,8 @@ services:
     restart: always
     volumes:
       - ./backend:/app
+      - static_volume_worker:/app/staticfiles
+      - media_volume_worker:/app/media
     depends_on:
       backend:
         condition: service_healthy
@@ -259,6 +261,7 @@ services:
       # Free Tier config (no swagger, no dashboard in prod)
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
       WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
+      WAHA_API_KEY: ${WAHA_API_KEY_GROOM:-secret}
     networks:
       - whatsapp_intranet_network
     volumes:
@@ -271,6 +274,7 @@ services:
     environment:
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
       WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
+      WAHA_API_KEY: ${WAHA_API_KEY_BRIDE:-secret}
     networks:
       - whatsapp_intranet_network
     volumes:
@@ -334,6 +338,10 @@ volumes:
   static_volume:
     driver: local
   media_volume:
+    driver: local
+  static_volume_worker:
+    driver: local
+  media_volume_worker:
     driver: local
   waha_groom_data:
     driver: local
