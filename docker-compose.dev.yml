@@ -73,8 +73,9 @@ services:
 
   # Integration Layer - Hot Reload Node.js
   whatsapp-integration:
-    # In dev usiamo nodemon se installato (o node diretto) con volume mounted
-    command: node server.js 
+    build:
+      context: ./backend/whatsapp-integration
+      target: development
     volumes:
       - ./backend/whatsapp-integration:/app
       - /app/node_modules
