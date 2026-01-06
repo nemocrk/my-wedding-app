@@ -9,6 +9,7 @@ const WhatsAppConfig = () => {
   const [qrCodeData, setQrCodeData] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
   const [testLoading, setTestLoading] = useState(null); 
+  const [logoutLoading, setLogoutLoading] = useState(null); // 'groom' or 'bride'
 
   useEffect(() => {
     fetchStatuses();
@@ -87,11 +88,14 @@ const WhatsAppConfig = () => {
   const handleLogout = async (sessionType) => {
       if(!window.confirm('Sei sicuro di voler disconnettere questa sessione?')) return;
       
+      setLogoutLoading(sessionType);
       try {
           await api.logoutWhatsAppSession(sessionType);
           fetchStatuses(); 
       } catch (error) {
           alert('Errore durante il logout: ' + error.message);
+      } finally {
+          setLogoutLoading(null);
       }
   };
 
@@ -189,10 +193,11 @@ const WhatsAppConfig = () => {
                 {isConnected && (
                     <button
                         onClick={() => handleLogout(type)}
-                        className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        disabled={logoutLoading === type}
+                        className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
                         title="Disconnetti Sessione"
                     >
-                        <LogOut className="w-4 h-4" />
+                        {logoutLoading === type ? <Loader className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
                     </button>
                 )}
             </div>
