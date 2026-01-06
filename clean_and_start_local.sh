@@ -8,7 +8,7 @@ set -e # Interrompe l'esecuzione se un comando fallisce
 
 # Pulire tutti i container docker
 echo "--------------------------------------------------------"
-echo "  [1/3] Killo eventuali Container Attivi..."
+echo "  [1/4] Killo eventuali Container Attivi..."
 echo "--------------------------------------------------------"
 # Recupera gli ID dei container in esecuzione
 CONTAINERS=$(docker ps -q)
@@ -20,18 +20,27 @@ else
     docker kill $CONTAINERS
 fi
 echo "--------------------------------------------------------"
-echo "  [2/3] Elimino eventuali Container Esistenti..."
+echo "  [2/4] Elimino eventuali Container Esistenti..."
 echo "--------------------------------------------------------"
 CONTAINERS=$(docker ps -a -q)
 if [ -z "$CONTAINERS" ]; then
-    echo "Nessun container in esecuzione da eliminare."
+    echo "Nessun container da eliminare."
 else
     echo "Eliminazione dei container in corso..."
-    docker rm $(docker ps -a -q)
+    docker rm $CONTAINERS
 fi
-
+echo "--------------------------------------------------------"
+echo "  [3/4] Elimino eventuali Reti Esistenti..."
+echo "--------------------------------------------------------"
+CONTAINERS=$(docker network ls --filter "type=custom" -q)
+if [ -z "$CONTAINERS" ]; then
+    echo "Nessuna rete da eliminare."
+else
+    echo "Eliminazione delle reti in corso..."
+    docker network rm $CONTAINERS
+fi
 # Avviare il progetto in dev mode con hot-reload
 echo "--------------------------------------------------------"
-echo "  [3/3] Avvio il progetto in dev mode con hot-reload..."
+echo "  [4/4] Avvio il progetto in dev mode con hot-reload..."
 echo "--------------------------------------------------------"
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build

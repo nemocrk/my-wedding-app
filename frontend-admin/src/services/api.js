@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:8080/api/admin';
+const API_BASE_URL = '/api/admin';
 
 const triggerGlobalError = (error) => {
   const event = new CustomEvent('api-error', { detail: error });

@@ -28,11 +28,19 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
         'pending': { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
         'processing': { label: 'Processing', color: 'bg-blue-100 text-blue-800' },
         'sent': { label: 'Sent', color: 'bg-green-100 text-green-800' },
-        'failed': { label: 'Failed', color: 'bg-red-100 text-red-800' },
+        'failed': { label: 'Failed', title:msg.error_log, color: 'bg-red-100 text-red-800' },
         'skipped': { label: 'Skipped', color: 'bg-gray-100 text-gray-800' }
     };
     const config = dbMap[msg.status] || { label: msg.status, color: 'bg-gray-100' };
-    return <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.color}`}>{config.label}</span>;
+    return (
+      <span 
+        className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full cursor-pointer ${config.color}`} 
+        title={config.title || ""} 
+        onClick={() => config.title && navigator.clipboard.writeText(config.title)}
+      >
+        {config.label}
+      </span>
+    );
   };
 
   return (
@@ -62,7 +70,6 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(msg)}
-                      {msg.error_log && <div className="text-xs text-red-500 mt-1 max-w-xs truncate" title={msg.error_log}>{msg.error_log}</div>}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {new Date(msg.scheduled_for).toLocaleString()}

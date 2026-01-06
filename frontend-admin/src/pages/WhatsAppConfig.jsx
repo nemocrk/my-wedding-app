@@ -7,10 +7,34 @@ const WhatsAppConfig = () => {
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
   const [brideStatus, setBrideStatus] = useState({ state: 'loading' });
   const [activeModal, setActiveModal] = useState(null); 
-  const [qrCodeData, setQrCodeData] = useState(null);
+  const [qrCodeData, setQrCodeData] = useState({});
   const [isPolling, setIsPolling] = useState(false);
   const [testLoading, setTestLoading] = useState(null); 
   const [logoutLoading, setLogoutLoading] = useState(null); // 'groom' or 'bride'
+
+  // Aggiunge una nuova coppia chiave-valore
+  const addEntry = (set, key, value) => {
+    set(prev => ({
+      ...prev,
+      [key]: value
+    }));
+  };
+
+  // Aggiorna un valore esistente (in React 'Add' e 'Update' usano la stessa logica)
+  const updateEntry = (set, key, newValue) => {
+    set(prev => ({
+      ...prev,
+      [key]: newValue
+    }));
+  };
+
+  // Rimuove una chiave specifica usando il destructuring (metodo standard consigliato)
+  const removeEntry = (set, keyToRemove) => {
+    set(prev => {
+      const { [keyToRemove]: _, ...rest } = prev;
+      return rest;
+    });
+  };
 
   useEffect(() => {
     fetchStatuses();
@@ -44,10 +68,10 @@ const WhatsAppConfig = () => {
         
         if (data.state === 'connected') {
           stopPolling();
-          closeModal();
+          closeModal(sessionType);
           fetchStatuses();
-        } else if (data.qr_code && !qrCodeData) {
-            setQrCodeData(data.qr_code);
+        } else if (data.qr_code && !qrCodeData[sessionType]) {
+            addEntry(setQrCodeData, sessionType, data.qr_code);
         }
       } catch (e) {
         console.error("Polling error", e);
@@ -62,24 +86,24 @@ const WhatsAppConfig = () => {
 
   const handleRefresh = async (sessionType) => {
     try {
-      setQrCodeData(null);
+      removeEntry(setQrCodeData, sessionType);
       setActiveModal(sessionType);
       
       const data = await api.refreshWhatsAppSession(sessionType);
 
       if (data.state === 'waiting_qr' || data.state === 'connecting') {
-        if (data.qr_code) setQrCodeData(data.qr_code);
+        if (data.qr_code) addEntry(setQrCodeData, sessionType, data.qr_code);
         startPolling(sessionType);
       } else if (data.state === 'connected') {
-        closeModal();
+        closeModal(sessionType);
         fetchStatuses();
       } else {
-        closeModal();
+        closeModal(sessionType);
         alert(`Stato imprevisto: ${data.state}`);
         fetchStatuses();
       }
     } catch (error) {
-      closeModal();
+      closeModal(sessionType);
       alert('Errore durante il refresh: ' + (error.message));
     }
   };
@@ -110,9 +134,9 @@ const WhatsAppConfig = () => {
       }
   };
 
-  const closeModal = () => {
+  const closeModal = (sessionType) => {
     setActiveModal(null);
-    setQrCodeData(null);
+    removeEntry(setQrCodeData, sessionType);
     stopPolling();
   };
 
@@ -248,8 +272,8 @@ const WhatsAppConfig = () => {
               </h3>
               
               <div className="flex justify-center mb-6 min-h-[256px]">
-                {qrCodeData ? (
-                  <img src={qrCodeData} alt="WhatsApp QR Code" className="border-4 border-gray-200 rounded-lg animate-fade-in" />
+                {qrCodeData[activeModal] ? (
+                  <img src={qrCodeData[activeModal]} alt="WhatsApp QR Code" className="border-4 border-gray-200 rounded-lg animate-fade-in" />
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-4">
                      <Loader className="w-12 h-12 animate-spin text-indigo-500" />
@@ -263,7 +287,7 @@ const WhatsAppConfig = () => {
               </p>
 
               <button
-                onClick={closeModal}
+                onClick={() => closeModal(activeModal)}
                 className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
               >
                 Chiudi
