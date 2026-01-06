@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader } from 'lucide-react';
-import api from '../services/api';
+import { api } from '../services/api'; // FIX: Changed from 'import api' to 'import { api }'
 
 const WhatsAppConfig = () => {
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
@@ -21,11 +21,11 @@ const WhatsAppConfig = () => {
   const fetchStatuses = async () => {
     try {
       const [groom, bride] = await Promise.all([
-        api.get('/admin/whatsapp/groom/status/').catch(() => ({ data: { state: 'error' } })),
-        api.get('/admin/whatsapp/bride/status/').catch(() => ({ data: { state: 'error' } }))
+        api.getWhatsAppStatus('groom').catch(() => ({ state: 'error' })),
+        api.getWhatsAppStatus('bride').catch(() => ({ state: 'error' }))
       ]);
-      setGroomStatus(groom.data);
-      setBrideStatus(bride.data);
+      setGroomStatus(groom);
+      setBrideStatus(bride);
     } catch (error) {
       console.error('Error fetching statuses', error);
     }
@@ -38,8 +38,7 @@ const WhatsAppConfig = () => {
     
     pollingInterval = setInterval(async () => {
       try {
-        const resp = await api.get(`/admin/whatsapp/${sessionType}/status/`);
-        const data = resp.data;
+        const data = await api.getWhatsAppStatus(sessionType);
         
         if (data.state === 'connected') {
           stopPolling();
@@ -59,8 +58,7 @@ const WhatsAppConfig = () => {
 
   const handleRefresh = async (sessionType) => {
     try {
-      const resp = await api.post(`/admin/whatsapp/${sessionType}/refresh/`);
-      const data = resp.data;
+      const data = await api.refreshWhatsAppSession(sessionType);
 
       if (data.state === 'waiting_qr') {
         setQrCodeData(data.qr_code);
@@ -73,7 +71,7 @@ const WhatsAppConfig = () => {
         sessionType === 'groom' ? setGroomStatus(data) : setBrideStatus(data);
       }
     } catch (error) {
-      alert('Errore durante il refresh: ' + (error.response?.data?.error || error.message));
+      alert('Errore durante il refresh: ' + (error.message));
     }
   };
 
