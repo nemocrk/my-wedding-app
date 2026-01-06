@@ -1,0 +1,59 @@
+version: 2
+updates:
+  # GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  # Backend (Python/Pip)
+  - package-ecosystem: "pip"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+    groups:
+      backend-deps:
+        patterns:
+          - "*"
+
+  # Frontend User (Npm)
+  - package-ecosystem: "npm"
+    directory: "/frontend-user"
+    schedule:
+      interval: "weekly"
+    groups:
+      frontend-user-deps:
+        patterns:
+          - "*"
+
+  # Frontend Admin (Npm)
+  - package-ecosystem: "npm"
+    directory: "/frontend-admin"
+    schedule:
+      interval: "weekly"
+    groups:
+      frontend-admin-deps:
+        patterns:
+          - "*"
+
+  # Docker - Backend
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "weekly"
+      
+  # Docker - Frontend User
+  - package-ecosystem: "docker"
+    directory: "/frontend-user"
+    schedule:
+      interval: "weekly"
+
+  # Docker - Frontend Admin
+  - package-ecosystem: "docker"
+    directory: "/frontend-admin"
+    schedule:
+      interval: "weekly"
