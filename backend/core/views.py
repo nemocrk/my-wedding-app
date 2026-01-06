@@ -5,11 +5,10 @@ from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
 from django.db import transaction
-from django.utils import timezone
-from .models import Invitation, GlobalConfig, Person, Accommodation, Room, GuestInteraction, GuestHeatmap, WhatsAppMessageQueue
+from .models import Invitation, GlobalConfig, Person, Accommodation, Room, GuestInteraction, GuestHeatmap
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
-    AccommodationSerializer, PublicInvitationSerializer, WhatsAppMessageQueueSerializer
+    AccommodationSerializer, PublicInvitationSerializer
 )
 import logging
 import os
@@ -17,6 +16,7 @@ import copy
 
 logger = logging.getLogger(__name__)
 
+# ... (Public API Classes remain unchanged) ...
 # ========================================
 # PUBLIC API (Internet - Session Based)
 # ========================================
@@ -243,29 +243,35 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
-        strategy_code = request.data.get('strategy', 'SIMULATION') 
+        """
+        ARENA DELLE STRATEGIE:
+        Esegue l'algoritmo con diverse strategie di ordinamento e restituisce
+        una comparazione (SIMULATION MODE) oppure applica la strategia scelta (EXECUTION MODE).
+        """
+        strategy_code = request.data.get('strategy', 'SIMULATION') # 'SIMULATION' or specific code
         is_simulation = strategy_code == 'SIMULATION'
         
+        # 1. Definizione delle Strategie
         strategies = {
             'STANDARD': {
                 'name': 'Standard (Default)',
                 'description': 'Processa prima i gruppi affini, stanze ordinate per capienza decrescente.',
-                'invitation_sort': lambda i: i.id,
-                'room_sort': lambda r: -r.total_capacity(),
+                'invitation_sort': lambda i: i.id, # Base order
+                'room_sort': lambda r: -r.total_capacity(), # Big rooms first
                 'group_affinity': True
             },
             'SPACE_OPTIMIZER': {
                 'name': 'Space Optimizer (Tetris)',
                 'description': 'Priorità ai gruppi numerosi su stanze "Best Fit" (piccole ma sufficienti).',
-                'invitation_sort': lambda i: -(i.guests.count()),
-                'room_sort': lambda r: r.total_capacity(),
+                'invitation_sort': lambda i: -(i.guests.count()), # Biggest groups first
+                'room_sort': lambda r: r.total_capacity(), # Smallest rooms first (Best Fit)
                 'group_affinity': True
             },
             'CHILDREN_FIRST': {
                 'name': 'Children First',
                 'description': 'Priorità alle famiglie con bambini per occupare slot specifici.',
-                'invitation_sort': lambda i: -(i.guests.filter(is_child=True).count()),
-                'room_sort': lambda r: -(r.capacity_children),
+                'invitation_sort': lambda i: -(i.guests.filter(is_child=True).count()), # Most children first
+                'room_sort': lambda r: -(r.capacity_children), # Rooms with child slots first
                 'group_affinity': True
             },
             'PERFECT_MATCH': {
@@ -273,14 +279,14 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 'description': 'Cerca di riempire le stanze al 100% della capienza.',
                 'invitation_sort': lambda i: -(i.guests.count()),
                 'room_sort': lambda r: r.total_capacity(),
-                'group_affinity': False,
-                'perfect_match_only': True
+                'group_affinity': False, # Treat individually for perfect fit
+                'perfect_match_only': True # Custom flag logic
             },
             'SMALLEST_FIRST': {
                 'name': 'Smallest First',
                 'description': 'Riempimento dal basso (coppie e singoli prima).',
-                'invitation_sort': lambda i: i.guests.count(),
-                'room_sort': lambda r: r.total_capacity(),
+                'invitation_sort': lambda i: i.guests.count(), # Smallest groups first
+                'room_sort': lambda r: r.total_capacity(), # Smallest rooms first
                 'group_affinity': False
             },
             'AFFINITY_CLUSTER': {
@@ -289,17 +295,22 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 'invitation_sort': lambda i: -(i.guests.count() + sum(a.guests.count() for a in i.affinities.all())),
                 'room_sort': lambda r: -r.total_capacity(),
                 'group_affinity': True,
-                'force_cluster': True
+                'force_cluster': True # Custom flag logic
             }
         }
 
+        # 2. Logica Core dell'Algoritmo (Incapsulata)
         def run_strategy(strategy_key, strategy_params, dry_run=True):
+            # Rollback automatico per simulazioni
             sid = transaction.savepoint()
+            
             try:
+                # Reset temporaneo
                 if request.data.get('reset_previous', False):
                     Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
                     Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
 
+                # Fetch Data
                 invitations = list(Invitation.objects.filter(
                     status=Invitation.Status.CONFIRMED,
                     accommodation_requested=True,
@@ -311,36 +322,49 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     'assigned_invitations__non_affinities'
                 ).all())
 
+                # Sort Rooms Global (or per accommodation inside loop)
+                # For simplicity here we sort rooms inside assignment logic
+                
                 assigned_count = 0
                 wasted_beds = 0
                 assignment_log = []
 
+                # --- Helper Functions (Inner Scope) ---
                 def get_room_owner(room):
                     owner_ids = list(Person.objects.filter(assigned_room=room).values_list('invitation_id', flat=True).distinct())
                     if not owner_ids: return None
-                    if len(owner_ids) > 1: return -1 
+                    if len(owner_ids) > 1: return -1 # Error state
                     return owner_ids[0]
 
                 def is_accommodation_compatible(acc, inv):
                     non_affine_ids = set(inv.non_affinities.values_list('id', flat=True))
+                    # Live query for existing invitations in this transaction simulation
                     existing_inv_ids = set(Person.objects.filter(
                         assigned_room__accommodation=acc
                     ).values_list('invitation_id', flat=True))
                     
-                    if non_affine_ids.intersection(existing_inv_ids): return False
+                    if non_affine_ids.intersection(existing_inv_ids):
+                        return False
                     return True
 
                 def can_fit(room, person, inv_id):
                     owner = get_room_owner(room)
                     if owner == -1: return False
                     if owner is not None and owner != inv_id: return False
+                    
                     slots = room.available_slots()
-                    if person.is_child: return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
-                    else: return slots['adult_slots_free'] > 0
+                    if person.is_child:
+                        return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
+                    else:
+                        return slots['adult_slots_free'] > 0
 
                 def assign_invitation(inv, acc):
                     nonlocal assigned_count, wasted_beds
+                    
+                    # Logic Specific: Perfect Match
                     if strategy_params.get('perfect_match_only', False):
+                        # Calculate total guests vs total free capacity of accommodation? No, per room.
+                        # This is complex in current structure. Simplified: Skip if acc total capacity < inv total guests
                         if acc.available_capacity() < inv.guests.count(): return False
 
                     if not is_accommodation_compatible(acc, inv): return False
@@ -349,13 +373,25 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     if not persons: return True
 
                     rooms = list(acc.rooms.all())
+                    # Sort Rooms based on Strategy
                     rooms.sort(key=strategy_params['room_sort'])
+
                     temp_assignments = []
+                    
+                    # Inner Transaction for Atomicity of Invitation
                     sid_inv = transaction.savepoint()
+                    
                     all_assigned = True
                     for p in persons:
                         assigned = False
                         for r in rooms:
+                            # Logic Specific: Perfect Match (Per Room Check)
+                            if strategy_params.get('perfect_match_only', False):
+                                # Only assign if room empty and fits exactly? Or just standard fit?
+                                # Strict PM: Room Capacity == Invitation Size (Impossible if split allowed)
+                                # Relaxed PM: Only use rooms where occupancy will be optimized
+                                pass 
+
                             if can_fit(r, p, inv.id):
                                 p.assigned_room = r
                                 p.save()
@@ -372,18 +408,28 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         inv.save()
                         assigned_count += len(temp_assignments)
                         for p, r in temp_assignments:
-                            assignment_log.append({'person': str(p), 'room': str(r), 'invitation': inv.name})
+                            assignment_log.append({
+                                'person': str(p),
+                                'room': str(r),
+                                'invitation': inv.name
+                            })
                         return True
                     else:
                         transaction.savepoint_rollback(sid_inv)
                         return False
 
+                # --- Execution Flow ---
+                
+                # Pre-Sorting Invitations
                 invitations.sort(key=strategy_params['invitation_sort'])
+
                 processed_ids = set()
 
                 for inv in invitations:
                     if inv.id in processed_ids: continue
+                    
                     group = [inv]
+                    # Logic Specific: Group Affinity
                     if strategy_params.get('group_affinity', True):
                         affinities = list(inv.affinities.filter(
                             status=Invitation.Status.CONFIRMED,
@@ -391,16 +437,23 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         ).exclude(id__in=processed_ids))
                         group.extend(affinities)
                     
+                    # Try to assign whole group to same accommodation
                     assigned_group = False
+                    
+                    # Sort Accommodations? (Maybe by capacity)
                     accommodations.sort(key=lambda a: a.available_capacity(), reverse=True)
 
                     for acc in accommodations:
+                        # Check if whole group fits in accommodation
+                        # Simulation of group assignment
                         sid_group = transaction.savepoint()
                         group_success = True
+                        
                         for g_inv in group:
                             if not assign_invitation(g_inv, acc):
                                 group_success = False
                                 break
+                        
                         if group_success:
                             transaction.savepoint_commit(sid_group)
                             for g_inv in group: processed_ids.add(g_inv.id)
@@ -409,6 +462,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         else:
                             transaction.savepoint_rollback(sid_group)
                     
+                    # Fallback: Assign individually if group failed (unless Cluster Affinity enforced)
                     if not assigned_group and not strategy_params.get('force_cluster', False):
                          for g_inv in group:
                             if g_inv.id in processed_ids: continue
@@ -417,12 +471,14 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                                     processed_ids.add(g_inv.id)
                                     break
 
+                # Calc Stats
                 unassigned_count = Person.objects.filter(
                     invitation__status=Invitation.Status.CONFIRMED,
                     invitation__accommodation_requested=True,
                     assigned_room__isnull=True
                 ).count()
 
+                # Calculate Wasted Beds (Empty slots in occupied rooms)
                 occupied_rooms = Room.objects.filter(assigned_guests__isnull=False).distinct()
                 for r in occupied_rooms:
                     slots = r.available_slots()
@@ -436,30 +492,54 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     'wasted_beds': wasted_beds,
                     'assignment_log': assignment_log
                 }
+
             except Exception as e:
                 logger.error(f"Strategy {strategy_key} failed: {e}", exc_info=True)
                 results = {'error': str(e)}
+            
             finally:
-                if dry_run: transaction.savepoint_rollback(sid)
-                else: transaction.savepoint_commit(sid)
+                # Se è una simulazione o se c'è stato errore, Rollback totale
+                if dry_run:
+                    transaction.savepoint_rollback(sid)
+                else:
+                    transaction.savepoint_commit(sid)
+            
             return results
 
+        # 3. Controller Logic
         if is_simulation:
             simulation_results = []
             for key, params in strategies.items():
-                logger.info(f"Simulating Strategy: {key}")
+                logger.info(f"🧪 Simulating Strategy: {key}")
                 res = run_strategy(key, params, dry_run=True)
                 simulation_results.append(res)
+            
+            # Sort results by efficiency (most assigned, then least wasted)
             simulation_results.sort(key=lambda x: (-x.get('assigned_guests', 0), x.get('wasted_beds', 9999)))
-            return Response({'mode': 'SIMULATION', 'results': simulation_results, 'best_strategy': simulation_results[0]['strategy_code'] if simulation_results else None})
+            
+            return Response({
+                'mode': 'SIMULATION',
+                'results': simulation_results,
+                'best_strategy': simulation_results[0]['strategy_code'] if simulation_results else None
+            })
+        
         else:
-            if strategy_code not in strategies: return Response({'error': 'Invalid Strategy'}, status=status.HTTP_400_BAD_REQUEST)
+            # Execute specific strategy
+            if strategy_code not in strategies:
+                return Response({'error': 'Invalid Strategy'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"🚀 Executing Strategy: {strategy_code}")
             result = run_strategy(strategy_code, strategies[strategy_code], dry_run=False)
-            return Response({'mode': 'EXECUTION', 'result': result})
+            return Response({
+                'mode': 'EXECUTION',
+                'result': result
+            })
 
 class DashboardStatsView(APIView):
+    """Statistiche dashboard (solo admin)"""
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        
         confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
         pending_invitations = Invitation.objects.filter(status=Invitation.Status.PENDING)
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
@@ -467,13 +547,19 @@ class DashboardStatsView(APIView):
         adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False).count()
         children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True).count()
         
+        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False).count()
+        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True).count()
+        
+        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False).count()
+        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True).count()
+
         stats_guests = {
             'adults_confirmed': adults_confirmed,
             'children_confirmed': children_confirmed,
-            'adults_pending': Person.objects.filter(invitation__in=pending_invitations, is_child=False).count(),
-            'children_pending': Person.objects.filter(invitation__in=pending_invitations, is_child=True).count(),
-            'adults_declined': Person.objects.filter(invitation__in=declined_invitations, is_child=False).count(),
-            'children_declined': Person.objects.filter(invitation__in=declined_invitations, is_child=True).count(),
+            'adults_pending': adults_pending,
+            'children_pending': children_pending,
+            'adults_declined': adults_declined,
+            'children_declined': children_declined,
         }
 
         acc_confirmed_adults = 0
@@ -483,38 +569,67 @@ class DashboardStatsView(APIView):
         for inv in confirmed_invitations:
             inv_adults = inv.guests.filter(is_child=False).count()
             inv_children = inv.guests.filter(is_child=True).count()
+            
             if inv.accommodation_requested:
                 acc_confirmed_adults += inv_adults
                 acc_confirmed_children += inv_children
+            
             if inv.transfer_requested:
                 trans_confirmed += (inv_adults + inv_children)
 
+        def calculate_cost(adults, children, acc_adults, acc_children, transfers):
+            total = 0
+            total += float(adults) * float(config.price_adult_meal)
+            total += float(children) * float(config.price_child_meal)
+            total += float(acc_adults) * float(config.price_accommodation_adult)
+            total += float(acc_children) * float(config.price_accommodation_child)
+            total += float(transfers) * float(config.price_transfer)
+            return total
+
+        cost_confirmed = calculate_cost(
+            adults_confirmed, children_confirmed,
+            acc_confirmed_adults, acc_confirmed_children,
+            trans_confirmed
+        )
+
+        est_acc_adults = acc_confirmed_adults
+        est_acc_children = acc_confirmed_children
+        est_trans = trans_confirmed
+
+        for inv in pending_invitations:
+            inv_adults = inv.guests.filter(is_child=False).count()
+            inv_children = inv.guests.filter(is_child=True).count()
+            
+            if inv.accommodation_offered:
+                est_acc_adults += inv_adults
+                est_acc_children += inv_children
+            
+            if inv.transfer_offered:
+                est_trans += (inv_adults + inv_children)
+
+        cost_total_estimated = calculate_cost(
+            adults_confirmed + adults_pending,
+            children_confirmed + children_pending,
+            est_acc_adults,
+            est_acc_children,
+            est_trans
+        )
+
         return Response({
             'guests': stats_guests,
-            'logistics': {'accommodation': {'confirmed_adults': acc_confirmed_adults, 'confirmed_children': acc_confirmed_children}, 'transfer': {'confirmed': trans_confirmed}},
+            'logistics': {
+                'accommodation': {
+                    'confirmed_adults': acc_confirmed_adults,
+                    'confirmed_children': acc_confirmed_children,
+                    'total_confirmed': acc_confirmed_adults + acc_confirmed_children
+                },
+                'transfer': {
+                    'confirmed': trans_confirmed
+                }
+            },
+            'financials': {
+                'confirmed': cost_confirmed,
+                'estimated_total': cost_total_estimated,
+                'currency': '€'
+            }
         })
-
-class WhatsAppMessageQueueViewSet(viewsets.ModelViewSet):
-    """
-    CRUD completo per la coda messaggi.
-    Permette al frontend-admin di monitorare lo stato di invio.
-    """
-    queryset = WhatsAppMessageQueue.objects.all().order_by('-scheduled_for')
-    serializer_class = WhatsAppMessageQueueSerializer
-
-    @action(detail=False, methods=['post'], url_path='retry-failed')
-    def retry_failed(self, request):
-        """Resetta messaggi falliti/saltati a Pending"""
-        updated_count = WhatsAppMessageQueue.objects.filter(
-            status__in=['failed', 'skipped']
-        ).update(status='pending', attempts=0, error_log=None)
-        return Response({'message': f'{updated_count} messaggi ri-accodati.', 'count': updated_count})
-
-    @action(detail=True, methods=['post'], url_path='force-send')
-    def force_send(self, request, pk=None):
-        """Forza l'invio immediato di un singolo messaggio"""
-        msg = self.get_object()
-        msg.status = 'pending'
-        msg.scheduled_for = timezone.now()
-        msg.save()
-        return Response({'message': 'Messaggio impostato con priorità immediata.'})

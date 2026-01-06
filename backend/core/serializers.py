@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Invitation, Person, GlobalConfig, Accommodation, Room, WhatsAppMessageQueue
+from .models import Invitation, Person, GlobalConfig, Accommodation, Room
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -100,8 +100,33 @@ class InvitationAssignmentSerializer(serializers.ModelSerializer):
         return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    rooms = RoomSerializer(many=True, write_only=True)
-    rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms')
+    # READ ONLY: Per la visualizzazione, usiamo i dettagli completi
+    rooms = RoomDetailSerializer(many=True, read_only=True)
+    
+    # WRITE ONLY: Per input JSON, accettiamo direttamente 'rooms'
+    # source='rooms' non serve qui perché gestiamo tutto nel create/update manualmente
+    # ma serve al framework per capire che è collegato. 
+    # Tuttavia, la discrepanza tra 'rooms' (read) e 'rooms' (write) crea problemi se usiamo nomi diversi.
+    # FIX: Usiamo lo stesso nome 'rooms' sia per input che per output, ma con serializer diversi
+    # Questo è complesso in DRF semplice.
+    
+    # APPROCCIO MIGLIORE: Accettiamo 'rooms' in input (JSON) che viene mappato su 'rooms_config'
+    # Ma il tuo JSON di input usa 'rooms'.
+    
+    # ridefiniamo 'rooms' per essere WRITABLE ma usando il serializer semplice in input
+    # e quello complesso in output? No, DRF non lo supporta bene.
+    
+    # SOLUZIONE FUNZIONANTE:
+    # rooms = RoomDetailSerializer(many=True, read_only=True)
+    # rooms_input = RoomSerializer(many=True, write_only=True, source='rooms') <-- Questo aspetta "rooms_input" nel JSON
+    
+    # Il tuo JSON ha "rooms".
+    # Quindi dobbiamo dire: "il campo 'rooms' è writable e usa RoomSerializer".
+    # Ma in lettura vogliamo RoomDetailSerializer.
+    
+    # OVERRIDE per gestire il polimorfismo Read/Write
+    rooms = RoomSerializer(many=True, write_only=True)  # Input JSON "rooms" usa RoomSerializer
+    rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Output JSON "rooms_details" usa RoomDetailSerializer
 
     assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
     total_capacity = serializers.IntegerField(read_only=True)
@@ -119,8 +144,11 @@ class AccommodationSerializer(serializers.ModelSerializer):
         ]
 
     def to_representation(self, instance):
+        """Override per restituire 'rooms' con i dettagli in lettura, nascondendo 'rooms_details'"""
         representation = super().to_representation(instance)
+        # Sostituiamo 'rooms' (che sarebbe vuoto o base) con i dettagli
         representation['rooms'] = RoomDetailSerializer(instance.rooms.all(), many=True).data
+        # Rimuoviamo il campo duplicato se presente
         representation.pop('rooms_details', None)
         return representation
 
@@ -138,6 +166,7 @@ class AccommodationSerializer(serializers.ModelSerializer):
         instance.save()
 
         if rooms_data is not None:
+            # Strategia: cancella e ricrea (safe per Admin UI)
             instance.rooms.all().delete()
             for room_data in rooms_data:
                 Room.objects.create(accommodation=instance, **room_data)
@@ -147,7 +176,7 @@ class AccommodationSerializer(serializers.ModelSerializer):
 
 class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
-    accommodation = AccommodationSerializer(read_only=True)
+    accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
     
     class Meta:
         model = Invitation
@@ -178,10 +207,12 @@ class InvitationSerializer(serializers.ModelSerializer):
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
 
+        # 1. Update Invitation Fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
 
+        # 2. Update Guests (preserva assigned_room se presente)
         if guests_data is not None:
             existing_guests = {g.id: g for g in instance.guests.all()}
             incoming_guest_ids = []
@@ -191,10 +222,12 @@ class InvitationSerializer(serializers.ModelSerializer):
                 if g_id and g_id in existing_guests:
                     guest = existing_guests[g_id]
                     guest.first_name = g_data.get('first_name', guest.first_name)
+                    
                     if 'last_name' in g_data: guest.last_name = g_data['last_name']
                     if 'is_child' in g_data: guest.is_child = g_data['is_child']
                     if 'dietary_requirements' in g_data: guest.dietary_requirements = g_data['dietary_requirements']
                     if 'assigned_room' in g_data: guest.assigned_room_id = g_data['assigned_room']
+                        
                     guest.save()
                     incoming_guest_ids.append(g_id)
                 else:
@@ -206,6 +239,7 @@ class InvitationSerializer(serializers.ModelSerializer):
                 if g_id not in incoming_guest_ids:
                     guest.delete()
 
+        # 3. Update Affinities
         self._handle_affinities(instance, affinities, non_affinities)
 
         return instance
@@ -215,6 +249,7 @@ class InvitationSerializer(serializers.ModelSerializer):
             invitation.affinities.set(affinities)
             for related in affinities:
                 related.affinities.add(invitation)
+                
         if non_affinities is not None:
             invitation.non_affinities.set(non_affinities)
             for related in non_affinities:
@@ -233,10 +268,3 @@ class InvitationListSerializer(serializers.ModelSerializer):
             'accommodation_requested', 'transfer_requested',
             'status', 'accommodation_name'
         ]
-
-class WhatsAppMessageQueueSerializer(serializers.ModelSerializer):
-    """Serializer per la coda messaggi"""
-    class Meta:
-        model = WhatsAppMessageQueue
-        fields = '__all__'
-        read_only_fields = ['attempts', 'error_log', 'sent_at']
