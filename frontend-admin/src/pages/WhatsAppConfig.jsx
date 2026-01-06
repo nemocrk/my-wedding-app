@@ -5,16 +5,15 @@ import { api } from '../services/api';
 const WhatsAppConfig = () => {
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
   const [brideStatus, setBrideStatus] = useState({ state: 'loading' });
-  const [activeModal, setActiveModal] = useState(null); // 'groom' or 'bride' or null
+  const [activeModal, setActiveModal] = useState(null); 
   const [qrCodeData, setQrCodeData] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
-  const [testLoading, setTestLoading] = useState(null); // 'groom' or 'bride'
+  const [testLoading, setTestLoading] = useState(null); 
 
   useEffect(() => {
     fetchStatuses();
   }, []);
 
-  // Cleanup polling on unmount
   useEffect(() => {
     return () => stopPolling();
   }, []);
@@ -25,6 +24,8 @@ const WhatsAppConfig = () => {
         api.getWhatsAppStatus('groom').catch(() => ({ state: 'error' })),
         api.getWhatsAppStatus('bride').catch(() => ({ state: 'error' }))
       ]);
+      console.log("Groom Status Received:", groom); // DEBUG LOG
+      console.log("Bride Status Received:", bride); // DEBUG LOG
       setGroomStatus(groom);
       setBrideStatus(bride);
     } catch (error) {
@@ -46,7 +47,6 @@ const WhatsAppConfig = () => {
           closeModal();
           fetchStatuses();
         } else if (data.qr_code && !qrCodeData) {
-            // Aggiorna QR se arriva in ritardo
             setQrCodeData(data.qr_code);
         }
       } catch (e) {
@@ -62,24 +62,18 @@ const WhatsAppConfig = () => {
 
   const handleRefresh = async (sessionType) => {
     try {
-      // 1. Apri subito la modale in stato di caricamento (qrCodeData = null)
       setQrCodeData(null);
       setActiveModal(sessionType);
       
-      // 2. Chiama l'API
       const data = await api.refreshWhatsAppSession(sessionType);
 
       if (data.state === 'waiting_qr' || data.state === 'connecting') {
-        // Se c'è il QR, mostralo. Se no, rimarrà il loader finché il polling non lo trova.
         if (data.qr_code) setQrCodeData(data.qr_code);
-        
-        // Avvia polling per intercettare il collegamento o l'arrivo del QR
         startPolling(sessionType);
       } else if (data.state === 'connected') {
         closeModal();
         fetchStatuses();
       } else {
-        // Errore o altro stato imprevisto
         closeModal();
         alert(`Stato imprevisto: ${data.state}`);
         fetchStatuses();
@@ -148,14 +142,14 @@ const WhatsAppConfig = () => {
         </div>
 
         {isConnected && profile && (
-            <div className="mb-6 p-3 bg-gray-50 rounded-md border border-gray-100">
+            <div className="mb-6 p-3 bg-blue-50 rounded-md border border-blue-100">
                 <div className="flex items-center gap-3">
-                    <div className="p-2 bg-green-100 rounded-full">
-                        <User className="w-5 h-5 text-green-700" />
+                    <div className="p-2 bg-blue-100 rounded-full">
+                        <User className="w-5 h-5 text-blue-700" />
                     </div>
                     <div>
-                        <p className="text-sm font-medium text-gray-900">{profile.pushName || 'Utente WhatsApp'}</p>
-                        <p className="text-xs text-gray-500">{profile.id?.split('@')[0] || profile.wid?.user}</p>
+                        <p className="text-sm font-bold text-gray-900">{profile.pushName || 'Utente WhatsApp'}</p>
+                        <p className="text-xs text-gray-600 font-mono">{profile.id?.split('@')[0] || profile.wid?.user}</p>
                     </div>
                 </div>
             </div>
