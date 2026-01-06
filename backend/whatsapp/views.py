@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from django.conf import settings
 import requests
 import os
+import time
 from core.models import WhatsAppSessionStatus
 
 # Helper per URL integration
@@ -21,18 +22,18 @@ def whatsapp_status(request, session_type):
     
     # Poi prova a chiedere al layer integration lo stato real-time
     try:
-        # Nota: La porta corretta per whatsapp-integration in rete docker è 3000 (o 4000 se cambiato)
-        # Verificare server.js -> porta 3000
         integration_url = f"{get_integration_url()}/{session_type}/status"
         resp = requests.get(integration_url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             # Aggiorna DB
             status_obj.state = data.get('state', 'error')
-            # Se lo stato è waiting_qr, potremmo avere dettagli extra ma qui salviamo solo stato
+            # Se siamo in waiting_qr e la chiamata status ritorna il QR (dipende dall'impl di integration), salviamolo
+            if data.get('qr_code'):
+                status_obj.last_qr_code = data.get('qr_code')
+            
             status_obj.save()
     except Exception as e:
-        # Se fallisce, logga ma non rompere tutto
         print(f"Integration error: {e}")
         pass
         
@@ -40,7 +41,8 @@ def whatsapp_status(request, session_type):
         'session_type': session_type,
         'state': status_obj.state,
         'last_check': status_obj.last_check,
-        'error_message': status_obj.error_message
+        'error_message': status_obj.error_message,
+        'qr_code': status_obj.last_qr_code if status_obj.state == 'waiting_qr' else None
     })
 
 @api_view(['GET'])
@@ -62,9 +64,26 @@ def whatsapp_refresh_status(request, session_type):
     """POST /api/admin/whatsapp/<groom|bride>/refresh/"""
     integration_url = f"{get_integration_url()}/{session_type}/refresh"
     try:
+        # 1. Trigger del refresh/start sessione
         resp = requests.post(integration_url, timeout=10)
         data = resp.json()
         
+        # 2. Ottimizzazione UX: Se lo stato è waiting_qr ma non abbiamo il QR nel body della risposta
+        # (o se integration sta ancora avviando il browser), aspettiamo un attimo e riproviamo il fetch del QR
+        if data.get('state') in ['connecting', 'waiting_qr'] and not data.get('qr_code'):
+            time.sleep(2.0) # Attesa attiva per dare tempo a WAHA di generare il QR
+            
+            try:
+                # Chiediamo esplicitamente il QR
+                qr_resp = requests.get(f"{get_integration_url()}/{session_type}/qr", timeout=5)
+                if qr_resp.status_code == 200:
+                    qr_data = qr_resp.json()
+                    if qr_data.get('qr_code'):
+                        data['qr_code'] = qr_data['qr_code']
+                        data['state'] = 'waiting_qr' # Forziamo stato visuale
+            except Exception:
+                pass # Se fallisce, amen, ci penserà il polling frontend
+
         # Aggiorna il DB
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
         status_obj.state = data.get('state', 'error')
