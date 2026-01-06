@@ -121,6 +121,31 @@ services:
       start_period: 40s
     expose:
       - "8000"
+      
+  # ---------------------------------------------
+  # 2b. BACKEND WORKER - Gestore Coda Messaggi
+  # ---------------------------------------------
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+    command: python manage.py run_whatsapp_worker
+    restart: always
+    volumes:
+      - ./backend:/app
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
+      DJANGO_SETTINGS_MODULE: wedding.settings
+      SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
+      WAHA_WORKER_INTERVAL: ${WAHA_WORKER_INTERVAL:-60}
+      WA_INTEGRATION_URL: http://whatsapp-integration:3000
+    networks:
+      - db_network
+      - whatsapp_intranet_network
 
   # ---------------------------------------------
   # 3. FRONTEND USER - Internet pubblico via Nginx
@@ -210,6 +235,8 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      whatsapp-integration:
+         condition: service_started
     networks:
       - frontend_intranet_network
       - backend_network
@@ -219,6 +246,57 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      
+  # ---------------------------------------------
+  # 7. WHATSAPP SERVICES (Isolated)
+  # ---------------------------------------------
+  
+  # WAHA Core - Sposo
+  waha-groom:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      # Free Tier config (no swagger, no dashboard in prod)
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
+    networks:
+      - whatsapp_intranet_network
+    volumes:
+      - waha_groom_data:/app/sessions
+
+  # WAHA Core - Sposa
+  waha-bride:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
+    networks:
+      - whatsapp_intranet_network
+    volumes:
+      - waha_bride_data:/app/sessions
+
+  # Integration Layer (Proxy & Logic)
+  whatsapp-integration:
+    image: node:18-alpine
+    working_dir: /app
+    volumes:
+      - ./backend/whatsapp-integration:/app
+    command: sh -c "npm install && node server.js"
+    depends_on:
+      - waha-groom
+      - waha-bride
+    environment:
+      PORT: 3000
+      WAHA_GROOM_URL: 'http://waha-groom:3000'
+      WAHA_BRIDE_URL: 'http://waha-bride:3000'
+      WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM:-secret}
+      WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE:-secret}
+    networks:
+      - backend_network          # Per ricevere da Nginx Intranet / API
+      - whatsapp_intranet_network # Per parlare con container WAHA
+    expose:
+      - "3000"
 
 # ---------------------------------------------
 # RETI - Isolamento completo tra componenti
@@ -241,6 +319,11 @@ networks:
   # Rete frontend intranet - accessibile solo via localhost
   frontend_intranet_network:
     driver: bridge
+    
+  # Rete whatsapp - isolata per container waha
+  whatsapp_intranet_network:
+    internal: true
+    driver: bridge
 
 # ---------------------------------------------
 # VOLUMI PERSISTENTI
@@ -251,4 +334,8 @@ volumes:
   static_volume:
     driver: local
   media_volume:
+    driver: local
+  waha_groom_data:
+    driver: local
+  waha_bride_data:
     driver: local
