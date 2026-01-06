@@ -3,11 +3,14 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from core.views import (
     # Admin Views
-    InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet, WhatsAppMessageQueueViewSet,
+    InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet,
     # Public Views
     PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView
 )
+# Importa WhatsApp ViewSet dal modulo corretto
+from whatsapp.views import WhatsAppMessageQueueViewSet, WhatsAppMessageEventViewSet
+
 from django.http import HttpResponse
 
 def health_check(request):
@@ -20,8 +23,11 @@ admin_router = DefaultRouter(trailing_slash=True)  # Forza trailing slash
 admin_router.register(r'invitations', InvitationViewSet, basename='admin-invitation')
 admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-accommodation')
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
-# Nuova route per la coda messaggi
+
+# Viewset spostati dal core a whatsapp per pulizia, ma registrati qui per mantenere endpoint unificati sotto /api/admin/
 admin_router.register(r'whatsapp-queue', WhatsAppMessageQueueViewSet, basename='admin-whatsapp-queue')
+admin_router.register(r'whatsapp-events', WhatsAppMessageEventViewSet, basename='admin-whatsapp-events')
+
 
 urlpatterns = [
     # ========================================
@@ -42,7 +48,10 @@ urlpatterns = [
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
     
     # --- WHATSAPP INTEGRATION ROUTES (Admin Only) ---
-    path('api/admin/whatsapp/', include('whatsapp.urls')),
+    # Include urls specifici per actions (status, qr, refresh, logout)
+    # Nota: abbiamo spostato i ViewSet nel router principale sopra, quindi in whatsapp.urls
+    # lasciamo solo le function-based views o i router specifici se necessario.
+    path('api/admin/', include('whatsapp.urls')),
 
     # ========================================
     # PUBLIC API (Internet - Guest Access)
