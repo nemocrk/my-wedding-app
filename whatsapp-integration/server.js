@@ -64,6 +64,42 @@ async function logEvent(queueId, phase, durationMs = null, metadata = {}) {
     }
 }
 
+// Helper per estrarre dettagli errore da risposta axios
+function extractErrorDetails(error, context) {
+    const details = {
+        context,
+        message: error.message,
+        code: error.code,
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        responseData: error.response?.data,
+        stack: error.stack
+    };
+    
+    console.error(`[ERROR CHAIN - ${context}]`, JSON.stringify(details, null, 2));
+    
+    // Costruisci messaggio di errore user-friendly ma completo
+    let userMessage = `${context}: ${error.message}`;
+    
+    if (error.response?.data) {
+        if (typeof error.response.data === 'string') {
+            userMessage += ` - ${error.response.data}`;
+        } else if (error.response.data.error) {
+            userMessage += ` - ${error.response.data.error}`;
+        } else if (error.response.data.message) {
+            userMessage += ` - ${error.response.data.message}`;
+        } else {
+            userMessage += ` - ${JSON.stringify(error.response.data)}`;
+        }
+    }
+    
+    if (error.response?.status) {
+        userMessage += ` (HTTP ${error.response.status})`;
+    }
+    
+    return { details, userMessage };
+}
+
 async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null) {
     const apiKey = WAHA_API_KEYS[sessionType]; 
     const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
@@ -79,10 +115,12 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null)
         await logEvent(queueId, 'reading', null, { session: sessionType, chatId });
         
         try {
-            await axios.post(`${wahaUrl}/api/sendSeen`, { chatId, session: SESSION_NAME }, { headers });
-            console.log(`[${sessionType}] Marked as seen for ${chatId}`);
+            console.log(`[${sessionType}] Calling sendSeen for ${chatId}`);
+            const seenResp = await axios.post(`${wahaUrl}/api/sendSeen`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${sessionType}] sendSeen response:`, seenResp.status, seenResp.data);
         } catch (e) {
-            console.warn(`[${sessionType}] Failed sendSeen: ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'sendSeen');
+            console.warn(`[${sessionType}] Failed sendSeen (non-blocking): ${userMessage}`);
         }
         
         const readingDuration = Date.now() - readingStart;
@@ -101,9 +139,12 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null)
         await logEvent(queueId, 'typing', null, { text_length: text.length });
         
         try {
-            await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${sessionType}] Calling startTyping for ${chatId}`);
+            const typingResp = await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${sessionType}] startTyping response:`, typingResp.status, typingResp.data);
         } catch (e) {
-            console.warn(`[${sessionType}] Failed startTyping: ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'startTyping');
+            console.warn(`[${sessionType}] Failed startTyping (non-blocking): ${userMessage}`);
         }
 
         // Calculate typing duration based on text length
@@ -112,23 +153,35 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null)
 
         // 4. STOP TYPING
         try {
-            await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${sessionType}] Calling stopTyping for ${chatId}`);
+            const stopResp = await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${sessionType}] stopTyping response:`, stopResp.status, stopResp.data);
         } catch (e) {
-            console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'stopTyping');
+            console.warn(`[${sessionType}] Failed stopTyping (non-blocking): ${userMessage}`);
         }
         
         const typingDuration = Date.now() - typingStart;
 
-        // 5. SEND MESSAGE
+        // 5. SEND MESSAGE (CRITICAL - Errors here are blocking)
         const sendStart = Date.now();
         emitStatus(sessionType, chatId, 'sending');
         await logEvent(queueId, 'sending');
         
-        const result = await axios.post(`${wahaUrl}/api/sendText`, {
-            chatId,
-            text,
-            session: SESSION_NAME
-        }, { headers });
+        console.log(`[${sessionType}] Calling sendText for ${chatId}, message length: ${text.length}`);
+        let result;
+        try {
+            result = await axios.post(`${wahaUrl}/api/sendText`, {
+                chatId,
+                text,
+                session: SESSION_NAME
+            }, { headers });
+            console.log(`[${sessionType}] sendText SUCCESS:`, result.status, JSON.stringify(result.data));
+        } catch (e) {
+            const { userMessage } = extractErrorDetails(e, 'sendText');
+            console.error(`[${sessionType}] sendText FAILED - throwing error`);
+            throw new Error(userMessage); // Re-throw con messaggio arricchito
+        }
         
         const sendDuration = Date.now() - sendStart;
         
@@ -138,13 +191,24 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null)
             total_duration_ms: Date.now() - readingStart
         });
         
+        console.log(`[${sessionType}] Human-like sequence completed successfully for ${chatId}`);
         return result;
     } catch (error) {
         // Emit failed status on error
-        console.error(`[${sessionType}] Failed to send message to ${chatId}: ${error.message}`);
+        console.error(`[${sessionType}] FATAL: Human-like sequence failed for ${chatId}`);
+        const { details, userMessage } = extractErrorDetails(error, 'sendHumanLike');
+        
         emitStatus(sessionType, chatId, 'failed');
-        await logEvent(queueId, 'failed', null, { error: error.message });
-        throw error; // Re-throw per gestione a livello endpoint
+        await logEvent(queueId, 'failed', null, { 
+            error: userMessage,
+            errorDetails: details 
+        });
+        
+        // Re-throw con messaggio user-friendly preservando dettagli
+        const enrichedError = new Error(userMessage);
+        enrichedError.originalError = error;
+        enrichedError.details = details;
+        throw enrichedError;
     }
 }
 
@@ -180,10 +244,12 @@ app.get('/:session_type/status', async (req, res) => {
 
   try {
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+    console.log(`[${session_type}] Fetching status from ${wahaUrl}`);
     const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
       headers,
       timeout: 5000
     });
+    console.log(`[${session_type}] Status response:`, response.status, response.data.status);
     
     const data = response.data;
     let state = 'disconnected';
@@ -195,11 +261,12 @@ app.get('/:session_type/status', async (req, res) => {
     // FETCH PROFILE INFO (incluso picture) se connesso
     if (state === 'connected') {
         try {
-            // WAHA API ufficiale: GET /api/{session}/profile
+            console.log(`[${session_type}] Fetching profile info`);
             const profileResp = await axios.get(`${wahaUrl}/api/default/profile`, { 
                 headers, 
                 timeout: 3000 
             });
+            console.log(`[${session_type}] Profile fetched:`, profileResp.data);
             
             if (profileResp.data) {
                 data.me = { 
@@ -209,13 +276,15 @@ app.get('/:session_type/status', async (req, res) => {
                 };
             }
         } catch (e) {
-            console.warn(`Failed to fetch profile: ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'fetchProfile');
+            console.warn(`Failed to fetch profile: ${userMessage}`);
         }
     }
 
     res.json({ state, raw: data });
   } catch (error) {
-    res.json({ state: 'error', error: error.message });
+    const { userMessage } = extractErrorDetails(error, 'getStatus');
+    res.json({ state: 'error', error: userMessage });
   }
 });
 
@@ -225,16 +294,19 @@ app.get('/:session_type/qr', async (req, res) => {
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
+    console.log(`[${session_type}] Fetching QR code`);
     const response = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       responseType: 'arraybuffer',
       timeout: 10000
     });
+    console.log(`[${session_type}] QR code fetched, size: ${response.data.length} bytes`);
     
     const base64Image = Buffer.from(response.data, 'binary').toString('base64');
     res.json({ qr_code: `data:image/png;base64,${base64Image}` });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    const { userMessage } = extractErrorDetails(error, 'getQR');
+    res.status(500).json({ error: userMessage });
   }
 });
 
@@ -249,9 +321,13 @@ app.post('/:session_type/refresh', async (req, res) => {
     
     let status = 'UNKNOWN';
     try {
+        console.log(`[${session_type}] Refresh: checking current status`);
         const s = await axios.get(statusUrl, { headers, timeout: 5000 });
         status = s.data.status;
+        console.log(`[${session_type}] Refresh: current status is ${status}`);
     } catch (e) {
+        const { userMessage } = extractErrorDetails(e, 'refreshStatusCheck');
+        console.warn(`Refresh status check failed: ${userMessage}`);
         status = 'STOPPED';
     }
 
@@ -260,6 +336,7 @@ app.post('/:session_type/refresh', async (req, res) => {
     }
     
     if (status === 'SCAN_QR_CODE') {
+       console.log(`[${session_type}] Refresh: fetching QR for scan state`);
        const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { 
           headers, responseType: 'arraybuffer' 
        });
@@ -268,14 +345,17 @@ app.post('/:session_type/refresh', async (req, res) => {
     }
 
     try {
+        console.log(`[${session_type}] Refresh: starting session`);
         await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers });
         return res.json({ state: 'connecting', message: 'Session start triggered' });
     } catch (e) {
-        return res.json({ state: 'error', error: 'Failed to start session: ' + e.message });
+        const { userMessage } = extractErrorDetails(e, 'sessionStart');
+        return res.json({ state: 'error', error: userMessage });
     }
 
   } catch (error) {
-    res.status(500).json({ state: 'error', error: error.message });
+    const { userMessage } = extractErrorDetails(error, 'refresh');
+    res.status(500).json({ state: 'error', error: userMessage });
   }
 });
 
@@ -289,29 +369,33 @@ app.post('/:session_type/logout', async (req, res) => {
     try {
         const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
         
-        // Timeout aggressivi per evitare che la richiesta si impalli lato Django
+        console.log(`[${session_type}] Logout: starting logout sequence`);
         
         // 1. Try Logout (3s timeout)
         try {
              await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers, timeout: 3000 });
+             console.log(`[${session_type}] Logout: logout call succeeded`);
         } catch (e) {
-            console.warn(`Logout warn (proceeding anyway): ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'logout');
+            console.warn(`Logout warn (proceeding anyway): ${userMessage}`);
         }
         
-        await sleep(500); // Ridotto sleep a 0.5s
+        await sleep(500);
 
         // 2. Try Stop (4s timeout)
         try {
             await axios.post(`${wahaUrl}/api/sessions/default/stop`, {}, { headers, timeout: 4000 });
+            console.log(`[${session_type}] Logout: stop call succeeded`);
         } catch (e) {
-             console.warn(`Stop warn (proceeding anyway): ${e.message}`);
+            const { userMessage } = extractErrorDetails(e, 'sessionStop');
+            console.warn(`Stop warn (proceeding anyway): ${userMessage}`);
         }
 
-        // Restituisce sempre successo per permettere all'utente di resettare lo stato lato UI
         res.json({ state: 'disconnected', message: 'Logged out successfully' });
     } catch (error) {
-        console.error(`Logout fatal error for ${session_type}:`, error.message);
-        res.status(500).json({ error: error.message });
+        const { userMessage } = extractErrorDetails(error, 'logout');
+        console.error(`Logout fatal error for ${session_type}`);
+        res.status(500).json({ error: userMessage });
     }
 });
 
@@ -328,14 +412,21 @@ app.post('/:session_type/send', async (req, res) => {
     const cleanPhone = phone.replace(/[^0-9]/g, '');
     const chatId = `${cleanPhone}@c.us`;
 
+    console.log(`[${session_type}] Send request received for ${phone} (queue_id: ${queue_id})`);
+
     try {
         await sendHumanLike(wahaUrl, session_type, chatId, message, queue_id);
+        console.log(`[${session_type}] Send completed successfully for ${phone}`);
         res.json({ status: 'sent', timestamp: new Date() });
     } catch (error) {
-        console.error(`Error sending to ${phone}:`, error.message);
+        console.error(`[${session_type}] Send FAILED for ${phone}`);
+        const { userMessage } = extractErrorDetails(error, 'send');
         
-        // Emit failed already done in sendHumanLike catch block
-        res.status(500).json({ error: error.message });
+        res.status(500).json({ 
+            error: userMessage,
+            phone,
+            queue_id 
+        });
     }
 });
 
