@@ -31,7 +31,7 @@ def whatsapp_status(request, session_type):
                 status_obj.last_qr_code = data.get('qr_code')
             status_obj.save()
             
-            # Estrazione Info Profilo robusta
+            # Estrazione Info Profilo
             # WAHA a volte ritorna: { raw: { me: {...} } } o a volte { me: {...} } nei custom endpoint
             raw_data = data.get('raw', {})
             
@@ -120,7 +120,8 @@ def whatsapp_logout(request, session_type):
     """POST /api/admin/whatsapp/<groom|bride>/logout/"""
     integration_url = f"{get_integration_url()}/{session_type}/logout"
     try:
-        resp = requests.post(integration_url, timeout=10)
+        # Aumentato timeout a 15s perché WAHA può essere lento a stopparsi
+        resp = requests.post(integration_url, timeout=15)
         data = resp.json()
         
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
@@ -148,7 +149,6 @@ def whatsapp_send_test(request, session_type):
             
         status_data = status_resp.json()
         
-        # Logica di estrazione duplicata qui per sicurezza (o refactoring in funzione helper)
         raw_data = status_data.get('raw', {})
         me = raw_data.get('me')
         if not me: me = status_data.get('me')
