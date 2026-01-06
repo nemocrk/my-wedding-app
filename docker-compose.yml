@@ -276,7 +276,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_GROOM:-secret}' http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -303,7 +303,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_BRIDE:-secret}' http://localhost:3000/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
