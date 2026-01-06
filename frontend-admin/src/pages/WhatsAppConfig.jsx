@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader, LogOut } from 'lucide-react';
+import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader, LogOut, Send, User } from 'lucide-react';
 import { api } from '../services/api';
 
 const WhatsAppConfig = () => {
@@ -8,6 +8,7 @@ const WhatsAppConfig = () => {
   const [activeModal, setActiveModal] = useState(null); // 'groom' or 'bride' or null
   const [qrCodeData, setQrCodeData] = useState(null);
   const [isPolling, setIsPolling] = useState(false);
+  const [testLoading, setTestLoading] = useState(null); // 'groom' or 'bride'
 
   useEffect(() => {
     fetchStatuses();
@@ -67,7 +68,6 @@ const WhatsAppConfig = () => {
       } else if (data.state === 'connected') {
         fetchStatuses();
       } else {
-        // Update local state to reflect new status (e.g. connecting)
         sessionType === 'groom' ? setGroomStatus(data) : setBrideStatus(data);
       }
     } catch (error) {
@@ -80,9 +80,21 @@ const WhatsAppConfig = () => {
       
       try {
           await api.logoutWhatsAppSession(sessionType);
-          fetchStatuses(); // Ricarica stato
+          fetchStatuses(); 
       } catch (error) {
           alert('Errore durante il logout: ' + error.message);
+      }
+  };
+
+  const handleTestMessage = async (sessionType) => {
+      setTestLoading(sessionType);
+      try {
+          const res = await api.sendWhatsAppTest(sessionType);
+          alert(`Messaggio inviato con successo a ${res.recipient}! Controlla il telefono.`);
+      } catch (error) {
+          alert('Errore invio messaggio test: ' + error.message);
+      } finally {
+          setTestLoading(null);
       }
   };
 
@@ -96,6 +108,7 @@ const WhatsAppConfig = () => {
     const isConnected = status.state === 'connected';
     const isError = status.state === 'error';
     const isLoading = status.state === 'loading';
+    const profile = status.profile;
 
     return (
       <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
@@ -119,34 +132,61 @@ const WhatsAppConfig = () => {
           )}
         </div>
 
+        {isConnected && profile && (
+            <div className="mb-6 p-3 bg-gray-50 rounded-md border border-gray-100">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 bg-green-100 rounded-full">
+                        <User className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div>
+                        <p className="text-sm font-medium text-gray-900">{profile.pushName || 'Utente WhatsApp'}</p>
+                        <p className="text-xs text-gray-500">{profile.id?.split('@')[0] || profile.wid?.user}</p>
+                    </div>
+                </div>
+            </div>
+        )}
+
         <div className="text-sm text-gray-600 mb-6">
-          {status.error_message ? (
+          {!isConnected && (status.error_message ? (
              <p className="text-red-500">{status.error_message}</p>
           ) : (
              <p>Ultimo controllo: {status.last_check ? new Date(status.last_check).toLocaleTimeString() : 'Mai'}</p>
-          )}
+          ))}
         </div>
 
-        <div className="flex gap-2">
-            <button
-            onClick={() => handleRefresh(type)}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
-                isConnected 
-                ? 'bg-blue-600 hover:bg-blue-700' 
-                : 'bg-indigo-600 hover:bg-indigo-700'
-            }`}
-            >
-            {isConnected ? <RefreshCw className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-            {isConnected ? 'Verifica' : 'Collega Account'}
-            </button>
-            
+        <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
+                <button
+                onClick={() => handleRefresh(type)}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                    isConnected 
+                    ? 'bg-blue-600 hover:bg-blue-700' 
+                    : 'bg-indigo-600 hover:bg-indigo-700'
+                }`}
+                >
+                {isConnected ? <RefreshCw className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+                {isConnected ? 'Verifica Stato' : 'Collega Account'}
+                </button>
+                
+                {isConnected && (
+                    <button
+                        onClick={() => handleLogout(type)}
+                        className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                        title="Disconnetti Sessione"
+                    >
+                        <LogOut className="w-4 h-4" />
+                    </button>
+                )}
+            </div>
+
             {isConnected && (
                 <button
-                    onClick={() => handleLogout(type)}
-                    className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                    title="Disconnetti Sessione"
+                    onClick={() => handleTestMessage(type)}
+                    disabled={testLoading === type}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-gray-50 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500 disabled:opacity-50"
                 >
-                    <LogOut className="w-4 h-4" />
+                    {testLoading === type ? <Loader className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                    Invia Messaggio di Test
                 </button>
             )}
         </div>
@@ -162,7 +202,8 @@ const WhatsAppConfig = () => {
         <StatusCard title="Account Sposo" status={groomStatus} type="groom" />
         <StatusCard title="Account Sposa" status={brideStatus} type="bride" />
       </div>
-
+      
+      {/* ... Note e Modale rimangono invariati ... */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
         <h4 className="text-sm font-bold text-blue-800 mb-2">Note Importanti Anti-Ban</h4>
         <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
@@ -172,7 +213,6 @@ const WhatsAppConfig = () => {
         </ul>
       </div>
 
-      {/* QR Code Modal */}
       {activeModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
           <div className="relative bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
