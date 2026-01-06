@@ -153,7 +153,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                 <motion.div 
                     className="layer flap-container"
                     variants={flapVariants}
-                    animate={step >= 3 ? "openBack" : (step >= 2 ? "open" : "closed")}
+                    animate={step > 2 ? "openBack" : (step >= 2 ? "open" : "closed")}
                     style={{ transformOrigin: "top" }}
                 >
                     <img src={flapImg} className="flap-img" alt="Flap" />

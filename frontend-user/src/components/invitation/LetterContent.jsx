@@ -168,28 +168,6 @@ const LetterContent = ({ data }) => {
     >
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
         
-        {/* WAX SEAL (Agganciato al flip-card, quindi ruota con esso se necessario, o sta fuori?) 
-            Se deve essere "in basso a sinistra alla lettera", deve stare NEL container della lettera.
-            Se lo mettiamo dentro flip-card, ruoterà. Se deve stare solo sul fronte, va in flip-card-front.
-            Se deve stare su entrambi... decidiamo che sta sul fronte per ora.
-        */}
-        <motion.div
-            className="wax-seal"
-            initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} // Parte fuori
-            animate={sealControls}
-            style={{ 
-                position: 'absolute',
-                bottom: '1rem',
-                left: '1rem',
-                width: '36%', // Dimensionamento dinamico relativo alla card
-                maxWidth: '90px',
-                zIndex: 30,
-                pointerEvents: 'none'
-            }}
-        >
-            <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-        </motion.div>
-
         <div className="flip-card-inner">
             
             {/* FRONT FACE */}
@@ -234,6 +212,22 @@ const LetterContent = ({ data }) => {
                 >
                     <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
                 </button>
+                <motion.div
+                    className="wax-seal"
+                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} // Parte fuori
+                    animate={sealControls}
+                    style={{ 
+                        position: 'absolute',
+                        bottom: '1rem',
+                        left: '1rem',
+                        width: '36%', // Dimensionamento dinamico relativo alla card
+                        maxWidth: '90px',
+                        zIndex: 30,
+                        pointerEvents: 'none'
+                    }}
+                >
+                    <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                </motion.div>
             </div>
 
             {/* BACK FACE */}
