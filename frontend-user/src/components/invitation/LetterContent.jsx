@@ -179,11 +179,10 @@ const LetterContent = ({ data }) => {
             animate={sealControls}
             style={{ 
                 position: 'absolute',
-                bottom: '6%',
-                left: '6%',
-                width: '18%', // Dimensionamento dinamico relativo alla card
+                bottom: '1rem',
+                left: '1rem',
+                width: '36%', // Dimensionamento dinamico relativo alla card
                 maxWidth: '90px',
-                aspectRatio: '1/1',
                 zIndex: 30,
                 pointerEvents: 'none'
             }}

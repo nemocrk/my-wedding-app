@@ -9,27 +9,15 @@ import LetterContent from './LetterContent';
 
 const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const [step, setStep] = useState(0);
-    const [scale, setScale] = useState(1);
     const [finalY, setFinalY] = useState(-50); // Default fallback
-    const [targetFinalHeight, setTargetFinalHeight] = useState(100); // Default fallback
-    const [targetExtractionDuration, setTargetExtractionDuration] = useState(1); // Default fallback
 
     // Gestione Responsività: Scala tutto in base alla larghezza del device
     useEffect(() => {
         const handleResize = () => {
-            const margin = 40; // 20px per lato di margine di sicurezza
-            
-            // Logica di scaling semplificata ma robusta
-            const newScale = Math.min(1, (window.innerWidth - margin) / 620);
-            setScale(newScale);
-
-            const targetFinalHeight = window.innerHeight/newScale;
+            const margin = 16; // 1rem per lato di margine di sicurezza
             // Calcolo posizione finale per centrare la lettera estratta
-            const calculatedFinalY = -((window.innerHeight - (Math.min(window.innerWidth - 32, 620) * 358 / 620) * newScale) / 2) / newScale;
-            
-            setTargetFinalHeight(targetFinalHeight)
+            const calculatedFinalY = -((window.innerHeight - (Math.min(window.innerWidth - (margin * 2), 620) * 358 / 620) ) / 2);
             setFinalY(calculatedFinalY);
-            setTargetExtractionDuration(1.5);
         };
 
         handleResize();
@@ -51,15 +39,19 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     const waxVariants = {
         attached: { scale: 1, x: '-50%', y: 0, opacity: 1 },
         removed: { 
-            x: 200, y: -200, opacity: 0, scale: 0.5,
-            transition: { duration: 0.8, ease: "backIn" }
+            x: '100vw', y: '-100vh', opacity: 1, scale: 0.8,
+            transition: { duration: 0.6, ease: "easeIn" }
+        },
+        folded: { 
+            x: '-200%', y: '0px', opacity: 1, scale: 0.6, zIndex: 2,
+            transition: { duration: 1, ease: "easeOut" }
         }
     };
 
     // 3. FLAP ANIMATION
     const flapVariants = {
         closed: { rotateX: 0, zIndex: 4 },
-        open: { rotateX: 180, transition: { duration: 0.8, ease: "easeInOut" } },
+        open: { rotateX: 180, transition: { duration: 0.6, ease: "easeInOut" } },
         openBack: { rotateX: 180, zIndex: 1 }
     };
 
@@ -70,9 +62,9 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
             pointerEvents: "none", transition: { duration: 0 }
         },
         extracted: { 
-            y: -targetFinalHeight * 0.4, // Estrazione parziale iniziale
+            y: "-100vh", // Estrazione parziale iniziale
             zIndex: 2, scale: 1, opacity: 1,
-            transition: { duration: targetExtractionDuration, ease: "easeInOut"},
+            transition: { duration: 1.5, ease: "easeInOut"},
             pointerEvents: "none"
         },
         final: {
@@ -86,14 +78,17 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
     // Orchestratore della sequenza
     const handleSequence = async () => {
         // Step 1: Arrivo (gestito da 'visible') - Attesa implicita
-        await new Promise(r => setTimeout(r, 2000)); // Durata fly-in
-        
+        await new Promise(r => setTimeout(r, 500)); // Durata fly-in
+
         setStep(1); // Rimuovi ceralacca
-        await new Promise(r => setTimeout(r, 800));
+        await new Promise(r => setTimeout(r, 600));
         
         setStep(2); // Apri busta
-        await new Promise(r => setTimeout(r, 800));
-        
+        await new Promise(r => setTimeout(r, 600));
+
+        setStep(2.5); // Imbusta ceralacca
+        await new Promise(r => setTimeout(r, 1200));
+
         setStep(3); // Estrai lettera
         await new Promise(r => setTimeout(r, 1500));
         
@@ -126,8 +121,6 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                 className="envelope-wrapper"
                 initial="clipped"
                 style={{ 
-                    transform: `scale(${scale})`,
-                    transformOrigin: 'center center',
                     clipPath: step < 4 ? "inset(-200% 0 0 0)" : "none" // Rimuovi clip alla fine
                 }}
             >
@@ -142,7 +135,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                     animate={getLetterState()}
                 >
                      {/* Dummy Letter wrapper per l'animazione */}
-                     <div className="dummy-letter" style={{ height: targetFinalHeight, overflowY: 'auto' }}>
+                     <div className="dummy-letter" style={{ height: '100vh', overflowY: 'auto' }}>
                         {/* 
                            Qui renderizziamo LetterContent ma solo come "preview" visiva.
                            Il vero LetterContent interattivo verrà montato da InvitationPage su onComplete.
@@ -160,25 +153,24 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                 <motion.div 
                     className="layer flap-container"
                     variants={flapVariants}
-                    animate={step >= 3 ? "openBack" : (step === 2 ? "open" : "closed")}
+                    animate={step >= 3 ? "openBack" : (step >= 2 ? "open" : "closed")}
                     style={{ transformOrigin: "top" }}
                 >
                     <img src={flapImg} className="flap-img" alt="Flap" />
-                    
-                    {/* SIGILLO INIZIALE (Sulla busta) */}
-                    <AnimatePresence>
-                        {step < 1 && (
-                            <motion.img 
-                                src={waxImg} 
-                                className="wax-img" 
-                                variants={waxVariants}
-                                initial="attached"
-                                exit="removed"
-                                alt="Wax Seal"
-                            />
-                        )}
-                    </AnimatePresence>
                 </motion.div>
+                {/* SIGILLO INIZIALE (Sulla busta) */}
+                <AnimatePresence>
+                    {step < 3 && (
+                        <motion.img 
+                            src={waxImg} 
+                            className="wax-img" 
+                            variants={waxVariants}
+                            animate={step<1?'attached':step>2?'folded':'removed'}
+                            initial="attached"
+                            alt="Wax Seal"
+                        />
+                    )}
+                </AnimatePresence>
             </motion.div>
         </motion.div>
     );
