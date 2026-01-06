@@ -23,7 +23,7 @@ app.use(express.json());
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
 async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
-    const apiKey = WAHA_API_KEY_KEYS[sessionType];
+    const apiKey = WAHA_API_KEYS[sessionType]; // FIX: Corrected variable name
     const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
 
     console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
@@ -69,7 +69,8 @@ app.get('/:session_type/status', async (req, res) => {
   if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
 
   try {
-    const response = await axios.get(`${wahaUrl}/api/sessions/${sessionType}`, {
+    // FIX: sessionType -> session_type
+    const response = await axios.get(`${wahaUrl}/api/sessions/${session_type}`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       timeout: 5000
     });
@@ -97,7 +98,8 @@ app.get('/:session_type/qr', async (req, res) => {
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
-    const response = await axios.get(`${wahaUrl}/api/${sessionType}/auth/qr`, {
+    // FIX: sessionType -> session_type
+    const response = await axios.get(`${wahaUrl}/api/${session_type}/auth/qr`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       responseType: 'arraybuffer',
       timeout: 10000
