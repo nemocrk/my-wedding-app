@@ -31,11 +31,31 @@ def whatsapp_status(request, session_type):
                 status_obj.last_qr_code = data.get('qr_code')
             status_obj.save()
             
-            # Estrazione Info Profilo dal campo 'raw' (che contiene la risposta WAHA)
-            # WAHA ritorna: { ..., "me": { "id": "...", "pushName": "..." } }
-            if 'raw' in data and 'me' in data['raw']:
-                profile_info = data['raw']['me']
+            # Estrazione Info Profilo robusta
+            # WAHA a volte ritorna: { raw: { me: {...} } } o a volte { me: {...} } nei custom endpoint
+            raw_data = data.get('raw', {})
+            
+            # Tentativo 1: raw.me (formato standard WAHA)
+            me_data = raw_data.get('me')
+            
+            # Tentativo 2: data.me (se integration lo espone direttamente)
+            if not me_data:
+                me_data = data.get('me')
+            
+            # Tentativo 3: se c'è solo un ID in raw.wid
+            if not me_data and 'wid' in raw_data:
+                 me_data = {'id': raw_data['wid'], 'pushName': 'Unknown User'}
 
+            if me_data:
+                profile_info = me_data
+                # Normalizzazione campi
+                if 'user' not in profile_info and 'id' in profile_info:
+                     # WAHA format id: "123456@c.us"
+                     if isinstance(profile_info['id'], str):
+                        profile_info['user'] = profile_info['id'].split('@')[0]
+                     elif isinstance(profile_info['id'], dict) and 'user' in profile_info['id']:
+                        profile_info['user'] = profile_info['id']['user']
+                        
     except Exception as e:
         print(f"Integration error: {e}")
         pass
@@ -127,16 +147,26 @@ def whatsapp_send_test(request, session_type):
             return Response({'error': 'Impossibile recuperare stato sessione'}, status=500)
             
         status_data = status_resp.json()
-        me = status_data.get('raw', {}).get('me')
         
-        if not me or not me.get('user'): # 'user' è il numero senza @c.us in WAHA/WebJS
-             # Fallback: prova a parsare _serialized o id
-             my_number = me.get('id', '').split('@')[0] if me else None
-        else:
-             my_number = me.get('user')
+        # Logica di estrazione duplicata qui per sicurezza (o refactoring in funzione helper)
+        raw_data = status_data.get('raw', {})
+        me = raw_data.get('me')
+        if not me: me = status_data.get('me')
+
+        if not me:
+            return Response({'error': 'Info profilo non disponibili (sessione non pronta?)'}, status=400)
+
+        # Estrazione numero normalizzata
+        my_number = None
+        if isinstance(me, dict):
+             if 'user' in me: my_number = me['user']
+             elif 'id' in me:
+                 val = me['id']
+                 if isinstance(val, str): my_number = val.split('@')[0]
+                 elif isinstance(val, dict): my_number = val.get('user')
 
         if not my_number:
-            return Response({'error': 'Impossibile identificare il numero mittente (sessione non pronta o info mancanti)'}, status=400)
+            return Response({'error': 'Numero di telefono non identificabile'}, status=400)
 
         # 2. Invia messaggio a se stessi
         send_url = f"{integration_base}/{session_type}/send"
