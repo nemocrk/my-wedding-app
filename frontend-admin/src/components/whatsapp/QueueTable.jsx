@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, RotateCcw, Trash2, Send, Edit2 } from 'lucide-react';
+import { MessageCircle, RotateCcw, Trash2, Send, Edit2, Clock, CheckCircle } from 'lucide-react';
 
 const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, onEdit }) => {
   const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, content: '' });
@@ -8,8 +8,8 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
     const rect = e.currentTarget.getBoundingClientRect();
     setTooltip({
       show: true,
-      x: rect.left + rect.width / 2, // Centro orizzontale
-      y: rect.top, // Sopra l'elemento
+      x: rect.left + rect.width / 2,
+      y: rect.top,
       content
     });
   };
@@ -19,13 +19,10 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
   };
 
   const getStatusBadge = (msg) => {
-    // 1. Check Realtime Status (Priority)
     const chatId = `${msg.recipient_number}@c.us`;
     const rt = realtimeStatus[chatId];
     
-    // Se c'è un'attività realtime recente (es. ultimi 2 minuti), mostrala
     if (rt) {
-        // Mappa stati human-like
         const map = {
             'reading': { label: '👀 Reading...', color: 'bg-blue-100 text-blue-800' },
             'waiting_rate': { label: '⏳ Human Wait', color: 'bg-indigo-100 text-indigo-800' },
@@ -39,7 +36,6 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
         }
     }
 
-    // 2. Fallback to DB Status
     const dbMap = {
         'pending': { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
         'processing': { label: 'Processing', color: 'bg-blue-100 text-blue-800' },
@@ -59,88 +55,114 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
     );
   };
 
-  return (
-    <div className="flex flex-col relative">
-      <div className="-my-2 sm:-mx-6 lg:-mx-8">
-        <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-          <div className="shadow border-b border-gray-200 sm:rounded-lg">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
-                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Msg</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
-                  <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {messages.map((msg) => (
-                  <tr key={msg.id}>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {msg.recipient_number}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {msg.session_type}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div 
-                          className="flex justify-center items-center cursor-help p-2"
-                          onMouseEnter={(e) => handleMouseEnter(e, msg.message_body)}
-                          onMouseLeave={handleMouseLeave}
-                        >
-                            <MessageCircle className="w-5 h-5 text-gray-400 hover:text-indigo-500" />
-                        </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(msg)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(msg.scheduled_for).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {msg.attempts}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <div className="flex justify-end gap-3">
-                            {msg.status === 'failed' && (
-                                <button onClick={() => onRetry(msg.id)} className="text-yellow-600 hover:text-yellow-900" title="Retry">
-                                    <RotateCcw className="w-4 h-4" />
-                                </button>
-                            )}
-                            <button onClick={() => onForceSend(msg.id)} className="text-green-600 hover:text-green-900" title="Send Now">
-                                <Send className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => onEdit(msg)} className="text-blue-600 hover:text-blue-900" title="Edit">
-                                <Edit2 className="w-4 h-4" />
-                            </button>
-                            <button onClick={() => onDelete(msg.id)} className="text-red-600 hover:text-red-900" title="Delete">
-                                <Trash2 className="w-4 h-4" />
-                            </button>
-                        </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+  const formatTimings = (msg) => {
+    const scheduled = new Date(msg.scheduled_for).toLocaleString('it-IT', {
+      day: '2-digit',
+      month: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
+    const sent = msg.sent_at 
+      ? new Date(msg.sent_at).toLocaleString('it-IT', {
+          day: '2-digit',
+          month: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit'
+        })
+      : '-';
+
+    return (
+      <div className="flex flex-col gap-1 text-xs">
+        <div className="flex items-center gap-1 text-gray-600">
+          <Clock className="w-3 h-3" />
+          <span>{scheduled}</span>
+        </div>
+        <div className="flex items-center gap-1 text-gray-500">
+          <CheckCircle className="w-3 h-3" />
+          <span>{sent}</span>
         </div>
       </div>
+    );
+  };
 
-      {/* Fixed Position Tooltip - Rendered outside the table overflow context */}
+  return (
+    <div className="flex flex-col">
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-gray-200">
+          <thead className="bg-gray-50">
+            <tr>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
+              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Msg</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timings</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+            </tr>
+          </thead>
+          <tbody className="bg-white divide-y divide-gray-200">
+            {messages.map((msg) => (
+              <tr key={msg.id}>
+                <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
+                  {msg.recipient_number}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {msg.session_type}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-center">
+                    <div 
+                      className="flex justify-center items-center cursor-help p-2"
+                      onMouseEnter={(e) => handleMouseEnter(e, msg.message_body)}
+                      onMouseLeave={handleMouseLeave}
+                    >
+                        <MessageCircle className="w-5 h-5 text-gray-400 hover:text-indigo-500" />
+                    </div>
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {getStatusBadge(msg)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap">
+                  {formatTimings(msg)}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                  {msg.attempts}
+                </td>
+                <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <div className="flex justify-end gap-3">
+                        {msg.status === 'failed' && (
+                            <button onClick={() => onRetry(msg.id)} className="text-yellow-600 hover:text-yellow-900" title="Retry">
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+                        )}
+                        <button onClick={() => onForceSend(msg.id)} className="text-green-600 hover:text-green-900" title="Send Now">
+                            <Send className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => onEdit(msg)} className="text-blue-600 hover:text-blue-900" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                        </button>
+                        <button onClick={() => onDelete(msg.id)} className="text-red-600 hover:text-red-900" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                        </button>
+                    </div>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Fixed Position Tooltip */}
       {tooltip.show && (
         <div 
           className="fixed z-[9999] w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl pointer-events-none"
           style={{ 
-            top: tooltip.y - 10, // Un po' sopra il cursore
+            top: tooltip.y - 10,
             left: tooltip.x,
-            transform: 'translate(-50%, -100%)' // Centrato e spostato sopra
+            transform: 'translate(-50%, -100%)'
           }}
         >
           <div className="break-words">{tooltip.content}</div>
-          {/* Arrow */}
           <div 
             className="absolute top-full left-1/2 transform -translate-x-1/2" 
             style={{ 
