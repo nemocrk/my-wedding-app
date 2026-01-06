@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader } from 'lucide-react';
-import { api } from '../services/api'; // FIX: Changed from 'import api' to 'import { api }'
+import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader, LogOut } from 'lucide-react';
+import { api } from '../services/api';
 
 const WhatsAppConfig = () => {
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
@@ -75,6 +75,17 @@ const WhatsAppConfig = () => {
     }
   };
 
+  const handleLogout = async (sessionType) => {
+      if(!window.confirm('Sei sicuro di voler disconnettere questa sessione?')) return;
+      
+      try {
+          await api.logoutWhatsAppSession(sessionType);
+          fetchStatuses(); // Ricarica stato
+      } catch (error) {
+          alert('Errore durante il logout: ' + error.message);
+      }
+  };
+
   const closeModal = () => {
     setActiveModal(null);
     setQrCodeData(null);
@@ -116,13 +127,29 @@ const WhatsAppConfig = () => {
           )}
         </div>
 
-        <button
-          onClick={() => handleRefresh(type)}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-        >
-          {isConnected ? <RefreshCw className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
-          {isConnected ? 'Verifica Connessione' : 'Collega Account'}
-        </button>
+        <div className="flex gap-2">
+            <button
+            onClick={() => handleRefresh(type)}
+            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+                isConnected 
+                ? 'bg-blue-600 hover:bg-blue-700' 
+                : 'bg-indigo-600 hover:bg-indigo-700'
+            }`}
+            >
+            {isConnected ? <RefreshCw className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+            {isConnected ? 'Verifica' : 'Collega Account'}
+            </button>
+            
+            {isConnected && (
+                <button
+                    onClick={() => handleLogout(type)}
+                    className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+                    title="Disconnetti Sessione"
+                >
+                    <LogOut className="w-4 h-4" />
+                </button>
+            )}
+        </div>
       </div>
     );
   };
