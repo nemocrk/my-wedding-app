@@ -49,94 +49,45 @@ services:
       - CHOKIDAR_USEPOLLING=true
 
   # ---------------------------------------------
-  # WHATSAPP INTEGRATION (Dev)
+  # WHATSAPP INTEGRATION (Dev Overrides)
   # ---------------------------------------------
   
-  # Sessione Sposo
+  # Sessione Sposo - Solo expose porte dashboard
   waha-groom:
-    image: devlikeapro/waha:latest
-    restart: unless-stopped
-    environment:
-      WHATSAPP_API_KEY: ${WAHA_API_KEY_GROOM:-secret_groom}
-      WHATSAPP_DEFAULT_SESSION: groom
-      WHATSAPP_SWAGGER_USERNAME: admin
-      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
-    volumes:
-      - waha_groom_data:/app/.sessions
-    networks:
-      - whatsapp_intranet_network
     # In DEV esponiamo la dashboard per debug facile (http://localhost:3001/dashboard)
     ports:
       - "3001:3000"
-
-  # Sessione Sposa
-  waha-bride:
-    image: devlikeapro/waha:latest
-    restart: unless-stopped
     environment:
-      WHATSAPP_API_KEY: ${WAHA_API_KEY_BRIDE:-secret_bride}
-      WHATSAPP_DEFAULT_SESSION: bride
+      # Abilitiamo Swagger in dev per comodità
       WHATSAPP_SWAGGER_USERNAME: admin
       WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
-    volumes:
-      - waha_bride_data:/app/.sessions
-    networks:
-      - whatsapp_intranet_network
+
+  # Sessione Sposa - Solo expose porte dashboard
+  waha-bride:
     # In DEV esponiamo la dashboard per debug facile (http://localhost:3002/dashboard)
     ports:
       - "3002:3000"
+    environment:
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
 
   # Integration Layer - Hot Reload Node.js
   whatsapp-integration:
-    build:
-      context: ./whatsapp-integration
-      dockerfile: Dockerfile
-    # In dev usiamo nodemon se installato, o semplicemente node con volume mounted
-    # Per semplicità montiamo il volume per editare il codice senza rebuild
+    # In dev usiamo nodemon se installato (o node diretto) con volume mounted
     command: node server.js 
     volumes:
-      - ./whatsapp-integration:/app
+      - ./backend/whatsapp-integration:/app
       - /app/node_modules
-    depends_on:
-      - waha-groom
-      - waha-bride
-    environment:
-      WAHA_GROOM_URL: http://waha-groom:3000
-      WAHA_BRIDE_URL: http://waha-bride:3000
-      WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM:-secret_groom}
-      WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE:-secret_bride}
-    networks:
-      - whatsapp_intranet_network
+    # Esponiamo porta per debug diretto
     ports:
-      - "4000:4000" # Esposto per debug diretto curl
+      - "4000:3000" 
 
-  # Worker Django (Esegue command custom)
+  # Worker Django (Esegue command custom in modalità dev con reload se supportato)
   backend-worker:
     build:
       context: ./backend
       target: development
-    command: python manage.py run_whatsapp_worker
     volumes:
       - ./backend:/app
-    depends_on:
-      - db
-      - whatsapp-integration
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@db:5432/wedding_db
-      WHATSAPP_INTEGRATION_URL: http://whatsapp-integration:4000
       DEBUG: "True"
-    networks:
-      - db_network
-      - whatsapp_intranet_network
-
-# Definizione Reti (Deve matchare prod per consistenza)
-networks:
-  whatsapp_intranet_network:
-    driver: bridge
-
-# Definizione Volumi (Per persistenza sessioni anche in dev)
-volumes:
-  waha_groom_data:
-    driver: local
-  waha_bride_data:
-    driver: local
