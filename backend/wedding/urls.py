@@ -3,7 +3,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from core.views import (
     # Admin Views
-    InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet,
+    InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet, WhatsAppMessageQueueViewSet,
     # Public Views
     PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView
@@ -20,6 +20,8 @@ admin_router = DefaultRouter(trailing_slash=True)  # Forza trailing slash
 admin_router.register(r'invitations', InvitationViewSet, basename='admin-invitation')
 admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-accommodation')
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
+# Nuova route per la coda messaggi
+admin_router.register(r'whatsapp-queue', WhatsAppMessageQueueViewSet, basename='admin-whatsapp-queue')
 
 urlpatterns = [
     # ========================================
