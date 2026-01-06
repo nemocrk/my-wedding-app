@@ -1,7 +1,109 @@
-.envelope-container {
+.envelope-container-3d {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  width: 100vw;
+  perspective: 1200px; /* Increased slightly to soften distortion on mobile */
+  overflow: hidden;
+}
+
+.envelope-wrapper {
+  margin: 1rem;
+  position: relative;
+  width: 620px;
+  height: calc(min(calc(100vw - 2rem), 620px) * 358 / 620);
+  transform-style: preserve-3d; /* CRITICAL: Ensures children 3D transforms work with parent scale */
+  
+  /* FIX GLITCH: Taglia via la parte inferiore (60%) nascondendo la lettera che sborda */
+  /* Questo approccio è indipendente dal colore di sfondo */
+  clip-path: inset(-200% 0 0 0);
+}
+
+.layer {
   position: absolute;
-  top: 50%;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  pointer-events: none;
+  
+  /* Rendering optimizations */
+  /*backface-visibility: hidden;*/
+  /*-webkit-backface-visibility: hidden;*/
+  will-change: transform;
+}
+
+/* Z-INDEX MANAGEMENT */
+.back {
+  z-index: 1;
+}
+
+.letter-container {
+  z-index: 2;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  left: 0;
+  right: 0;
+  margin: 0 auto;
+  
+  position: absolute;
+  top: 0;
+  
+  transform-origin: center top;
+  transform-style: preserve-3d; /* Maintain 3D context for letter too */
+}
+
+.dummy-letter {
+  background: transparent;
+  width: 100%;
+  padding: 0;
+  box-shadow: none;
+  font-family: 'Georgia', serif;
+  text-align: center;
+  color: #333;
+  position: relative;
+  overflow: hidden;
+  /* Ensure content doesn't flicker during 3D moves */
+  backface-visibility: hidden; 
+}
+
+.pocket {
+  z-index: 3;
+}
+
+.flap-container {
+  z-index: 4;
+  transform-style: preserve-3d;
+  transform-origin: top; /* Explicit anchor */
+}
+
+.flap-img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  /* Fix for some mobile browsers treating images weirdly in 3D */
+  display: block; 
+}
+
+.wax-img {
+  position: absolute;
+  bottom: 10%;
   left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 1000;
+  transform: translateX(-50%);
+  width: 25%;
+  height: auto;
+  z-index: 10;
+  transform-style: preserve-3d;
+}
+
+.wax-on-letter {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  width: 60px;
+  height: auto;
+  z-index: 20;
 }

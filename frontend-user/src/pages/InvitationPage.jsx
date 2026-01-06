@@ -72,16 +72,17 @@ const InvitationPage = () => {
   return (
     <div className="invitation-page">
       <AnimatePresence>
-        {!animationComplete && invitationData && (
+        {/*!animationComplete && */invitationData && (
           <EnvelopeAnimation 
             onComplete={() => setAnimationComplete(true)} 
+            invitationData={invitationData}
           />
         )}
       </AnimatePresence>
       
-      {animationComplete && invitationData && (
+      {/*animationComplete && invitationData && (
         <LetterContent data={invitationData} />
-      )}
+      )*/}
     </div>
   );
 };

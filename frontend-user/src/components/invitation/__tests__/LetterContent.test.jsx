@@ -38,6 +38,22 @@ describe('LetterContent Component', () => {
   it('renders letter content correctly', () => {
     render(<LetterContent data={mockData} />);
     
+    expect(screen.getByText(/Domenico & Loredana/i)).toBeInTheDocument();
+    expect(screen.getByText(/Abbiamo deciso di fare il grande passo\.\.\./i)).toBeInTheDocument();
+    expect(screen.getByText(/e di farlo a piedi nudi!/i)).toBeInTheDocument();
+    expect(screen.getByText(/Ci sposiamo il 19 Settembre 2026/i)).toBeInTheDocument();
+    expect(screen.getByText(/sulla spiaggia di Golfo Aranci/i)).toBeInTheDocument();
+    expect(screen.getByText(/\(Sì! in Sardegna!!\)/i)).toBeInTheDocument();
+    expect(screen.getByText(/Preparatevi a scambiare le scarpe strette con la sabbia tra le dita\. Vi promettiamo:/i)).toBeInTheDocument();
+    expect(screen.getByText(/Poca formalità • Molto spritz • Un tramonto indimenticabile/i)).toBeInTheDocument();
+    expect(screen.getByText(/Dress Code: Beach Chic/i)).toBeInTheDocument();
+    expect(screen.getByText(/\(I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!\)/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: "Vedi dettagli"})).toBeInTheDocument();
+  });
+
+  it('renders back letter content correctly', () => {
+    render(<LetterContent data={mockData} />);
+    
     expect(screen.getByText(/Siete Invitati!/i)).toBeInTheDocument();
     expect(screen.getByText('Benvenuti al nostro matrimonio!')).toBeInTheDocument();
     expect(screen.getByText('Mario Rossi')).toBeInTheDocument();
@@ -49,8 +65,8 @@ describe('LetterContent Component', () => {
     
     expect(screen.getByText("Richiedo l'alloggio")).toBeInTheDocument();
     expect(screen.getByText("Richiedo il transfer")).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Conferma Partecipazione/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Non Potrò Partecipare/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Conferma/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Declina/i })).toBeInTheDocument();
   });
 
   it('handles RSVP confirmation submission', async () => {
@@ -62,7 +78,7 @@ describe('LetterContent Component', () => {
     fireEvent.click(accommodationCheckbox);
 
     // Click confirm
-    const confirmButton = screen.getByRole('button', { name: /Conferma Partecipazione/i });
+    const confirmButton = screen.getByRole('button', { name: /Conferma/i });
     fireEvent.click(confirmButton);
 
     expect(apiService.submitRSVP).toHaveBeenCalledWith('confirmed', true, false);
@@ -77,13 +93,14 @@ describe('LetterContent Component', () => {
     render(<LetterContent data={mockData} />);
 
     // Click decline
-    const declineButton = screen.getByRole('button', { name: /Non Potrò Partecipare/i });
+    const declineButton = screen.getByRole('button', { name: /Declina/i });
     fireEvent.click(declineButton);
 
     expect(apiService.submitRSVP).toHaveBeenCalledWith('declined', false, false);
     
     await waitFor(() => {
-      expect(screen.getByText(/Ci dispiace che non possiate partecipare/i)).toBeInTheDocument();
+      expect(screen.getByText(/Ci dispiace/i)).toBeInTheDocument();
+      expect(screen.getByText(/Grazie comunque per averci avvisato/i)).toBeInTheDocument();
     });
   });
 
@@ -91,7 +108,7 @@ describe('LetterContent Component', () => {
     apiService.submitRSVP.mockRejectedValue(new Error('Network Error'));
     render(<LetterContent data={mockData} />);
 
-    const confirmButton = screen.getByRole('button', { name: /Conferma Partecipazione/i });
+    const confirmButton = screen.getByRole('button', { name: /Conferma/i });
     fireEvent.click(confirmButton);
 
     await waitFor(() => {

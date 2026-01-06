@@ -1,0 +1,8 @@
+{
+    "remote.extensionKind": {
+        "Continue.continue": ["workspace"],
+        "pub.name": [
+            "ui"
+        ]
+    }
+}
