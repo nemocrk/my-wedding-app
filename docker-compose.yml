@@ -263,6 +263,8 @@ services:
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
       WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
       WAHA_API_KEY: ${WAHA_API_KEY_GROOM:-secret}
+      # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
+      WAHA_PRINT_QR: 'false'
     networks:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
@@ -288,6 +290,8 @@ services:
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
       WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
       WAHA_API_KEY: ${WAHA_API_KEY_BRIDE:-secret}
+      # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
+      WAHA_PRINT_QR: 'false'
     networks:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
