@@ -30,7 +30,6 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
     console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
 
     // WAHA CORE (Free) accetta solo sessione 'default'
-    // Poiché abbiamo container separati, ogni container ha la sua sessione 'default'
     const SESSION_NAME = 'default';
 
     // 1. Initial Human Pause (Random 2-4s)
@@ -72,8 +71,6 @@ app.get('/:session_type/status', async (req, res) => {
   if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
 
   try {
-    // FIX: Usiamo sempre 'default' perché WAHA Core supporta solo quella.
-    // L'isolamento è garantito dal fatto che contattiamo wahaUrl diversi (container diversi).
     const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       timeout: 5000
@@ -84,7 +81,7 @@ app.get('/:session_type/status', async (req, res) => {
     if (data.status === 'WORKING') state = 'connected';
     else if (data.status === 'SCAN_QR_CODE') state = 'waiting_qr';
     else if (data.status === 'STARTING') state = 'connecting';
-    else if (data.status === 'STOPPED') state = 'disconnected'; // Gestione STOPPED esplicita
+    else if (data.status === 'STOPPED') state = 'disconnected';
     
     res.json({ state, raw: data });
   } catch (error) {
@@ -98,7 +95,6 @@ app.get('/:session_type/qr', async (req, res) => {
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
-    // FIX: session 'default'
     const response = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       responseType: 'arraybuffer',
@@ -118,7 +114,7 @@ app.post('/:session_type/refresh', async (req, res) => {
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
-    const statusUrl = `${wahaUrl}/api/sessions/default`; // FIX: default
+    const statusUrl = `${wahaUrl}/api/sessions/default`; 
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     
     let status = 'UNKNOWN';
@@ -134,16 +130,15 @@ app.post('/:session_type/refresh', async (req, res) => {
     }
     
     if (status === 'SCAN_QR_CODE') {
-       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { // FIX: default
+       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { 
           headers, responseType: 'arraybuffer' 
        });
        const b64 = Buffer.from(qrResp.data, 'binary').toString('base64');
        return res.json({ state: 'waiting_qr', qr_code: `data:image/png;base64,${b64}` });
     }
 
-    // Try to Start session if stopped
     try {
-        await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers }); // FIX: default
+        await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers });
         return res.json({ state: 'connecting', message: 'Session start triggered' });
     } catch (e) {
         return res.json({ state: 'error', error: 'Failed to start session: ' + e.message });
@@ -153,6 +148,42 @@ app.post('/:session_type/refresh', async (req, res) => {
     res.status(500).json({ state: 'error', error: error.message });
   }
 });
+
+// POST /:session_type/logout
+app.post('/:session_type/logout', async (req, res) => {
+    const { session_type } = req.params;
+    const wahaUrl = WAHA_URLS[session_type];
+    
+    if (!wahaUrl) return res.status(400).json({ error: 'Invalid session' });
+
+    try {
+        const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+        
+        // Per fare logout completo con WAHA Core:
+        // 1. Logout dalla sessione (disconnette WA Web)
+        // 2. Stop della sessione (ferma il browser)
+        
+        try {
+             await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers });
+        } catch (e) {
+            console.warn(`Logout failed (maybe already logged out): ${e.message}`);
+        }
+        
+        await sleep(1000);
+
+        try {
+            await axios.post(`${wahaUrl}/api/sessions/default/stop`, {}, { headers });
+        } catch (e) {
+             console.warn(`Stop failed (maybe already stopped): ${e.message}`);
+        }
+
+        res.json({ state: 'disconnected', message: 'Logged out successfully' });
+    } catch (error) {
+        console.error(`Logout error for ${session_type}:`, error.message);
+        res.status(500).json({ error: error.message });
+    }
+});
+
 
 // POST /:session_type/send
 app.post('/:session_type/send', async (req, res) => {
