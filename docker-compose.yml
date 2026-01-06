@@ -278,11 +278,11 @@ services:
 
   # Integration Layer (Proxy & Logic)
   whatsapp-integration:
-    image: node:18-alpine
-    working_dir: /app
-    volumes:
-      - ./backend/whatsapp-integration:/app
-    command: sh -c "npm install && node server.js"
+    build:
+      context: ./backend/whatsapp-integration
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+    restart: always
     depends_on:
       - waha-groom
       - waha-bride
