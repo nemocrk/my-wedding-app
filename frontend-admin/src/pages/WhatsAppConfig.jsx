@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader, LogOut, Send, User } from 'lucide-react';
 import { api } from '../services/api';
+import WhatsAppQueueDashboard from '../components/whatsapp/WhatsAppQueueDashboard'; // Import Dashboard
 
 const WhatsAppConfig = () => {
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
@@ -25,8 +26,6 @@ const WhatsAppConfig = () => {
         api.getWhatsAppStatus('groom').catch(() => ({ state: 'error' })),
         api.getWhatsAppStatus('bride').catch(() => ({ state: 'error' }))
       ]);
-      console.log("Groom Status Received:", groom); 
-      console.log("Bride Status Received:", bride); 
       setGroomStatus(groom);
       setBrideStatus(bride);
     } catch (error) {
@@ -218,15 +217,17 @@ const WhatsAppConfig = () => {
   };
 
   return (
-    <div className="p-6 max-w-4xl mx-auto">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">Gestione Integrazione WhatsApp</h1>
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <StatusCard title="Account Sposo" status={groomStatus} type="groom" />
-        <StatusCard title="Account Sposa" status={brideStatus} type="bride" />
+    <div className="p-6 max-w-4xl mx-auto space-y-8">
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900 mb-6">Gestione Integrazione WhatsApp</h1>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <StatusCard title="Account Sposo" status={groomStatus} type="groom" />
+            <StatusCard title="Account Sposa" status={brideStatus} type="bride" />
+        </div>
       </div>
       
-      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
+      <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
         <h4 className="text-sm font-bold text-blue-800 mb-2">Note Importanti Anti-Ban</h4>
         <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
           <li>Non inviare mai messaggi a contatti che non hanno scritto per primi.</li>
@@ -234,6 +235,9 @@ const WhatsAppConfig = () => {
           <li>È attivo un limite di sicurezza di 10 messaggi/ora per sessione.</li>
         </ul>
       </div>
+
+      {/* DASHBOARD CODA MESSAGGI */}
+      <WhatsAppQueueDashboard />
 
       {activeModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
