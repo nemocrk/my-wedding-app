@@ -17,6 +17,7 @@ Le variabili d'ambiente critiche sono definite in `.env`.
 - Frontend: `REACT_APP_API_URL` (User vs Admin).
 
 ## 3. Workflow di Sviluppo (Strict)
+0.  **Branch Strategy**: Prima di iniziare ogni azione, verifica ce esiste un branch dedicato all'attività ed utilizza quello. Qualora non vi fosse, creane uno nuovo ad HOC.
 1.  **Analisi**: Prima di modificare, leggere il codice esistente E la documentazione specifica (es. `docs/06-BACKEND-CORE.md`).
 2.  **No-Rewrite**: Non riscrivere file da zero se non strettamente necessario. Applicare patch/diff.
 3.  **Testing**: Ogni feature deve essere verificata (es. `curl`, unit test, smoke test).
