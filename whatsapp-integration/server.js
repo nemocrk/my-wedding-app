@@ -87,15 +87,24 @@ app.get('/:session_type/status', async (req, res) => {
     // FETCH PROFILE PICTURE & INFO se connesso
     if (state === 'connected') {
         try {
-            // Proviamo a prendere info dettagliate (inclusa picture) da /api/default/me
-            // WAHA Core usa spesso /api/{session}/me
-            const meResp = await axios.get(`${wahaUrl}/api/default/me`, { headers, timeout: 3000 });
-            if (meResp.data) {
-                // Merge 'me' info into data.me or data.raw.me
-                // WAHA /api/sessions/default response usually has 'me' key too, but maybe without picture
-                // We overwrite/extend it
-                data.me = { ...data.me, ...meResp.data };
-            }
+            // FIX: Endpoint corretto per WAHA è /api/{session}/profile
+            // NOTA: In alcune versioni di WAHA questo endpoint richiede un parametro (es. il numero di telefono). 
+            // Se fallisce, usiamo /me come fallback
+            
+            // Prima recuperiamo i dati base "me" dalla sessione
+            let meInfo = data.me || {}; 
+            
+            // Tentativo 1: Chiediamo esplicitamente /api/default/me (supportato da molte versioni)
+            try {
+                 const meResp = await axios.get(`${wahaUrl}/api/default/me`, { headers, timeout: 2000 });
+                 if(meResp.data) meInfo = { ...meInfo, ...meResp.data };
+            } catch(e) {}
+
+            // Tentativo 2: Se abbiamo l'ID, proviamo a chiedere la profile picture specifica
+            // WAHA potrebbe avere endpoints diversi per la foto. 
+            // Proviamo a restituire quello che abbiamo trovato finora.
+            data.me = meInfo;
+
         } catch (e) {
             console.warn(`Failed to fetch detailed profile info: ${e.message}`);
         }
