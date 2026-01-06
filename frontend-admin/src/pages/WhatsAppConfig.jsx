@@ -45,6 +45,9 @@ const WhatsAppConfig = () => {
           stopPolling();
           closeModal();
           fetchStatuses();
+        } else if (data.qr_code && !qrCodeData) {
+            // Aggiorna QR se arriva in ritardo
+            setQrCodeData(data.qr_code);
         }
       } catch (e) {
         console.error("Polling error", e);
@@ -59,18 +62,30 @@ const WhatsAppConfig = () => {
 
   const handleRefresh = async (sessionType) => {
     try {
+      // 1. Apri subito la modale in stato di caricamento (qrCodeData = null)
+      setQrCodeData(null);
+      setActiveModal(sessionType);
+      
+      // 2. Chiama l'API
       const data = await api.refreshWhatsAppSession(sessionType);
 
-      if (data.state === 'waiting_qr') {
-        setQrCodeData(data.qr_code);
-        setActiveModal(sessionType);
+      if (data.state === 'waiting_qr' || data.state === 'connecting') {
+        // Se c'è il QR, mostralo. Se no, rimarrà il loader finché il polling non lo trova.
+        if (data.qr_code) setQrCodeData(data.qr_code);
+        
+        // Avvia polling per intercettare il collegamento o l'arrivo del QR
         startPolling(sessionType);
       } else if (data.state === 'connected') {
+        closeModal();
         fetchStatuses();
       } else {
-        sessionType === 'groom' ? setGroomStatus(data) : setBrideStatus(data);
+        // Errore o altro stato imprevisto
+        closeModal();
+        alert(`Stato imprevisto: ${data.state}`);
+        fetchStatuses();
       }
     } catch (error) {
+      closeModal();
       alert('Errore durante il refresh: ' + (error.message));
     }
   };
@@ -203,7 +218,6 @@ const WhatsAppConfig = () => {
         <StatusCard title="Account Sposa" status={brideStatus} type="bride" />
       </div>
       
-      {/* ... Note e Modale rimangono invariati ... */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
         <h4 className="text-sm font-bold text-blue-800 mb-2">Note Importanti Anti-Ban</h4>
         <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
@@ -221,12 +235,13 @@ const WhatsAppConfig = () => {
                 Scansiona QR Code ({activeModal === 'groom' ? 'Sposo' : 'Sposa'})
               </h3>
               
-              <div className="flex justify-center mb-6">
+              <div className="flex justify-center mb-6 min-h-[256px]">
                 {qrCodeData ? (
-                  <img src={qrCodeData} alt="WhatsApp QR Code" className="border-4 border-gray-200 rounded-lg" />
+                  <img src={qrCodeData} alt="WhatsApp QR Code" className="border-4 border-gray-200 rounded-lg animate-fade-in" />
                 ) : (
-                  <div className="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-lg">
-                    <Loader className="w-8 h-8 animate-spin text-gray-500" />
+                  <div className="flex flex-col items-center justify-center gap-4">
+                     <Loader className="w-12 h-12 animate-spin text-indigo-500" />
+                     <p className="text-sm text-gray-500">Generazione QR Code in corso...</p>
                   </div>
                 )}
               </div>
