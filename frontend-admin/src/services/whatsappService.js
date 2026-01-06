@@ -26,6 +26,23 @@ export const whatsappService = {
     return handleResponse(response);
   },
 
+  updateMessage: async (id, data) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
+  deleteMessage: async (id) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
+        method: 'DELETE',
+    });
+    if (response.status === 204) return true;
+    return handleResponse(response);
+  },
+
   retryFailed: async () => {
     const response = await fetch(`${API_BASE_URL}/whatsapp-queue/retry-failed/`, {
       method: 'POST',
