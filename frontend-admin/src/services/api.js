@@ -39,5 +39,17 @@ export const api = {
         });
         if (!res.ok) throw new Error('Logout failed');
         return res.json();
+    },
+
+    sendWhatsAppTest: async (type) => {
+        const res = await fetch(`${API_URL}/admin/whatsapp/${type}/test/`, { 
+            method: 'POST',
+            headers: getHeaders() 
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Test failed');
+        }
+        return res.json();
     }
 };
