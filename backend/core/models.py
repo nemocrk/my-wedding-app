@@ -337,3 +337,61 @@ class WhatsAppMessageQueue(models.Model):
         verbose_name = "Coda Messaggi WhatsApp"
         verbose_name_plural = "Coda Messaggi WhatsApp"
         ordering = ['scheduled_for']
+
+
+class WhatsAppMessageEvent(models.Model):
+    """
+    Timeline granulare degli eventi di invio messaggio.
+    Permette di tracciare sia i wait del worker (rate_limit) che gli step human-like (reading, typing, etc.).
+    """
+    class Phase(models.TextChoices):
+        # Worker (Backend Django)
+        QUEUED = 'queued', 'Accodato'
+        WAITING_RATE_LIMIT = 'waiting_rate_limit', 'In Attesa Rate Limit'
+        RATE_LIMIT_OK = 'rate_limit_ok', 'Rate Limit Superato'
+        
+        # Integration Layer (Node.js)
+        READING = 'reading', 'Lettura Messaggi'
+        WAITING_HUMAN = 'waiting_human', 'Attesa Umana'
+        TYPING = 'typing', 'Digitazione'
+        SENDING = 'sending', 'Invio'
+        SENT = 'sent', 'Inviato'
+        
+        # Errori
+        FAILED = 'failed', 'Fallito'
+        SKIPPED = 'skipped', 'Saltato'
+    
+    queue_message = models.ForeignKey(
+        WhatsAppMessageQueue, 
+        related_name='events', 
+        on_delete=models.CASCADE,
+        verbose_name="Messaggio Coda"
+    )
+    phase = models.CharField(
+        max_length=30, 
+        choices=Phase.choices,
+        verbose_name="Fase"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Timestamp")
+    duration_ms = models.IntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Durata della fase in millisecondi (se applicabile)"
+    )
+    metadata = models.JSONField(
+        default=dict, 
+        blank=True, 
+        help_text="Dati extra (es. rate_limit_remaining, typing_duration_ms, error_detail)"
+    )
+    
+    def __str__(self):
+        return f"{self.queue_message.recipient_number} - {self.phase} @ {self.timestamp}"
+    
+    class Meta:
+        verbose_name = "Evento Messaggio WhatsApp"
+        verbose_name_plural = "Eventi Messaggi WhatsApp"
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['queue_message', 'timestamp']),
+            models.Index(fields=['phase']),
+        ]
