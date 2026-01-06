@@ -1,5 +1,6 @@
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticated
+from rest_framework.authentication import SessionAuthentication, BasicAuthentication
 from rest_framework.response import Response
 from django.conf import settings
 import requests
@@ -8,10 +9,14 @@ from core.models import WhatsAppSessionStatus
 
 # Helper per URL integration
 def get_integration_url():
-    return os.getenv('WHATSAPP_INTEGRATION_URL', 'http://whatsapp-integration:4000')
+    # In docker-compose internal network
+    return os.getenv('WA_INTEGRATION_URL', 'http://whatsapp-integration:3000')
 
 @api_view(['GET'])
-@permission_classes([IsAdminUser])
+# Usa SessionAuth esplicitamente per permettere l'uso dei cookie di sessione django (sessionid)
+# L'errore "Non sono state immesse credenziali" spesso accade se DRF si aspetta Token/Basic ma riceve cookie
+@authentication_classes([SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated]) # Richiede login ma va bene sessione
 def whatsapp_status(request, session_type):
     """GET /api/admin/whatsapp/<groom|bride>/status/"""
     # Prima cerca nel DB locale
@@ -19,15 +24,19 @@ def whatsapp_status(request, session_type):
     
     # Poi prova a chiedere al layer integration lo stato real-time
     try:
+        # Nota: La porta corretta per whatsapp-integration in rete docker è 3000 (o 4000 se cambiato)
+        # Verificare server.js -> porta 3000
         integration_url = f"{get_integration_url()}/{session_type}/status"
         resp = requests.get(integration_url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
             # Aggiorna DB
             status_obj.state = data.get('state', 'error')
+            # Se lo stato è waiting_qr, potremmo avere dettagli extra ma qui salviamo solo stato
             status_obj.save()
     except Exception as e:
-        # Se fallisce, tieni stato DB ma notifica errore
+        # Se fallisce, logga ma non rompere tutto
+        print(f"Integration error: {e}")
         pass
         
     return Response({
@@ -38,7 +47,8 @@ def whatsapp_status(request, session_type):
     })
 
 @api_view(['GET'])
-@permission_classes([IsAdminUser])
+@authentication_classes([SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated])
 def whatsapp_qr_code(request, session_type):
     """GET /api/admin/whatsapp/<groom|bride>/qr/"""
     integration_url = f"{get_integration_url()}/{session_type}/qr"
@@ -49,7 +59,8 @@ def whatsapp_qr_code(request, session_type):
         return Response({'error': str(e)}, status=503)
 
 @api_view(['POST'])
-@permission_classes([IsAdminUser])
+@authentication_classes([SessionAuthentication, BasicAuthentication])
+@permission_classes([IsAuthenticated])
 def whatsapp_refresh_status(request, session_type):
     """POST /api/admin/whatsapp/<groom|bride>/refresh/"""
     integration_url = f"{get_integration_url()}/{session_type}/refresh"
