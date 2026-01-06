@@ -39,6 +39,9 @@ urlpatterns = [
     path('api/admin/', include(admin_router.urls)),
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
     
+    # --- WHATSAPP INTEGRATION ROUTES (Admin Only) ---
+    path('api/admin/whatsapp/', include('whatsapp.urls')),
+
     # ========================================
     # PUBLIC API (Internet - Guest Access)
     # Endpoint protetti da sessione dopo autenticazione iniziale
