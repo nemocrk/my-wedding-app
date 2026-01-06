@@ -267,7 +267,10 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
     volumes:
-      - waha_groom_data:/app/.waha-sessions
+      # Store sessions in the .sessions folder (WAHA default path)
+      - waha_groom_sessions:/app/.sessions
+      # Save media files (WAHA default path)
+      - waha_groom_media:/app/.media
     expose:
       - "3000"
     healthcheck:
@@ -289,7 +292,10 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network # Uscita Internet dedicata
     volumes:
-      - waha_bride_data:/app/.waha-sessions
+      # Store sessions in the .sessions folder (WAHA default path)
+      - waha_bride_sessions:/app/.sessions
+      # Save media files (WAHA default path)
+      - waha_bride_media:/app/.media
     expose:
       - "3000"
     healthcheck:
@@ -376,7 +382,13 @@ volumes:
     driver: local
   media_volume_worker:
     driver: local
-  waha_groom_data:
+  # WAHA Groom volumes (separati per sessions e media)
+  waha_groom_sessions:
     driver: local
-  waha_bride_data:
+  waha_groom_media:
+    driver: local
+  # WAHA Bride volumes (separati per sessions e media)
+  waha_bride_sessions:
+    driver: local
+  waha_bride_media:
     driver: local
