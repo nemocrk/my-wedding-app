@@ -17,22 +17,25 @@ def get_integration_url():
 @permission_classes([AllowAny]) # Accesso pubblico (intranet protetta da firewall/nginx)
 def whatsapp_status(request, session_type):
     """GET /api/admin/whatsapp/<groom|bride>/status/"""
-    # Prima cerca nel DB locale
     status_obj, created = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
     
-    # Poi prova a chiedere al layer integration lo stato real-time
+    profile_info = None
+
     try:
         integration_url = f"{get_integration_url()}/{session_type}/status"
         resp = requests.get(integration_url, timeout=5)
         if resp.status_code == 200:
             data = resp.json()
-            # Aggiorna DB
             status_obj.state = data.get('state', 'error')
-            # Se siamo in waiting_qr e la chiamata status ritorna il QR (dipende dall'impl di integration), salviamolo
             if data.get('qr_code'):
                 status_obj.last_qr_code = data.get('qr_code')
-            
             status_obj.save()
+            
+            # Estrazione Info Profilo dal campo 'raw' (che contiene la risposta WAHA)
+            # WAHA ritorna: { ..., "me": { "id": "...", "pushName": "..." } }
+            if 'raw' in data and 'me' in data['raw']:
+                profile_info = data['raw']['me']
+
     except Exception as e:
         print(f"Integration error: {e}")
         pass
@@ -42,7 +45,8 @@ def whatsapp_status(request, session_type):
         'state': status_obj.state,
         'last_check': status_obj.last_check,
         'error_message': status_obj.error_message,
-        'qr_code': status_obj.last_qr_code if status_obj.state == 'waiting_qr' else None
+        'qr_code': status_obj.last_qr_code if status_obj.state == 'waiting_qr' else None,
+        'profile': profile_info
     })
 
 @api_view(['GET'])
@@ -64,27 +68,21 @@ def whatsapp_refresh_status(request, session_type):
     """POST /api/admin/whatsapp/<groom|bride>/refresh/"""
     integration_url = f"{get_integration_url()}/{session_type}/refresh"
     try:
-        # 1. Trigger del refresh/start sessione
         resp = requests.post(integration_url, timeout=10)
         data = resp.json()
         
-        # 2. Ottimizzazione UX: Se lo stato è waiting_qr ma non abbiamo il QR nel body della risposta
-        # (o se integration sta ancora avviando il browser), aspettiamo un attimo e riproviamo il fetch del QR
         if data.get('state') in ['connecting', 'waiting_qr'] and not data.get('qr_code'):
-            time.sleep(2.0) # Attesa attiva per dare tempo a WAHA di generare il QR
-            
+            time.sleep(2.0)
             try:
-                # Chiediamo esplicitamente il QR
                 qr_resp = requests.get(f"{get_integration_url()}/{session_type}/qr", timeout=5)
                 if qr_resp.status_code == 200:
                     qr_data = qr_resp.json()
                     if qr_data.get('qr_code'):
                         data['qr_code'] = qr_data['qr_code']
-                        data['state'] = 'waiting_qr' # Forziamo stato visuale
+                        data['state'] = 'waiting_qr'
             except Exception:
-                pass # Se fallisce, amen, ci penserà il polling frontend
+                pass
 
-        # Aggiorna il DB
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
         status_obj.state = data.get('state', 'error')
         status_obj.last_qr_code = data.get('qr_code')
@@ -105,7 +103,6 @@ def whatsapp_logout(request, session_type):
         resp = requests.post(integration_url, timeout=10)
         data = resp.json()
         
-        # Reset DB status
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
         status_obj.state = 'disconnected'
         status_obj.last_qr_code = None
@@ -113,5 +110,47 @@ def whatsapp_logout(request, session_type):
         status_obj.save()
         
         return Response(data, status=resp.status_code)
+    except Exception as e:
+        return Response({'error': str(e)}, status=503)
+
+@api_view(['POST'])
+@authentication_classes([])
+@permission_classes([AllowAny])
+def whatsapp_send_test(request, session_type):
+    """POST /api/admin/whatsapp/<groom|bride>/test/ - Invia messaggio a se stessi"""
+    integration_base = get_integration_url()
+    
+    try:
+        # 1. Recupera info 'me' per sapere il proprio numero
+        status_resp = requests.get(f"{integration_base}/{session_type}/status", timeout=5)
+        if status_resp.status_code != 200:
+            return Response({'error': 'Impossibile recuperare stato sessione'}, status=500)
+            
+        status_data = status_resp.json()
+        me = status_data.get('raw', {}).get('me')
+        
+        if not me or not me.get('user'): # 'user' è il numero senza @c.us in WAHA/WebJS
+             # Fallback: prova a parsare _serialized o id
+             my_number = me.get('id', '').split('@')[0] if me else None
+        else:
+             my_number = me.get('user')
+
+        if not my_number:
+            return Response({'error': 'Impossibile identificare il numero mittente (sessione non pronta o info mancanti)'}, status=400)
+
+        # 2. Invia messaggio a se stessi
+        send_url = f"{integration_base}/{session_type}/send"
+        payload = {
+            "phone": my_number,
+            "message": "🔔 *Test My-Wedding-App*\nIl sistema è connesso correttamente e può inviare messaggi."
+        }
+        
+        send_resp = requests.post(send_url, json=payload, timeout=10)
+        
+        if send_resp.status_code == 200:
+            return Response({'success': True, 'recipient': my_number})
+        else:
+            return Response(send_resp.json(), status=send_resp.status_code)
+            
     except Exception as e:
         return Response({'error': str(e)}, status=503)
