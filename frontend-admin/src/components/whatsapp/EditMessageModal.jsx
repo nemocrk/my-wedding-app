@@ -11,7 +11,7 @@ const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
     if (message) {
       setFormData({
         session_type: message.session_type,
-        message: message.message,
+        message: message.message_body, // Mappa message_body dal backend
       });
     }
   }, [message]);
@@ -20,7 +20,10 @@ const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    onSave(message.id, formData);
+    onSave(message.id, {
+        session_type: formData.session_type,
+        message_body: formData.message // Manda message_body al backend
+    });
   };
 
   return (
