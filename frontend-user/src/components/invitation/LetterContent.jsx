@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useAnimation } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
 import rightArrow from '../../assets/illustrations/right-arrow.png';
+import waxImg from '../../assets/illustrations/wax.png'; // Import del sigillo
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -18,6 +19,9 @@ const LetterContent = ({ data }) => {
   
   // State per l'animazione di flip
   const [isFlipped, setIsFlipped] = useState(false);
+
+  // Animation Control per il Sigillo
+  const sealControls = useAnimation();
 
   // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
@@ -69,13 +73,48 @@ const LetterContent = ({ data }) => {
       }
     };
 
+    // LISTENER PER IL RIENTRO DEL SIGILLO (Step 5 di EnvelopeAnimation)
+    const onSealReturn = () => {
+        // Avvia l'animazione di rientro
+        sealControls.start({
+            x: 0,
+            y: 0,
+            rotate: 0,
+            scale: 1,
+            opacity: 1,
+            transition: { 
+                duration: 0.6, 
+                ease: "easeOut",
+                type: "spring",
+                bounce: 0.3
+            }
+        });
+    };
+
     window.addEventListener('message', handleReplayMessage);
+    window.addEventListener('wax-seal:return', onSealReturn);
+
+    // Se il componente viene montato DOPO che l'evento è già stato sparato (race condition),
+    // potremmo voler controllare uno stato globale o semplicemente animare in entrata subito.
+    // Per ora, assumiamo che EnvelopeAnimation e LetterContent siano coordinati via InvitationPage.
+    // Se InvitationPage monta LetterContent su onComplete (Step 5), l'animazione parte qui come "initial" se configurata,
+    // oppure possiamo triggerarla manualmente.
+    // Dato che onComplete scatta allo Step 5, lanciamo l'animazione di default all'ingresso se non intercettiamo l'evento in tempo.
+    // Tuttavia, per rispettare l'evento:
+    
+    // Fallback: se dopo 100ms non abbiamo ricevuto eventi, assumiamo che siamo già in stato finale (es. refresh pagina)
+    // e mostriamo il sigillo.
+    const timer = setTimeout(() => {
+         sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 });
+    }, 500);
 
     return () => {
       heatmapTracker.stop();
       window.removeEventListener('message', handleReplayMessage);
+      window.removeEventListener('wax-seal:return', onSealReturn);
+      clearTimeout(timer);
     };
-  }, []);
+  }, [sealControls]);
 
   const handleFlip = (flipped) => {
       setIsFlipped(flipped);
@@ -123,14 +162,38 @@ const LetterContent = ({ data }) => {
   return (
     <motion.div
       className="letter-content"
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      transition={{ duration: 1 }}
+      initial={{ opacity: 0 }} // Opacity gestita dall'envelope transition
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
     >
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+        
+        {/* WAX SEAL (Agganciato al flip-card, quindi ruota con esso se necessario, o sta fuori?) 
+            Se deve essere "in basso a sinistra alla lettera", deve stare NEL container della lettera.
+            Se lo mettiamo dentro flip-card, ruoterà. Se deve stare solo sul fronte, va in flip-card-front.
+            Se deve stare su entrambi... decidiamo che sta sul fronte per ora.
+        */}
+        <motion.div
+            className="wax-seal"
+            initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} // Parte fuori
+            animate={sealControls}
+            style={{ 
+                position: 'absolute',
+                bottom: '6%',
+                left: '6%',
+                width: '18%', // Dimensionamento dinamico relativo alla card
+                maxWidth: '90px',
+                aspectRatio: '1/1',
+                zIndex: 30,
+                pointerEvents: 'none'
+            }}
+        >
+            <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+        </motion.div>
+
         <div className="flip-card-inner">
             
-            {/* FRONT FACE: New Graphic Design */}
+            {/* FRONT FACE */}
             <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
                 <div className="front-content">
                     <div className="spacer-top"></div>
@@ -174,7 +237,7 @@ const LetterContent = ({ data }) => {
                 </button>
             </div>
 
-            {/* BACK FACE: With same background image and gradient overlay */}
+            {/* BACK FACE */}
             <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
                 <div className="letter-paper">
                     {/* Navigation to Front */}
