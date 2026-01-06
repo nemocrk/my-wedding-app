@@ -1,8 +1,9 @@
-from rest_framework.decorators import api_view, permission_classes, authentication_classes
+from rest_framework.decorators import api_view, permission_classes, authentication_classes, action
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework import viewsets, status as drf_status
 from django.conf import settings
+from django.utils import timezone
 import requests
 import os
 import time
@@ -25,15 +26,33 @@ class WhatsAppMessageEventViewSet(viewsets.ModelViewSet):
     permission_classes = [AllowAny]
     http_method_names = ['post', 'get']  # Solo creazione e lettura
 
-class WhatsAppMessageQueueViewSet(viewsets.ReadOnlyModelViewSet):
+class WhatsAppMessageQueueViewSet(viewsets.ModelViewSet):
     """
-    ViewSet per la coda messaggi (solo lettura da frontend)
+    ViewSet per la coda messaggi (CRUD completo da frontend)
     Endpoint: GET /api/admin/whatsapp-queue/
     """
-    queryset = WhatsAppMessageQueue.objects.all().select_related().prefetch_related('events')
+    queryset = WhatsAppMessageQueue.objects.all().select_related().prefetch_related('events').order_by('-scheduled_for')
     serializer_class = WhatsAppMessageQueueSerializer
     authentication_classes = []
     permission_classes = [AllowAny]
+
+    @action(detail=False, methods=['post'], url_path='retry-failed')
+    def retry_failed(self, request):
+        count = WhatsAppMessageQueue.objects.filter(status=WhatsAppMessageQueue.Status.FAILED).update(
+            status=WhatsAppMessageQueue.Status.PENDING,
+            attempts=0,
+            error_log=None
+        )
+        return Response({'success': True, 'retried_count': count})
+
+    @action(detail=True, methods=['post'], url_path='force-send')
+    def force_send(self, request, pk=None):
+        msg = self.get_object()
+        msg.status = WhatsAppMessageQueue.Status.PENDING
+        msg.attempts = 0
+        msg.scheduled_for = timezone.now()
+        msg.save()
+        return Response({'success': True, 'message': 'Message queued for immediate sending'})
 
 @api_view(['GET'])
 @authentication_classes([]) # Nessuna autenticazione richiesta
