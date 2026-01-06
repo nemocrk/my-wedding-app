@@ -1,12 +1,13 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, Home, Settings, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
 
 const Sidebar = () => {
     const navItems = [
         { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/invitations', label: 'Inviti', icon: Users },
         { path: '/accommodations', label: 'Alloggi', icon: Home },
+        { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
         { path: '/config', label: 'Configurazione', icon: Settings },
     ];
 
