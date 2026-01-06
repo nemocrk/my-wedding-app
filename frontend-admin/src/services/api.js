@@ -165,5 +165,18 @@ export const api = {
   fetchUnassignedInvitations: async () => {
       const response = await safeFetch(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
       return handleResponse(response);
+  },
+
+  // WhatsApp Integration
+  getWhatsAppStatus: async (sessionType) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${sessionType}/status/`);
+    return handleResponse(response);
+  },
+
+  refreshWhatsAppSession: async (sessionType) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${sessionType}/refresh/`, {
+      method: 'POST'
+    });
+    return handleResponse(response);
   }
 };
