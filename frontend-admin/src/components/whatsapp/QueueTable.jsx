@@ -48,7 +48,7 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
     <div className="flex flex-col">
       <div className="-my-2 overflow-x-auto sm:-mx-6 lg:-mx-8">
         <div className="py-2 align-middle inline-block min-w-full sm:px-6 lg:px-8">
-          <div className="shadow overflow-hidden border-b border-gray-200 sm:rounded-lg">
+          <div className="shadow border-b border-gray-200 sm:rounded-lg">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -62,8 +62,8 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {messages.map((msg) => (
-                  <tr key={msg.id}>
+                {messages.map((msg, index) => (
+                  <tr key={msg.id} className="relative">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                       {msg.recipient_number}
                     </td>
@@ -71,13 +71,29 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
                       {msg.session_type}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-center">
-                        <div className="flex justify-center items-center relative">
-                            <div className="group relative inline-block">
+                        <div className="flex justify-center items-center" style={{ position: 'relative' }}>
+                            <div className="group inline-block">
                                 <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 cursor-help" />
-                                <div className="invisible group-hover:visible absolute left-1/2 transform -translate-x-1/2 bottom-full mb-2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-xl z-50 whitespace-normal text-left">
+                                <div 
+                                    className="invisible group-hover:visible absolute left-1/2 transform -translate-x-1/2 w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl whitespace-normal text-left pointer-events-none"
+                                    style={{ 
+                                        bottom: '100%', 
+                                        marginBottom: '8px',
+                                        zIndex: 9999
+                                    }}
+                                >
                                     <div className="break-words">{msg.message_body}</div>
-                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                                        <div className="border-8 border-transparent border-t-gray-900"></div>
+                                    <div 
+                                        className="absolute top-full left-1/2 transform -translate-x-1/2" 
+                                        style={{ marginTop: '-1px' }}
+                                    >
+                                        <div style={{ 
+                                            width: 0, 
+                                            height: 0, 
+                                            borderLeft: '6px solid transparent', 
+                                            borderRight: '6px solid transparent', 
+                                            borderTop: '6px solid #111827' 
+                                        }}></div>
                                     </div>
                                 </div>
                             </div>
