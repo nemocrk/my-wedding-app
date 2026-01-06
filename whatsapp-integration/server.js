@@ -2,11 +2,22 @@ const express = require('express');
 const axios = require('axios');
 const NodeCache = require('node-cache');
 const bodyParser = require('body-parser');
+const events = require('events');
 
 const app = express();
 const cache = new NodeCache({ stdTTL: 300 });
 
+// SSE Event Emitter
+const sseEmitter = new events.EventEmitter();
+
 app.use(bodyParser.json());
+
+// CORS headers per SSE
+app.use((req, res, next) => {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+    next();
+});
 
 // Configurazione Ambiente
 const WAHA_URLS = {
@@ -23,6 +34,18 @@ const WAHA_API_KEYS = {
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
+function emitStatus(sessionType, chatId, status) {
+    const eventData = { 
+        type: 'message_status',
+        session: sessionType,
+        chatId: chatId,
+        status: status, // 'reading', 'waiting_rate', 'typing', 'sending'
+        timestamp: new Date().toISOString()
+    };
+    sseEmitter.emit('status_update', eventData);
+    console.log(`[SSE] Emitted: ${JSON.stringify(eventData)}`);
+}
+
 async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
     const apiKey = WAHA_API_KEYS[sessionType]; 
     const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
@@ -31,31 +54,73 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
 
     const SESSION_NAME = 'default';
 
+    // 1. MARK AS SEEN (New Step)
+    emitStatus(sessionType, chatId, 'reading');
+    try {
+        // WAHA endpoint: POST /api/sendSeen
+        await axios.post(`${wahaUrl}/api/sendSeen`, { chatId, session: SESSION_NAME }, { headers });
+        console.log(`[${sessionType}] Marked as seen for ${chatId}`);
+    } catch (e) {
+        console.warn(`[${sessionType}] Failed sendSeen: ${e.message}`);
+    }
+
+    // 2. RANDOM DELAY (Waiting Rate)
+    emitStatus(sessionType, chatId, 'waiting_rate');
     await sleep(Math.floor(Math.random() * 2000) + 2000);
 
+    // 3. START TYPING
+    emitStatus(sessionType, chatId, 'typing');
     try {
         await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed startTyping: ${e.message}`);
     }
 
+    // Calculate typing duration based on text length
     const typingTime = Math.min((text.length * 40) + 500, 15000);
     await sleep(typingTime);
 
+    // 4. STOP TYPING
     try {
         await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
     }
 
-    return await axios.post(`${wahaUrl}/api/sendText`, {
+    // 5. SEND MESSAGE
+    emitStatus(sessionType, chatId, 'sending');
+    const result = await axios.post(`${wahaUrl}/api/sendText`, {
         chatId,
         text,
         session: SESSION_NAME
     }, { headers });
+    
+    emitStatus(sessionType, chatId, 'sent');
+    return result;
 }
 
 // --- ENDPOINTS ---
+
+// SSE Stream Endpoint
+app.get('/events', (req, res) => {
+    res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive'
+    });
+
+    res.write('retry: 10000\n\n'); // Reconnect every 10s
+
+    const listener = (data) => {
+        res.write(`data: ${JSON.stringify(data)}\n\n`);
+    };
+
+    sseEmitter.on('status_update', listener);
+
+    req.on('close', () => {
+        sseEmitter.removeListener('status_update', listener);
+    });
+});
 
 // GET /:session_type/status
 app.get('/:session_type/status', async (req, res) => {
@@ -214,6 +279,9 @@ app.post('/:session_type/send', async (req, res) => {
     try {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const chatId = `${cleanPhone}@c.us`;
+        
+        // Send asynchronously to not block response? 
+        // No, we want to await to confirm 'sent' status, but statuses are streamed.
         
         await sendHumanLike(wahaUrl, session_type, chatId, message);
         
