@@ -34,4 +34,4 @@ fi
 echo "--------------------------------------------------------"
 echo "  [3/3] Avvio il progetto in dev mode con hot-reload..."
 echo "--------------------------------------------------------"
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
