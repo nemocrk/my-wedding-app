@@ -30,6 +30,8 @@ const WAHA_API_KEYS = {
   bride: process.env.WAHA_API_KEY_BRIDE
 };
 
+const DJANGO_API_URL = process.env.DJANGO_API_URL || 'http://backend:8000/api/admin';
+
 // --- HELPERS ---
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
@@ -46,7 +48,23 @@ function emitStatus(sessionType, chatId, status) {
     console.log(`[SSE] Emitted: ${JSON.stringify(eventData)}`);
 }
 
-async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
+async function logEvent(queueId, phase, durationMs = null, metadata = {}) {
+    if (!queueId) return; // Skip if no queue_id provided
+    
+    try {
+        await axios.post(`${DJANGO_API_URL}/whatsapp-events/`, {
+            queue_message: queueId,
+            phase: phase,
+            duration_ms: durationMs,
+            metadata: metadata
+        }, { timeout: 2000 });
+        console.log(`[DB Event] Logged ${phase} for queue_id=${queueId}`);
+    } catch (e) {
+        console.warn(`[DB Event] Failed to log ${phase}: ${e.message}`);
+    }
+}
+
+async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null) {
     const apiKey = WAHA_API_KEYS[sessionType]; 
     const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
 
@@ -54,22 +72,33 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
 
     const SESSION_NAME = 'default';
 
-    // 1. MARK AS SEEN (New Step)
+    // 1. MARK AS SEEN (Reading)
+    const readingStart = Date.now();
     emitStatus(sessionType, chatId, 'reading');
+    await logEvent(queueId, 'reading', null, { session: sessionType, chatId });
+    
     try {
-        // WAHA endpoint: POST /api/sendSeen
         await axios.post(`${wahaUrl}/api/sendSeen`, { chatId, session: SESSION_NAME }, { headers });
         console.log(`[${sessionType}] Marked as seen for ${chatId}`);
     } catch (e) {
         console.warn(`[${sessionType}] Failed sendSeen: ${e.message}`);
     }
+    
+    const readingDuration = Date.now() - readingStart;
 
-    // 2. RANDOM DELAY (Waiting Rate)
-    emitStatus(sessionType, chatId, 'waiting_rate');
-    await sleep(Math.floor(Math.random() * 2000) + 2000);
+    // 2. RANDOM DELAY (Waiting Human)
+    const waitStart = Date.now();
+    const waitTime = Math.floor(Math.random() * 2000) + 2000;
+    emitStatus(sessionType, chatId, 'waiting_human');
+    await logEvent(queueId, 'waiting_human', null, { wait_ms: waitTime });
+    await sleep(waitTime);
+    const waitDuration = Date.now() - waitStart;
 
     // 3. START TYPING
+    const typingStart = Date.now();
     emitStatus(sessionType, chatId, 'typing');
+    await logEvent(queueId, 'typing', null, { text_length: text.length });
+    
     try {
         await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
@@ -86,16 +115,28 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
     } catch (e) {
         console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
     }
+    
+    const typingDuration = Date.now() - typingStart;
 
     // 5. SEND MESSAGE
+    const sendStart = Date.now();
     emitStatus(sessionType, chatId, 'sending');
+    await logEvent(queueId, 'sending');
+    
     const result = await axios.post(`${wahaUrl}/api/sendText`, {
         chatId,
         text,
         session: SESSION_NAME
     }, { headers });
     
+    const sendDuration = Date.now() - sendStart;
+    
     emitStatus(sessionType, chatId, 'sent');
+    await logEvent(queueId, 'sent', sendDuration, { 
+        message_id: result.data?.id,
+        total_duration_ms: Date.now() - readingStart
+    });
+    
     return result;
 }
 
@@ -270,7 +311,7 @@ app.post('/:session_type/logout', async (req, res) => {
 // POST /:session_type/send
 app.post('/:session_type/send', async (req, res) => {
     const { session_type } = req.params;
-    const { phone, message } = req.body;
+    const { phone, message, queue_id } = req.body;
     const wahaUrl = WAHA_URLS[session_type];
 
     if (!wahaUrl) return res.status(400).json({ error: 'Invalid session' });
@@ -280,14 +321,17 @@ app.post('/:session_type/send', async (req, res) => {
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const chatId = `${cleanPhone}@c.us`;
         
-        // Send asynchronously to not block response? 
-        // No, we want to await to confirm 'sent' status, but statuses are streamed.
-        
-        await sendHumanLike(wahaUrl, session_type, chatId, message);
+        await sendHumanLike(wahaUrl, session_type, chatId, message, queue_id);
         
         res.json({ status: 'sent', timestamp: new Date() });
     } catch (error) {
         console.error(`Error sending to ${phone}:`, error.message);
+        
+        // Log failed event
+        if (req.body.queue_id) {
+            await logEvent(req.body.queue_id, 'failed', null, { error: error.message });
+        }
+        
         res.status(500).json({ error: error.message });
     }
 });
