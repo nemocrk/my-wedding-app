@@ -1,117 +1,192 @@
 const express = require('express');
 const axios = require('axios');
+const NodeCache = require('node-cache');
 const bodyParser = require('body-parser');
 
 const app = express();
+const cache = new NodeCache({ stdTTL: 300 });
+
 app.use(bodyParser.json());
 
-const PORT = process.env.PORT || 3000;
-const GROOM_URL = process.env.WAHA_GROOM_URL || 'http://waha-groom:3000';
-const BRIDE_URL = process.env.WAHA_BRIDE_URL || 'http://waha-bride:3000';
-const API_KEYS = {
-    groom: process.env.WAHA_API_KEY_GROOM,
-    bride: process.env.WAHA_API_KEY_BRIDE
+// Configurazione Ambiente
+const WAHA_URLS = {
+  groom: process.env.WAHA_GROOM_URL || 'http://waha-groom:3000',
+  bride: process.env.WAHA_BRIDE_URL || 'http://waha-bride:3000'
 };
 
-// Middleware per Basic Auth interna
-const authMiddleware = (req, res, next) => {
-    // In produzione implementare check auth token dal backend Django
-    // Per ora ci fidiamo della rete interna docker
-    next();
+const WAHA_API_KEYS = {
+  groom: process.env.WAHA_API_KEY_GROOM,
+  bride: process.env.WAHA_API_KEY_BRIDE
 };
 
-const getSessionUrl = (session) => {
-    return session === 'groom' ? GROOM_URL : BRIDE_URL;
-};
+// --- HELPERS ---
 
-// Health Check
-app.get('/health', (req, res) => {
-    res.json({ status: 'ok' });
-});
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-// Proxy Status
-app.get('/status/:session', async (req, res) => {
-    const { session } = req.params;
-    const baseUrl = getSessionUrl(session);
+async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
+    const apiKey = WAHA_API_KEYS[sessionType]; 
+    const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
+
+    console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
+
+    // 1. Initial Human Pause (Random 2-4s)
+    await sleep(Math.floor(Math.random() * 2000) + 2000);
+
+    // 2. Start Typing
     try {
-        const response = await axios.get(`${baseUrl}/api/sessions?all=true`);
-        // WAHA returns array of sessions. We assume 'default' or session name matches
-        const sessionData = response.data.find(s => s.name === 'default') || response.data[0];
-        
-        // Normalize state
-        let state = 'disconnected';
-        if (sessionData?.status === 'WORKING') state = 'connected';
-        if (sessionData?.status === 'SCAN_QR_CODE') state = 'waiting_qr';
-        
-        res.json({ state, details: sessionData });
-    } catch (error) {
-        console.error(`Error fetching status for ${session}:`, error.message);
-        res.status(502).json({ state: 'error', error: error.message });
+        await axios.post(`${wahaUrl}/api/startTyping`, { chatId }, { headers });
+    } catch (e) {
+        console.warn(`[${sessionType}] Failed startTyping: ${e.message}`);
     }
-});
 
-// Proxy Screenshot (QR Code)
-app.get('/screenshot/:session', async (req, res) => {
-    const { session } = req.params;
-    const baseUrl = getSessionUrl(session);
+    // 3. Typing Simulation Time
+    // ~5 chars per 200ms + random variance. Max 15s.
+    const typingTime = Math.min((text.length * 40) + 500, 15000);
+    await sleep(typingTime);
+
+    // 4. Stop Typing
     try {
-        const response = await axios.get(`${baseUrl}/api/screenshot?session=default`, {
-            responseType: 'arraybuffer'
-        });
-        const base64 = Buffer.from(response.data, 'binary').toString('base64');
-        res.json({ data: `data:image/png;base64,${base64}` });
-    } catch (error) {
-        res.status(500).json({ error: 'Failed to fetch QR' });
+        await axios.post(`${wahaUrl}/api/stopTyping`, { chatId }, { headers });
+    } catch (e) {
+        console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
     }
-});
 
-// Send Message with Human Behavior
-app.post('/send', async (req, res) => {
-    const { session, number, message } = req.body;
+    // 5. Send Message
+    return await axios.post(`${wahaUrl}/api/sendText`, {
+        chatId,
+        text,
+        session: sessionType
+    }, { headers });
+}
+
+// --- ENDPOINTS ---
+
+// GET /:session_type/status
+// Proxy status check to WAHA
+app.get('/:session_type/status', async (req, res) => {
+  const { session_type } = req.params;
+  const wahaUrl = WAHA_URLS[session_type];
+  
+  if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
+
+  try {
+    const response = await axios.get(`${wahaUrl}/api/sessions/${session_type}`, {
+      headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
+      timeout: 5000
+    });
     
-    if (!session || !number || !message) {
-        return res.status(400).json({ error: 'Missing parameters' });
+    // Normalize status for Dashboard
+    const data = response.data;
+    // WAHA returns status in various formats depending on version, adapting generally:
+    // status: 'WORKING' | 'SCAN_QR_CODE' | 'STARTING' | 'FAILED'
+    let state = 'disconnected';
+    if (data.status === 'WORKING') state = 'connected';
+    else if (data.status === 'SCAN_QR_CODE') state = 'waiting_qr';
+    else if (data.status === 'STARTING') state = 'connecting';
+    
+    res.json({ state, raw: data });
+  } catch (error) {
+    // If WAHA is unreachable or returns error
+    res.json({ state: 'error', error: error.message });
+  }
+});
+
+// GET /:session_type/qr
+// Proxy QR code image
+app.get('/:session_type/qr', async (req, res) => {
+  const { session_type } = req.params;
+  const wahaUrl = WAHA_URLS[session_type];
+  
+  try {
+    const response = await axios.get(`${wahaUrl}/api/${session_type}/auth/qr`, {
+      headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
+      responseType: 'arraybuffer',
+      timeout: 10000
+    });
+    
+    const base64Image = Buffer.from(response.data, 'binary').toString('base64');
+    res.json({ qr_code: `data:image/png;base64,${base64Image}` });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// POST /:session_type/refresh
+// Force session check or restart
+app.post('/:session_type/refresh', async (req, res) => {
+  const { session_type } = req.params;
+  const wahaUrl = WAHA_URLS[session_type];
+  
+  try {
+    // 1. Check current status
+    const statusUrl = `${wahaUrl}/api/sessions/${session_type}`;
+    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+    
+    let status = 'UNKNOWN';
+    try {
+        const s = await axios.get(statusUrl, { headers, timeout: 5000 });
+        status = s.data.status;
+    } catch (e) {
+        // If 404/Error, assume stopped/not exists
+        status = 'STOPPED';
     }
 
-    const baseUrl = getSessionUrl(session);
-    const chatId = `${number}@c.us`;
+    if (status === 'WORKING') {
+      return res.json({ state: 'connected' });
+    }
+    
+    if (status === 'SCAN_QR_CODE') {
+       // Get QR
+       const qrResp = await axios.get(`${wahaUrl}/api/${session_type}/auth/qr`, {
+          headers, responseType: 'arraybuffer' 
+       });
+       const b64 = Buffer.from(qrResp.data, 'binary').toString('base64');
+       return res.json({ state: 'waiting_qr', qr_code: `data:image/png;base64,${b64}` });
+    }
+
+    // Try to Start session if stopped
+    try {
+        await axios.post(`${wahaUrl}/api/sessions/${session_type}/start`, {}, { headers });
+        return res.json({ state: 'connecting', message: 'Session start triggered' });
+    } catch (e) {
+        return res.json({ state: 'error', error: 'Failed to start session: ' + e.message });
+    }
+
+  } catch (error) {
+    res.status(500).json({ state: 'error', error: error.message });
+  }
+});
+
+// POST /:session_type/send
+// Worker entry point for sending messages safely
+app.post('/:session_type/send', async (req, res) => {
+    const { session_type } = req.params;
+    const { phone, message } = req.body;
+    const wahaUrl = WAHA_URLS[session_type];
+
+    if (!wahaUrl) return res.status(400).json({ error: 'Invalid session' });
+    if (!phone || !message) return res.status(400).json({ error: 'Missing params' });
 
     try {
-        // 1. Simulate Typing
-        await axios.post(`${baseUrl}/api/sendSeen`, {
-            session: 'default',
-            chatId: chatId
-        });
+        // Normalize phone to chatId
+        // Remove +, spaces, dashes
+        const cleanPhone = phone.replace(/[^0-9]/g, '');
+        const chatId = `${cleanPhone}@c.us`;
         
-        await axios.post(`${baseUrl}/api/startTyping`, {
-            session: 'default',
-            chatId: chatId
-        });
-
-        // Calculate delay based on message length (approx 50ms per char, min 1s, max 5s)
-        const typingDelay = Math.min(Math.max(message.length * 50, 1000), 5000);
-        await new Promise(r => setTimeout(r, typingDelay));
-
-        await axios.post(`${baseUrl}/api/stopTyping`, {
-            session: 'default',
-            chatId: chatId
-        });
-
-        // 2. Send Message
-        const sendResponse = await axios.post(`${baseUrl}/api/sendText`, {
-            session: 'default',
-            chatId: chatId,
-            text: message
-        });
-
-        res.json({ success: true, id: sendResponse.data.id });
-
+        // Execute Human-Like Send
+        await sendHumanLike(wahaUrl, session_type, chatId, message);
+        
+        res.json({ status: 'sent', timestamp: new Date() });
     } catch (error) {
-        console.error(`Error sending message via ${session}:`, error.message);
+        console.error(`Error sending to ${phone}:`, error.message);
         res.status(500).json({ error: error.message });
     }
 });
 
+// Healthcheck
+app.get('/health', (req, res) => res.json({ status: 'ok' }));
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`WhatsApp Integration Service running on port ${PORT}`);
+  console.log(`WhatsApp Integration Service running on port ${PORT}`);
 });
