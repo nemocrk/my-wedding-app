@@ -82,18 +82,16 @@ app.get('/:session_type/status', async (req, res) => {
     if (state === 'connected') {
         try {
             // WAHA API ufficiale: GET /api/{session}/profile
-            // Restituisce: { id, name, picture }
             const profileResp = await axios.get(`${wahaUrl}/api/default/profile`, { 
                 headers, 
                 timeout: 3000 
             });
             
             if (profileResp.data) {
-                // Merge profile info into data.me
                 data.me = { 
                     ...data.me, 
                     ...profileResp.data,
-                    pushName: profileResp.data.name || data.me?.pushName // pushName è un alias di 'name'
+                    pushName: profileResp.data.name || data.me?.pushName 
                 };
             }
         } catch (e) {
@@ -177,23 +175,28 @@ app.post('/:session_type/logout', async (req, res) => {
     try {
         const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
         
+        // Timeout aggressivi per evitare che la richiesta si impalli lato Django
+        
+        // 1. Try Logout (3s timeout)
         try {
-             await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers });
+             await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers, timeout: 3000 });
         } catch (e) {
-            console.warn(`Logout failed (maybe already logged out): ${e.message}`);
+            console.warn(`Logout warn (proceeding anyway): ${e.message}`);
         }
         
-        await sleep(1000);
+        await sleep(500); // Ridotto sleep a 0.5s
 
+        // 2. Try Stop (4s timeout)
         try {
-            await axios.post(`${wahaUrl}/api/sessions/default/stop`, {}, { headers });
+            await axios.post(`${wahaUrl}/api/sessions/default/stop`, {}, { headers, timeout: 4000 });
         } catch (e) {
-             console.warn(`Stop failed (maybe already stopped): ${e.message}`);
+             console.warn(`Stop warn (proceeding anyway): ${e.message}`);
         }
 
+        // Restituisce sempre successo per permettere all'utente di resettare lo stato lato UI
         res.json({ state: 'disconnected', message: 'Logged out successfully' });
     } catch (error) {
-        console.error(`Logout error for ${session_type}:`, error.message);
+        console.error(`Logout fatal error for ${session_type}:`, error.message);
         res.status(500).json({ error: error.message });
     }
 });
