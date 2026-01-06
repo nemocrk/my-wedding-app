@@ -14,10 +14,10 @@ jobs:
     name: 🐍 Backend Tests (Pytest)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: 'pip'
@@ -44,7 +44,7 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Backend Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: backend-coverage
           path: backend/coverage.xml
@@ -57,10 +57,10 @@ jobs:
     name: ⚛️ Frontend User Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -89,7 +89,7 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload User Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-user-coverage
           path: frontend-user/coverage/
@@ -102,10 +102,10 @@ jobs:
     name: 🛠️ Frontend Admin Tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -134,7 +134,7 @@ jobs:
           echo "\`\`\`" >> $GITHUB_STEP_SUMMARY
       
       - name: Upload Admin Coverage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: frontend-admin-coverage
           path: frontend-admin/coverage/
@@ -148,7 +148,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-user-test, frontend-admin-test]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -202,7 +202,7 @@ jobs:
       # PLAYWRIGHT E2E TESTING
       # ==========================================================================
       - name: Set up Node.js for Playwright
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: '20'
           cache: 'npm'
@@ -266,7 +266,7 @@ jobs:
 
       - name: Upload Test Results (Report & Screenshots)
         if: always() # Upload results even if tests fail
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: playwright-results
           path: |
