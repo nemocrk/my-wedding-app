@@ -74,7 +74,7 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
                         <div className="flex justify-center group relative">
                             <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 cursor-help" />
                             <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10 whitespace-normal text-left">
-                                {msg.message}
+                                {msg.message_body}
                             </div>
                         </div>
                     </td>
