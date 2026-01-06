@@ -3,8 +3,10 @@
   height: 100%;
   perspective: 1000px;
   -webkit-perspective: 1000px;
-  display: block;
-  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 1rem;
   background: transparent;
 }
 
@@ -12,7 +14,9 @@
 .flip-card {
   position: relative;
   width: 100%;
-  height: 100%;
+  max-width: 500px;
+  /* Maintain 2:3 aspect ratio (1024x1536) */
+  aspect-ratio: 2 / 3;
   text-align: center;
   transition: transform 0.8s;
   transform-style: preserve-3d;
@@ -44,7 +48,7 @@
   height: 100%;
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
-  border-radius: 4px;
+  border-radius: 12px;
   box-shadow: 0 4px 15px rgba(0,0,0,0.1);
   overflow: hidden;
   background-color: #fffef7; /* Fallback color */
@@ -127,41 +131,12 @@
   flex-direction: column;
   overflow-y: auto; 
   z-index: 1;
-  /* 
-     Background handling:
-     We want the image to be visible but faded at the top (white/transparent) and solid at the bottom (or vice versa depending on interpretation).
-     "sfumalo in alto rendendolo solid in basso" -> Faded at top (white overlay), Solid at bottom.
-     However, usually for readability of forms, we want a white overlay that is stronger where the text is.
-     
-     Implementation:
-     Layer 1 (Top): Linear Gradient from White (95%) to Transparent or White (40%) to ensure readability.
-     Layer 2 (Bottom): The Image.
-     
-     Actually, "sfumalo in alto rendendolo solid in basso" usually means the *image* is faded out at the top (becoming white) and solid (fully visible) at the bottom?
-     OR does it mean the *overlay* is faded?
-     
-     Let's assume the user wants the image to be the background, but since there is text/form on top, we probably need a white overlay.
-     "sfumalo in alto" -> The image fades out at the top (becomes white).
-     "solid in basso" -> The image is solid (fully visible) at the bottom.
-     
-     So: Top = White, Bottom = Image.
-  */
   background-size: cover;
   background-position: center;
-  /* background-image set inline in JSX */
 }
 
 /* Content wrapper inside back face - Glassmorphism / Overlay */
 .letter-paper {
-  /* 
-     We add a gradient background here to achieve the "fade" effect over the image 
-     Top: Solid White (to hide image behind title) or Semi-transparent white
-     Bottom: Transparent (to show the solid image)
-     
-     Wait, if the user wants "solid in basso" (image visible at bottom) and "sfumato in alto" (image faded/white at top).
-     We can achieve this by putting a white gradient ON TOP of the image.
-     Gradient: White (100% at 0%) -> Transparent (0% at 100%).
-  */
   background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 40%, rgba(255,255,255,0.3) 100%);
   width: 100%;
   min-height: 100%;
@@ -183,7 +158,6 @@
   margin-bottom: 0.8rem;
   color: #333;
   text-align: justify;
-  /* Add slight background to text if needed for readability */
 }
 
 /* Navigation Buttons Animation */
@@ -229,11 +203,10 @@
 }
 
 /* RSVP styles */
-/* Increase opacity/background of containers for readability against image */
 .guests-list { 
     margin-top: 1.5rem; 
     padding: 1rem; 
-    background: rgba(249, 247, 241, 0.9); /* More opaque */
+    background: rgba(249, 247, 241, 0.9);
     border-left: 4px solid #c9a581; 
 }
 .guests-list h3 { font-size: 1.1rem; margin-bottom: 0.8rem; color: #8b7355; }
@@ -255,7 +228,7 @@
 .rsvp-section { 
     margin-top: 2rem; 
     padding: 1.5rem; 
-    background: rgba(240, 248, 255, 0.95); /* More opaque */
+    background: rgba(240, 248, 255, 0.95); 
     border-radius: 8px; 
     border: 1px solid #c9a581; 
 }
