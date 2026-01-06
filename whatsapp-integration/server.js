@@ -29,31 +29,25 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
 
     console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
 
-    // WAHA CORE (Free) accetta solo sessione 'default'
     const SESSION_NAME = 'default';
 
-    // 1. Initial Human Pause (Random 2-4s)
     await sleep(Math.floor(Math.random() * 2000) + 2000);
 
-    // 2. Start Typing
     try {
         await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed startTyping: ${e.message}`);
     }
 
-    // 3. Typing Simulation Time
     const typingTime = Math.min((text.length * 40) + 500, 15000);
     await sleep(typingTime);
 
-    // 4. Stop Typing
     try {
         await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
     }
 
-    // 5. Send Message
     return await axios.post(`${wahaUrl}/api/sendText`, {
         chatId,
         text,
@@ -84,44 +78,26 @@ app.get('/:session_type/status', async (req, res) => {
     else if (data.status === 'STARTING') state = 'connecting';
     else if (data.status === 'STOPPED') state = 'disconnected';
     
-    // FETCH PROFILE INFO & PICTURE se connesso
+    // FETCH PROFILE INFO (incluso picture) se connesso
     if (state === 'connected') {
         try {
-            // 1. Ottieni info 'me' (ID/Phone)
-            let meInfo = data.me || {}; 
+            // WAHA API ufficiale: GET /api/{session}/profile
+            // Restituisce: { id, name, picture }
+            const profileResp = await axios.get(`${wahaUrl}/api/default/profile`, { 
+                headers, 
+                timeout: 3000 
+            });
             
-            try {
-                 const meResp = await axios.get(`${wahaUrl}/api/default/me`, { headers, timeout: 2000 });
-                 if(meResp.data) meInfo = { ...meInfo, ...meResp.data };
-            } catch(e) {}
-            
-            // 2. Se abbiamo un ID utente, cerchiamo la foto profilo
-            // Secondo docs ufficiali WAHA: GET /api/{session}/profile/pic/{phone}
-            if (meInfo.id) {
-                // meInfo.id è tipo "393331234567@c.us" o oggetto
-                const userId = (typeof meInfo.id === 'string') ? meInfo.id : meInfo.id._serialized || meInfo.id.user;
-                
-                // Normalizza ID per la chiamata (rimuovi @c.us se necessario, o tienilo, dipende dall'engine, ma le docs dicono 'phone')
-                // Proviamo con l'ID completo prima
-                try {
-                    // Endpoint per la foto profilo
-                    const picUrl = `${wahaUrl}/api/default/profile/pic/${userId}`;
-                    const picResp = await axios.get(picUrl, { headers, timeout: 2000 });
-                    
-                    if (picResp.data && picResp.data.original) {
-                        meInfo.picture = picResp.data.original; // URL della foto
-                    } else if (picResp.data && picResp.data.url) {
-                         meInfo.picture = picResp.data.url;
-                    }
-                } catch (picErr) {
-                    console.warn(`Failed to fetch profile pic for ${userId}: ${picErr.message}`);
-                }
+            if (profileResp.data) {
+                // Merge profile info into data.me
+                data.me = { 
+                    ...data.me, 
+                    ...profileResp.data,
+                    pushName: profileResp.data.name || data.me?.pushName // pushName è un alias di 'name'
+                };
             }
-
-            data.me = meInfo;
-
         } catch (e) {
-            console.warn(`Failed to fetch detailed profile info: ${e.message}`);
+            console.warn(`Failed to fetch profile: ${e.message}`);
         }
     }
 
