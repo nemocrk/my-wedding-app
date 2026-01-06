@@ -1,37 +1,48 @@
-import axios from 'axios';
-
 const API_BASE_URL = '/api/admin';
 
+const handleResponse = async (response) => {
+  let data;
+  const contentType = response.headers.get("content-type");
+  if (contentType && contentType.includes("application/json")) {
+    data = await response.json();
+  } else {
+    data = { detail: await response.text() };
+  }
+
+  if (!response.ok) {
+    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
+    throw new Error(errorMessage);
+  }
+
+  return data;
+};
+
 export const whatsappService = {
-  // Queue Management
-  getQueue: async () => {
-    const response = await axios.get(`${API_BASE_URL}/whatsapp-queue/`);
-    return response.data;
+  getQueue: async (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    const url = `${API_BASE_URL}/whatsapp-queue/${queryString ? '?' + queryString : ''}`;
+    const response = await fetch(url);
+    return handleResponse(response);
   },
 
   retryFailed: async () => {
-    const response = await axios.post(`${API_BASE_URL}/whatsapp-queue/retry-failed/`);
-    return response.data;
+    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/retry-failed/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(response);
   },
 
-  forceSend: async (id) => {
-    const response = await axios.post(`${API_BASE_URL}/whatsapp-queue/${id}/force-send/`);
-    return response.data;
+  forceSend: async (messageId) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${messageId}/force-send/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(response);
   },
 
-  // Session Management
-  getStatus: async (sessionType) => {
-    const response = await axios.get(`${API_BASE_URL}/whatsapp/${sessionType}/status/`);
-    return response.data;
+  getEvents: async (queueMessageId) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp-events/?queue_message=${queueMessageId}`);
+    return handleResponse(response);
   },
-
-  logout: async (sessionType) => {
-    const response = await axios.post(`${API_BASE_URL}/whatsapp/${sessionType}/logout/`);
-    return response.data;
-  },
-
-  refresh: async (sessionType) => {
-    const response = await axios.post(`${API_BASE_URL}/whatsapp/${sessionType}/refresh/`);
-    return response.data;
-  }
 };
