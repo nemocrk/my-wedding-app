@@ -1,16 +1,39 @@
 from rest_framework.decorators import api_view, permission_classes, authentication_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework import viewsets, status as drf_status
 from django.conf import settings
 import requests
 import os
 import time
-from core.models import WhatsAppSessionStatus, WhatsAppMessageQueue
+from core.models import WhatsAppSessionStatus, WhatsAppMessageQueue, WhatsAppMessageEvent
+from .serializers import WhatsAppMessageEventSerializer, WhatsAppMessageQueueSerializer
 
 # Helper per URL integration
 def get_integration_url():
     # In docker-compose internal network
     return os.getenv('WA_INTEGRATION_URL', 'http://whatsapp-integration:3000')
+
+class WhatsAppMessageEventViewSet(viewsets.ModelViewSet):
+    """
+    ViewSet per creare eventi da servizio Node.js
+    Endpoint: POST /api/admin/whatsapp-events/
+    """
+    queryset = WhatsAppMessageEvent.objects.all()
+    serializer_class = WhatsAppMessageEventSerializer
+    authentication_classes = []  # No auth - internal service call
+    permission_classes = [AllowAny]
+    http_method_names = ['post', 'get']  # Solo creazione e lettura
+
+class WhatsAppMessageQueueViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ViewSet per la coda messaggi (solo lettura da frontend)
+    Endpoint: GET /api/admin/whatsapp-queue/
+    """
+    queryset = WhatsAppMessageQueue.objects.all().select_related().prefetch_related('events')
+    serializer_class = WhatsAppMessageQueueSerializer
+    authentication_classes = []
+    permission_classes = [AllowAny]
 
 @api_view(['GET'])
 @authentication_classes([]) # Nessuna autenticazione richiesta
@@ -32,25 +55,18 @@ def whatsapp_status(request, session_type):
             status_obj.save()
             
             # Estrazione Info Profilo
-            # WAHA a volte ritorna: { raw: { me: {...} } } o a volte { me: {...} } nei custom endpoint
             raw_data = data.get('raw', {})
-            
-            # Tentativo 1: raw.me (formato standard WAHA)
             me_data = raw_data.get('me')
             
-            # Tentativo 2: data.me (se integration lo espone direttamente)
             if not me_data:
                 me_data = data.get('me')
             
-            # Tentativo 3: se c'è solo un ID in raw.wid
             if not me_data and 'wid' in raw_data:
                  me_data = {'id': raw_data['wid'], 'pushName': 'Unknown User'}
 
             if me_data:
                 profile_info = me_data
-                # Normalizzazione campi
                 if 'user' not in profile_info and 'id' in profile_info:
-                     # WAHA format id: "123456@c.us"
                      if isinstance(profile_info['id'], str):
                         profile_info['user'] = profile_info['id'].split('@')[0]
                      elif isinstance(profile_info['id'], dict) and 'user' in profile_info['id']:
@@ -120,7 +136,6 @@ def whatsapp_logout(request, session_type):
     """POST /api/admin/whatsapp/<groom|bride>/logout/"""
     integration_url = f"{get_integration_url()}/{session_type}/logout"
     try:
-        # Aumentato timeout a 15s perché WAHA può essere lento a stopparsi
         resp = requests.post(integration_url, timeout=15)
         data = resp.json()
         
@@ -142,7 +157,6 @@ def whatsapp_send_test(request, session_type):
     integration_base = get_integration_url()
     
     try:
-        # 1. Recupera info 'me' per sapere il proprio numero
         status_resp = requests.get(f"{integration_base}/{session_type}/status", timeout=5)
         if status_resp.status_code != 200:
             return Response({'error': 'Impossibile recuperare stato sessione'}, status=500)
@@ -156,7 +170,6 @@ def whatsapp_send_test(request, session_type):
         if not me:
             return Response({'error': 'Info profilo non disponibili (sessione non pronta?)'}, status=400)
 
-        # Estrazione numero normalizzata
         my_number = None
         if isinstance(me, dict):
              if 'user' in me: my_number = me['user']
@@ -168,7 +181,6 @@ def whatsapp_send_test(request, session_type):
         if not my_number:
             return Response({'error': 'Numero di telefono non identificabile'}, status=400)
 
-        # 2. Accoda messaggio a se stessi invece di invio diretto
         msg = WhatsAppMessageQueue.objects.create(
             session_type=session_type,
             recipient_number=my_number,
