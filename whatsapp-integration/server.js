@@ -84,25 +84,40 @@ app.get('/:session_type/status', async (req, res) => {
     else if (data.status === 'STARTING') state = 'connecting';
     else if (data.status === 'STOPPED') state = 'disconnected';
     
-    // FETCH PROFILE PICTURE & INFO se connesso
+    // FETCH PROFILE INFO & PICTURE se connesso
     if (state === 'connected') {
         try {
-            // FIX: Endpoint corretto per WAHA è /api/{session}/profile
-            // NOTA: In alcune versioni di WAHA questo endpoint richiede un parametro (es. il numero di telefono). 
-            // Se fallisce, usiamo /me come fallback
-            
-            // Prima recuperiamo i dati base "me" dalla sessione
+            // 1. Ottieni info 'me' (ID/Phone)
             let meInfo = data.me || {}; 
             
-            // Tentativo 1: Chiediamo esplicitamente /api/default/me (supportato da molte versioni)
             try {
                  const meResp = await axios.get(`${wahaUrl}/api/default/me`, { headers, timeout: 2000 });
                  if(meResp.data) meInfo = { ...meInfo, ...meResp.data };
             } catch(e) {}
+            
+            // 2. Se abbiamo un ID utente, cerchiamo la foto profilo
+            // Secondo docs ufficiali WAHA: GET /api/{session}/profile/pic/{phone}
+            if (meInfo.id) {
+                // meInfo.id è tipo "393331234567@c.us" o oggetto
+                const userId = (typeof meInfo.id === 'string') ? meInfo.id : meInfo.id._serialized || meInfo.id.user;
+                
+                // Normalizza ID per la chiamata (rimuovi @c.us se necessario, o tienilo, dipende dall'engine, ma le docs dicono 'phone')
+                // Proviamo con l'ID completo prima
+                try {
+                    // Endpoint per la foto profilo
+                    const picUrl = `${wahaUrl}/api/default/profile/pic/${userId}`;
+                    const picResp = await axios.get(picUrl, { headers, timeout: 2000 });
+                    
+                    if (picResp.data && picResp.data.original) {
+                        meInfo.picture = picResp.data.original; // URL della foto
+                    } else if (picResp.data && picResp.data.url) {
+                         meInfo.picture = picResp.data.url;
+                    }
+                } catch (picErr) {
+                    console.warn(`Failed to fetch profile pic for ${userId}: ${picErr.message}`);
+                }
+            }
 
-            // Tentativo 2: Se abbiamo l'ID, proviamo a chiedere la profile picture specifica
-            // WAHA potrebbe avere endpoints diversi per la foto. 
-            // Proviamo a restituire quello che abbiamo trovato finora.
             data.me = meInfo;
 
         } catch (e) {
