@@ -1,6 +1,7 @@
 import React from 'react';
+import { MessageCircle, RotateCcw, Trash2, Send, Edit2 } from 'lucide-react';
 
-const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
+const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, onEdit }) => {
   
   const getStatusBadge = (msg) => {
     // 1. Check Realtime Status (Priority)
@@ -53,6 +54,7 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
                 <tr>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
+                  <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Msg</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Schedule</th>
                   <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
@@ -68,6 +70,14 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                       {msg.session_type}
                     </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <div className="flex justify-center group relative">
+                            <MessageCircle className="w-5 h-5 text-gray-400 group-hover:text-indigo-500 cursor-help" />
+                            <div className="absolute bottom-full mb-2 hidden group-hover:block w-64 p-2 bg-gray-800 text-white text-xs rounded shadow-lg z-10 whitespace-normal text-left">
+                                {msg.message}
+                            </div>
+                        </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(msg)}
                     </td>
@@ -78,7 +88,22 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend }) => {
                       {msg.attempts}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button onClick={() => onForceSend(msg.id)} className="text-indigo-600 hover:text-indigo-900 mr-4">Send Now</button>
+                        <div className="flex justify-end gap-3">
+                            {msg.status === 'failed' && (
+                                <button onClick={() => onRetry(msg.id)} className="text-yellow-600 hover:text-yellow-900" title="Retry">
+                                    <RotateCcw className="w-4 h-4" />
+                                </button>
+                            )}
+                            <button onClick={() => onForceSend(msg.id)} className="text-green-600 hover:text-green-900" title="Send Now">
+                                <Send className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => onEdit(msg)} className="text-blue-600 hover:text-blue-900" title="Edit">
+                                <Edit2 className="w-4 h-4" />
+                            </button>
+                            <button onClick={() => onDelete(msg.id)} className="text-red-600 hover:text-red-900" title="Delete">
+                                <Trash2 className="w-4 h-4" />
+                            </button>
+                        </div>
                     </td>
                   </tr>
                 ))}
