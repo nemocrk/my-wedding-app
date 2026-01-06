@@ -1,54 +1,88 @@
-# Backend Documentation (Django)
+# Backend Documentation
 
-Il backend è sviluppato in Python/Django e utilizza Django REST Framework (DRF) per esporre le API.
+Il backend è sviluppato in **Python** utilizzando il framework **Django** e **Django REST Framework (DRF)**.
 
-## Struttura del Progetto
-```text
+## Stack Tecnologico
+- **Linguaggio:** Python 3.12+
+- **Framework:** Django 6.x (aggiornato Jan 2026 per security fix)
+- **API:** Django REST Framework
+- **Database:** PostgreSQL 16 (con pgBouncer)
+- **Server WSGI:** Gunicorn
+- **Task Async:** Celery + Redis (se necessario in futuro)
+
+## Struttura Progetto `backend/`
+```
 backend/
-├── api/                # App Django per gli endpoint API
-│   ├── urls.py         # Routing API (/api/public, /api/admin)
-│   ├── views/          # Logica delle viste (ViewSet)
-│   └── serializers.py  # Trasformazione dati Model <-> JSON
-├── core/               # App Django per i Modelli (DB)
-│   ├── models.py       # Definizioni ORM (Invitation, Person, Logs)
-│   └── admin.py        # Configurazione pannello admin standard
-├── wedding/            # Configurazione principale progetto
-│   ├── settings.py     # Settings Django (env vars)
-│   └── wsgi.py         # Entrypoint per Gunicorn
-└── Dockerfile          # Configurazione container
+├── core/                   # App principale
+│   ├── models.py          # Modelli DB (Guest, Invitation, Analytics)
+│   ├── views.py           # Business logic (DRF ViewSets)
+│   ├── serializers.py     # Serializers JSON
+│   ├── urls.py            # Routing API
+│   └── tests.py           # Unit tests
+├── wedding_project/        # Configurazione Django
+│   ├── settings.py        # Settings (carica da env vars)
+│   ├── urls.py            # Main routing
+│   └── wsgi.py            # Entry point WSGI
+├── Dockerfile             # Configurazione container
+├── manage.py              # CLI Django
+└── requirements.txt       # Dipendenze Python
 ```
 
-## API Endpoints
+## Setup & Running
 
-### Public API (`/api/public/`)
-Accessibili dal Frontend User.
-- `GET /api/public/invitation/{code}/`: Recupera dettagli invito tramite slug.
-- `POST /api/public/rsvp/`: Invia/Aggiorna conferme RSVP (richiede token sessione o firma HMAC).
-- `POST /api/public/log/`: Endpoint per inviare log di interazione (analytics).
+### 1. Variabili d'Ambiente
+Assicurati che il file `.env` nella root del progetto contenga le chiavi necessarie (vedi `.env.example`).
+Il backend legge le configurazioni tramite `os.environ` o `python-decouple`.
 
-### Admin API (`/api/admin/`)
-Accessibili solo dalla Intranet (Frontend Admin).
-- `GET/POST /api/admin/invitations/`: CRUD completo inviti.
-- `GET /api/admin/dashboard/`: Statistiche aggregate (RSVP count, accommodation needs).
-- `GET /api/admin/analytics/`: Dati grezzi per heatmaps.
+### 2. Comandi Utili (via Docker)
 
-## Sicurezza
-1.  **HMAC Signing**: I link generati per gli inviti possono includere un parametro di firma per prevenire brute-forcing dei codici invito.
-2.  **CORS**: Configurato strettamente tramite `ALLOWED_HOSTS` e whitelist CORS.
-3.  **Environment Variables**: Nessun segreto (DB password, Secret Key) è hardcoded. Tutto passa da `.env`.
-
-## Comandi Utili
-
+**Creare una Migrazione (dopo modifiche a models.py):**
 ```bash
-# Creare migrazioni (dopo modifica models.py)
 docker-compose exec backend python manage.py makemigrations
+```
 
-# Applicare migrazioni
+**Applicare Migrazioni:**
+```bash
 docker-compose exec backend python manage.py migrate
+```
 
-# Creare superuser
+**Creare Superuser:**
+```bash
 docker-compose exec backend python manage.py createsuperuser
+```
 
-# Shell Python
+**Eseguire Test:**
+```bash
+docker-compose exec backend python manage.py test
+```
+
+**Shell Django:**
+```bash
 docker-compose exec backend python manage.py shell
 ```
+
+## Convenzioni di Sviluppo
+
+### Modelli (Models)
+- Usare nomi in inglese, singolare per le classi (es. `Guest`, non `Guests`).
+- Ogni modello deve avere `created_at` e `updated_at`.
+- Usare `UUIDField` come primary key per maggiore sicurezza e portabilità.
+
+### API (DRF)
+- Endpoint RESTful: `/api/resource/` (lista/crea), `/api/resource/{uuid}/` (dettaglio/modifica).
+- Usare `ModelViewSet` quando possibile per standardizzare CRUD.
+- Autenticazione: `SessionAuthentication` per admin, `TokenAuthentication` o custom auth per guest (se necessario).
+
+### Validazione
+- La logica di validazione complessa va nei **Serializers** (`validate_fieldname` o `validate`).
+- I modelli devono avere vincoli DB (`unique=True`, `null=False`).
+
+## Dipendenze
+Gestite tramite `requirements.txt`.
+Per aggiornare una libreria:
+1. Modificare `requirements.txt`
+2. Rebuild del container: `docker-compose build backend`
+3. Verificare compatibilità.
+
+**Nota su Django 6.0:**
+Il progetto supporta Django 6.0 (e versioni successive 5.x). Assicurarsi di verificare le deprecazioni ufficiali prima di utilizzare feature legacy.
