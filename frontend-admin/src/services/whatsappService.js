@@ -18,6 +18,7 @@ const handleResponse = async (response) => {
 };
 
 export const whatsappService = {
+  // Queue Management
   getQueue: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const url = `${API_BASE_URL}/whatsapp-queue/${queryString ? '?' + queryString : ''}`;
@@ -43,6 +44,28 @@ export const whatsappService = {
 
   getEvents: async (queueMessageId) => {
     const response = await fetch(`${API_BASE_URL}/whatsapp-events/?queue_message=${queueMessageId}`);
+    return handleResponse(response);
+  },
+
+  // Session Management
+  getStatus: async (sessionType) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/status/`);
+    return handleResponse(response);
+  },
+
+  logout: async (sessionType) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/logout/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
+    return handleResponse(response);
+  },
+
+  refresh: async (sessionType) => {
+    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/refresh/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+    });
     return handleResponse(response);
   },
 };
