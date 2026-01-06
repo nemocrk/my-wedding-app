@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { whatsappService } from '../../services/whatsappService';
 import { useWhatsAppSSE } from '../../hooks/useWhatsAppSSE';
 import QueueTable from './QueueTable';
+import EditMessageModal from './EditMessageModal';
 import { RefreshCw, Activity } from 'lucide-react';
 
 const WhatsAppQueueDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingMessage, setEditingMessage] = useState(null);
   const { realtimeStatus, connectionStatus } = useWhatsAppSSE();
 
   const fetchQueue = async () => {
@@ -39,6 +42,29 @@ const WhatsAppQueueDashboard = () => {
         await whatsappService.forceSend(id);
         fetchQueue();
     } catch (e) { alert("Force send failed"); }
+  };
+
+  const handleDelete = async (id) => {
+    if (window.confirm("Sei sicuro di voler eliminare questo messaggio dalla coda?")) {
+        try {
+            await whatsappService.deleteMessage(id);
+            setMessages(messages.filter(m => m.id !== id));
+        } catch (e) { alert("Delete failed"); }
+    }
+  };
+
+  const handleEditClick = (msg) => {
+    setEditingMessage(msg);
+    setIsEditModalOpen(true);
+  };
+
+  const handleSaveEdit = async (id, data) => {
+    try {
+        await whatsappService.updateMessage(id, data);
+        setIsEditModalOpen(false);
+        setEditingMessage(null);
+        fetchQueue();
+    } catch (e) { alert("Update failed"); }
   };
 
   return (
@@ -78,11 +104,20 @@ const WhatsAppQueueDashboard = () => {
             <QueueTable 
                 messages={messages} 
                 realtimeStatus={realtimeStatus} 
-                onRetry={handleRetry}
+                onRetry={(id) => whatsappService.retryFailed().then(fetchQueue)} // Use simple retry for single item if API supports it, otherwise generic retry
                 onForceSend={handleForceSend}
+                onDelete={handleDelete}
+                onEdit={handleEditClick}
             />
          )}
       </div>
+
+      <EditMessageModal 
+        isOpen={isEditModalOpen}
+        onClose={() => setIsEditModalOpen(false)}
+        message={editingMessage}
+        onSave={handleSaveEdit}
+      />
     </div>
   );
 };
