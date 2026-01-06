@@ -29,24 +29,27 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
 
     console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
 
+    // WAHA CORE (Free) accetta solo sessione 'default'
+    // Poiché abbiamo container separati, ogni container ha la sua sessione 'default'
+    const SESSION_NAME = 'default';
+
     // 1. Initial Human Pause (Random 2-4s)
     await sleep(Math.floor(Math.random() * 2000) + 2000);
 
     // 2. Start Typing
     try {
-        await axios.post(`${wahaUrl}/api/startTyping`, { chatId }, { headers });
+        await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed startTyping: ${e.message}`);
     }
 
     // 3. Typing Simulation Time
-    // ~5 chars per 200ms + random variance. Max 15s.
     const typingTime = Math.min((text.length * 40) + 500, 15000);
     await sleep(typingTime);
 
     // 4. Stop Typing
     try {
-        await axios.post(`${wahaUrl}/api/stopTyping`, { chatId }, { headers });
+        await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
     } catch (e) {
         console.warn(`[${sessionType}] Failed stopTyping: ${e.message}`);
     }
@@ -55,14 +58,13 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text) {
     return await axios.post(`${wahaUrl}/api/sendText`, {
         chatId,
         text,
-        session: sessionType
+        session: SESSION_NAME
     }, { headers });
 }
 
 // --- ENDPOINTS ---
 
 // GET /:session_type/status
-// Proxy status check to WAHA
 app.get('/:session_type/status', async (req, res) => {
   const { session_type } = req.params;
   const wahaUrl = WAHA_URLS[session_type];
@@ -70,35 +72,34 @@ app.get('/:session_type/status', async (req, res) => {
   if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
 
   try {
-    const response = await axios.get(`${wahaUrl}/api/sessions/${session_type}`, {
+    // FIX: Usiamo sempre 'default' perché WAHA Core supporta solo quella.
+    // L'isolamento è garantito dal fatto che contattiamo wahaUrl diversi (container diversi).
+    const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       timeout: 5000
     });
     
-    // Normalize status for Dashboard
     const data = response.data;
-    // WAHA returns status in various formats depending on version, adapting generally:
-    // status: 'WORKING' | 'SCAN_QR_CODE' | 'STARTING' | 'FAILED'
     let state = 'disconnected';
     if (data.status === 'WORKING') state = 'connected';
     else if (data.status === 'SCAN_QR_CODE') state = 'waiting_qr';
     else if (data.status === 'STARTING') state = 'connecting';
+    else if (data.status === 'STOPPED') state = 'disconnected'; // Gestione STOPPED esplicita
     
     res.json({ state, raw: data });
   } catch (error) {
-    // If WAHA is unreachable or returns error
     res.json({ state: 'error', error: error.message });
   }
 });
 
 // GET /:session_type/qr
-// Proxy QR code image
 app.get('/:session_type/qr', async (req, res) => {
   const { session_type } = req.params;
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
-    const response = await axios.get(`${wahaUrl}/api/${session_type}/auth/qr`, {
+    // FIX: session 'default'
+    const response = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
       headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
       responseType: 'arraybuffer',
       timeout: 10000
@@ -112,14 +113,12 @@ app.get('/:session_type/qr', async (req, res) => {
 });
 
 // POST /:session_type/refresh
-// Force session check or restart
 app.post('/:session_type/refresh', async (req, res) => {
   const { session_type } = req.params;
   const wahaUrl = WAHA_URLS[session_type];
   
   try {
-    // 1. Check current status
-    const statusUrl = `${wahaUrl}/api/sessions/${session_type}`;
+    const statusUrl = `${wahaUrl}/api/sessions/default`; // FIX: default
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     
     let status = 'UNKNOWN';
@@ -127,7 +126,6 @@ app.post('/:session_type/refresh', async (req, res) => {
         const s = await axios.get(statusUrl, { headers, timeout: 5000 });
         status = s.data.status;
     } catch (e) {
-        // If 404/Error, assume stopped/not exists
         status = 'STOPPED';
     }
 
@@ -136,8 +134,7 @@ app.post('/:session_type/refresh', async (req, res) => {
     }
     
     if (status === 'SCAN_QR_CODE') {
-       // Get QR
-       const qrResp = await axios.get(`${wahaUrl}/api/${session_type}/auth/qr`, {
+       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { // FIX: default
           headers, responseType: 'arraybuffer' 
        });
        const b64 = Buffer.from(qrResp.data, 'binary').toString('base64');
@@ -146,7 +143,7 @@ app.post('/:session_type/refresh', async (req, res) => {
 
     // Try to Start session if stopped
     try {
-        await axios.post(`${wahaUrl}/api/sessions/${session_type}/start`, {}, { headers });
+        await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers }); // FIX: default
         return res.json({ state: 'connecting', message: 'Session start triggered' });
     } catch (e) {
         return res.json({ state: 'error', error: 'Failed to start session: ' + e.message });
@@ -158,7 +155,6 @@ app.post('/:session_type/refresh', async (req, res) => {
 });
 
 // POST /:session_type/send
-// Worker entry point for sending messages safely
 app.post('/:session_type/send', async (req, res) => {
     const { session_type } = req.params;
     const { phone, message } = req.body;
@@ -168,12 +164,9 @@ app.post('/:session_type/send', async (req, res) => {
     if (!phone || !message) return res.status(400).json({ error: 'Missing params' });
 
     try {
-        // Normalize phone to chatId
-        // Remove +, spaces, dashes
         const cleanPhone = phone.replace(/[^0-9]/g, '');
         const chatId = `${cleanPhone}@c.us`;
         
-        // Execute Human-Like Send
         await sendHumanLike(wahaUrl, session_type, chatId, message);
         
         res.json({ status: 'sent', timestamp: new Date() });
