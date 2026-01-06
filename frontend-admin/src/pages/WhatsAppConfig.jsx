@@ -1,0 +1,187 @@
+import React, { useState, useEffect } from 'react';
+import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader } from 'lucide-react';
+import api from '../services/api';
+
+const WhatsAppConfig = () => {
+  const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
+  const [brideStatus, setBrideStatus] = useState({ state: 'loading' });
+  const [activeModal, setActiveModal] = useState(null); // 'groom' or 'bride' or null
+  const [qrCodeData, setQrCodeData] = useState(null);
+  const [isPolling, setIsPolling] = useState(false);
+
+  useEffect(() => {
+    fetchStatuses();
+  }, []);
+
+  // Cleanup polling on unmount
+  useEffect(() => {
+    return () => stopPolling();
+  }, []);
+
+  const fetchStatuses = async () => {
+    try {
+      const [groom, bride] = await Promise.all([
+        api.get('/admin/whatsapp/groom/status/').catch(() => ({ data: { state: 'error' } })),
+        api.get('/admin/whatsapp/bride/status/').catch(() => ({ data: { state: 'error' } }))
+      ]);
+      setGroomStatus(groom.data);
+      setBrideStatus(bride.data);
+    } catch (error) {
+      console.error('Error fetching statuses', error);
+    }
+  };
+
+  let pollingInterval;
+  const startPolling = (sessionType) => {
+    if (isPolling) return;
+    setIsPolling(true);
+    
+    pollingInterval = setInterval(async () => {
+      try {
+        const resp = await api.get(`/admin/whatsapp/${sessionType}/status/`);
+        const data = resp.data;
+        
+        if (data.state === 'connected') {
+          stopPolling();
+          closeModal();
+          fetchStatuses();
+        }
+      } catch (e) {
+        console.error("Polling error", e);
+      }
+    }, 3000);
+  };
+
+  const stopPolling = () => {
+    if (pollingInterval) clearInterval(pollingInterval);
+    setIsPolling(false);
+  };
+
+  const handleRefresh = async (sessionType) => {
+    try {
+      const resp = await api.post(`/admin/whatsapp/${sessionType}/refresh/`);
+      const data = resp.data;
+
+      if (data.state === 'waiting_qr') {
+        setQrCodeData(data.qr_code);
+        setActiveModal(sessionType);
+        startPolling(sessionType);
+      } else if (data.state === 'connected') {
+        fetchStatuses();
+      } else {
+        // Update local state to reflect new status (e.g. connecting)
+        sessionType === 'groom' ? setGroomStatus(data) : setBrideStatus(data);
+      }
+    } catch (error) {
+      alert('Errore durante il refresh: ' + (error.response?.data?.error || error.message));
+    }
+  };
+
+  const closeModal = () => {
+    setActiveModal(null);
+    setQrCodeData(null);
+    stopPolling();
+  };
+
+  const StatusCard = ({ title, status, type }) => {
+    const isConnected = status.state === 'connected';
+    const isError = status.state === 'error';
+    const isLoading = status.state === 'loading';
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6 border border-gray-200">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold flex items-center gap-2">
+            <Phone className="w-5 h-5 text-gray-500" />
+            {title}
+          </h3>
+          {isLoading ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+              Caricamento...
+            </span>
+          ) : isConnected ? (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 gap-1">
+              <CheckCircle className="w-3 h-3" /> Connesso
+            </span>
+          ) : (
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 gap-1">
+              <AlertTriangle className="w-3 h-3" /> {isError ? 'Errore' : 'Disconnesso'}
+            </span>
+          )}
+        </div>
+
+        <div className="text-sm text-gray-600 mb-6">
+          {status.error_message ? (
+             <p className="text-red-500">{status.error_message}</p>
+          ) : (
+             <p>Ultimo controllo: {status.last_check ? new Date(status.last_check).toLocaleTimeString() : 'Mai'}</p>
+          )}
+        </div>
+
+        <button
+          onClick={() => handleRefresh(type)}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+        >
+          {isConnected ? <RefreshCw className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+          {isConnected ? 'Verifica Connessione' : 'Collega Account'}
+        </button>
+      </div>
+    );
+  };
+
+  return (
+    <div className="p-6 max-w-4xl mx-auto">
+      <h1 className="text-2xl font-bold text-gray-900 mb-6">Gestione Integrazione WhatsApp</h1>
+      
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <StatusCard title="Account Sposo" status={groomStatus} type="groom" />
+        <StatusCard title="Account Sposa" status={brideStatus} type="bride" />
+      </div>
+
+      <div className="mt-8 bg-blue-50 border border-blue-200 rounded-md p-4">
+        <h4 className="text-sm font-bold text-blue-800 mb-2">Note Importanti Anti-Ban</h4>
+        <ul className="list-disc list-inside text-sm text-blue-700 space-y-1">
+          <li>Non inviare mai messaggi a contatti che non hanno scritto per primi.</li>
+          <li>Il sistema simula la digitazione umana (typing...) prima di ogni invio.</li>
+          <li>È attivo un limite di sicurezza di 10 messaggi/ora per sessione.</li>
+        </ul>
+      </div>
+
+      {/* QR Code Modal */}
+      {activeModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full flex items-center justify-center z-50">
+          <div className="relative bg-white rounded-lg shadow-xl p-8 max-w-md w-full">
+            <div className="text-center">
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Scansiona QR Code ({activeModal === 'groom' ? 'Sposo' : 'Sposa'})
+              </h3>
+              
+              <div className="flex justify-center mb-6">
+                {qrCodeData ? (
+                  <img src={qrCodeData} alt="WhatsApp QR Code" className="border-4 border-gray-200 rounded-lg" />
+                ) : (
+                  <div className="w-64 h-64 flex items-center justify-center bg-gray-100 rounded-lg">
+                    <Loader className="w-8 h-8 animate-spin text-gray-500" />
+                  </div>
+                )}
+              </div>
+
+              <p className="text-sm text-gray-500 mb-6">
+                Apri WhatsApp sul telefono &gt; Impostazioni &gt; Dispositivi collegati &gt; Collega un dispositivo
+              </p>
+
+              <button
+                onClick={closeModal}
+                className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-md hover:bg-gray-300 transition-colors"
+              >
+                Chiudi
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default WhatsAppConfig;
