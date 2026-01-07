@@ -280,8 +280,17 @@ app.get('/:session_type/status', async (req, res) => {
             console.warn(`Failed to fetch profile: ${userMessage}`);
         }
     }
+    let qr_code = null;
+    if (state === 'waiting_qr') {
+       console.log(`[${session_type}] Refresh: fetching QR for scan state`);
+       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { 
+          headers, responseType: 'arraybuffer' 
+       });
+       qr_code = {qr_code: `data:image/png;base64,${Buffer.from(qrResp.data, 'binary').toString('base64')}`};
+    }
 
-    res.json({ state, raw: data });
+
+    res.json({ state, raw: data, ...qr_code });
   } catch (error) {
     const { userMessage } = extractErrorDetails(error, 'getStatus');
     res.json({ state: 'error', error: userMessage });

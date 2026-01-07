@@ -6,6 +6,20 @@
 
 set -e # Interrompe l'esecuzione se un comando fallisce
 
+# Default values
+CLEAN_ONLY=false
+
+# Parse arguments
+for arg in "$@"
+do
+    case $arg in
+        --clean_only)
+        CLEAN_ONLY=true
+        shift
+        ;;
+    esac
+done
+
 # Pulire tutti i container docker
 echo "--------------------------------------------------------"
 echo "  [1/4] Killo eventuali Container Attivi..."
@@ -39,8 +53,12 @@ else
     echo "Eliminazione delle reti in corso..."
     docker network rm $CONTAINERS
 fi
+
+
+if [ "$CLEAN_ONLY" = false ]; then
 # Avviare il progetto in dev mode con hot-reload
 echo "--------------------------------------------------------"
 echo "  [4/4] Avvio il progetto in dev mode con hot-reload..."
 echo "--------------------------------------------------------"
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+fi

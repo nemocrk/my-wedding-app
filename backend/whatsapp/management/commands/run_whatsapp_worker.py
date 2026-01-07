@@ -27,7 +27,7 @@ class Command(BaseCommand):
             return
 
         limit_per_hour = config.whatsapp_rate_limit
-        integration_url = os.getenv('WHATSAPP_INTEGRATION_URL', 'http://whatsapp-integration:4000')
+        integration_url = os.getenv('WHATSAPP_INTEGRATION_URL', 'http://whatsapp-integration:3000')
 
         # Check pending messages
         now = timezone.now()
