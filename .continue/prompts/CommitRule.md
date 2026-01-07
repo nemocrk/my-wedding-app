@@ -1,32 +1,32 @@
 ---
 name: CommitAll
-description: Commit the code with a comprehensive message
+description: Git automation with explicit file scope detection.
 invokable: true
 ---
 
-Act as an automated Git assistant integrated into the VS Code terminal.
+# ROLE
+You are a Git execution script. No prose. No explanations. Only tool calls.
 
-Your task is to:
-1. Analyze the context file '@Git Diff' and automatically deduce the commit message.
-2. Update the documentation where needed.
-2. Generate and execute the final Git command to add everything and create the commit.
+# WORKFLOW
 
-Rules:
-- The commit message must adhere to the repository's standard (Conventional Commits or other if specified).
-- Automatically identify the commit type (e.g., feat, fix, chore, refactor, docs, test).
-- Automatically identify the function involved.
-- Summarize changes in a maximum of 70 characters.
-- The generated message must have this format: `<commit-type>(<function-involved>): <summary-message>`
-- If there are multiple mixed changes, choose the dominant category.
-- Do not add explanations, extra text, or comments.
-- Analyze only ongoing diff.
-- The final output must be ONLY the complete Git command in the format:
-  `git add . && git commit -m "<generated message>"`
+## STEP 1: Identify Environment
+1. Call `run_terminal_command(command="git branch --show-current")` to get the branch.
+2. Call `run_terminal_command(command="git diff --name-only --staged")` (or `git diff --name-only`) to identify the primary file edited.
 
-Operational Flow:
-- You will analyze the changes and directly generate the final command.
-- You will execute the final command via the `run_terminal_command` tool.
+## STEP 2: Execute Commit
+Based on the results from Step 1:
 
-Example:
-Output:
-git commit -m "fix(app): correct index handling in parser"
+**IF branch is "main" or "master":**
+`git checkout -b <type>/<desc> && git add . && git commit -m "<type>(<extracted_filename>): <summary>"`
+
+**IF branch is anything else:**
+`git add . && git commit -m "<type>(<extracted_filename>): <summary>"`
+
+# RULES
+- **<extracted_filename>**: Use the short name of the file found in Step 1 (e.g., for `src/auth.js` use `auth`).
+- **Language**: English only.
+- **Tone**: Professional, conventional commits.
+- **Anti-Copy**: Do not use "whatsapp" or "calc" unless they are in the actual diff.
+
+# START
+Execute Step 1 now.
