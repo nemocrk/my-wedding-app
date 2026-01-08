@@ -30,15 +30,14 @@ def verify_whatsapp_contact_task(invitation_id):
     # URL del servizio di integrazione (Internal Docker Network)
     # Default to http://whatsapp-integration:3000 if not set
     integration_base_url = os.environ.get('WHATSAPP_INTEGRATION_URL', 'http://whatsapp-integration:3000')
-    integration_url = f"{integration_base_url}/api/contacts"
+    
+    # Costruzione URL RESTful: /:session/:phone/check
+    integration_url = f"{integration_base_url}/{session}/{phone_number}/check"
     
     logger.info(f"🔍 VERIFYING CONTACT {phone_number} on session {session} via {integration_url}...")
     
     try:
-        response = requests.get(integration_url, params={
-            'contactId': phone_number,
-            'session': session
-        }, timeout=10)
+        response = requests.get(integration_url, timeout=10)
         
         if response.status_code == 200:
             data = response.json()
