@@ -121,7 +121,7 @@ models:
   - name: Gemini 3 Flash Preview
     provider: gemini
     model: gemini-3-flash-preview
-    apiKey: AIzaSyBp_B4Nx_mHEEvUBkxQZBCVqDVQTkG5kzc
+    apiKey: UNUSED_TOKEN
     roles:
       - chat
       - edit
