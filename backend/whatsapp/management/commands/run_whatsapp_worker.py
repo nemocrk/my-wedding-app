@@ -32,9 +32,10 @@ class Command(BaseCommand):
         # Check pending messages
         now = timezone.now()
         pending_msgs = WhatsAppMessageQueue.objects.filter(
-            status=WhatsAppMessageQueue.Status.PENDING,
+            status__in=[WhatsAppMessageQueue.Status.PENDING, WhatsAppMessageQueue.Status.SKIPPED],
             scheduled_for__lte=now
         ).order_by('scheduled_for')
+
 
         if not pending_msgs.exists():
             return
