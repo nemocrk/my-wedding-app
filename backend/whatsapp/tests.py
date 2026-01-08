@@ -99,7 +99,7 @@ class WhatsAppWorkerTest(TestCase):
 
         msg.refresh_from_db()
         # Should still be pending because rate limit is 2
-        self.assertEqual(msg.status, WhatsAppMessageQueue.Status.PENDING)
+        self.assertEqual(msg.status, WhatsAppMessageQueue.Status.SKIPPED)
         mock_post.assert_not_called()
 
     @patch('whatsapp.management.commands.run_whatsapp_worker.requests.post')

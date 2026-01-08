@@ -34,7 +34,7 @@ class TestAdminAPI:
         payload = {
             "name": "Grand Hotel",
             "address": "Downtown",
-            "rooms_config": [
+            "rooms": [
                 {"room_number": "101", "capacity_adults": 2, "capacity_children": 0},
                 {"room_number": "102", "capacity_adults": 2, "capacity_children": 2}
             ]
