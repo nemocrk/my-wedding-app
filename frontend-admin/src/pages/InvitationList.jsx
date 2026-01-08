@@ -122,7 +122,7 @@ const InvitationList = () => {
     if (markingSentFor === id) return;
     setMarkingSentFor(id);
     try {
-      await api.updateInvitation(id, { status: 'sent' });
+      await api.markInvitationAsSent(id);
       fetchInvitations(); 
     } catch (error) {
       console.error("Error marking as sent", error);
