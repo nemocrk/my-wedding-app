@@ -114,17 +114,9 @@ def _auto_mark_as_read_if_first_visit(invitation):
     Called internally when logging 'visit' events.
     """
     if invitation.status == Invitation.Status.SENT:
-        # Check if this is truly the first interaction
-        previous_count = GuestInteraction.objects.filter(
-            invitation=invitation,
-            event_type='visit'
-        ).count()
-        
-        # If questo è il primo visit event che stiamo creando, cambia status
-        if previous_count == 0:
-            logger.info(f"📬 Auto-marking invitation {invitation.code} as READ (first visit detected)")
-            invitation.status = Invitation.Status.READ
-            invitation.save(update_fields=['status', 'updated_at'])
+        logger.info(f"📬 Auto-marking invitation {invitation.code} as READ (first visit detected)")
+        invitation.status = Invitation.Status.READ
+        invitation.save(update_fields=['status', 'updated_at'])
 
 class PublicLogInteractionView(APIView):
     def post(self, request):
@@ -137,8 +129,7 @@ class PublicLogInteractionView(APIView):
                 invitation = Invitation.objects.get(pk=invitation_id)
                 
                 # Auto-trigger mark_as_read on first visit
-                if event_type == 'visit':
-                    _auto_mark_as_read_if_first_visit(invitation)
+                _auto_mark_as_read_if_first_visit(invitation)
                 
                 _log_interaction(request, invitation, event_type, metadata)
                 return Response({"logged": True})
@@ -156,7 +147,8 @@ class PublicLogHeatmapView(APIView):
         session_id = request.data.get('session_id', 'unknown')
         if mouse_data:
             try:
-                Invitation.objects.get(pk=invitation_id)
+                invitation = Invitation.objects.get(pk=invitation_id)
+                _auto_mark_as_read_if_first_visit(invitation)
                 GuestHeatmap.objects.create(
                     invitation_id=invitation_id,
                     session_id=session_id,
@@ -561,7 +553,7 @@ class DashboardStatsView(APIView):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
         confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
-        pending_invitations = Invitation.objects.filter(status=Invitation.Status.PENDING)
+        pending_invitations = Invitation.objects.filter(status__in=[Invitation.Status.SENT, Invitation.Status.READ])
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
         
         adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False).count()

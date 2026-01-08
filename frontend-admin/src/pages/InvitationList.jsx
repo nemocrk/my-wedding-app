@@ -439,25 +439,6 @@ const InvitationList = () => {
 
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        {/* SEND WHATSAPP ACTION */}
-                        {invitation.status === 'created' && (
-                          <button
-                            onClick={() => handleSingleSend(invitation)}
-                            disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
-                            className={`p-1.5 rounded-md transition-colors ${
-                              !isContactValid(invitation)
-                                ? 'text-gray-300 cursor-not-allowed'
-                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                            }`}
-                            title={isContactValid(invitation) ? 'Invia WhatsApp' : 'Contatto mancante o invalido'}
-                          >
-                            {openingWASingleFor === invitation.id ? (
-                              <Loader size={18} className="animate-spin" />
-                            ) : (
-                              <MessageCircle size={18} />
-                            )}
-                          </button>
-                        )}
 
                         {invitation.status === 'created' && (
                           <button
@@ -477,6 +458,24 @@ const InvitationList = () => {
                             )}
                           </button>
                         )}
+                        
+                        {/* SEND WHATSAPP ACTION */}
+                          <button
+                            onClick={() => handleSingleSend(invitation)}
+                            disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
+                            className={`p-1.5 rounded-md transition-colors ${
+                              !isContactValid(invitation)
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                            }`}
+                            title={isContactValid(invitation) ? 'Invia WhatsApp' : 'Contatto mancante o invalido'}
+                          >
+                            {openingWASingleFor === invitation.id ? (
+                              <Loader size={18} className="animate-spin" />
+                            ) : (
+                              <MessageCircle size={18} />
+                            )}
+                          </button>
 
                         <button
                           onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
