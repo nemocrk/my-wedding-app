@@ -1,32 +1,44 @@
-# 06. Backend Core: Business Logic & Models
+# Backend Core (Models & Logic)
 
-Questo documento dettaglia la logica di business centrale del progetto, inclusi i modelli dati, i flussi automatici e le regole di assegnazione.
+Questa sezione analizza in dettaglio la Business Logic del sistema, definita in `backend/core/models.py`.
 
-## 1. Modelli Dati (ER Esteso)
+## 1. Configurazione Globale (`GlobalConfig`)
+Il sistema utilizza un modello Singleton per gestire i parametri "live" del matrimonio senza dover redeployare il codice.
+- **Logica Singleton**: Override del metodo `save()` per impedire la creazione di più di un'istanza.
+- **Parametri**:
+    - `price_*`: Costi unitari per calcoli budget automatici.
+    - `invitation_link_secret`: Salt per la generazione di token HMAC sicuri.
+    - `letter_text`: Template modificabile per la lettera di benvenuto.
 
-Il modulo `core` è il cuore dell'applicazione e gestisce le seguenti entità principali:
+## 2. Gestione Inviti (`Invitation` & `Person`)
+Il cuore del sistema.
 
-### GlobalConfig (Singleton)
-- Gestisce configurazioni dinamiche come prezzi (pasti, alloggio), testi standard e toggle funzionalità.
-- **Link Secret:** Contiene `invitation_link_secret` usato per firmare i link pubblici.
+### Modello `Invitation`
+Raggruppa un nucleo familiare.
+- **Codice Univoco (`code`)**: Slug utilizzato nell'URL pubblico. È la chiave di accesso principale.
+- **Contatti & Origine**:
+  - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
+  - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
+- **Affinities**: Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
+- **Workflow Status**:
+  Gestisce il ciclo di vita dell'invito:
+  1. `created`: Inserito a sistema.
+  2. `sent`: Messaggio inviato agli ospiti.
+  3. `read`: Gli ospiti hanno visualizzato la pagina (pixel tracking).
+  4. `confirmed` / `declined`: Scelta finale.
+- **Flags Logistici**:
+    - `accommodation_offered`: Se True, sblocca il form "Richiesta Alloggio" nel frontend.
+    - `transfer_offered`: Se True, sblocca la selezione "Navetta".
+- **Token HMAC**: Il metodo `generate_verification_token` crea una firma crittografica basata su `code + id + secret_key` per validare le richieste API pubbliche e prevenire ID enumeration.
 
-### Invitation (Invito)
-Entità principale che raggruppa una famiglia o gruppo.
-- **Status:** `created`, `sent` (email/wa inviato), `read` (landing visitata), `confirmed` (RSVP sì), `declined` (RSVP no).
-- **Origin:** Distingue lato Sposo (`groom`) vs Sposa (`bride`) per routing messaggi WhatsApp.
-- **Affinities:** Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
+### Modello `Person`
+Rappresenta il singolo ospite.
+- `is_child`: Booleano critico per:
+    - Calcolo posti letto (Bambini < Adulti).
+    - Calcolo costi pasti (Menu ridotto).
+- `assigned_room`: FK verso `Room`, permette un'assegnazione granulare degli ospiti alle stanze disponibili.
 
-### Person (Invitato)
-Singolo membro di un invito.
-- **is_child:** Flag booleano per calcolo costi e assegnazione posti letto.
-- **assigned_room:** Collegamento diretto alla stanza specifica (risultato dell'algoritmo di assegnazione).
-
-### Accommodation & Room
-Struttura gerarchica per la logistica.
-- `Accommodation`: Hotel o B&B.
-- `Room`: Stanza con capacità specifica (adulti/bambini).
-
-## 2. Automazione e Workflow (Signals)
+## 3. Automazione e Workflow (Signals)
 
 Il sistema implementa logiche reattive tramite Django Signals (`backend/core/signals.py`) per automatizzare la comunicazione.
 
@@ -45,18 +57,83 @@ Quando viene registrata la prima analytics di tipo `visit` su un invito in stato
 - L'API `PublicLogInteractionView` aggiorna automaticamente lo stato a `read`.
 - Questo triggera a cascata il signal di cui sopra (se configurato un template per lo stato `read`).
 
-## 3. Analytics e Tracking
+## 4. Gestione Alloggi (`Accommodation` & `Room`)
+Sistema gerarchico per la gestione ospitalità.
 
-### GuestInteraction
-Traccia eventi puntuali:
-- `visit`: Caricamento pagina (landing page).
-- `click_cta`: Click su bottoni (RSVP, Mappa, ecc).
-- `rsvp_submit`: Invio form.
+### Logica "Available Slots"
+Il modello `Room` implementa una logica smart per il calcolo della disponibilità (`available_slots()`):
+1.  Conta gli occupanti attuali (Adulti e Bambini).
+2.  I bambini occupano prioritariamente i posti "bambino" (`capacity_children`).
+3.  Se i posti bambino sono esauriti, i bambini "traboccano" sui posti adulto.
+4.  Restituisce un dizionario con posti liberi distinti per tipo.
 
-### GuestHeatmap
-Registra movimenti del mouse e interazioni touch per sessione utente. Dati salvati in JSON per replay sessione in Admin.
+### Algoritmo Assegnazione Automatica (Arena delle Strategie)
+Il sistema implementa una **Arena Multi-Strategia** per l'assegnazione ottimale degli ospiti.
+L'endpoint `/auto-assign` può essere chiamato in due modalità:
+1. **SIMULATION**: Esegue in parallelo (in transazioni safe-rollback) diverse strategie e restituisce un report comparativo (spazio sprecato, % copertura).
+2. **EXECUTION**: Applica la strategia scelta e committa le modifiche al DB.
 
-## 4. Algoritmo Assegnazione Stanze
+#### Le Strategie Disponibili
+1. **STANDARD**: Priorità Affinità, Stanze Grandi prima. (Classico).
+2. **SPACE_OPTIMIZER**: (Tetris) Inviti Grandi prima, Stanze Piccole (Best Fit).
+3. **CHILDREN_FIRST**: Priorità Inviti con bambini, Stanze con letti bambino.
+4. **PERFECT_MATCH**: Cerca solo incastri perfetti (Capienza == Ospiti).
+5. **SMALLEST_FIRST**: Inviti Piccoli prima, Stanze Piccole prima.
+6. **AFFINITY_CLUSTER**: Tratta i gruppi affini come blocchi monolitici.
 
-Vedi `AccommodationViewSet.auto_assign` in `views.py`.
-Implementa diverse strategie (Space Optimizer, Affinity Cluster, Children First) per allocare automaticamente gli ospiti nelle stanze disponibili, rispettando vincoli di capacità e affinità.
+#### Regole Inviolabili (Tutte le strategie)
+1. **Regola 1 (Isolamento)**: Una stanza può contenere SOLO persone dello stesso invito.
+2. **Regola 2 (Compatibilità)**: Una struttura non può ospitare inviti tra loro "non affini".
+3. **Regola 3 (Atomicità)**: Tutte le persone di un invito devono trovare posto nella stessa struttura (in una o più stanze), altrimenti l'intero invito non viene assegnato (Rollback).
+4. **Regola 4 (Slot)**: Adulti solo in slot adulti; Bambini in slot bambini o adulti.
+
+> **⚠️ NOTA TECNICA IMPORTANTE (Prefetch vs Live Query)**
+> L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
+> Usare i dati prefetched (`room.assigned_guests.all()`) causerebbe letture "stale" (vecchie) all'interno della stessa transazione, portando alla violazione della Regola 1 (più inviti nella stessa stanza).
+
+## 5. Analytics (`GuestInteraction` & `GuestHeatmap`)
+Sistema di tracciamento integrato.
+- **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
+- **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
+
+## Diagramma Classi Core
+
+```mermaid
+classDiagram
+    class GlobalConfig {
+        +Decimal price_adult_meal
+        +String invitation_link_secret
+        +save()
+    }
+
+    class Invitation {
+        +Slug code
+        +Enum origin
+        +String phone_number
+        +Enum status
+        +Boolean accommodation_offered
+        +generate_token()
+    }
+
+    class Person {
+        +Boolean is_child
+        +FK assigned_room
+    }
+
+    class Room {
+        +Int capacity_adults
+        +Int capacity_children
+        +available_slots()
+    }
+
+    class WhatsAppTemplate {
+        +String name
+        +Enum condition
+        +Enum trigger_status
+        +String content
+    }
+
+    Invitation "1" *-- "*" Person : contains
+    Room "1" o-- "*" Person : houses
+    WhatsAppTemplate "1" .. "*" Invitation : triggers
+```
