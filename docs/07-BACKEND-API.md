@@ -69,6 +69,24 @@ Gestione strutture e stanze.
 - `POST /auto-assign/`: Lancia l'algoritmo di assegnazione automatica.
   - Body: `{ "strategy": "SPACE_OPTIMIZER", "reset_previous": false }`
 
+#### WhatsApp Templates (`/whatsapp-templates/`)
+Gestione template messaggi.
+- `GET /` : Lista template.
+- `POST /` : Crea template.
+- `PUT /{id}/` : Aggiorna template.
+- `DELETE /{id}/` : Elimina template.
+
+**Schema Template:**
+```json
+{
+  "name": "Conferma Ricezione",
+  "condition": "status_change", // o "manual"
+  "trigger_status": "read", // "sent", "confirmed", etc. (solo se condition=status_change)
+  "content": "Ciao {name}, abbiamo ricevuto la tua risposta!",
+  "is_active": true
+}
+```
+
 #### Dashboard (`/dashboard/stats/`)
 - `GET /`: Restituisce contatori aggregati (Ospiti, Budget, Logistica).
 
