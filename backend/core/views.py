@@ -5,10 +5,13 @@ from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
 from django.db import transaction
-from .models import Invitation, GlobalConfig, Person, Accommodation, Room, GuestInteraction, GuestHeatmap
+from .models import (
+    Invitation, GlobalConfig, Person, Accommodation, Room, 
+    GuestInteraction, GuestHeatmap, WhatsAppTemplate
+)
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
-    AccommodationSerializer, PublicInvitationSerializer
+    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer
 )
 import logging
 import os
@@ -228,6 +231,11 @@ class GlobalConfigViewSet(viewsets.ViewSet):
             serializer.save()
             return Response(serializer.data)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for WhatsApp Templates"""
+    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
+    serializer_class = WhatsAppTemplateSerializer
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     """CRUD completo per Alloggi (solo admin)"""
