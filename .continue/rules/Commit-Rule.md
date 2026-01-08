@@ -21,22 +21,17 @@ You are not writing code, you are only executing actions.
 
 follow this conditional workflow interacting with the user:
 
-1. analyze all actual diffs (i.e. git diff --staged):
-
+1. analyze all actual diffs (i.e. git --no-pager diff --cached --staged -u --find-copies-harder):
  a. if "The current diff is empty":
-
   a1. Output ONLY "No Diffs"
-
  b. else 
-
-  b1. Output ONLY "This is the commit message:"
-
-  b2. Output ONLY the proposed commit message following conventional-commits rules
-
-  b3. Output ONLY "Say ok to continue" and WAIT
-
-   ba. if the user say "ok"
-
-    ba1. prepare the commit (i.e. git add <filename>), commit the commit (i.e. git commit -m "<commit message>") and push the commit (i.e. git push)... (i.e. git add <filename> && git commit -m "<commit message>" && git push)
-
-   bb. else PRINT "Nevermind"
+  b1. Verify in which branch we are (i.e. git rev-parse --abbrev-ref HEAD)
+   ba. if "main":
+    ba1. create a branch for the commit (i.e. git checkout -b <new branch>)
+    ba2. Output ONLY "Created new branch <new branch>"
+  b2. Output ONLY "This is the commit message:"
+  b3. Output ONLY the proposed commit message following conventional-commits rules
+  b4. Output ONLY "Say ok to continue" and WAIT
+   bb. if the user say "ok"
+    bb1. prepare the commit (i.e. git add <filename>), commit the commit (i.e. git commit -m "<commit message>") and push the commit (i.e. git push)... (i.e. git add <filename> && git commit -m "<commit message>" && git push)
+   bc. else PRINT "Nevermind"
