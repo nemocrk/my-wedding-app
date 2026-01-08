@@ -39,16 +39,16 @@ if [ ! -d "venv" ]; then
     echo "⚠️  Virtual environment non trovato. Creazione in corso..."
     python3 -m venv venv
     source venv/bin/activate
-    
-    if [ -f "requirements.txt" ]; then
-        echo "📦 Installazione dipendenze..."
-        pip install -r requirements.txt
-    else
-        echo "❌ ERRORE: requirements.txt non trovato!"
-        exit 1
-    fi
 else
     source venv/bin/activate
+fi
+
+if [ -f "requirements.txt" ]; then
+    echo "📦 Installazione dipendenze..."
+    pip install -r requirements.txt
+else
+    echo "❌ ERRORE: requirements.txt non trovato!"
+    exit 1
 fi
 
 # Esegui pytest

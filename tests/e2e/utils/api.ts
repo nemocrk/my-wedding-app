@@ -37,15 +37,9 @@ export class ApiHelper {
   }
 
   async createAccommodation(data: any) {
-    // FIX: AccommodationSerializer uses 'rooms_config' (write_only) for input, not 'rooms' (read_only).
-    const payload = {
-        ...data,
-        rooms_config: data.rooms || data.rooms_config 
-    };
-    if (payload.rooms) delete payload.rooms;
 
     const response = await this.request.post(`${ADMIN_API}/accommodations/`, {
-      data: payload
+      data: data
     });
     if (!response.ok()) {
       throw new Error(`Failed to create accommodation: ${await response.text()}`);
