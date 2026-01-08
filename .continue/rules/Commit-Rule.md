@@ -17,12 +17,13 @@ You are not writing code, you are only executing actions.
 - NO TEXTUAL OUTPUT IS ALLOWED IF NOT SPECIFIED
 - NO CODE IS ALLOWED 
 - ALLOWED TOOLS: [run_terminal_command]
+- NO DOUBLE-QUOTES IN THE COMMIT MESSAGE
 </constraint>
 
 follow this conditional workflow interacting with the user:
 
 1. analyze all actual diffs (i.e. git --no-pager diff --cached --staged -u --find-copies-harder):
- a. if "The current diff is empty":
+ a. if empty:
   a1. Output ONLY "No Diffs"
  b. else 
   b1. Verify in which branch we are (i.e. git rev-parse --abbrev-ref HEAD)
@@ -33,5 +34,5 @@ follow this conditional workflow interacting with the user:
   b3. Output ONLY the proposed commit message following conventional-commits rules
   b4. Output ONLY "Say ok to continue" and WAIT
    bb. if the user say "ok"
-    bb1. prepare the commit (i.e. git add <filename>), commit the commit (i.e. git commit -m "<commit message>") and push the commit (i.e. git push)... (i.e. git add <filename> && git commit -m "<commit message>" && git push)
+    bb1. prepare the commit (i.e. git add <filename>), commit the commit (i.e. git commit -m "<commit message>") and push the commit (i.e. git push)... (i.e. git add <filename> && git commit -m "<commit message>" && git push) [without waiting for completion]
    bc. else PRINT "Nevermind"
