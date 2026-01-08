@@ -150,6 +150,12 @@ class Invitation(models.Model):
         GROOM = 'groom', 'Lato Sposo'
         BRIDE = 'bride', 'Lato Sposa'
 
+    class ContactVerified(models.TextChoices):
+        NOT_VALID = 'not_valid', 'Numero non valido/assente'
+        NOT_EXIST = 'not_exist', 'Non esiste su WhatsApp'
+        NOT_PRESENT = 'not_present', 'Non in rubrica'
+        OK = 'ok', 'OK (Verificato)'
+
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
     
@@ -165,6 +171,13 @@ class Invitation(models.Model):
         blank=True, 
         null=True, 
         verbose_name="Numero Telefono (Referente)"
+    )
+
+    contact_verified = models.CharField(
+        max_length=20,
+        choices=ContactVerified.choices,
+        default=ContactVerified.NOT_VALID,
+        verbose_name="Stato Verifica Contatto"
     )
     
     # OPZIONI OFFERTE (Lato Sposi - Configurazione)
