@@ -36,7 +36,8 @@ const LetterContent = ({ data }) => {
   // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
     heatmapTracker.start();
-    logInteraction('view_letter');
+    // Tracking implicito dell'apertura lettera
+    logInteraction('view_letter'); 
 
     const handleReplayMessage = (event) => {
       // Hardening minimo: richiede payload con type noto
@@ -104,14 +105,6 @@ const LetterContent = ({ data }) => {
     window.addEventListener('message', handleReplayMessage);
     window.addEventListener('wax-seal:return', onSealReturn);
 
-    // Se il componente viene montato DOPO che l'evento è già stato sparato (race condition),
-    // potremmo voler controllare uno stato globale o semplicemente animare in entrata subito.
-    // Per ora, assumiamo che EnvelopeAnimation e LetterContent siano coordinati via InvitationPage.
-    // Se InvitationPage monta LetterContent su onComplete (Step 5), l'animazione parte qui come "initial" se configurata,
-    // oppure possiamo triggerarla manualmente.
-    // Dato che onComplete scatta allo Step 5, lanciamo l'animazione di default all'ingresso se non intercettiamo l'evento in tempo.
-    // Tuttavia, per rispettare l'evento:
-    
     // Fallback: se dopo 100ms non abbiamo ricevuto eventi, assumiamo che siamo già in stato finale (es. refresh pagina)
     // e mostriamo il sigillo.
     const timer = setTimeout(() => {
