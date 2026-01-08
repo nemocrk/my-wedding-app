@@ -81,33 +81,6 @@ class PublicRSVPView(APIView):
         except Invitation.DoesNotExist:
             return Response({'success': False, 'message': 'Invito non trovato'}, status=status.HTTP_404_NOT_FOUND)
 
-class PublicStatusUpdateView(APIView):
-    """
-    Endpoint per aggiornamento stati 'leggeri' (es. read) senza logica RSVP.
-    """
-    def post(self, request):
-        invitation_id = request.session.get('invitation_id')
-        if not invitation_id:
-            return Response({'success': False, 'message': 'Sessione scaduta'}, status=status.HTTP_401_UNAUTHORIZED)
-        
-        new_status = request.data.get('status')
-        # Limitiamo i cambi stato permessi via public API per sicurezza
-        if new_status not in ['read']:
-             return Response({'success': False, 'message': 'Stato non modificabile via public API'}, status=status.HTTP_400_BAD_REQUEST)
-        
-        try:
-            invitation = Invitation.objects.get(id=invitation_id)
-            # Logica: Aggiorna a 'read' solo se era 'sent' o 'created'. 
-            # Non sovrascrivere se è già confirmed/declined.
-            if invitation.status in [Invitation.Status.CREATED, Invitation.Status.SENT]:
-                invitation.status = Invitation.Status.READ
-                invitation.save()
-                _log_interaction(request, invitation, 'visit', metadata={'action': 'auto_read_status'})
-            
-            return Response({'success': True})
-        except Invitation.DoesNotExist:
-            return Response({'success': False}, status=status.HTTP_404_NOT_FOUND)
-
 def _log_interaction(request, invitation, event_type, metadata=None):
     user_agent = request.META.get('HTTP_USER_AGENT', '')
     x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
