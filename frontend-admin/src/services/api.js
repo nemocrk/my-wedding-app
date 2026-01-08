@@ -198,6 +198,21 @@ export const api = {
     return handleResponse(response);
   },
 
+  // --- WHATSAPP QUEUE ---
+  fetchWhatsAppQueue: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`);
+    return handleResponse(response);
+  },
+
+  enqueueWhatsAppMessage: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
   // --- WHATSAPP TEMPLATES ---
   fetchWhatsAppTemplates: async () => {
       const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`);
