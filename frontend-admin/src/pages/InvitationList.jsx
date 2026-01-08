@@ -1,6 +1,6 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
@@ -31,6 +31,9 @@ const InvitationList = () => {
   const [generatedLink, setGeneratedLink] = useState(null);
   const [markingSentFor, setMarkingSentFor] = useState(null);
   const [verifyingContacts, setVerifyingContacts] = useState(false);
+  
+  // Single verification loading state
+  const [verifyingSingleFor, setVerifyingSingleFor] = useState(null);
 
   // Double click prevent + loader for WhatsApp open
   const [openingWABulk, setOpeningWABulk] = useState(false);
@@ -88,17 +91,57 @@ const InvitationList = () => {
   };
 
   const isContactValid = (inv) => {
+    // Only 'ok' is strictly valid for sending, but we check presence too
     return inv.phone_number && inv.phone_number.length > 5;
+  };
+  
+  const getVerificationIcon = (status) => {
+    switch (status) {
+      case 'ok':
+        return { icon: <CheckCircle size={14} />, color: 'bg-green-100 text-green-600', title: 'Verificato (OK)' };
+      case 'not_present':
+        return { icon: <UserX size={14} />, color: 'bg-yellow-100 text-yellow-600', title: 'Non in rubrica' };
+      case 'not_exist':
+        return { icon: <XCircle size={14} />, color: 'bg-red-100 text-red-600', title: 'Non esiste su WhatsApp' };
+      case 'not_valid':
+      default:
+        return { icon: <AlertCircle size={14} />, color: 'bg-gray-100 text-gray-500', title: 'Da verificare / Formato errato' };
+    }
+  };
+
+  // --- ACTIONS ---
+  
+  const handleVerifyContact = async (invitation) => {
+    if (invitation.contact_verified === 'ok' || verifyingSingleFor === invitation.id) return;
+    
+    setVerifyingSingleFor(invitation.id);
+    try {
+      await api.verifyContact(invitation.id);
+      // Refetch to get updated status
+      await fetchInvitations();
+    } catch (error) {
+      console.error('Failed to verify contact', error);
+      alert('Errore durante la verifica del contatto.');
+    } finally {
+      setVerifyingSingleFor(null);
+    }
   };
 
   // --- BULK ACTIONS ---
   const handleBulkVerify = async () => {
     setVerifyingContacts(true);
-    setTimeout(() => {
-      alert(`Simulazione: Contatti verificati per ${selectedIds.length} inviti.`);
-      setVerifyingContacts(false);
-      setSelectedIds([]);
-    }, 1500);
+    try {
+        const promises = selectedIds.map(id => api.verifyContact(id));
+        await Promise.all(promises);
+        await fetchInvitations();
+        setSelectedIds([]);
+        alert(`Verifica completata per ${selectedIds.length} inviti.`);
+    } catch (error) {
+        console.error('Bulk verify failed', error);
+        alert('Alcune verifiche sono fallite. Controlla la console.');
+    } finally {
+        setVerifyingContacts(false);
+    }
   };
 
   const handleBulkSend = () => {
@@ -337,7 +380,11 @@ const InvitationList = () => {
                   </td>
                 </tr>
               ) : (
-                invitations.map((invitation) => (
+                invitations.map((invitation) => {
+                  const verifyInfo = getVerificationIcon(invitation.contact_verified);
+                  const isVerifying = verifyingSingleFor === invitation.id;
+                  
+                  return (
                   <tr
                     key={invitation.id}
                     className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(invitation.id) ? 'bg-pink-50' : ''}`}
@@ -367,9 +414,16 @@ const InvitationList = () => {
                     <td className="px-6 py-4">
                       {invitation.phone_number ? (
                         <div className="flex items-center">
-                          <div className={`p-1.5 rounded-full mr-2 ${isContactValid(invitation) ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                            <Phone size={14} />
-                          </div>
+                          <button
+                            onClick={() => handleVerifyContact(invitation)}
+                            disabled={isVerifying || invitation.contact_verified === 'ok'}
+                            className={`p-1.5 rounded-full mr-2 transition-all ${verifyInfo.color} ${
+                                invitation.contact_verified !== 'ok' ? 'hover:scale-110 cursor-pointer shadow-sm hover:shadow' : 'cursor-default'
+                            }`}
+                            title={isVerifying ? 'Verifica in corso...' : `${verifyInfo.title} - Clicca per verificare`}
+                          >
+                             {isVerifying ? <Loader size={14} className="animate-spin" /> : verifyInfo.icon}
+                          </button>
                           <span className="text-sm text-gray-600 font-mono">{invitation.phone_number}</span>
                         </div>
                       ) : (
@@ -543,7 +597,7 @@ const InvitationList = () => {
                       </div>
                     </td>
                   </tr>
-                ))
+                )})
               )}
             </tbody>
           </table>
