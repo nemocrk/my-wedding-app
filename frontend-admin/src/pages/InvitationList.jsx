@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckC
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
+import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal'; // New Import
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -20,13 +21,16 @@ const InvitationList = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const [interactionInvitation, setInteractionInvitation] = useState(null);
 
+  // WhatsApp Modal State
+  const [isWAModalOpen, setIsWAModalOpen] = useState(false);
+  const [waRecipients, setWaRecipients] = useState([]);
+
   // Action States
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
   const [openingPreviewFor, setOpeningPreviewFor] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
   const [markingSentFor, setMarkingSentFor] = useState(null);
   const [verifyingContacts, setVerifyingContacts] = useState(false);
-  const [sendingBulk, setSendingBulk] = useState(false);
 
   const fetchInvitations = async () => {
     setLoading(true);
@@ -64,7 +68,6 @@ const InvitationList = () => {
   // --- BULK ACTIONS ---
   const handleBulkVerify = async () => {
     setVerifyingContacts(true);
-    // Placeholder for actual API verification logic
     setTimeout(() => {
       alert(`Simulazione: Contatti verificati per ${selectedIds.length} inviti.`);
       setVerifyingContacts(false);
@@ -72,15 +75,41 @@ const InvitationList = () => {
     }, 1500);
   };
 
-  const handleBulkSend = async () => {
-    setSendingBulk(true);
-    // Placeholder for actual WhatsApp bulk send
-    setTimeout(() => {
-      alert(`Simulazione: Invio WhatsApp massivo avviato per ${selectedIds.length} inviti.`);
-      setSendingBulk(false);
+  const handleBulkSend = () => {
+    // 1. Get selected invitations
+    const selected = invitations.filter(inv => selectedIds.includes(inv.id));
+    
+    // 2. Filter valid contacts
+    const valid = selected.filter(isContactValid);
+    const invalidCount = selected.length - valid.length;
+
+    if (valid.length === 0) {
+        alert("Nessuno degli inviti selezionati ha un numero valido.");
+        return;
+    }
+
+    if (invalidCount > 0) {
+        if(!window.confirm(`${invalidCount} inviti su ${selected.length} non hanno un numero valido e saranno saltati. Procedere?`)) {
+            return;
+        }
+    }
+
+    setWaRecipients(valid);
+    setIsWAModalOpen(true);
+  };
+
+  const handleSingleSend = (invitation) => {
+      if(!isContactValid(invitation)) {
+          alert("Numero non valido per questo contatto.");
+          return;
+      }
+      setWaRecipients([invitation]);
+      setIsWAModalOpen(true);
+  };
+
+  const handleWASuccess = () => {
       setSelectedIds([]);
-      fetchInvitations(); 
-    }, 1500);
+      fetchInvitations(); // Refresh status
   };
 
   // --- SINGLE ACTIONS ---
@@ -224,10 +253,9 @@ const InvitationList = () => {
             </button>
             <button
               onClick={handleBulkSend}
-              disabled={sendingBulk}
               className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
-              {sendingBulk ? <Loader size={16} className="animate-spin mr-2"/> : <MessageCircle size={16} className="mr-2"/>}
+              <MessageCircle size={16} className="mr-2"/>
               Invia WhatsApp
             </button>
           </div>
@@ -349,7 +377,6 @@ const InvitationList = () => {
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(invitation.status)}
                       
-                      {/* RESTORED: Accommodation/Transfer Status UI */}
                       <div className="flex flex-col gap-1 mt-2">
                         {invitation.accommodation_offered && (
                            <div className="flex items-center text-xs">
@@ -386,9 +413,10 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
+                        {/* SEND WHATSAPP ACTION */}
                         {invitation.status === 'created' && (
                            <button 
-                             onClick={() => alert("Funzionalità in arrivo: Invia a " + invitation.phone_number)}
+                             onClick={() => handleSingleSend(invitation)}
                              disabled={!isContactValid(invitation)}
                              className={`p-1.5 rounded-md transition-colors ${
                                !isContactValid(invitation) 
@@ -496,6 +524,16 @@ const InvitationList = () => {
           onClose={() => setIsModalOpen(false)} 
           onSuccess={fetchInvitations}
           initialData={editingInvitation}
+        />
+      )}
+      
+      {/* SEND WHATSAPP MODAL */}
+      {isWAModalOpen && (
+        <SendWhatsAppModal
+            isOpen={isWAModalOpen}
+            onClose={() => setIsWAModalOpen(false)}
+            onSuccess={handleWASuccess}
+            recipients={waRecipients}
         />
       )}
 
