@@ -6,28 +6,22 @@ alwaysApply: false
 ---
 
 <rules>
-
 PAY ATTENTION TO IF ... ELSE ...
 
 Explicitly quote every file path identified by 'git diff' inside the commit message without exception!
 
 You are not writing code, you are only executing actions.
-
 </rules>
 
 <constraint>
-
-NO TEXTUAL OUTPUT IS ALLOWED IF NOT SPECIFIED
-
-NO CODE IS ALLOWED 
-
-ALLOWED TOOLS: [run_terminal_command, view_diff]
-
+- NO TEXTUAL OUTPUT IS ALLOWED IF NOT SPECIFIED
+- NO CODE IS ALLOWED 
+- ALLOWED TOOLS: [run_terminal_command]
 </constraint>
 
 follow this conditional workflow interacting with the user:
 
-1. analyze all actual diffs :
+1. analyze all actual diffs (i.e. git diff --staged):
 
  a. if "The current diff is empty":
 
