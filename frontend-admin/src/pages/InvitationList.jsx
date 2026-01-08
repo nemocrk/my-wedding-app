@@ -152,14 +152,11 @@ const InvitationList = () => {
   const handleOpenPreview = async (invitationId) => {
     if (openingPreviewFor === invitationId) return;
     setOpeningPreviewFor(invitationId);
-    const previewWindow = window.open('about:blank', '_blank', 'noopener,noreferrer');
     try {
       const data = await api.generateInvitationLink(invitationId);
       setGeneratedLink({ id: invitationId, url: data.url });
-      if (previewWindow) previewWindow.location.href = data.url;
-      else window.open(data.url, '_blank', 'noopener,noreferrer');
+      window.open(data.url, '_blank', 'noopener,noreferrer');
     } catch (error) {
-      if (previewWindow) previewWindow.close();
       console.error("Error opening preview", error);
     } finally {
       setOpeningPreviewFor(null);
@@ -313,41 +310,6 @@ const InvitationList = () => {
                         </div>
                       </div>
 
-                      {/* RESTORED: Accommodation/Transfer Status UI */}
-                      <div className="flex flex-col gap-1 mt-2">
-                        {invitation.accommodation_offered && (
-                           <div className="flex items-center text-xs">
-                             <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
-                               <Home size={10} className="mr-1"/> Alloggio
-                             </span>
-                             {invitation.status === 'confirmed' && invitation.accommodation_requested && (
-                                <>
-                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                    <CheckCircle size={10} className="mr-1"/> Richiesto
-                                  </span>
-                                </>
-                             )}
-                           </div>
-                        )}
-                        
-                        {invitation.transfer_offered && (
-                           <div className="flex items-center text-xs">
-                             <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
-                               <Bus size={10} className="mr-1"/> Transfer
-                             </span>
-                             {invitation.status === 'confirmed' && invitation.transfer_requested && (
-                                <>
-                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                    <CheckCircle size={10} className="mr-1"/> Richiesto
-                                  </span>
-                                </>
-                             )}
-                           </div>
-                        )}
-                      </div>
-
                     </td>
                     
                     <td className="px-6 py-4">
@@ -386,6 +348,41 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(invitation.status)}
+                      
+                      {/* RESTORED: Accommodation/Transfer Status UI */}
+                      <div className="flex flex-col gap-1 mt-2">
+                        {invitation.accommodation_offered && (
+                           <div className="flex items-center text-xs">
+                             <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
+                               <Home size={10} className="mr-1"/>
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/>
+                                  </span>
+                                </>
+                             )}
+                           </div>
+                        )}
+                        
+                        {invitation.transfer_offered && (
+                           <div className="flex items-center text-xs">
+                             <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
+                               <Bus size={10} className="mr-1"/>
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/>
+                                  </span>
+                                </>
+                             )}
+                           </div>
+                        )}
+                      </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
@@ -441,7 +438,8 @@ const InvitationList = () => {
                                   ? 'bg-yellow-50 text-yellow-600 cursor-wait'
                                   : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                             }`}
-                            title="Copia Link"
+                            title={generatedLink?.id === invitation.id ? "Link Copiato!" : "Copia Link Pubblico"}
+                            disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
                           >
                              {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
                                <Loader size={18} className="animate-spin" />
@@ -452,16 +450,34 @@ const InvitationList = () => {
                              )}
                           </button>
                         </div>
-
+                        {/* PREVIEW ACTION (always with token) */}
+                        <button
+                          onClick={() => handleOpenPreview(invitation.id)}
+                          className={`p-1.5 rounded-md transition-colors ${
+                            openingPreviewFor === invitation.id
+                              ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                              : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'
+                          }`}
+                          title="Apri Anteprima Sicura"
+                          disabled={openingPreviewFor === invitation.id}
+                        >
+                          {openingPreviewFor === invitation.id ? (
+                            <Loader size={18} className="animate-spin" />
+                          ) : (
+                            <ExternalLink size={18} />
+                          )}
+                        </button>
                         <button 
                           onClick={() => handleEdit(invitation.id)}
                           className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                          title="Modifica"
                         >
                           <Edit2 size={18} />
                         </button>
                         <button 
                           onClick={() => handleDeleteClick(invitation.id)}
                           className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Elimina"
                         >
                           <Trash2 size={18} />
                         </button>

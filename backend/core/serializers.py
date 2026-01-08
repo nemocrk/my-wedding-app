@@ -249,34 +249,3 @@ class InvitationListSerializer(serializers.ModelSerializer):
             'accommodation_requested', 'transfer_requested',
             'status', 'accommodation_name'
         ]
-
-# Analytics Serializers
-class GuestInteractionSerializer(serializers.ModelSerializer):
-    invitation_name = serializers.CharField(source='invitation.name', read_only=True)
-    
-    class Meta:
-        model = GuestInteraction
-        fields = '__all__'
-
-class GuestHeatmapSerializer(serializers.ModelSerializer):
-    invitation_name = serializers.CharField(source='invitation.name', read_only=True)
-    
-    class Meta:
-        model = GuestHeatmap
-        fields = '__all__'
-
-# WhatsApp Serializers
-class WhatsAppSessionStatusSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WhatsAppSessionStatus
-        fields = ['session_type', 'state', 'last_check', 'error_message'] # QR Code gestito a parte per sicurezza/size
-
-class WhatsAppMessageQueueSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WhatsAppMessageQueue
-        fields = '__all__'
-
-class WhatsAppMessageEventSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = WhatsAppMessageEvent
-        fields = '__all__'

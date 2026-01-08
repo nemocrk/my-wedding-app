@@ -86,19 +86,3 @@ export const submitRSVP = async (status, accommodationRequested = false, transfe
     }),
   });
 };
-
-/**
- * Aggiorna stato invito (Tracking)
- * Usato per tracciare lo stato 'read' quando l'utente atterra sulla landing page
- */
-export const updateInvitationStatus = async (id, status) => {
-  // Nota: l'ID viene ignorato dal backend pubblico che usa la sessione, 
-  // ma lo manteniamo nella firma per compatibilità futura o logging
-  return fetchWithCredentials(`${API_BASE}/status/`, {
-    method: 'POST',
-    body: JSON.stringify({ 
-      status, 
-      session_id: getSessionId() 
-    }),
-  });
-};
