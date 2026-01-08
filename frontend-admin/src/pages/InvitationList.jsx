@@ -65,7 +65,6 @@ const InvitationList = () => {
   const handleBulkVerify = async () => {
     setVerifyingContacts(true);
     // Placeholder for actual API verification logic
-    // In future: await api.verifyContacts(selectedIds);
     setTimeout(() => {
       alert(`Simulazione: Contatti verificati per ${selectedIds.length} inviti.`);
       setVerifyingContacts(false);
@@ -76,12 +75,11 @@ const InvitationList = () => {
   const handleBulkSend = async () => {
     setSendingBulk(true);
     // Placeholder for actual WhatsApp bulk send
-    // In future: await api.bulkSendWhatsapp(selectedIds);
     setTimeout(() => {
       alert(`Simulazione: Invio WhatsApp massivo avviato per ${selectedIds.length} inviti.`);
       setSendingBulk(false);
       setSelectedIds([]);
-      fetchInvitations(); // Refresh to update statuses
+      fetchInvitations(); 
     }, 1500);
   };
 
@@ -112,7 +110,6 @@ const InvitationList = () => {
       await api.deleteInvitation(itemToDelete);
       setIsDeleteModalOpen(false);
       setItemToDelete(null);
-      // Remove from selection if deleted
       setSelectedIds(prev => prev.filter(id => id !== itemToDelete));
       fetchInvitations(); 
     } catch (error) {
@@ -187,13 +184,12 @@ const InvitationList = () => {
     }
   };
 
-  // Helper per validazione contatto (Simulata per ora basandosi sulla presenza del numero)
   const isContactValid = (inv) => {
     return inv.phone_number && inv.phone_number.length > 5;
   };
 
   return (
-    <div className="animate-fadeIn pb-24"> {/* Added padding bottom for fixed footer if needed */}
+    <div className="animate-fadeIn pb-24">
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-800">Censimento Inviti</h1>
@@ -316,9 +312,44 @@ const InvitationList = () => {
                           </code>
                         </div>
                       </div>
+
+                      {/* RESTORED: Accommodation/Transfer Status UI */}
+                      <div className="flex flex-col gap-1 mt-2">
+                        {invitation.accommodation_offered && (
+                           <div className="flex items-center text-xs">
+                             <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
+                               <Home size={10} className="mr-1"/> Alloggio
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/> Richiesto
+                                  </span>
+                                </>
+                             )}
+                           </div>
+                        )}
+                        
+                        {invitation.transfer_offered && (
+                           <div className="flex items-center text-xs">
+                             <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
+                               <Bus size={10} className="mr-1"/> Transfer
+                             </span>
+                             {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1"/> Richiesto
+                                  </span>
+                                </>
+                             )}
+                           </div>
+                        )}
+                      </div>
+
                     </td>
                     
-                    {/* PHONE / CONTACT COLUMN */}
                     <td className="px-6 py-4">
                       {invitation.phone_number ? (
                         <div className="flex items-center">
@@ -358,11 +389,8 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
-                        
-                        {/* SEND WHATSAPP ACTION (Individual) */}
                         {invitation.status === 'created' && (
                            <button 
-                             // Placeholder: Individual send would go here
                              onClick={() => alert("Funzionalità in arrivo: Invia a " + invitation.phone_number)}
                              disabled={!isContactValid(invitation)}
                              className={`p-1.5 rounded-md transition-colors ${
@@ -376,7 +404,6 @@ const InvitationList = () => {
                            </button>
                         )}
 
-                        {/* MANUAL MARK AS SENT */}
                         {invitation.status === 'created' && (
                           <button 
                             onClick={() => handleMarkAsSent(invitation.id)}
