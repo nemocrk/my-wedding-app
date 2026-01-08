@@ -40,6 +40,15 @@ Pannello "Live Settings" per il Singleton `GlobalConfig`.
 - **Form Gestione**: Permette di modificare prezzi e testi senza redeploy.
 - **Anteprima Lettera**: Renderizza in tempo reale il template della lettera di benvenuto.
 
+#### Sezioni Disponibili
+1. **Gestione Costi Unitari**: Prezzi per pasti, alloggi e transfer.
+2. **Testi e Comunicazioni**: Template personalizzabile per la lettera di invito.
+3. **Sicurezza Link Pubblici**: Gestione chiave segreta e messaggi di errore.
+4. **Configurazione WhatsApp**: 
+   - `whatsapp_rate_limit`: Limite messaggi/ora per sessione (anti-ban).
+   - Valore consigliato: 10 msg/ora.
+   - Range: 1-100 messaggi.
+
 ## 3. Servizi API (`src/services/`)
 
 ### `api.js`

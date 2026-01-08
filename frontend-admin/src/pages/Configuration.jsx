@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, RefreshCw, DollarSign, FileText, Lock } from 'lucide-react';
+import { Save, RefreshCw, DollarSign, FileText, Lock, Phone } from 'lucide-react';
 import { api } from '../services/api';
 
 const Configuration = () => {
@@ -11,7 +11,8 @@ const Configuration = () => {
     price_transfer: '',
     letter_text: '',
     invitation_link_secret: '',
-    unauthorized_message: ''
+    unauthorized_message: '',
+    whatsapp_rate_limit: ''
   });
   
   const [loading, setLoading] = useState(true);
@@ -198,6 +199,36 @@ const Configuration = () => {
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
               />
             </div>
+          </div>
+        </div>
+
+        {/* SECTION 4: WHATSAPP CONFIGURATION */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+          <div className="flex items-center mb-4 pb-2 border-b border-gray-100">
+            <Phone className="text-pink-600 mr-2" size={20}/>
+            <h2 className="text-lg font-semibold text-gray-800">Configurazione WhatsApp</h2>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Rate Limit (messaggi/ora)
+              <span className="ml-2 text-xs text-gray-500 font-normal">
+                Limite di sicurezza per sessione (Anti-Ban)
+              </span>
+            </label>
+            <input
+              type="number"
+              min="1"
+              max="100"
+              name="whatsapp_rate_limit"
+              value={config.whatsapp_rate_limit}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-pink-500 focus:border-pink-500"
+              placeholder="10"
+            />
+            <p className="text-xs text-gray-500 mt-1">
+              Valore consigliato: 10 msg/ora. Non superare 20 per evitare ban da WhatsApp.
+            </p>
           </div>
         </div>
 

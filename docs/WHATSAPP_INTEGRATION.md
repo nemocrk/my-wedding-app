@@ -173,6 +173,13 @@ Accedi al Django Admin (`http://localhost:8080/admin/`) e configura:
 - `whatsapp_rate_limit`: messaggi/ora (default: 10)
 - `whatsapp_typing_simulation`: true/false
 
+**Gestione Rate Limit da Frontend:**
+Il sistema implementa un meccanismo di protezione "Anti-Ban" configurabile direttamente dalla pagina **Configuration**.
+- **Campo**: `whatsapp_rate_limit`
+- **Valore Default**: 10 messaggi/ora
+- **Logica**: Il worker controlla il numero di messaggi inviati nell'ultima ora (`WhatsAppMessageEvent`) prima di processare nuovi messaggi dalla coda.
+- **Range Consigliato**: 1-20 messaggi/ora per evitare ban temporanei.
+
 ### 5. QR Code Pairing
 
 1. Vai su `http://localhost:8080/whatsapp`
@@ -432,3 +439,6 @@ npm test -- --coverage whatsapp
 - ✅ Event persistence (timeline granulare)
 - ✅ Unit tests (backend + frontend)
 - ✅ Comprehensive documentation
+
+### v1.1.0 (2026-01-08)
+- ✅ Frontend Rate Limit Configuration UI
