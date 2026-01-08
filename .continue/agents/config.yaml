@@ -43,11 +43,11 @@ models:
     capabilities:
       - tool_use
     defaultCompletionOptions:
-      contextLength: 32000
-      maxTokens: 1000
-      temperature: 0.2
-      topP: 10
-      topK: 40
+      contextLength: 64000
+      maxTokens: 200
+      temperature: 0.0
+      topP: 5
+      topK: 200
       reasoning: false
   - name: granite3.3:8b GPU - GP
     provider: ollama
@@ -74,6 +74,22 @@ models:
       topK: 40
       reasoning: false
   - name: dolphin3:8b GPU
+    provider: ollama
+    model: dolphin3:8b
+    apiBase: http://192.168.1.26:11434
+    roles:
+      - chat
+      - autocomplete
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 14000
+      maxTokens: 1000
+      temperature: 0.0
+      topP: 5
+      topK: 500
+      reasoning: false
+  - name: dolphin3:8b GPU - Commit
     provider: ollama
     model: dolphin3:8b
     apiBase: http://192.168.1.26:11434
@@ -115,6 +131,14 @@ models:
       maxTokens: 65536
     capabilities:
       - image_input
+  - name: qwen3-reranker:0.6b-F16 GPU
+    provider: ollama
+    model: sam860/qwen3-reranker:0.6b-F16
+    apiBase: http://192.168.1.26:11434
+    roles:
+      - rerank
+    defaultCompletionOptions:
+      contextLength: 64000
 context:
   - uses: continuedev/diff-context
   - uses: continuedev/codebase-context
