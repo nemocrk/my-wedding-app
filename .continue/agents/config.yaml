@@ -102,6 +102,19 @@ models:
       topP: 10
       topK: 40
       reasoning: false
+  - name: Gemini 3 Flash Preview
+    provider: gemini
+    model: gemini-3-flash-preview
+    apiKey: AIzaSyBp_B4Nx_mHEEvUBkxQZBCVqDVQTkG5kzc
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 1048576
+      maxTokens: 65536
+    capabilities:
+      - image_input
 context:
   - uses: continuedev/diff-context
   - uses: continuedev/codebase-context
