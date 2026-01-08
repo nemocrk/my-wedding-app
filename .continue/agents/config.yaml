@@ -131,6 +131,19 @@ models:
       maxTokens: 65536
     capabilities:
       - image_input
+  - name: qwen3:8B GPU [Commit]
+    provider: ollama
+    model: qwen3:8B
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 15000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
   - name: qwen3-reranker:0.6b-F16 GPU
     provider: ollama
     model: sam860/qwen3-reranker:0.6b-F16

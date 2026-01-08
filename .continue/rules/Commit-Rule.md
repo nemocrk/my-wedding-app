@@ -22,7 +22,7 @@ You are not writing code, you are only executing actions.
 
 follow this conditional workflow interacting with the user:
 
-1. analyze all actual diffs (i.e. git --no-pager diff --cached --staged -u --find-copies-harder):
+1. (MANDATORY) analyze all actual diffs (i.e. git --no-pager diff --cached --staged -u --find-copies-harder):
  a. if empty:
   a1. Output ONLY "No Diffs"
  b. else 
