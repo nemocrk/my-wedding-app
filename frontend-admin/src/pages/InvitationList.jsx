@@ -4,16 +4,16 @@ import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckC
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
-import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal'; // New Import
+import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
-  
+
   // Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
-  
+
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState(null);
@@ -32,13 +32,17 @@ const InvitationList = () => {
   const [markingSentFor, setMarkingSentFor] = useState(null);
   const [verifyingContacts, setVerifyingContacts] = useState(false);
 
+  // Double click prevent + loader for WhatsApp open
+  const [openingWABulk, setOpeningWABulk] = useState(false);
+  const [openingWASingleFor, setOpeningWASingleFor] = useState(null);
+
   const fetchInvitations = async () => {
     setLoading(true);
     try {
       const data = await api.fetchInvitations();
       setInvitations(data.results || data);
     } catch (error) {
-      console.error("Failed to load invitations", error);
+      console.error('Failed to load invitations', error);
     } finally {
       setLoading(false);
     }
@@ -58,138 +62,11 @@ const InvitationList = () => {
   };
 
   const toggleSelectOne = (id) => {
-    setSelectedIds(prev => 
-      prev.includes(id) 
-        ? prev.filter(item => item !== id) 
+    setSelectedIds(prev =>
+      prev.includes(id)
+        ? prev.filter(item => item !== id)
         : [...prev, id]
     );
-  };
-
-  // --- BULK ACTIONS ---
-  const handleBulkVerify = async () => {
-    setVerifyingContacts(true);
-    setTimeout(() => {
-      alert(`Simulazione: Contatti verificati per ${selectedIds.length} inviti.`);
-      setVerifyingContacts(false);
-      setSelectedIds([]);
-    }, 1500);
-  };
-
-  const handleBulkSend = () => {
-    // 1. Get selected invitations
-    const selected = invitations.filter(inv => selectedIds.includes(inv.id));
-    
-    // 2. Filter valid contacts
-    const valid = selected.filter(isContactValid);
-    const invalidCount = selected.length - valid.length;
-
-    if (valid.length === 0) {
-        alert("Nessuno degli inviti selezionati ha un numero valido.");
-        return;
-    }
-
-    if (invalidCount > 0) {
-        if(!window.confirm(`${invalidCount} inviti su ${selected.length} non hanno un numero valido e saranno saltati. Procedere?`)) {
-            return;
-        }
-    }
-
-    setWaRecipients(valid);
-    setIsWAModalOpen(true);
-  };
-
-  const handleSingleSend = (invitation) => {
-      if(!isContactValid(invitation)) {
-          alert("Numero non valido per questo contatto.");
-          return;
-      }
-      setWaRecipients([invitation]);
-      setIsWAModalOpen(true);
-  };
-
-  const handleWASuccess = () => {
-      setSelectedIds([]);
-      fetchInvitations(); // Refresh status
-  };
-
-  // --- SINGLE ACTIONS ---
-  const handleEdit = async (id) => {
-    try {
-      const fullData = await api.getInvitation(id);
-      setEditingInvitation(fullData);
-      setIsModalOpen(true);
-    } catch (error) {
-      console.error("Impossibile caricare i dettagli per la modifica", error);
-    }
-  };
-
-  const handleCreateNew = () => {
-    setEditingInvitation(null);
-    setIsModalOpen(true);
-  };
-
-  const handleDeleteClick = (id) => {
-    setItemToDelete(id);
-    setIsDeleteModalOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    if (!itemToDelete) return;
-    try {
-      await api.deleteInvitation(itemToDelete);
-      setIsDeleteModalOpen(false);
-      setItemToDelete(null);
-      setSelectedIds(prev => prev.filter(id => id !== itemToDelete));
-      fetchInvitations(); 
-    } catch (error) {
-      setIsDeleteModalOpen(false);
-      console.error("Impossibile eliminare l'invito", error);
-    }
-  };
-  
-  const handleMarkAsSent = async (id) => {
-    if (markingSentFor === id) return;
-    setMarkingSentFor(id);
-    try {
-      await api.markInvitationAsSent(id);
-      fetchInvitations(); 
-    } catch (error) {
-      console.error("Error marking as sent", error);
-    } finally {
-      setMarkingSentFor(null);
-    }
-  };
-
-  const handleGenerateLink = async (id) => {
-    if (generatingLinkFor === id) return;
-    setGeneratingLinkFor(id);
-    setGeneratedLink(null);
-    try {
-      const data = await api.generateInvitationLink(id);
-      setGeneratedLink({ id, url: data.url });
-      await navigator.clipboard.writeText(data.url);
-      setTimeout(() => {
-        setGeneratedLink(null);
-        setGeneratingLinkFor(null);
-      }, 3000);
-    } catch (error) {
-      console.error("Error generating link", error);
-      setGeneratingLinkFor(null);
-    }
-  };
-
-  const handleOpenPreview = async (invitationId) => {
-    if (openingPreviewFor === invitationId) return;
-    setOpeningPreviewFor(invitationId);
-    try {
-      const data = await api.generateInvitationLink(invitationId);
-      setGeneratedLink({ id: invitationId, url: data.url });
-      window.open(data.url, '_blank', 'noopener,noreferrer');
-    } catch (error) {
-      console.error("Error opening preview", error);
-    } finally {
-      setOpeningPreviewFor(null);
-    }
   };
 
   // --- HELPERS ---
@@ -214,6 +91,150 @@ const InvitationList = () => {
     return inv.phone_number && inv.phone_number.length > 5;
   };
 
+  // --- BULK ACTIONS ---
+  const handleBulkVerify = async () => {
+    setVerifyingContacts(true);
+    setTimeout(() => {
+      alert(`Simulazione: Contatti verificati per ${selectedIds.length} inviti.`);
+      setVerifyingContacts(false);
+      setSelectedIds([]);
+    }, 1500);
+  };
+
+  const handleBulkSend = () => {
+    if (openingWABulk || isWAModalOpen) return;
+    setOpeningWABulk(true);
+
+    try {
+      // 1. Get selected invitations
+      const selected = invitations.filter(inv => selectedIds.includes(inv.id));
+
+      // 2. Filter valid contacts
+      const valid = selected.filter(isContactValid);
+      const invalidCount = selected.length - valid.length;
+
+      if (valid.length === 0) {
+        alert('Nessuno degli inviti selezionati ha un numero valido.');
+        return;
+      }
+
+      if (invalidCount > 0) {
+        if (!window.confirm(`${invalidCount} inviti su ${selected.length} non hanno un numero valido e saranno saltati. Procedere?`)) {
+          return;
+        }
+      }
+
+      setWaRecipients(valid);
+      setIsWAModalOpen(true);
+    } finally {
+      setOpeningWABulk(false);
+    }
+  };
+
+  const handleSingleSend = (invitation) => {
+    if (!invitation?.id) return;
+    if (openingWASingleFor === invitation.id || isWAModalOpen) return;
+
+    setOpeningWASingleFor(invitation.id);
+
+    try {
+      if (!isContactValid(invitation)) {
+        alert('Numero non valido per questo contatto.');
+        return;
+      }
+
+      setWaRecipients([invitation]);
+      setIsWAModalOpen(true);
+    } finally {
+      setOpeningWASingleFor(null);
+    }
+  };
+
+  const handleWASuccess = () => {
+    setSelectedIds([]);
+    fetchInvitations();
+  };
+
+  // --- SINGLE ACTIONS ---
+  const handleEdit = async (id) => {
+    try {
+      const fullData = await api.getInvitation(id);
+      setEditingInvitation(fullData);
+      setIsModalOpen(true);
+    } catch (error) {
+      console.error('Impossibile caricare i dettagli per la modifica', error);
+    }
+  };
+
+  const handleCreateNew = () => {
+    setEditingInvitation(null);
+    setIsModalOpen(true);
+  };
+
+  const handleDeleteClick = (id) => {
+    setItemToDelete(id);
+    setIsDeleteModalOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!itemToDelete) return;
+    try {
+      await api.deleteInvitation(itemToDelete);
+      setIsDeleteModalOpen(false);
+      setItemToDelete(null);
+      setSelectedIds(prev => prev.filter(id => id !== itemToDelete));
+      fetchInvitations();
+    } catch (error) {
+      setIsDeleteModalOpen(false);
+      console.error("Impossibile eliminare l'invito", error);
+    }
+  };
+
+  const handleMarkAsSent = async (id) => {
+    if (markingSentFor === id) return;
+    setMarkingSentFor(id);
+    try {
+      await api.markInvitationAsSent(id);
+      fetchInvitations();
+    } catch (error) {
+      console.error('Error marking as sent', error);
+    } finally {
+      setMarkingSentFor(null);
+    }
+  };
+
+  const handleGenerateLink = async (id) => {
+    if (generatingLinkFor === id) return;
+    setGeneratingLinkFor(id);
+    setGeneratedLink(null);
+    try {
+      const data = await api.generateInvitationLink(id);
+      setGeneratedLink({ id, url: data.url });
+      await navigator.clipboard.writeText(data.url);
+      setTimeout(() => {
+        setGeneratedLink(null);
+        setGeneratingLinkFor(null);
+      }, 3000);
+    } catch (error) {
+      console.error('Error generating link', error);
+      setGeneratingLinkFor(null);
+    }
+  };
+
+  const handleOpenPreview = async (invitationId) => {
+    if (openingPreviewFor === invitationId) return;
+    setOpeningPreviewFor(invitationId);
+    try {
+      const data = await api.generateInvitationLink(invitationId);
+      setGeneratedLink({ id: invitationId, url: data.url });
+      window.open(data.url, '_blank', 'noopener,noreferrer');
+    } catch (error) {
+      console.error('Error opening preview', error);
+    } finally {
+      setOpeningPreviewFor(null);
+    }
+  };
+
   return (
     <div className="animate-fadeIn pb-24">
       <div className="flex justify-between items-center mb-6">
@@ -221,7 +242,7 @@ const InvitationList = () => {
           <h1 className="text-2xl font-bold text-gray-800">Censimento Inviti</h1>
           <p className="text-sm text-gray-500 mt-1">Gestisci la lista degli invitati e i codici di accesso</p>
         </div>
-        <button 
+        <button
           className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-pink-200 transform active:scale-95"
           onClick={handleCreateNew}
         >
@@ -235,7 +256,7 @@ const InvitationList = () => {
         <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn">
           <div className="flex items-center">
             <span className="font-semibold text-gray-800 mr-4">{selectedIds.length} Selezionati</span>
-            <button 
+            <button
               onClick={() => setSelectedIds([])}
               className="text-sm text-gray-500 hover:text-gray-700 underline"
             >
@@ -243,7 +264,7 @@ const InvitationList = () => {
             </button>
           </div>
           <div className="flex gap-3">
-             <button
+            <button
               onClick={handleBulkVerify}
               disabled={verifyingContacts}
               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
@@ -253,9 +274,10 @@ const InvitationList = () => {
             </button>
             <button
               onClick={handleBulkSend}
-              className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+              disabled={openingWABulk}
+              className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              <MessageCircle size={16} className="mr-2"/>
+              {openingWABulk ? <Loader size={16} className="animate-spin mr-2"/> : <MessageCircle size={16} className="mr-2"/>}
               Invia WhatsApp
             </button>
           </div>
@@ -268,12 +290,12 @@ const InvitationList = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-4 py-4 w-10">
-                   <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={invitations.length > 0 && selectedIds.length === invitations.length}
                     onChange={toggleSelectAll}
                     className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                   />
+                  />
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/5">
                   Nome & Origine
@@ -316,19 +338,22 @@ const InvitationList = () => {
                 </tr>
               ) : (
                 invitations.map((invitation) => (
-                  <tr key={invitation.id} className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(invitation.id) ? 'bg-pink-50' : ''}`}>
+                  <tr
+                    key={invitation.id}
+                    className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(invitation.id) ? 'bg-pink-50' : ''}`}
+                  >
                     <td className="px-4 py-4">
-                       <input 
+                      <input
                         type="checkbox"
                         checked={selectedIds.includes(invitation.id)}
                         onChange={() => toggleSelectOne(invitation.id)}
                         className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                       />
+                      />
                     </td>
                     <td className="px-6 py-4">
                       <div className="flex items-center">
-                        <span className="text-2xl mr-2" title={invitation.origin === 'bride' ? "Lato Sposa" : "Lato Sposo"}>
-                           {invitation.origin === 'bride' ? '👰' : '🤵'}
+                        <span className="text-2xl mr-2" title={invitation.origin === 'bride' ? 'Lato Sposa' : 'Lato Sposo'}>
+                          {invitation.origin === 'bride' ? '👰' : '🤵'}
                         </span>
                         <div>
                           <div className="text-sm font-bold text-gray-900">{invitation.name}</div>
@@ -337,20 +362,19 @@ const InvitationList = () => {
                           </code>
                         </div>
                       </div>
-
                     </td>
-                    
+
                     <td className="px-6 py-4">
                       {invitation.phone_number ? (
                         <div className="flex items-center">
                           <div className={`p-1.5 rounded-full mr-2 ${isContactValid(invitation) ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'}`}>
-                             <Phone size={14} />
+                            <Phone size={14} />
                           </div>
                           <span className="text-sm text-gray-600 font-mono">{invitation.phone_number}</span>
                         </div>
                       ) : (
                         <span className="text-xs text-gray-400 italic flex items-center">
-                           <XCircle size={12} className="mr-1"/> Nessun Contatto
+                          <XCircle size={12} className="mr-1"/> Nessun Contatto
                         </span>
                       )}
                     </td>
@@ -358,13 +382,13 @@ const InvitationList = () => {
                     <td className="px-6 py-4">
                       <div className="flex flex-wrap gap-1.5">
                         {invitation.guests?.map((guest, idx) => (
-                          <span 
-                            key={guest.id || idx} 
+                          <span
+                            key={guest.id || idx}
                             className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
-                              invitation.status === 'declined' 
+                              invitation.status === 'declined'
                                 ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
-                                : guest.is_child 
-                                  ? 'bg-pink-50 text-pink-700 border-pink-100' 
+                                : guest.is_child
+                                  ? 'bg-pink-50 text-pink-700 border-pink-100'
                                   : 'bg-slate-50 text-slate-700 border-slate-200'
                             }`}
                           >
@@ -374,63 +398,69 @@ const InvitationList = () => {
                         ))}
                       </div>
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap">
                       {getStatusBadge(invitation.status)}
-                      
+
                       <div className="flex flex-col gap-1 mt-2">
                         {invitation.accommodation_offered && (
-                           <div className="flex items-center text-xs">
-                             <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
-                               <Home size={10} className="mr-1"/>
-                             </span>
-                             {invitation.status === 'confirmed' && invitation.accommodation_requested && (
-                                <>
-                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                    <CheckCircle size={10} className="mr-1"/>
-                                  </span>
-                                </>
-                             )}
-                           </div>
+                          <div className="flex items-center text-xs">
+                            <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
+                              <Home size={10} className="mr-1"/>
+                            </span>
+                            {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                              <>
+                                <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                  <CheckCircle size={10} className="mr-1"/>
+                                </span>
+                              </>
+                            )}
+                          </div>
                         )}
-                        
+
                         {invitation.transfer_offered && (
-                           <div className="flex items-center text-xs">
-                             <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
-                               <Bus size={10} className="mr-1"/>
-                             </span>
-                             {invitation.status === 'confirmed' && invitation.transfer_requested && (
-                                <>
-                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                    <CheckCircle size={10} className="mr-1"/>
-                                  </span>
-                                </>
-                             )}
-                           </div>
+                          <div className="flex items-center text-xs">
+                            <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
+                              <Bus size={10} className="mr-1"/>
+                            </span>
+                            {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                              <>
+                                <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                  <CheckCircle size={10} className="mr-1"/>
+                                </span>
+                              </>
+                            )}
+                          </div>
                         )}
                       </div>
                     </td>
+
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
                         {/* SEND WHATSAPP ACTION */}
                         {invitation.status === 'created' && (
-                           <button 
-                             onClick={() => handleSingleSend(invitation)}
-                             disabled={!isContactValid(invitation)}
-                             className={`p-1.5 rounded-md transition-colors ${
-                               !isContactValid(invitation) 
-                                 ? 'text-gray-300 cursor-not-allowed'
-                                 : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                             }`}
-                             title={isContactValid(invitation) ? "Invia WhatsApp" : "Contatto mancante o invalido"}
-                           >
-                             <MessageCircle size={18} />
-                           </button>
+                          <button
+                            onClick={() => handleSingleSend(invitation)}
+                            disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
+                            className={`p-1.5 rounded-md transition-colors ${
+                              !isContactValid(invitation)
+                                ? 'text-gray-300 cursor-not-allowed'
+                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                            }`}
+                            title={isContactValid(invitation) ? 'Invia WhatsApp' : 'Contatto mancante o invalido'}
+                          >
+                            {openingWASingleFor === invitation.id ? (
+                              <Loader size={18} className="animate-spin" />
+                            ) : (
+                              <MessageCircle size={18} />
+                            )}
+                          </button>
                         )}
 
                         {invitation.status === 'created' && (
-                          <button 
+                          <button
                             onClick={() => handleMarkAsSent(invitation.id)}
                             disabled={markingSentFor === invitation.id}
                             className={`p-1.5 rounded-md transition-colors ${
@@ -447,8 +477,8 @@ const InvitationList = () => {
                             )}
                           </button>
                         )}
-                        
-                        <button 
+
+                        <button
                           onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
                           className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
                           title="Log Interazioni"
@@ -457,27 +487,28 @@ const InvitationList = () => {
                         </button>
 
                         <div className="relative">
-                          <button 
+                          <button
                             onClick={() => handleGenerateLink(invitation.id)}
                             className={`p-1.5 rounded-md transition-all ${
-                              generatedLink?.id === invitation.id 
-                                ? 'bg-green-100 text-green-700' 
+                              generatedLink?.id === invitation.id
+                                ? 'bg-green-100 text-green-700'
                                 : generatingLinkFor === invitation.id
                                   ? 'bg-yellow-50 text-yellow-600 cursor-wait'
                                   : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                             }`}
-                            title={generatedLink?.id === invitation.id ? "Link Copiato!" : "Copia Link Pubblico"}
+                            title={generatedLink?.id === invitation.id ? 'Link Copiato!' : 'Copia Link Pubblico'}
                             disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
                           >
-                             {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
-                               <Loader size={18} className="animate-spin" />
-                             ) : generatedLink?.id === invitation.id ? (
-                               <CheckCircle size={18} />
-                             ) : (
-                               <Copy size={18} />
-                             )}
+                            {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                              <Loader size={18} className="animate-spin" />
+                            ) : generatedLink?.id === invitation.id ? (
+                              <CheckCircle size={18} />
+                            ) : (
+                              <Copy size={18} />
+                            )}
                           </button>
                         </div>
+
                         {/* PREVIEW ACTION (always with token) */}
                         <button
                           onClick={() => handleOpenPreview(invitation.id)}
@@ -495,14 +526,15 @@ const InvitationList = () => {
                             <ExternalLink size={18} />
                           )}
                         </button>
-                        <button 
+
+                        <button
                           onClick={() => handleEdit(invitation.id)}
                           className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
                           title="Modifica"
                         >
                           <Edit2 size={18} />
                         </button>
-                        <button 
+                        <button
                           onClick={() => handleDeleteClick(invitation.id)}
                           className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
                           title="Elimina"
@@ -520,28 +552,28 @@ const InvitationList = () => {
       </div>
 
       {isModalOpen && (
-        <CreateInvitationModal 
-          onClose={() => setIsModalOpen(false)} 
+        <CreateInvitationModal
+          onClose={() => setIsModalOpen(false)}
           onSuccess={fetchInvitations}
           initialData={editingInvitation}
         />
       )}
-      
+
       {/* SEND WHATSAPP MODAL */}
       {isWAModalOpen && (
         <SendWhatsAppModal
-            isOpen={isWAModalOpen}
-            onClose={() => setIsWAModalOpen(false)}
-            onSuccess={handleWASuccess}
-            recipients={waRecipients}
+          isOpen={isWAModalOpen}
+          onClose={() => setIsWAModalOpen(false)}
+          onSuccess={handleWASuccess}
+          recipients={waRecipients}
         />
       )}
 
       {interactionInvitation && (
         <InteractionsModal
-            invitationId={interactionInvitation.id}
-            invitationName={interactionInvitation.name}
-            onClose={() => setInteractionInvitation(null)}
+          invitationId={interactionInvitation.id}
+          invitationName={interactionInvitation.name}
+          onClose={() => setInteractionInvitation(null)}
         />
       )}
 
