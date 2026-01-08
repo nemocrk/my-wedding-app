@@ -143,9 +143,27 @@ class Invitation(models.Model):
         PENDING = 'pending', 'In Attesa'
         CONFIRMED = 'confirmed', 'Confermato'
         DECLINED = 'declined', 'Declinato'
+        
+    class Origin(models.TextChoices):
+        GROOM = 'groom', 'Lato Sposo'
+        BRIDE = 'bride', 'Lato Sposa'
 
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
+    
+    # Contatti & Organizzazione
+    origin = models.CharField(
+        max_length=10, 
+        choices=Origin.choices, 
+        default=Origin.GROOM,
+        verbose_name="Appartenenza"
+    )
+    phone_number = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True, 
+        verbose_name="Numero Telefono (Referente)"
+    )
     
     # OPZIONI OFFERTE (Lato Sposi - Configurazione)
     accommodation_offered = models.BooleanField(default=False, verbose_name="Alloggio Offerto")
