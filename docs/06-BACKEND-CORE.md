@@ -19,6 +19,7 @@ Raggruppa un nucleo familiare.
 - **Contatti & Origine**:
   - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
   - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
+  - `contact_verified`: Enum (`ok`, `not_valid`, `not_exist`, `not_present`) che indica lo stato di verifica del numero su WhatsApp.
 - **Affinities**: Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
 - **Workflow Status**:
   Gestisce il ciclo di vita dell'invito:
@@ -40,7 +41,16 @@ Rappresenta il singolo ospite.
 
 ## 3. Automazione e Workflow (Signals)
 
-Il sistema implementa logiche reattive tramite Django Signals (`backend/core/signals.py`) per automatizzare la comunicazione.
+Il sistema implementa logiche reattive tramite Django Signals (`backend/core/signals.py`).
+
+### Verifica Contatto WhatsApp (`Invitation.contact_verified`)
+Quando un numero viene creato o modificato, o lo stato viene resettato manualmente a `not_valid`:
+1.  Il signal `post_save` intercetta il cambio.
+2.  Lancia il task sincrono `verify_whatsapp_contact_task` (in `utils.py`).
+3.  Il task chiama il microservizio `whatsapp-integration` (`GET /api/contacts`) che verifica:
+    - Esistenza del numero su WhatsApp.
+    - Presenza del numero nella rubrica della sessione (Sposo/Sposa).
+4.  Lo stato `contact_verified` viene aggiornato con il risultato (`ok`, `not_exist`, `not_present`).
 
 ### Trigger Cambio Stato (`Invitation.status`)
 Quando lo stato di un invito cambia (es. da `sent` a `read` o da `read` a `confirmed`), il sistema:
@@ -110,6 +120,7 @@ classDiagram
         +Slug code
         +Enum origin
         +String phone_number
+        +Enum contact_verified
         +Enum status
         +Boolean accommodation_offered
         +generate_token()
