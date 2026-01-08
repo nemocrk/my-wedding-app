@@ -167,6 +167,7 @@ class AccommodationSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
     accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
+    contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
     
     class Meta:
         model = Invitation
@@ -174,9 +175,9 @@ class InvitationSerializer(serializers.ModelSerializer):
             'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
             'accommodation_requested', 'transfer_requested', 'accommodation',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status',
-            'origin', 'phone_number'
+            'origin', 'phone_number', 'contact_verified', 'contact_verified_display'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'contact_verified_display']
 
     def create(self, validated_data):
         guests_data = validated_data.pop('guests')
@@ -197,7 +198,13 @@ class InvitationSerializer(serializers.ModelSerializer):
         guests_data = validated_data.pop('guests', None)
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
-
+        
+        # Check if phone number is changing
+        new_phone = validated_data.get('phone_number')
+        if new_phone is not None and new_phone != instance.phone_number:
+            # Reset verification status if phone changes
+            instance.contact_verified = Invitation.ContactVerified.NOT_VALID
+            
         # 1. Update Invitation Fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -250,6 +257,7 @@ class InvitationListSerializer(serializers.ModelSerializer):
     guests_count = serializers.IntegerField(source='guests.count', read_only=True)
     guests = PersonSerializer(many=True, read_only=True)
     accommodation_name = serializers.CharField(source='accommodation.name', read_only=True)
+    contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
 
     class Meta:
         model = Invitation
@@ -257,7 +265,8 @@ class InvitationListSerializer(serializers.ModelSerializer):
             'id', 'name', 'code', 'guests_count', 'guests', 
             'accommodation_offered', 'transfer_offered', 
             'accommodation_requested', 'transfer_requested',
-            'status', 'accommodation_name', 'origin', 'phone_number'
+            'status', 'accommodation_name', 'origin', 'phone_number',
+            'contact_verified', 'contact_verified_display'
         ]
 
 # --- NEW SERIALIZERS ---
