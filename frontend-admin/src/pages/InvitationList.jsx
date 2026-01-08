@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
@@ -22,6 +22,9 @@ const InvitationList = () => {
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
   const [openingPreviewFor, setOpeningPreviewFor] = useState(null);
   const [generatedLink, setGeneratedLink] = useState(null);
+  
+  // Mark as sent state
+  const [markingSentFor, setMarkingSentFor] = useState(null);
 
   const fetchInvitations = async () => {
     setLoading(true);
@@ -69,6 +72,21 @@ const InvitationList = () => {
     } catch (error) {
       setIsDeleteModalOpen(false);
       console.error("Impossibile eliminare l'invito", error);
+    }
+  };
+  
+  const handleMarkAsSent = async (id) => {
+    if (markingSentFor === id) return;
+    
+    setMarkingSentFor(id);
+    
+    try {
+      await api.updateInvitation(id, { status: 'sent' });
+      fetchInvitations(); // Refresh list
+    } catch (error) {
+      console.error("Error marking as sent", error);
+    } finally {
+      setMarkingSentFor(null);
     }
   };
 
@@ -129,12 +147,18 @@ const InvitationList = () => {
 
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'created':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><FileText size={12} className="mr-1"/> Creato</span>;
+      case 'sent':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700"><Send size={12} className="mr-1"/> Inviato</span>;
+      case 'read':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700"><Eye size={12} className="mr-1"/> Letto</span>;
       case 'confirmed':
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle size={12} className="mr-1"/> Confermato</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><CheckCircle size={12} className="mr-1"/> Accettato</span>;
       case 'declined':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800"><XCircle size={12} className="mr-1"/> Declinato</span>;
       default:
-        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><HelpCircle size={12} className="mr-1"/> In attesa</span>;
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><HelpCircle size={12} className="mr-1"/> Sconosciuto</span>;
     }
   };
 
@@ -169,7 +193,7 @@ const InvitationList = () => {
                   Ospiti
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                  Stato RSVP
+                  Stato
                 </th>
                 <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
                   Azioni
@@ -277,6 +301,26 @@ const InvitationList = () => {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                       <div className="flex justify-end space-x-2">
+                        {/* MARK AS SENT (only if created) */}
+                        {invitation.status === 'created' && (
+                          <button 
+                            onClick={() => handleMarkAsSent(invitation.id)}
+                            disabled={markingSentFor === invitation.id}
+                            className={`p-1.5 rounded-md transition-colors ${
+                              markingSentFor === invitation.id
+                                ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                                : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
+                            }`}
+                            title="Segna come Inviato"
+                          >
+                            {markingSentFor === invitation.id ? (
+                              <Loader size={18} className="animate-spin" />
+                            ) : (
+                              <Send size={18} />
+                            )}
+                          </button>
+                        )}
+                        
                         {/* INTERACTIONS BUTTON */}
                         <button 
                           onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
