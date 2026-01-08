@@ -1,5 +1,6 @@
 import logging
 import os
+import requests
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
@@ -8,27 +9,64 @@ from .models import Invitation, WhatsAppTemplate, WhatsAppMessageQueue, GlobalCo
 logger = logging.getLogger(__name__)
 
 @receiver(pre_save, sender=Invitation)
-def track_invitation_status_change(sender, instance, **kwargs):
+def track_invitation_changes(sender, instance, **kwargs):
     """
     Traccia lo stato precedente dell'invito prima del salvataggio
-    per rilevare i cambiamenti in post_save.
+    per rilevare cambiamenti di status o numero di telefono.
     """
     if instance.pk:
         try:
             original = Invitation.objects.get(pk=instance.pk)
             instance._previous_status = original.status
+            instance._previous_phone = original.phone_number
         except Invitation.DoesNotExist:
             instance._previous_status = None
+            instance._previous_phone = None
     else:
         instance._previous_status = None
+        instance._previous_phone = None
 
 @receiver(post_save, sender=Invitation)
 def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
     """
-    Crea automaticamente messaggi WhatsApp in coda quando cambia lo stato
-    dell'invito, basandosi sui Template attivi.
+    Gestisce due tipi di automazione:
+    1. Invio messaggi automatici su cambio stato
+    2. Verifica contatto WhatsApp su cambio numero o creazione
     """
-    # Se è appena creato o lo stato non è cambiato, esci
+    
+    # --- 1. VERIFICA CONTATTO WHATSAPP ---
+    # Trigger se:
+    # - Creato nuovo invito con telefono
+    # - Numero di telefono modificato
+    # - Stato verification è 'not_valid' (forzato manualmente o da reset)
+    
+    should_verify = False
+    
+    # Caso 1: Creazione con telefono
+    if created and instance.phone_number:
+        should_verify = True
+        
+    # Caso 2: Modifica telefono
+    elif not created and hasattr(instance, '_previous_phone'):
+        if instance.phone_number != instance._previous_phone and instance.phone_number:
+            should_verify = True
+            
+    # Caso 3: Stato esplicitamente non valido (es. reset da UI)
+    if instance.contact_verified == Invitation.ContactVerified.NOT_VALID and instance.phone_number:
+        should_verify = True
+
+    if should_verify:
+        logger.info(f"🔍 Triggering contact verification for {instance.name} ({instance.phone_number})")
+        # Chiamata asincrona al microservizio di verifica (via Celery o chiamata diretta non bloccante)
+        # Per ora simuliamo/implementiamo la chiamata diretta ma idealmente andrebbe in background task
+        try:
+            from .utils import verify_whatsapp_contact_task
+            verify_whatsapp_contact_task(instance.id)
+        except ImportError:
+            logger.warning("Verification task not implemented yet")
+
+    # --- 2. INVIO MESSAGGI AUTOMATICI (Status Change) ---
+    
     if created or not hasattr(instance, '_previous_status'):
         return
 
