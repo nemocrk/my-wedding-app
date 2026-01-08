@@ -22,12 +22,18 @@ Le variabili d'ambiente critiche sono definite in `.env`.
 2.  **No-Rewrite**: Non riscrivere file da zero se non strettamente necessario. Applicare patch/diff.
 3.  **Testing**: Ogni feature deve essere verificata (es. `curl`, unit test, smoke test).
 4.  **Sicurezza**: Mai esporre il DB su Internet. Validare sempre gli input API.
+5.  **Aggiornamento**: Prima di aggiungere nuove dipendenze, assicurati sui vari package manager (es. NPMjs, ...) che stai utilizzando l'ultima versione stabile del componente. Assicurati inoltre che questa versione sia compatibile con quanto già presente.
 
-## 4. Struttura URL & Routing (Vedi `docs/03-BACKEND.md`)
+## 4. Regole di Gestione delle Pull Request
+1.  **Docs Update**: Prima di proporre o mergiare una pull request aggiorna tutta la documentazione impattata.
+2.  **Merge Description**: Crea un messaggio chiaro di tutte le modifiche sia in fase di creazione della pull request che in fase di Merge.
+
+## 5. Struttura URL & Routing (Vedi `docs/03-BACKEND.md`)
 - `/api/public/`: API pubbliche (User).
 - `/api/admin/`: API protette (Admin).
 - `/dashboard`: Frontend Admin.
 
-## 5. Log delle Modifiche Recenti
+## 6. Log delle Modifiche Recenti
 - Documentazione completa del repository in `/docs`.
 - Aggiornamento regole AI per enforcing documentation update.
+- Aggiunta regole per gestione dipendenze e Pull Request.
