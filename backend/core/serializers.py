@@ -100,34 +100,8 @@ class InvitationAssignmentSerializer(serializers.ModelSerializer):
         return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    # READ ONLY: Per la visualizzazione, usiamo i dettagli completi
     rooms = RoomDetailSerializer(many=True, read_only=True)
-    
-    # WRITE ONLY: Per input JSON, accettiamo direttamente 'rooms'
-    # source='rooms' non serve qui perché gestiamo tutto nel create/update manualmente
-    # ma serve al framework per capire che è collegato. 
-    # Tuttavia, la discrepanza tra 'rooms' (read) e 'rooms' (write) crea problemi se usiamo nomi diversi.
-    # FIX: Usiamo lo stesso nome 'rooms' sia per input che per output, ma con serializer diversi
-    # Questo è complesso in DRF semplice.
-    
-    # APPROCCIO MIGLIORE: Accettiamo 'rooms' in input (JSON) che viene mappato su 'rooms_config'
-    # Ma il tuo JSON di input usa 'rooms'.
-    
-    # ridefiniamo 'rooms' per essere WRITABLE ma usando il serializer semplice in input
-    # e quello complesso in output? No, DRF non lo supporta bene.
-    
-    # SOLUZIONE FUNZIONANTE:
-    # rooms = RoomDetailSerializer(many=True, read_only=True)
-    # rooms_input = RoomSerializer(many=True, write_only=True, source='rooms') <-- Questo aspetta "rooms_input" nel JSON
-    
-    # Il tuo JSON ha "rooms".
-    # Quindi dobbiamo dire: "il campo 'rooms' è writable e usa RoomSerializer".
-    # Ma in lettura vogliamo RoomDetailSerializer.
-    
-    # OVERRIDE per gestire il polimorfismo Read/Write
-    rooms = RoomSerializer(many=True, write_only=True)  # Input JSON "rooms" usa RoomSerializer
-    rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Output JSON "rooms_details" usa RoomDetailSerializer
-
+    rooms_config = RoomSerializer(many=True, write_only=True, source='rooms')
     assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
     total_capacity = serializers.IntegerField(read_only=True)
     available_capacity = serializers.IntegerField(read_only=True)
@@ -135,28 +109,21 @@ class AccommodationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Accommodation
         fields = [
-            'id', 'name', 'address', 
-            'rooms',           # Writable (input)
-            'rooms_details',   # Readable (output)
-            'assigned_invitations',
+            'id', 'name', 'address', 'rooms', 'rooms_config', 'assigned_invitations',
             'total_capacity', 'available_capacity',
             'created_at', 'updated_at'
         ]
 
-    def to_representation(self, instance):
-        """Override per restituire 'rooms' con i dettagli in lettura, nascondendo 'rooms_details'"""
-        representation = super().to_representation(instance)
-        # Sostituiamo 'rooms' (che sarebbe vuoto o base) con i dettagli
-        representation['rooms'] = RoomDetailSerializer(instance.rooms.all(), many=True).data
-        # Rimuoviamo il campo duplicato se presente
-        representation.pop('rooms_details', None)
-        return representation
-
     def create(self, validated_data):
         rooms_data = validated_data.pop('rooms', [])
         accommodation = Accommodation.objects.create(**validated_data)
+        
         for room_data in rooms_data:
+            # Assicura che room_number sia presente
+            if 'room_number' not in room_data:
+                raise serializers.ValidationError({"rooms_config": "room_number è obbligatorio"})
             Room.objects.create(accommodation=accommodation, **room_data)
+        
         return accommodation
 
     def update(self, instance, validated_data):
