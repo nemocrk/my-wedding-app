@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Invitation, Person, GlobalConfig, Accommodation, Room
+from .models import Invitation, Person, GlobalConfig, Accommodation, Room, GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, WhatsAppMessageQueue, WhatsAppMessageEvent
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -103,27 +103,6 @@ class AccommodationSerializer(serializers.ModelSerializer):
     # READ ONLY: Per la visualizzazione, usiamo i dettagli completi
     rooms = RoomDetailSerializer(many=True, read_only=True)
     
-    # WRITE ONLY: Per input JSON, accettiamo direttamente 'rooms'
-    # source='rooms' non serve qui perché gestiamo tutto nel create/update manualmente
-    # ma serve al framework per capire che è collegato. 
-    # Tuttavia, la discrepanza tra 'rooms' (read) e 'rooms' (write) crea problemi se usiamo nomi diversi.
-    # FIX: Usiamo lo stesso nome 'rooms' sia per input che per output, ma con serializer diversi
-    # Questo è complesso in DRF semplice.
-    
-    # APPROCCIO MIGLIORE: Accettiamo 'rooms' in input (JSON) che viene mappato su 'rooms_config'
-    # Ma il tuo JSON di input usa 'rooms'.
-    
-    # ridefiniamo 'rooms' per essere WRITABLE ma usando il serializer semplice in input
-    # e quello complesso in output? No, DRF non lo supporta bene.
-    
-    # SOLUZIONE FUNZIONANTE:
-    # rooms = RoomDetailSerializer(many=True, read_only=True)
-    # rooms_input = RoomSerializer(many=True, write_only=True, source='rooms') <-- Questo aspetta "rooms_input" nel JSON
-    
-    # Il tuo JSON ha "rooms".
-    # Quindi dobbiamo dire: "il campo 'rooms' è writable e usa RoomSerializer".
-    # Ma in lettura vogliamo RoomDetailSerializer.
-    
     # OVERRIDE per gestire il polimorfismo Read/Write
     rooms = RoomSerializer(many=True, write_only=True)  # Input JSON "rooms" usa RoomSerializer
     rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Output JSON "rooms_details" usa RoomDetailSerializer
@@ -181,7 +160,8 @@ class InvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         fields = [
-            'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
+            'id', 'code', 'name', 'origin', 'phone_number', # Added new fields
+            'accommodation_offered', 'transfer_offered',
             'accommodation_requested', 'transfer_requested', 'accommodation',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status'
         ]
@@ -263,8 +243,40 @@ class InvitationListSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         fields = [
-            'id', 'name', 'code', 'guests_count', 'guests', 
+            'id', 'name', 'code', 'origin', 'phone_number', # Added new fields
+            'guests_count', 'guests', 
             'accommodation_offered', 'transfer_offered', 
             'accommodation_requested', 'transfer_requested',
             'status', 'accommodation_name'
         ]
+
+# Analytics Serializers
+class GuestInteractionSerializer(serializers.ModelSerializer):
+    invitation_name = serializers.CharField(source='invitation.name', read_only=True)
+    
+    class Meta:
+        model = GuestInteraction
+        fields = '__all__'
+
+class GuestHeatmapSerializer(serializers.ModelSerializer):
+    invitation_name = serializers.CharField(source='invitation.name', read_only=True)
+    
+    class Meta:
+        model = GuestHeatmap
+        fields = '__all__'
+
+# WhatsApp Serializers
+class WhatsAppSessionStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppSessionStatus
+        fields = ['session_type', 'state', 'last_check', 'error_message'] # QR Code gestito a parte per sicurezza/size
+
+class WhatsAppMessageQueueSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppMessageQueue
+        fields = '__all__'
+
+class WhatsAppMessageEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppMessageEvent
+        fields = '__all__'
