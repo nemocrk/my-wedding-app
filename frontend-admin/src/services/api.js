@@ -76,6 +76,16 @@ export const api = {
     return handleResponse(response);
   },
 
+  verifyContact: async (id) => {
+    // Uses fallback option (PATCH to set state to not_valid which triggers backend task)
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_verified: 'not_valid' }),
+    });
+    return handleResponse(response);
+  },
+
   deleteInvitation: async (id) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'DELETE',
