@@ -67,6 +67,15 @@ export const api = {
     return handleResponse(response);
   },
 
+  markInvitationAsSent: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/mark-as-sent/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}) // Empty body for action
+    });
+    return handleResponse(response);
+  },
+
   deleteInvitation: async (id) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'DELETE',
