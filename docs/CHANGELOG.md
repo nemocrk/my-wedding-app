@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - **Frontend-Admin**: Converted WhatsApp tests from Jest to Vitest syntax to resolve CI failures.
 - **Frontend-User**: Fixed JSON syntax error in `package.json` (missing comma).
-- **Backend**: Fixed `AccommodationSerializer` to correctly handle `rooms_config` during creation, resolving `test_create_accommodation_with_rooms` failure (400 vs 201).
+- **Backend**: Updated `AccommodationSerializer` to correctly handle `rooms` creation using write-only field, ensuring 201 Created on valid input.
 
 ### Added
 - **CI/CD**: Improved test reliability for frontend and backend pipelines.
