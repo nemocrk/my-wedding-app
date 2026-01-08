@@ -2,10 +2,18 @@ import pytest
 from rest_framework.test import APIClient
 from django.contrib.sessions.middleware import SessionMiddleware
 from core.models import GlobalConfig, Accommodation, Room, Invitation, Person
+from django.contrib.auth.models import User
 
 @pytest.fixture
 def api_client():
     return APIClient()
+
+@pytest.fixture
+def admin_api_client(db):
+    client = APIClient()
+    user = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+    client.force_authenticate(user=user)
+    return client
 
 @pytest.fixture
 def global_config(db):
