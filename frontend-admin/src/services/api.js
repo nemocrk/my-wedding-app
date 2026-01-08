@@ -196,5 +196,37 @@ export const api = {
         headers: { 'Content-Type': 'application/json' }
     });
     return handleResponse(response);
+  },
+
+  // --- WHATSAPP TEMPLATES ---
+  fetchWhatsAppTemplates: async () => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`);
+      return handleResponse(response);
+  },
+
+  createWhatsAppTemplate: async (data) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+      });
+      return handleResponse(response);
+  },
+
+  updateWhatsAppTemplate: async (id, data) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+      });
+      return handleResponse(response);
+  },
+
+  deleteWhatsAppTemplate: async (id) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+          method: 'DELETE'
+      });
+      if (response.status === 204) return true;
+      return handleResponse(response);
   }
 };
