@@ -16,7 +16,7 @@
     "lucide-react": "^0.562.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "motion": "^12.24.10"
+    "motion": "^12.24.10",
     "react-icons": "^5.0.0"
   },
   "devDependencies": {
