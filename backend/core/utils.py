@@ -1,6 +1,7 @@
 import logging
 import time
 import requests
+import os
 from django.conf import settings
 from .models import Invitation, GlobalConfig
 
@@ -26,38 +27,43 @@ def verify_whatsapp_contact_task(invitation_id):
     # Determina sessione (groom/bride)
     session = 'groom' if invitation.origin == Invitation.Origin.GROOM else 'bride'
     
-    # URL del servizio di integrazione (assumiamo sia un endpoint interno o proxato)
-    # TODO: Spostare URL in settings
-    # integration_url = f"http://whatsapp-service:3000/api/contacts?contactId={phone_number}&session={session}"
+    # URL del servizio di integrazione (Internal Docker Network)
+    # Default to http://whatsapp-integration:3000 if not set
+    integration_base_url = os.environ.get('WHATSAPP_INTEGRATION_URL', 'http://whatsapp-integration:3000')
+    integration_url = f"{integration_base_url}/api/contacts"
     
-    # MOCK TEMPORANEO PER PROTOTIPO (Sostituire con chiamata reale)
-    # Simula logica di verifica
-    logger.info(f"VERIFYING CONTACT {phone_number} on session {session}...")
+    logger.info(f"🔍 VERIFYING CONTACT {phone_number} on session {session} via {integration_url}...")
     
     try:
-        # Esempio chiamata reale (commentata fino a disponibilità servizio)
-        # response = requests.get(integration_url, timeout=5)
-        # data = response.json()
-        # if response.status_code == 200 and data.get('exists'):
-        #    status = Invitation.ContactVerified.OK
-        # else:
-        #    status = Invitation.ContactVerified.NOT_EXIST
+        response = requests.get(integration_url, params={
+            'contactId': phone_number,
+            'session': session
+        }, timeout=10)
         
-        # Logica Mock (per testare UI)
-        if "00000" in phone_number:
-             status = Invitation.ContactVerified.NOT_EXIST
-        elif "12345" in phone_number:
-             status = Invitation.ContactVerified.NOT_PRESENT
+        if response.status_code == 200:
+            data = response.json()
+            status_str = data.get('status')
+            
+            # Map response status to Enum
+            if status_str == 'ok':
+                status = Invitation.ContactVerified.OK
+            elif status_str == 'not_present':
+                status = Invitation.ContactVerified.NOT_PRESENT
+            elif status_str == 'not_exist':
+                status = Invitation.ContactVerified.NOT_EXIST
+            else:
+                status = Invitation.ContactVerified.NOT_VALID
+                logger.warning(f"Unknown verification status received: {status_str}")
+                
         else:
-             status = Invitation.ContactVerified.OK
+            logger.error(f"Integration service error: {response.status_code} - {response.text}")
+            status = Invitation.ContactVerified.NOT_VALID
              
     except Exception as e:
-        logger.error(f"Error verifying contact: {e}")
+        logger.error(f"Error calling verification service: {e}")
         status = Invitation.ContactVerified.NOT_VALID
 
     # Aggiorna stato (senza triggerare nuovi segnali ricorsivi se possibile)
-    # Usiamo update() per evitare post_save signal loop, ma update non aggiorna l'istanza in memoria
-    # Quindi usiamo save() ma il signal deve essere smart (fatto nel passo precedente)
     invitation.contact_verified = status
     invitation.save()
-    logger.info(f"Contact verification result for {invitation.code}: {status}")
+    logger.info(f"✅ Contact verification result for {invitation.code}: {status}")
