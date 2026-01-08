@@ -7,6 +7,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2026-01-08] - WhatsApp integration  message queue management
+
+### Added
+- Admin WhatsApp message queue CRUD support (ModelViewSet).
+- SSE-based real-time status updates for message sending.
+- Frontend Admin queue dashboard with edit/delete actions for queued messages.
+
+### Fixed
+- WAHA integration URL handling and QR-code fetch flow.
+- Improved error logging chain for WAHA interactions.
+
+### Changed
+- Updated AI workflow/rules configuration files.
+- Dependency bumps for `vite` and `motion`.
+
 ## [2026-01-06] - Upgrade Django 6.0
 
 ### Security

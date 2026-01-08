@@ -17,7 +17,6 @@ const handleResponse = async (response) => {
   if (!response.ok) {
     const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
     const error = new Error(errorMessage);
-    // Add additional info for debugging if needed
     error.status = response.status;
     triggerGlobalError(error);
     throw error;
@@ -26,13 +25,12 @@ const handleResponse = async (response) => {
   return data;
 };
 
-// Wrapper per fetch per catturare errori di rete (es. 502 dal proxy quando il backend è giù)
+// Wrapper per fetch
 const safeFetch = async (url, options) => {
   try {
     const response = await fetch(url, options);
     return response;
   } catch (err) {
-    // Network error (es. server irraggiungibile)
     const error = new Error("Impossibile contattare il server. Controlla la tua connessione.");
     triggerGlobalError(error);
     throw error;
@@ -40,7 +38,7 @@ const safeFetch = async (url, options) => {
 };
 
 export const api = {
-  // Invitations
+  // --- INVITATIONS ---
   fetchInvitations: async () => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/`);
     return handleResponse(response);
@@ -54,9 +52,7 @@ export const api = {
   createInvitation: async (data) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -65,9 +61,7 @@ export const api = {
   updateInvitation: async (id, data) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
     return handleResponse(response);
@@ -77,9 +71,7 @@ export const api = {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'DELETE',
     });
-    if (response.status === 204) {
-      return true;
-    }
+    if (response.status === 204) return true;
     return handleResponse(response);
   },
   
@@ -88,7 +80,7 @@ export const api = {
     return handleResponse(response);
   },
 
-  // Analytics
+  // --- ANALYTICS ---
   getInvitationHeatmaps: async (id) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/heatmaps/`);
     return handleResponse(response);
@@ -99,13 +91,13 @@ export const api = {
     return handleResponse(response);
   },
 
-  // Dashboard Stats
+  // --- DASHBOARD ---
   getDashboardStats: async () => {
     const response = await safeFetch(`${API_BASE_URL}/dashboard/stats/`);
     return handleResponse(response);
   },
 
-  // Configuration
+  // --- CONFIG ---
   getConfig: async () => {
     const response = await safeFetch(`${API_BASE_URL}/config/`);
     return handleResponse(response);
@@ -120,7 +112,7 @@ export const api = {
     return handleResponse(response);
   },
 
-  // Accommodations
+  // --- ACCOMMODATIONS ---
   fetchAccommodations: async () => {
     const response = await safeFetch(`${API_BASE_URL}/accommodations/`);
     return handleResponse(response);
@@ -165,5 +157,35 @@ export const api = {
   fetchUnassignedInvitations: async () => {
       const response = await safeFetch(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
       return handleResponse(response);
+  },
+
+  // --- WHATSAPP INTEGRATION ---
+  getWhatsAppStatus: async (type) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/status/`);
+    return handleResponse(response);
+  },
+
+  refreshWhatsAppSession: async (type) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/refresh/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  logoutWhatsAppSession: async (type) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/logout/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return handleResponse(response);
+  },
+
+  sendWhatsAppTest: async (type) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/test/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+    });
+    return handleResponse(response);
   }
 };

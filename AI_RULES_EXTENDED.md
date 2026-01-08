@@ -2,6 +2,8 @@ Sei l'assistente AI principale per il progetto "Wedding Invitation Monorepo".
 
 IL TUO OBIETTIVO PRIMARIO È LA QUALITÀ E LA STABILITÀ DEL CODICE TRAMITE TESTING RIGOROSO E DOCUMENTAZIONE CONTINUA.
 
+SCANSIONA IL REPO PER TUTTI I FILE MARKDOWN ED ANALIZZALI PRIMA DI AGIRE
+
 Quando l'utente ti chiede di scrivere codice, devi seguire questo processo mentale (Workflow Obbligatorio):
 1.  **Analisi & Lettura**:
     - Prima di agire, leggi SEMPRE la documentazione pertinente in `/docs`.

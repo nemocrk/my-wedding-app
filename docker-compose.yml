@@ -121,6 +121,33 @@ services:
       start_period: 40s
     expose:
       - "8000"
+      
+  # ---------------------------------------------
+  # 2b. BACKEND WORKER - Gestore Coda Messaggi
+  # ---------------------------------------------
+  backend-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+    command: python manage.py run_whatsapp_worker
+    restart: always
+    volumes:
+      - ./backend:/app
+      - static_volume_worker:/app/staticfiles
+      - media_volume_worker:/app/media
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
+      DJANGO_SETTINGS_MODULE: wedding.settings
+      SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
+      WAHA_WORKER_INTERVAL: ${WAHA_WORKER_INTERVAL:-60}
+      WA_INTEGRATION_URL: http://whatsapp-integration:3000
+    networks:
+      - db_network
+      - whatsapp_intranet_network
 
   # ---------------------------------------------
   # 3. FRONTEND USER - Internet pubblico via Nginx
@@ -191,7 +218,7 @@ services:
       - backend_network
     restart: always
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -210,15 +237,108 @@ services:
         condition: service_healthy
       backend:
         condition: service_healthy
+      whatsapp-integration:
+         condition: service_healthy
     networks:
       - frontend_intranet_network
       - backend_network
+      - whatsapp_intranet_network
     restart: always
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
       timeout: 10s
       retries: 3
+      
+  # ---------------------------------------------
+  # 7. WHATSAPP SERVICES (Isolated)
+  # ---------------------------------------------
+  
+  # WAHA Core - Sposo
+  waha-groom:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      # Free Tier config (no swagger, no dashboard in prod)
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
+      WAHA_API_KEY: ${WAHA_API_KEY_GROOM:-secret}
+      # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
+      WAHA_PRINT_QR: 'false'
+    networks:
+      - whatsapp_intranet_network
+      - whatsapp_public_network # Uscita Internet dedicata
+    volumes:
+      # Store sessions in the .sessions folder (WAHA default path)
+      - waha_groom_sessions:/app/.sessions
+      # Save media files (WAHA default path)
+      - waha_groom_media:/app/.media
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_GROOM:-secret}' http://localhost:3000/api/server/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # WAHA Core - Sposa
+  waha-bride:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
+      WAHA_API_KEY: ${WAHA_API_KEY_BRIDE:-secret}
+      # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
+      WAHA_PRINT_QR: 'false'
+    networks:
+      - whatsapp_intranet_network
+      - whatsapp_public_network # Uscita Internet dedicata
+    volumes:
+      # Store sessions in the .sessions folder (WAHA default path)
+      - waha_bride_sessions:/app/.sessions
+      # Save media files (WAHA default path)
+      - waha_bride_media:/app/.media
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_BRIDE:-secret}' http://localhost:3000/api/server/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # Integration Layer (Proxy & Logic)
+  whatsapp-integration:
+    build:
+      context: ./whatsapp-integration
+      dockerfile: Dockerfile
+      target: ${BUILD_TARGET:-production}
+    restart: always
+    depends_on:
+      waha-groom:
+        condition: service_healthy
+      waha-bride:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      WAHA_GROOM_URL: 'http://waha-groom:3000'
+      WAHA_BRIDE_URL: 'http://waha-bride:3000'
+      WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM:-secret}
+      WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE:-secret}
+      DJANGO_API_URL: 'http://backend:8000/api/admin'
+    networks:
+      - backend_network          # Per comunicare con Django
+      - whatsapp_intranet_network # Per parlare con container WAHA
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
 
 # ---------------------------------------------
 # RETI - Isolamento completo tra componenti
@@ -241,6 +361,16 @@ networks:
   # Rete frontend intranet - accessibile solo via localhost
   frontend_intranet_network:
     driver: bridge
+    
+  # Rete whatsapp - isolata per container waha
+  whatsapp_intranet_network:
+    internal: true
+    driver: bridge
+  
+  # Rete dedicata per accesso internet WhatsApp
+  whatsapp_public_network:
+    driver: bridge
+    # NON internal: true, altrimenti non esce su internet
 
 # ---------------------------------------------
 # VOLUMI PERSISTENTI
@@ -251,4 +381,18 @@ volumes:
   static_volume:
     driver: local
   media_volume:
+    driver: local
+  static_volume_worker:
+    driver: local
+  media_volume_worker:
+    driver: local
+  # WAHA Groom volumes (separati per sessions e media)
+  waha_groom_sessions:
+    driver: local
+  waha_groom_media:
+    driver: local
+  # WAHA Bride volumes (separati per sessions e media)
+  waha_bride_sessions:
+    driver: local
+  waha_bride_media:
     driver: local
