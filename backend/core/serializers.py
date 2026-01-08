@@ -100,8 +100,9 @@ class InvitationAssignmentSerializer(serializers.ModelSerializer):
         return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    rooms = RoomDetailSerializer(many=True, read_only=True)
-    rooms_config = RoomSerializer(many=True, write_only=True, source='rooms')
+    rooms = RoomSerializer(many=True, write_only=True)  # Writable
+    rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Readable
+
     assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
     total_capacity = serializers.IntegerField(read_only=True)
     available_capacity = serializers.IntegerField(read_only=True)
@@ -109,19 +110,28 @@ class AccommodationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Accommodation
         fields = [
-            'id', 'name', 'address', 'rooms', 'rooms_config', 'assigned_invitations',
+            'id', 'name', 'address', 
+            'rooms',           
+            'rooms_details',   
+            'assigned_invitations',
             'total_capacity', 'available_capacity',
             'created_at', 'updated_at'
         ]
+
+    def to_representation(self, instance):
+        """Override per restituire 'rooms' con i dettagli in lettura"""
+        representation = super().to_representation(instance)
+        representation['rooms'] = RoomDetailSerializer(instance.rooms.all(), many=True).data
+        representation.pop('rooms_details', None)
+        return representation
 
     def create(self, validated_data):
         rooms_data = validated_data.pop('rooms', [])
         accommodation = Accommodation.objects.create(**validated_data)
         
         for room_data in rooms_data:
-            # Assicura che room_number sia presente
             if 'room_number' not in room_data:
-                raise serializers.ValidationError({"rooms_config": "room_number è obbligatorio"})
+                raise serializers.ValidationError({"rooms": "room_number è obbligatorio"})
             Room.objects.create(accommodation=accommodation, **room_data)
         
         return accommodation
@@ -133,7 +143,6 @@ class AccommodationSerializer(serializers.ModelSerializer):
         instance.save()
 
         if rooms_data is not None:
-            # Strategia: cancella e ricrea (safe per Admin UI)
             instance.rooms.all().delete()
             for room_data in rooms_data:
                 Room.objects.create(accommodation=instance, **room_data)
