@@ -9,7 +9,6 @@ from core.views import (
     PublicInvitationAuthView,
     PublicInvitationView,
     PublicRSVPView,
-    PublicStatusUpdateView, # NEW
     PublicLogInteractionView,
     PublicLogHeatmapView
 )
@@ -28,7 +27,6 @@ urlpatterns = [
     path('api/public/auth/', PublicInvitationAuthView.as_view(), name='public-auth'),
     path('api/public/invitation/', PublicInvitationView.as_view(), name='public-invitation'),
     path('api/public/rsvp/', PublicRSVPView.as_view(), name='public-rsvp'),
-    path('api/public/status/', PublicStatusUpdateView.as_view(), name='public-status'), # NEW
     path('api/public/log/interaction/', PublicLogInteractionView.as_view(), name='public-log-interaction'),
     path('api/public/log/heatmap/', PublicLogHeatmapView.as_view(), name='public-log-heatmap'),
 ]
