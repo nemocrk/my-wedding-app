@@ -178,6 +178,14 @@ class InvitationViewSet(viewsets.ModelViewSet):
         public_url = f"{frontend_url}?code={invitation.code}&token={token}"
         return Response({'code': invitation.code, 'token': token, 'url': public_url})
 
+    @action(detail=True, methods=['post'], url_path='mark-as-sent')
+    def mark_as_sent(self, request, pk=None):
+        """Mark invitation as manually sent"""
+        invitation = self.get_object()
+        invitation.status = Invitation.Status.SENT
+        invitation.save()
+        return Response({'status': 'sent', 'message': f'Invito {invitation.name} segnato come Inviato'})
+
     @action(detail=True, methods=['get'])
     def heatmaps(self, request, pk=None):
         invitation = self.get_object()
