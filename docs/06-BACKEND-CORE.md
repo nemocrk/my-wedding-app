@@ -16,6 +16,15 @@ Il cuore del sistema.
 ### Modello `Invitation`
 Raggruppa un nucleo familiare.
 - **Codice Univoco (`code`)**: Slug utilizzato nell'URL pubblico. È la chiave di accesso principale.
+- **Contatti & Origine**:
+  - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
+  - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
+- **Workflow Status**:
+  Gestisce il ciclo di vita dell'invito:
+  1. `created`: Inserito a sistema.
+  2. `sent`: Messaggio inviato agli ospiti.
+  3. `read`: Gli ospiti hanno visualizzato la pagina (pixel tracking).
+  4. `confirmed` / `declined`: Scelta finale.
 - **Flags Logistici**:
     - `accommodation_offered`: Se True, sblocca il form "Richiesta Alloggio" nel frontend.
     - `transfer_offered`: Se True, sblocca la selezione "Navetta".
@@ -79,6 +88,9 @@ classDiagram
 
     class Invitation {
         +Slug code
+        +Enum origin
+        +String phone_number
+        +Enum status
         +Boolean accommodation_offered
         +generate_token()
     }
