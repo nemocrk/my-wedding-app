@@ -1,251 +1,171 @@
 from rest_framework import serializers
-from .models import Invitation, Person, GlobalConfig, Accommodation, Room, GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, WhatsAppMessageQueue, WhatsAppMessageEvent
+from .models import (
+    Invitation, Person, GlobalConfig, Accommodation, Room, 
+    GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, 
+    WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate
+)
+
+class PersonSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'is_child', 'dietary_requirements']
+
+class PersonWithRoomSerializer(serializers.ModelSerializer):
+    assigned_room_number = serializers.CharField(source='assigned_room.room_number', read_only=True)
+    assigned_room_id = serializers.IntegerField(source='assigned_room.id', read_only=True)
+    accommodation_name = serializers.CharField(source='assigned_room.accommodation.name', read_only=True)
+    
+    class Meta:
+        model = Person
+        fields = ['id', 'first_name', 'last_name', 'is_child', 'dietary_requirements', 'assigned_room_id', 'assigned_room_number', 'accommodation_name']
+
+class InvitationSerializer(serializers.ModelSerializer):
+    guests = PersonSerializer(many=True, read_only=False)
+    
+    class Meta:
+        model = Invitation
+        fields = '__all__'
+
+    def create(self, validated_data):
+        guests_data = validated_data.pop('guests')
+        invitation = Invitation.objects.create(**validated_data)
+        for guest_data in guests_data:
+            Person.objects.create(invitation=invitation, **guest_data)
+        return invitation
+
+    def update(self, instance, validated_data):
+        guests_data = validated_data.pop('guests', [])
+        
+        # Update invitation fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        
+        # Gestione Guests:
+        # Strategia semplice: se guests_data è fornito, riconcilia
+        if guests_data:
+            # 1. Elimina guests non presenti (se hanno ID)
+            # Nota: Per semplicità in questo MVP, assumiamo che il frontend mandi tutto.
+            # Se ha ID -> Update, se no -> Create.
+            
+            # Map existing IDs
+            existing_ids = [g.id for g in instance.guests.all()]
+            incoming_ids = [g.get('id') for g in guests_data if g.get('id')]
+            
+            # Delete removed
+            for g_id in existing_ids:
+                if g_id not in incoming_ids:
+                    Person.objects.filter(id=g_id).delete()
+            
+            # Update or Create
+            for g_data in guests_data:
+                g_id = g_data.get('id')
+                if g_id:
+                    p = Person.objects.get(id=g_id, invitation=instance)
+                    p.first_name = g_data.get('first_name', p.first_name)
+                    p.last_name = g_data.get('last_name', p.last_name)
+                    p.is_child = g_data.get('is_child', p.is_child)
+                    p.dietary_requirements = g_data.get('dietary_requirements', p.dietary_requirements)
+                    p.save()
+                else:
+                    Person.objects.create(invitation=instance, **g_data)
+                    
+        return instance
+
+class InvitationListSerializer(serializers.ModelSerializer):
+    """Versione leggera per la lista"""
+    guests = PersonSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = Invitation
+        fields = ['id', 'code', 'name', 'status', 'origin', 'phone_number', 'guests', 'accommodation_offered', 'transfer_offered', 'accommodation_requested', 'transfer_requested']
+
+class PublicInvitationSerializer(serializers.ModelSerializer):
+    """Serializer per vista pubblica ospite (read-only)"""
+    guests = PersonSerializer(many=True, read_only=True)
+    config = serializers.SerializerMethodField()
+    assigned_accommodation = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Invitation
+        fields = ['id', 'name', 'code', 'guests', 'status', 'accommodation_offered', 'transfer_offered', 'accommodation_requested', 'transfer_requested', 'config', 'assigned_accommodation']
+
+    def get_config(self, obj):
+        # Passiamo alcuni testi dinamici dalla GlobalConfig
+        config = self.context.get('config')
+        if not config: return {}
+        # Sostituzione placeholder nel testo
+        guest_names = ", ".join([p.first_name for p in obj.guests.all()])
+        text = config.letter_text.replace('{guest_names}', guest_names).replace('{family_name}', obj.name).replace('{code}', obj.code)
+        
+        return {
+            'letter_text': text,
+            'whatsapp_number': config.whatsapp_groom_number if obj.origin == 'groom' else config.whatsapp_bride_number
+        }
+    
+    def get_assigned_accommodation(self, obj):
+        # Mostra dettagli alloggio SOLO se confermato
+        if obj.status == Invitation.Status.CONFIRMED and obj.accommodation:
+            return {
+                'name': obj.accommodation.name,
+                'address': obj.accommodation.address,
+                'map_url': f"https://www.google.com/maps/search/?api=1&query={obj.accommodation.address}"
+            }
+        return None
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlobalConfig
         fields = '__all__'
 
-class PersonSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(required=False)
-    assigned_room_number = serializers.SerializerMethodField(read_only=True)
-
-    class Meta:
-        model = Person
-        fields = [
-            'id', 'first_name', 'last_name', 'is_child', 
-            'dietary_requirements', 'assigned_room', 'assigned_room_number'
-        ]
-        extra_kwargs = {
-            'last_name': {'required': False, 'allow_blank': True, 'allow_null': True},
-            'assigned_room': {'required': False, 'allow_null': True}
-        }
-
-    def get_assigned_room_number(self, obj):
-        return obj.assigned_room.room_number if obj.assigned_room else None
-
-class PublicPersonSerializer(serializers.ModelSerializer):
-    """Serializer ridotto per visualizzazione pubblica (solo nome)"""
-    class Meta:
-        model = Person
-        fields = ['first_name', 'last_name', 'is_child']
-
-class PublicInvitationSerializer(serializers.ModelSerializer):
-    """Serializer per endpoint pubblico con lettera renderizzata"""
-    guests = PublicPersonSerializer(many=True, read_only=True)
-    letter_content = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Invitation
-        fields = [
-            'name', 'guests', 'letter_content',
-            'accommodation_offered', 'transfer_offered', 'status'
-        ]
-
-    def get_letter_content(self, obj):
-        """Renderizza il template della lettera con placeholder sostituiti"""
-        config = self.context.get('config')
-        if not config:
-            config, _ = GlobalConfig.objects.get_or_create(pk=1)
-        
-        template = config.letter_text
-        
-        # Genera lista nomi ospiti
-        guest_names = ', '.join([
-            f"{g.first_name} {g.last_name or ''}" for g in obj.guests.all()
-        ])
-        
-        # Sostituzioni placeholder
-        rendered = template.replace('{guest_names}', guest_names)
-        rendered = rendered.replace('{family_name}', obj.name)
-        rendered = rendered.replace('{code}', obj.code)
-        
-        return rendered
-
-class RoomDetailSerializer(serializers.ModelSerializer):
-    """Serializer completo per stanze con ospiti assegnati"""
-    assigned_guests = PersonSerializer(many=True, read_only=True)
-    occupied_count = serializers.IntegerField(read_only=True)
-    available_slots = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Room
-        fields = [
-            'id', 'room_number', 'capacity_adults', 'capacity_children',
-            'assigned_guests', 'occupied_count', 'available_slots'
-        ]
-
-    def get_available_slots(self, obj):
-        return obj.available_slots()
-
 class RoomSerializer(serializers.ModelSerializer):
-    """Serializer leggero per creazione/aggiornamento alloggi"""
+    assigned_guests_count = serializers.IntegerField(source='assigned_guests.count', read_only=True)
+    capacity_total = serializers.IntegerField(source='total_capacity', read_only=True)
+    
     class Meta:
         model = Room
-        fields = ['id', 'room_number', 'capacity_adults', 'capacity_children']
-
-class InvitationAssignmentSerializer(serializers.ModelSerializer):
-    """Serializer leggero per mostrare chi occupa l'alloggio"""
-    adults_count = serializers.SerializerMethodField()
-    children_count = serializers.SerializerMethodField()
-
-    class Meta:
-        model = Invitation
-        fields = ['id', 'name', 'code', 'adults_count', 'children_count']
-
-    def get_adults_count(self, obj):
-        return obj.guests.filter(is_child=False).count()
-
-    def get_children_count(self, obj):
-        return obj.guests.filter(is_child=True).count()
+        fields = ['id', 'room_number', 'capacity_adults', 'capacity_children', 'assigned_guests_count', 'capacity_total']
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    # READ ONLY: Per la visualizzazione, usiamo i dettagli completi
-    rooms = RoomDetailSerializer(many=True, read_only=True)
-    
-    # OVERRIDE per gestire il polimorfismo Read/Write
-    rooms = RoomSerializer(many=True, write_only=True)  # Input JSON "rooms" usa RoomSerializer
-    rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Output JSON "rooms_details" usa RoomDetailSerializer
-
-    assigned_invitations = InvitationAssignmentSerializer(many=True, read_only=True)
-    total_capacity = serializers.IntegerField(read_only=True)
-    available_capacity = serializers.IntegerField(read_only=True)
+    rooms = RoomSerializer(many=True, read_only=True)
+    total_capacity = serializers.IntegerField(source='total_capacity', read_only=True)
+    available_capacity = serializers.IntegerField(source='available_capacity', read_only=True)
 
     class Meta:
         model = Accommodation
-        fields = [
-            'id', 'name', 'address', 
-            'rooms',           # Writable (input)
-            'rooms_details',   # Readable (output)
-            'assigned_invitations',
-            'total_capacity', 'available_capacity',
-            'created_at', 'updated_at'
-        ]
+        fields = ['id', 'name', 'address', 'rooms', 'total_capacity', 'available_capacity']
 
-    def to_representation(self, instance):
-        """Override per restituire 'rooms' con i dettagli in lettura, nascondendo 'rooms_details'"""
-        representation = super().to_representation(instance)
-        # Sostituiamo 'rooms' (che sarebbe vuoto o base) con i dettagli
-        representation['rooms'] = RoomDetailSerializer(instance.rooms.all(), many=True).data
-        # Rimuoviamo il campo duplicato se presente
-        representation.pop('rooms_details', None)
-        return representation
+# --- ANALYTICS ---
 
-    def create(self, validated_data):
-        rooms_data = validated_data.pop('rooms', [])
-        accommodation = Accommodation.objects.create(**validated_data)
-        for room_data in rooms_data:
-            Room.objects.create(accommodation=accommodation, **room_data)
-        return accommodation
+class GuestInteractionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuestInteraction
+        fields = '__all__'
 
-    def update(self, instance, validated_data):
-        rooms_data = validated_data.pop('rooms', None)
-        instance.name = validated_data.get('name', instance.name)
-        instance.address = validated_data.get('address', instance.address)
-        instance.save()
+class GuestHeatmapSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuestHeatmap
+        fields = '__all__'
 
-        if rooms_data is not None:
-            # Strategia: cancella e ricrea (safe per Admin UI)
-            instance.rooms.all().delete()
-            for room_data in rooms_data:
-                Room.objects.create(accommodation=instance, **room_data)
+# --- WHATSAPP ---
+class WhatsAppSessionStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppSessionStatus
+        fields = '__all__'
 
-        return instance
+class WhatsAppMessageEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppMessageEvent
+        fields = ['phase', 'timestamp', 'duration_ms', 'metadata']
 
-
-class InvitationSerializer(serializers.ModelSerializer):
-    guests = PersonSerializer(many=True)
-    accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
+class WhatsAppMessageQueueSerializer(serializers.ModelSerializer):
+    events = WhatsAppMessageEventSerializer(many=True, read_only=True)
     
     class Meta:
-        model = Invitation
-        fields = [
-            'id', 'code', 'name', 'origin', 'phone_number', # Added new fields
-            'accommodation_offered', 'transfer_offered',
-            'accommodation_requested', 'transfer_requested', 'accommodation',
-            'affinities', 'non_affinities', 'guests', 'created_at', 'status'
-        ]
-        read_only_fields = ['id', 'created_at']
+        model = WhatsAppMessageQueue
+        fields = ['id', 'session_type', 'recipient_number', 'message_body', 'status', 'scheduled_for', 'sent_at', 'attempts', 'error_log', 'events']
 
-    def create(self, validated_data):
-        guests_data = validated_data.pop('guests')
-        affinities = validated_data.pop('affinities', [])
-        non_affinities = validated_data.pop('non_affinities', [])
-        
-        invitation = Invitation.objects.create(**validated_data)
-        
-        for guest_data in guests_data:
-            guest_data.pop('id', None)
-            Person.objects.create(invitation=invitation, **guest_data)
-            
-        self._handle_affinities(invitation, affinities, non_affinities)
-                
-        return invitation
-
-    def update(self, instance, validated_data):
-        guests_data = validated_data.pop('guests', None)
-        affinities = validated_data.pop('affinities', None)
-        non_affinities = validated_data.pop('non_affinities', None)
-
-        # 1. Update Invitation Fields
-        for attr, value in validated_data.items():
-            setattr(instance, attr, value)
-        instance.save()
-
-        # 2. Update Guests (preserva assigned_room se presente)
-        if guests_data is not None:
-            existing_guests = {g.id: g for g in instance.guests.all()}
-            incoming_guest_ids = []
-
-            for g_data in guests_data:
-                g_id = g_data.get('id')
-                if g_id and g_id in existing_guests:
-                    guest = existing_guests[g_id]
-                    guest.first_name = g_data.get('first_name', guest.first_name)
-                    
-                    if 'last_name' in g_data: guest.last_name = g_data['last_name']
-                    if 'is_child' in g_data: guest.is_child = g_data['is_child']
-                    if 'dietary_requirements' in g_data: guest.dietary_requirements = g_data['dietary_requirements']
-                    if 'assigned_room' in g_data: guest.assigned_room_id = g_data['assigned_room']
-                        
-                    guest.save()
-                    incoming_guest_ids.append(g_id)
-                else:
-                    g_data.pop('id', None)
-                    new_guest = Person.objects.create(invitation=instance, **g_data)
-                    incoming_guest_ids.append(new_guest.id)
-            
-            for g_id, guest in existing_guests.items():
-                if g_id not in incoming_guest_ids:
-                    guest.delete()
-
-        # 3. Update Affinities
-        self._handle_affinities(instance, affinities, non_affinities)
-
-        return instance
-
-    def _handle_affinities(self, invitation, affinities, non_affinities):
-        if affinities is not None:
-            invitation.affinities.set(affinities)
-            for related in affinities:
-                related.affinities.add(invitation)
-                
-        if non_affinities is not None:
-            invitation.non_affinities.set(non_affinities)
-            for related in non_affinities:
-                related.non_affinities.add(invitation)
-
-class InvitationListSerializer(serializers.ModelSerializer):
-    guests_count = serializers.IntegerField(source='guests.count', read_only=True)
-    guests = PersonSerializer(many=True, read_only=True)
-    accommodation_name = serializers.CharField(source='accommodation.name', read_only=True)
-
+class WhatsAppTemplateSerializer(serializers.ModelSerializer):
     class Meta:
-        model = Invitation
-        fields = [
-            'id', 'name', 'code', 'origin', 'phone_number', # Added new fields
-            'guests_count', 'guests', 
-            'accommodation_offered', 'transfer_offered', 
-            'accommodation_requested', 'transfer_requested',
-            'status', 'accommodation_name'
-        ]
+        model = WhatsAppTemplate
+        fields = '__all__'
