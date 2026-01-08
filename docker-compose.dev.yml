@@ -47,3 +47,44 @@ services:
       - /app/node_modules
     environment:
       - CHOKIDAR_USEPOLLING=true
+
+  # ---------------------------------------------
+  # WHATSAPP INTEGRATION (Dev Overrides)
+  # ---------------------------------------------
+  
+  # Sessione Sposo
+  waha-groom:
+    # In DEV potremmo volere la dashboard, ma per sicurezza rimuoviamo l'esposizione diretta
+    # Se necessario debuggare, meglio usare docker exec o network container
+    environment:
+      # Swagger comunque utile se raggiunto da dentro la rete
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
+
+  # Sessione Sposa
+  waha-bride:
+    environment:
+      WHATSAPP_SWAGGER_USERNAME: admin
+      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
+
+  # Integration Layer - Hot Reload Node.js
+  whatsapp-integration:
+    build:
+      context: ./whatsapp-integration
+      target: development
+    volumes:
+      - ./whatsapp-integration:/app
+      - /app/node_modules
+    # Esponiamo porta per debug diretto
+    ports:
+      - "4000:3000" 
+
+  # Worker Django (Esegue command custom in modalità dev con reload se supportato)
+  backend-worker:
+    build:
+      context: ./backend
+      target: development
+    volumes:
+      - ./backend:/app
+    environment:
+      DEBUG: "True"

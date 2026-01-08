@@ -7,63 +7,85 @@ Il progetto utilizza PostgreSQL come RDBMS principale. Lo schema è progettato p
 ```mermaid
 erDiagram
     INVITATION ||--|{ PERSON : "ha"
-    INVITATION ||--o{ ACCESS_LOG : "genera"
-    INVITATION ||--o{ INTERACTION_LOG : "genera"
-    PERSON ||--|| RSVP : "compila"
+    INVITATION ||--o{ GUEST_INTERACTION : "genera"
+    INVITATION ||--o{ GUEST_HEATMAP : "genera"
     INVITATION }|--|{ INVITATION : "affinities"
+    
+    ACCOMMODATION ||--|{ ROOM : "contiene"
+    INVITATION }|--|| ACCOMMODATION : "assegnato a"
+    PERSON }|--|| ROOM : "assegnato a"
 
     INVITATION {
-        uuid id PK
+        int id PK
         string code "Slug URL univoco"
         string name "Nome famiglia/gruppo"
+        enum status "pending, confirmed, declined"
         boolean accommodation_offered
         boolean transfer_offered
-        datetime created_at
     }
 
     PERSON {
-        uuid id PK
-        uuid invitation_id FK
+        int id PK
+        int invitation_id FK
         string first_name
         string last_name
         boolean is_child
+        text dietary_requirements
     }
 
-    RSVP {
-        uuid id PK
-        uuid person_id FK
-        boolean is_attending
-        text dietary_requirements
-        boolean requires_accommodation
-        boolean requires_transfer
-        string origin_location
+    GLOBAL_CONFIG {
+        int id PK "Singleton"
+        decimal prices "Vari costi unitari"
+        string whatsapp_groom_number
+        string whatsapp_bride_number
+        int whatsapp_rate_limit
+    }
+
+    WHATSAPP_SESSION_STATUS {
+        int id PK
+        enum session_type "groom, bride"
+        enum state "disconnected, waiting_qr, connected"
+        text last_qr_code "Base64"
+    }
+
+    WHATSAPP_MESSAGE_QUEUE {
+        int id PK
+        enum session_type
+        string recipient_number
+        text message_body
+        enum status "pending, sent, failed"
+        datetime scheduled_for
     }
 ```
 
 ## Descrizione Modelli Core
 
 ### 1. Invitation (Partecipazione)
-L'entità radice del sistema. Ogni invito è identificato univocamente da un codice (`code`) che viene utilizzato nell'URL pubblico (es. `miomatrimonio.com/famiglia-rossi`).
-- **Logica**: Un invito raggruppa più persone (es. marito, moglie, figli).
-- **Opzioni**: I flag `accommodation_offered` e `transfer_offered` determinano se il frontend mostrerà le relative opzioni nel form RSVP per i membri di questo gruppo.
+L'entità radice del sistema. Ogni invito è identificato univocamente da un codice (`code`) che viene utilizzato nell'URL pubblico.
+- **Logica**: Un invito raggruppa più persone.
+- **RSVP**: Contiene lo stato complessivo della risposta (`status`).
 
 ### 2. Person (Ospite)
-Rappresenta il singolo invitato.
-- **Dettagli**: Distingue tra adulti e bambini (`is_child`) per calcoli logistici (es. menu bambini, seggioloni).
+Rappresenta il singolo invitato. Distingue tra adulti e bambini (`is_child`) per calcoli logistici.
 
-### 3. RSVP (Conferma)
-Contiene i dati dinamici compilati dall'utente.
-- **Relazione**: È 1:1 con `Person`.
-- **Visibilità Campi**: I campi `requires_accommodation` e `requires_transfer` sono visibili/modificabili solo se l'invito padre ha i relativi flag abilitati.
+### 3. GlobalConfig (Singleton)
+Contiene le configurazioni globali dell'applicazione, modificabili a runtime dall'admin:
+- **Prezzi**: Costi unitari per budget tracker.
+- **Testi**: Template per le lettere.
+- **WhatsApp**: Numeri di telefono sposi, rate limit orario e flag simulazione typing.
 
 ## Modelli Analytics
+- **GuestInteraction**: Traccia eventi discreti (click, visite, rsvp).
+- **GuestHeatmap**: Salva i movimenti del mouse aggregati per sessione.
 
-### 4. AccessLog
-Registro di audit per ogni visualizzazione della pagina invito.
-- **Utilizzo**: Calcolo del tasso di apertura delle partecipazioni digitali.
-- **Privacy**: Registra User-Agent e IP anonimizzato (se configurato).
+## Modelli WhatsApp Integration
+Modelli dedicati alla gestione della messaggistica asincrona per evitare blocchi:
 
-### 5. InteractionLog
-Tabella ad alto volume per heatmaps e UX analysis.
-- **Eventi tracciati**: Click, Scroll depth, Mouse hover su elementi chiave.
-- **Payload**: Campo `data` (JSONB) per flessibilità massima nello storage di coordinate e metadati.
+### 4. WhatsAppSessionStatus
+Mantiene lo stato corrente della connessione con i container WAHA.
+- **Scopo**: Permette al frontend admin di sapere se è necessario mostrare il QR code senza interrogare direttamente i container (che sono su rete interna).
+
+### 5. WhatsAppMessageQueue
+Coda di persistenza per i messaggi in uscita.
+- **Logica**: I messaggi non vengono inviati subito. Un worker processa questa tabella cronologicamente.
+- **Rate Limiting**: Il worker controlla quante entry in stato `SENT` esistono nell'ultima ora prima di evadere nuovi messaggi `PENDING`.

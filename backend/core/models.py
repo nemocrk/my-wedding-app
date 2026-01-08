@@ -31,6 +31,25 @@ class GlobalConfig(models.Model):
         verbose_name="Messaggio Non Autorizzato"
     )
 
+    # WhatsApp Config
+    whatsapp_groom_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Numero Sposo (es. 39333...)")
+    whatsapp_groom_firstname = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nome Sposo")
+    whatsapp_groom_lastname = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cognome Sposo")
+    
+    whatsapp_bride_number = models.CharField(max_length=20, blank=True, null=True, verbose_name="Numero Sposa")
+    whatsapp_bride_firstname = models.CharField(max_length=100, blank=True, null=True, verbose_name="Nome Sposa")
+    whatsapp_bride_lastname = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cognome Sposa")
+    
+    whatsapp_rate_limit = models.IntegerField(
+        default=10, 
+        help_text="Massimo messaggi inviabili per ora per sessione (Safety Buffer)",
+        verbose_name="Rate Limit (msg/ora)"
+    )
+    whatsapp_typing_simulation = models.BooleanField(
+        default=True, 
+        verbose_name="Simula Digitazione Umana"
+    )
+
     def save(self, *args, **kwargs):
         if not self.pk and GlobalConfig.objects.exists():
             raise ValidationError('There can be only one GlobalConfig instance')
@@ -259,3 +278,120 @@ class GuestHeatmap(models.Model):
     class Meta:
         verbose_name = "Heatmap Ospite"
         verbose_name_plural = "Heatmaps Ospiti"
+
+
+# ---------------------------------------------
+# WHATSAPP MODELS
+# ---------------------------------------------
+
+class WhatsAppSessionStatus(models.Model):
+    """Singleton per lo status delle sessioni WhatsApp WAHA"""
+    class SessionState(models.TextChoices):
+        DISCONNECTED = 'disconnected', 'Disconnesso'
+        WAITING_QR = 'waiting_qr', 'In Attesa QR Code'
+        CONNECTED = 'connected', 'Connesso'
+        ERROR = 'error', 'Errore'
+    
+    session_type = models.CharField(
+        max_length=10,
+        choices=[('groom', 'Sposo'), ('bride', 'Sposa')],
+        unique=True
+    )
+    state = models.CharField(
+        max_length=20,
+        choices=SessionState.choices,
+        default=SessionState.DISCONNECTED
+    )
+    last_qr_code = models.TextField(blank=True, null=True)
+    last_check = models.DateTimeField(auto_now=True)
+    error_message = models.TextField(blank=True, null=True)
+    
+    class Meta:
+        verbose_name = "Status Sessione WhatsApp"
+        verbose_name_plural = "Status Sessioni WhatsApp"
+
+class WhatsAppMessageQueue(models.Model):
+    """Coda di invio asincrona per evitare blocchi e gestire rate limits"""
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'In Attesa'
+        PROCESSING = 'processing', 'In Elaborazione'
+        SENT = 'sent', 'Inviato'
+        FAILED = 'failed', 'Fallito'
+        SKIPPED = 'skipped', 'Saltato (Rate Limit)'
+
+    session_type = models.CharField(max_length=10, choices=[('groom', 'Sposo'), ('bride', 'Sposa')])
+    recipient_number = models.CharField(max_length=20)
+    message_body = models.TextField()
+    
+    status = models.CharField(max_length=20, choices=Status.choices, default=Status.PENDING)
+    scheduled_for = models.DateTimeField(auto_now_add=True, help_text="Quando provare l'invio")
+    sent_at = models.DateTimeField(null=True, blank=True)
+    
+    attempts = models.IntegerField(default=0)
+    error_log = models.TextField(blank=True, null=True)
+
+    def __str__(self):
+        return f"[{self.session_type}] -> {self.recipient_number} ({self.status})"
+    
+    class Meta:
+        verbose_name = "Coda Messaggi WhatsApp"
+        verbose_name_plural = "Coda Messaggi WhatsApp"
+        ordering = ['scheduled_for']
+
+
+class WhatsAppMessageEvent(models.Model):
+    """
+    Timeline granulare degli eventi di invio messaggio.
+    Permette di tracciare sia i wait del worker (rate_limit) che gli step human-like (reading, typing, etc.).
+    """
+    class Phase(models.TextChoices):
+        # Worker (Backend Django)
+        QUEUED = 'queued', 'Accodato'
+        WAITING_RATE_LIMIT = 'waiting_rate_limit', 'In Attesa Rate Limit'
+        RATE_LIMIT_OK = 'rate_limit_ok', 'Rate Limit Superato'
+        
+        # Integration Layer (Node.js)
+        READING = 'reading', 'Lettura Messaggi'
+        WAITING_HUMAN = 'waiting_human', 'Attesa Umana'
+        TYPING = 'typing', 'Digitazione'
+        SENDING = 'sending', 'Invio'
+        SENT = 'sent', 'Inviato'
+        
+        # Errori
+        FAILED = 'failed', 'Fallito'
+        SKIPPED = 'skipped', 'Saltato'
+    
+    queue_message = models.ForeignKey(
+        WhatsAppMessageQueue, 
+        related_name='events', 
+        on_delete=models.CASCADE,
+        verbose_name="Messaggio Coda"
+    )
+    phase = models.CharField(
+        max_length=30, 
+        choices=Phase.choices,
+        verbose_name="Fase"
+    )
+    timestamp = models.DateTimeField(auto_now_add=True, verbose_name="Timestamp")
+    duration_ms = models.IntegerField(
+        null=True, 
+        blank=True, 
+        help_text="Durata della fase in millisecondi (se applicabile)"
+    )
+    metadata = models.JSONField(
+        default=dict, 
+        blank=True, 
+        help_text="Dati extra (es. rate_limit_remaining, typing_duration_ms, error_detail)"
+    )
+    
+    def __str__(self):
+        return f"{self.queue_message.recipient_number} - {self.phase} @ {self.timestamp}"
+    
+    class Meta:
+        verbose_name = "Evento Messaggio WhatsApp"
+        verbose_name_plural = "Eventi Messaggi WhatsApp"
+        ordering = ['timestamp']
+        indexes = [
+            models.Index(fields=['queue_message', 'timestamp']),
+            models.Index(fields=['phase']),
+        ]

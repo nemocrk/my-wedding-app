@@ -1,0 +1,167 @@
+name: Workspace Config
+version: 1.0.0
+schema: v1
+rules:
+  - uses: continuedev/conventional-commits
+  - uses: continuedev/continue-docs-standards
+  - uses: continuedev/clean-code-rules
+  - uses: continuedev/rules-memory
+  - uses: continuedev/gh-commit-workflow
+prompts:
+  - uses: continuedev/commit-message-prompt
+models:
+  - name: Autodetect
+    provider: ollama
+    model: AUTODETECT
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 9000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: ministral-3:8b GPU
+    provider: ollama
+    model: ministral-3:8b
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 6000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: sam860/granite-4.0:7b GPU - GP
+    provider: ollama
+    model: sam860/granite-4.0:7b
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 64000
+      maxTokens: 200
+      temperature: 0.0
+      topP: 5
+      topK: 200
+      reasoning: false
+  - name: granite3.3:8b GPU - GP
+    provider: ollama
+    model: granite3.3:8b
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 9000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: codellama:7b GPU
+    provider: ollama
+    model: codellama:7b
+    apiBase: http://192.168.1.26:11434
+    defaultCompletionOptions:
+      contextLength: 6000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: dolphin3:8b GPU
+    provider: ollama
+    model: dolphin3:8b
+    apiBase: http://192.168.1.26:11434
+    roles:
+      - chat
+      - autocomplete
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 14000
+      maxTokens: 1000
+      temperature: 0.0
+      topP: 5
+      topK: 500
+      reasoning: false
+  - name: dolphin3:8b GPU - Commit
+    provider: ollama
+    model: dolphin3:8b
+    apiBase: http://192.168.1.26:11434
+    roles:
+      - chat
+      - autocomplete
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 14000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: llama3.1:8b GPU
+    provider: ollama
+    model: llama3.1:8b
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 14000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: Gemini 3 Flash Preview
+    provider: gemini
+    model: gemini-3-flash-preview
+    apiKey: UNUSED_TOKEN
+    roles:
+      - chat
+      - edit
+      - apply
+    defaultCompletionOptions:
+      contextLength: 1048576
+      maxTokens: 65536
+    capabilities:
+      - image_input
+  - name: qwen3:8B GPU [Commit]
+    provider: ollama
+    model: qwen3:8B
+    apiBase: http://192.168.1.26:11434
+    capabilities:
+      - tool_use
+    defaultCompletionOptions:
+      contextLength: 15000
+      maxTokens: 1000
+      temperature: 0.2
+      topP: 10
+      topK: 40
+      reasoning: false
+  - name: qwen3-reranker:0.6b-F16 GPU
+    provider: ollama
+    model: sam860/qwen3-reranker:0.6b-F16
+    apiBase: http://192.168.1.26:11434
+    roles:
+      - rerank
+    defaultCompletionOptions:
+      contextLength: 64000
+context:
+  - uses: continuedev/diff-context
+  - uses: continuedev/codebase-context
+  - uses: continuedev/url-context
+  - uses: continuedev/folder-context
+  - uses: continuedev/terminal-context
+  - uses: continuedev/code-context
+  - uses: continuedev/file-context
+mcpServers:
+  - uses: anthropic/memory-mcp
+  - uses: continuedev/continue-docs-mcp
+docs:
+  - uses: continuedev/continue-docs

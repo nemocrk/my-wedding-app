@@ -26,6 +26,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'core',  # Core application
+    'whatsapp',  # WhatsApp Integration App
 ]
 
 MIDDLEWARE = [
@@ -181,6 +182,11 @@ LOGGING = {
             'propagate': True,
         },
         'core': {  # Logger specifico per l'app Core
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'whatsapp': {  # Logger per WhatsApp App
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,

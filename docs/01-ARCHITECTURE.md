@@ -17,16 +17,26 @@ graph TD
     subgraph "Docker Network: frontend_intranet"
         NginxIntranet[Nginx Intranet] -->|Proxy /| FEAdmin[Frontend Admin]
         NginxIntranet -->|Proxy /adminer| Adminer[Adminer DB GUI]
+        NginxIntranet -->|Proxy /api/whatsapp| WAIntegration[WhatsApp Layer]
     end
 
     subgraph "Docker Network: backend (Internal)"
         NginxPublic -->|Proxy /api/public| Backend[Django API]
         NginxIntranet -->|Proxy /api/admin| Backend
+        Backend -->|Queue Check| WAWorker[Django Worker]
+    end
+
+    subgraph "Docker Network: whatsapp_intranet (Isolated)"
+        WAIntegration -->|Proxy API| WAHAGroom[WAHA Sposo]
+        WAIntegration -->|Proxy API| WAHABride[WAHA Sposa]
+        WAWorker -->|Send Msg| WAIntegration
     end
 
     subgraph "Docker Network: db (Isolated)"
-        Backend -->|SQL| DB[(PostgreSQL)]
+        Backend -->|SQL| PgBouncer[PgBouncer]
+        PgBouncer -->|Pool| DB[(PostgreSQL)]
         Adminer -->|SQL| DB
+        WAWorker -->|SQL| PgBouncer
     end
 ```
 
@@ -50,8 +60,9 @@ Due Single Page Application (SPA) separate:
 ### 4. Database (PostgreSQL)
 Il database è isolato in una rete Docker dedicata (`db_network`) e non è mai esposto direttamente, nemmeno agli altri container frontend. Solo `backend` e `adminer` possono comunicare con esso.
 
-## Sicurezza di Rete
-L'architettura implementa una "Defense in Depth":
-1.  **Isolamento Reti**: Frontend User non può vedere Frontend Admin o il DB.
-2.  **Internal Networks**: Le reti `backend` e `db` hanno il flag `internal: true`, impedendo l'accesso diretto a Internet (outbound) se non esplicitamente configurato.
-3.  **Binding Locale**: I servizi amministrativi sono bindati su localhost, richiedendo un tunnel SSH per l'accesso remoto.
+### 5. WhatsApp Integration Module
+Un sottosistema dedicato alla gestione della comunicazione via WhatsApp, progettato per evitare il ban dei numeri personali:
+- **WAHA Containers**: Due istanze separate (Sposo/Sposa) di WhatsApp HTTP API.
+- **Integration Layer**: Microservizio Node.js che funge da proxy e simula il comportamento umano (typing, pause).
+- **Queue Worker**: Processo background Django che gestisce la coda di invio messaggi rispettando i rate limits.
+- **Network Isolation**: I servizi WhatsApp risiedono in una rete dedicata (`whatsapp_intranet_network`) accessibile solo dal Backend e dal layer di integrazione.
