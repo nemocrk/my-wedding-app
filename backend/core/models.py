@@ -417,3 +417,34 @@ class WhatsAppMessageEvent(models.Model):
             models.Index(fields=['queue_message', 'timestamp']),
             models.Index(fields=['phase']),
         ]
+
+class WhatsAppTemplate(models.Model):
+    class Condition(models.TextChoices):
+        STATUS_CHANGE = 'status_change', 'Cambio di Stato'
+        MANUAL = 'manual', 'Manuale (Spot)'
+
+    name = models.CharField(max_length=100, help_text="Nome descrittivo del template")
+    condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.STATUS_CHANGE)
+    
+    # Se condition == STATUS_CHANGE, questo campo definisce QUANDO inviare
+    trigger_status = models.CharField(
+        max_length=20, 
+        choices=Invitation.Status.choices, 
+        blank=True, 
+        null=True,
+        help_text="Stato che attiva l'invio automatico"
+    )
+    
+    content = models.TextField(help_text="Usa {name}, {link}, {code} come placeholder")
+    is_active = models.BooleanField(default=True, verbose_name="Attivo")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['trigger_status', 'condition'] # Un solo template automatico per stato
+        verbose_name = "Template WhatsApp"
+        verbose_name_plural = "Template WhatsApp"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_condition_display()})"
