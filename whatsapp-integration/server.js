@@ -235,68 +235,53 @@ app.get('/events', (req, res) => {
     });
 });
 
-// GET /api/contacts - Verify contact existence and presence in address book
-app.get('/api/contacts', async (req, res) => {
-    const { contactId, session } = req.query;
+// GET /:session_type/:contact_id/check - Verify contact
+app.get('/:session_type/:contact_id/check', async (req, res) => {
+    const { session_type, contact_id } = req.params;
 
-    if (!contactId || !session) {
-        return res.status(400).json({ error: 'Missing contactId or session' });
+    if (!session_type || !contact_id) {
+        return res.status(400).json({ error: 'Missing params' });
     }
     
-    const wahaUrl = WAHA_URLS[session];
+    const wahaUrl = WAHA_URLS[session_type];
     if (!wahaUrl) {
         return res.status(400).json({ error: 'Invalid session type' });
     }
 
-    const headers = { 'X-Api-Key': WAHA_API_KEYS[session] };
-    const cleanPhone = contactId.replace(/[^0-9]/g, ''); // Ensure numeric only
+    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+    const cleanPhone = contact_id.replace(/[^0-9]/g, ''); 
     const chatId = `${cleanPhone}@c.us`;
 
     try {
-        console.log(`[${session}] Checking contact ${cleanPhone}`);
+        console.log(`[${session_type}] Checking contact ${cleanPhone}`);
 
         // 1. Check if number exists on WhatsApp (checkNumberStatus)
-        // https://waha.devlike.pro/docs/how-to/check-number-exists/
         let exists = false;
         try {
-            const statusResp = await axios.get(`${wahaUrl}/api/contacts/check-exists?phone=${cleanPhone}`, { headers, timeout: 5000 });
-             // Adjust based on actual WAHA API response for check-exists. 
-             // Usually returns { number: '...', status: 'valid' | 'invalid', ... } or similar
-             // For WAHA Core/Plus it might be POST /api/checkNumberStatus or GET /api/contacts/check-exists
-             // Let's assume GET /api/contacts/check-exists returns { exists: true/false } or { numberExists: true }
-             
-             // If WAHA standard: POST /api/checkNumberStatus
-             // We will try the standard WAHA endpoint
+             // WAHA Standard Endpoint
              const checkResp = await axios.post(`${wahaUrl}/api/checkNumberStatus`, { phone: cleanPhone }, { headers, timeout: 5000 });
              exists = checkResp.data?.numberExists || (checkResp.data?.status === 200); 
 
         } catch (e) {
-            console.warn(`[${session}] Check exists failed: ${e.message}. Trying legacy endpoint.`);
-            // Fallback?
+            console.warn(`[${session_type}] Check exists failed: ${e.message}`);
         }
         
         if (!exists) {
             return res.json({ 
-                contactId: cleanPhone, 
+                contact_id: cleanPhone, 
                 status: 'not_exist',
                 description: 'The number is not registered on WhatsApp'
             });
         }
 
-        // 2. Check if contact is in address book (GET /api/contacts)
-        // This can be heavy if many contacts, better if we can search
-        // WAHA might not have a search endpoint for contacts, so we might need to fetch all (cached)
-        // For optimization, let's try getting specific contact profile
-        
+        // 2. Check if contact is in address book (GET /api/contacts/{chatId})
         let inAddressBook = false;
         try {
              const contactResp = await axios.get(`${wahaUrl}/api/contacts/${chatId}`, { headers, timeout: 3000 });
-             // If returns 200 and data, it is known
              if (contactResp.data && (contactResp.data.name || contactResp.data.pushName)) {
                  inAddressBook = true;
              }
         } catch (e) {
-            // 404 means not found usually
              if (e.response && e.response.status === 404) {
                  inAddressBook = false;
              }
@@ -304,20 +289,20 @@ app.get('/api/contacts', async (req, res) => {
 
         if (inAddressBook) {
             return res.json({ 
-                contactId: cleanPhone, 
+                contact_id: cleanPhone, 
                 status: 'ok',
                 description: 'Contact verified and present in address book'
             });
         } else {
              return res.json({ 
-                contactId: cleanPhone, 
+                contact_id: cleanPhone, 
                 status: 'not_present',
                 description: 'Number exists but not in your contacts list'
             });
         }
 
     } catch (error) {
-        const { userMessage } = extractErrorDetails(error, 'verifyContact');
+        const { userMessage } = extractErrorDetails(error, 'checkContact');
         return res.status(500).json({ error: userMessage, status: 'error' });
     }
 });
