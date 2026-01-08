@@ -249,24 +249,24 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     }
 
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
-    const cleanPhone = contact_id.replace(/[^0-9]/g, ''); 
-    const chatId = `${cleanPhone}@c.us`;
+    const cleanPhone = contact_id.replace(/[^0-9]/g, '');
+    const SESSION_NAME = 'default';
 
     try {
         console.log(`[${session_type}] Checking contact ${cleanPhone}`);
 
-        // 1. Check if number exists on WhatsApp (checkNumberStatus)
-        let exists = false;
-        try {
-             // WAHA Standard Endpoint
-             const checkResp = await axios.post(`${wahaUrl}/api/checkNumberStatus`, { phone: cleanPhone }, { headers, timeout: 5000 });
-             exists = checkResp.data?.numberExists || (checkResp.data?.status === 200); 
+        // 1) Check if number exists on WhatsApp
+        // WAHA: GET /api/contacts/check-exists?phone=...&session=...
+        const checkResp = await axios.get(`${wahaUrl}/api/contacts/check-exists`, {
+            headers,
+            timeout: 5000,
+            params: { phone: cleanPhone, session: SESSION_NAME }
+        });
 
-        } catch (e) {
-            console.warn(`[${session_type}] Check exists failed: ${e.message}`);
-        }
-        
-        if (!exists) {
+        const numberExists = !!checkResp.data?.numberExists;
+        const chatId = checkResp.data?.chatId || `${cleanPhone}@c.us`;
+
+        if (!numberExists) {
             return res.json({ 
                 contact_id: cleanPhone, 
                 status: 'not_exist',
@@ -274,17 +274,25 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
             });
         }
 
-        // 2. Check if contact is in address book (GET /api/contacts/{chatId})
+        // 2) Check if contact is in address book
+        // WAHA: GET /api/contacts?contactId=...&session=...
         let inAddressBook = false;
         try {
-             const contactResp = await axios.get(`${wahaUrl}/api/contacts/${chatId}`, { headers, timeout: 3000 });
-             if (contactResp.data && (contactResp.data.name || contactResp.data.pushName)) {
-                 inAddressBook = true;
-             }
+            const contactResp = await axios.get(`${wahaUrl}/api/contacts`, {
+                headers,
+                timeout: 3000,
+                params: { contactId: chatId, session: SESSION_NAME }
+            });
+
+            if (contactResp.data && (contactResp.data.isMyContact === true || contactResp.data.name || contactResp.data.pushName)) {
+                inAddressBook = true;
+            }
         } catch (e) {
-             if (e.response && e.response.status === 404) {
-                 inAddressBook = false;
-             }
+            if (e.response && e.response.status === 404) {
+                inAddressBook = false;
+            } else {
+                console.warn(`[${session_type}] Contact lookup failed (non-blocking): ${e.message}`);
+            }
         }
 
         if (inAddressBook) {
@@ -293,13 +301,13 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
                 status: 'ok',
                 description: 'Contact verified and present in address book'
             });
-        } else {
-             return res.json({ 
-                contact_id: cleanPhone, 
-                status: 'not_present',
-                description: 'Number exists but not in your contacts list'
-            });
         }
+
+        return res.json({ 
+            contact_id: cleanPhone, 
+            status: 'not_present',
+            description: 'Number exists but not in your contacts list'
+        });
 
     } catch (error) {
         const { userMessage } = extractErrorDetails(error, 'checkContact');
