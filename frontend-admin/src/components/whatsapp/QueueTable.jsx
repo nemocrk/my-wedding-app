@@ -41,7 +41,7 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
         'processing': { label: 'Processing', color: 'bg-blue-100 text-blue-800' },
         'sent': { label: 'Sent', color: 'bg-green-100 text-green-800' },
         'failed': { label: 'Failed', title:msg.error_log, color: 'bg-red-100 text-red-800' },
-        'skipped': { label: 'Skipped', color: 'bg-gray-100 text-gray-800' }
+        'skipped': { label: 'Skipped', title:msg.error_log, color: 'bg-gray-100 text-gray-800' }
     };
     const config = dbMap[msg.status] || { label: msg.status, color: 'bg-gray-100' };
     return (
