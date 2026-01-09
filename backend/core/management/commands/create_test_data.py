@@ -16,7 +16,7 @@ class Command(BaseCommand):
             code=code,
             defaults={
                 "name": "Test Load User",
-                "status": Invitation.Status.PENDING
+                "status": Invitation.Status.CREATED
             }
         )
         
