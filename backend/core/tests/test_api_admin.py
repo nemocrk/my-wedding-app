@@ -7,7 +7,7 @@ class TestAdminAPI:
         payload = {
             "code": "new-family",
             "name": "New Family",
-            "status": "pending",
+            "status": "created",  # Fixed: 'pending' is not a valid choice
             "accommodation_offered": True,
             "guests": [
                 {"first_name": "John", "last_name": "Doe", "is_child": False},
