@@ -59,8 +59,8 @@ describe('Envelope Animation E2E', () => {
     );
 
     // Wait for envelope to load (async)
-    // findByRole has a default timeout of 1000ms, usually sufficient
-    const openAction = await screen.findByRole('button', { hidden: true });
+    // Target the specific button with aria-label "Vedi dettagli"
+    const openAction = await screen.findByRole('button', { name: /vedi dettagli/i });
     
     if(openAction) {
         await userEvent.click(openAction);
