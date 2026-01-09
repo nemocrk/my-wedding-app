@@ -68,7 +68,7 @@ class TestPublicAPI:
         response = api_client.post('/api/public/log-interaction/', {
             'event_type': 'visit',
             'metadata': {'session_id': 'test-session-1'}
-        })
+        }, format='json')
         
         assert response.status_code == 200
         assert response.data['logged'] is True
@@ -100,7 +100,7 @@ class TestPublicAPI:
         api_client.post('/api/public/log-interaction/', {
             'event_type': 'visit',
             'metadata': {'session_id': 'session-1'}
-        })
+        }, format='json')
         
         inv.refresh_from_db()
         assert inv.status == Invitation.Status.READ
@@ -109,7 +109,7 @@ class TestPublicAPI:
         api_client.post('/api/public/log-interaction/', {
             'event_type': 'visit',
             'metadata': {'session_id': 'session-2'}
-        })
+        }, format='json')
         
         inv.refresh_from_db()
         assert inv.status == Invitation.Status.READ  # Still read, no re-transition
@@ -136,7 +136,7 @@ class TestPublicAPI:
         api_client.post('/api/public/log-interaction/', {
             'event_type': 'click_cta',
             'metadata': {'button_id': 'rsvp-button'}
-        })
+        }, format='json')
         
         inv.refresh_from_db()
         # Status should still be 'sent' (not changed)
@@ -157,7 +157,7 @@ class TestPublicAPI:
         api_client.post('/api/public/log-interaction/', {
             'event_type': 'visit',
             'metadata': {'session_id': 'test-session'}
-        })
+        }, format='json')
         
         inv.refresh_from_db()
         # Status should remain 'confirmed'
@@ -167,7 +167,7 @@ class TestPublicAPI:
 @pytest.mark.django_db
 class TestMarkAsReadEndpoint:
     """
-    Test suite for the manual /api/invitations/<id>/mark-as-read/ endpoint.
+    Test suite for the manual /api/admin/invitations/<id>/mark-as-read/ endpoint.
     """
     
     def test_manual_mark_as_read_success(self, admin_api_client, invitation_factory):
@@ -178,7 +178,7 @@ class TestMarkAsReadEndpoint:
         inv.status = Invitation.Status.SENT
         inv.save()
         
-        response = admin_api_client.post(f'/api/invitations/{inv.id}/mark-as-read/')
+        response = admin_api_client.post(f'/api/admin/invitations/{inv.id}/mark-as-read/')
         
         assert response.status_code == 200
         assert response.data['status'] == 'read'
@@ -195,7 +195,7 @@ class TestMarkAsReadEndpoint:
         inv.status = Invitation.Status.READ
         inv.save()
         
-        response = admin_api_client.post(f'/api/invitations/{inv.id}/mark-as-read/')
+        response = admin_api_client.post(f'/api/admin/invitations/{inv.id}/mark-as-read/')
         
         assert response.status_code == 200
         assert response.data['transition'] == 'none'
@@ -212,7 +212,7 @@ class TestMarkAsReadEndpoint:
         inv.status = Invitation.Status.CONFIRMED
         inv.save()
         
-        response = admin_api_client.post(f'/api/invitations/{inv.id}/mark-as-read/')
+        response = admin_api_client.post(f'/api/admin/invitations/{inv.id}/mark-as-read/')
         
         assert response.status_code == 200
         assert response.data['status'] == 'confirmed'
