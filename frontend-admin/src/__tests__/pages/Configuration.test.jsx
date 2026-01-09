@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import Configuration from '../../pages/Configuration';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 
 // Hoist mocks to ensure they are available before import
 const { mockUpdateConfig, mockGetConfig } = vi.hoisted(() => ({
@@ -42,9 +42,9 @@ describe('Configuration Page', () => {
 
   const renderWithRouter = (component) => {
     return render(
-      <BrowserRouter>
+      <MemoryRouter>
         {component}
-      </BrowserRouter>
+      </MemoryRouter>
     );
   };
 
