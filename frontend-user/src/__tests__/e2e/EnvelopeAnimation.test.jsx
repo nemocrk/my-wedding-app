@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react'; // Removed waitFor, using act with timers
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../../App';
 import { BrowserRouter } from 'react-router';
@@ -49,17 +49,11 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // Fast-forward initial loading if any
     await act(async () => {
         vi.advanceTimersByTime(100);
     });
 
-    const envelopes = screen.queryAllByRole('button'); // Envelope is often a button or interactive element
-    // The envelope might not be a "button" role exactly depending on implementation (it's a div with click handlers usually or just visual)
-    // But previous tests used this query. Let's rely on finding SOMETHING that represents the envelope.
-    // In EnvelopeAnimation.jsx it's a motion.div. It might not have a role.
-    // However, the previous test passed finding > 0 buttons. 
-    // Let's assume there are buttons (maybe hidden ones or parts of the UI).
+    const envelopes = screen.queryAllByRole('button'); 
     expect(envelopes.length).toBeGreaterThanOrEqual(0); 
   });
 
@@ -73,27 +67,22 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // 1. Advance time to complete the "fly-in" and "opening" sequence
-    // The sequence in EnvelopeAnimation.jsx takes roughly:
-    // 500 (fly-in) + 600 (wax) + 600 (open) + 1200 (wax-in) + 1500 (extract) + 1000 (final) = ~5400ms
+    // 1. Advance time to complete the FULL animation sequence
+    // Initial fly-in: 2000ms
+    // Sequence delays: 500 + 600 + 600 + 1200 + 1500 + 1000 = 5400ms
+    // Total approx: 7400ms. 
+    // We advance 12000ms to be safe and ensure pointer-events: auto is applied.
     await act(async () => {
-        vi.advanceTimersByTime(6000);
+        vi.advanceTimersByTime(12000);
     });
 
     // 2. Now the letter should be in "final" state with pointerEvents: "auto"
-    // Find the "Vedi dettagli" button
     const openAction = await screen.findByRole('button', { name: /vedi dettagli/i });
     
     // 3. Click it
     await user.click(openAction);
     
-    // 4. Verify flip happened or content is visible
-    // The button flips the card. We can check if "Ospiti" is visible or if the flip class is applied.
-    // Since LetterContent renders "Siete Invitati" inside "letter-title" on the BACK face,
-    // and "Caro Ospite" (from mock) inside "letter-body" on the BACK face.
-    // Before flip (FRONT face), we see "Domenico & Loredana".
-    
-    // Check for text visible on the back face
+    // 4. Verify content is visible
     expect(screen.getByText(/Caro Ospite/i)).toBeInTheDocument();
-  });
+  }, { timeout: 15000 }); // Increase test timeout to handle heavy fake timer processing if needed
 });
