@@ -688,6 +688,36 @@
     }
 }
 
+/* Single Column Layout for Narrow Screens */
+@media (max-width: 400px) {
+    .card-grid {
+        grid-template-columns: 1fr;
+        gap: 0.7rem;
+        padding: 0.7rem 0.5rem;
+    }
+
+    .info-card {
+        padding: 0.5rem 1rem;
+    }
+
+    .card-icon {
+        width: 36px;
+        height: 36px;
+    }
+
+    .card-title {
+        font-size: 0.85rem;
+    }
+
+    .info-card.rsvp-card {
+        grid-column: 1;
+    }
+
+    .rsvp-card .card-title {
+        font-size: 1rem;
+    }
+}
+
 /* Fix for very small screens (iPhone SE, Fold) */
 @media (max-width: 360px) {
     .text-names { font-size: 1.6rem; }
@@ -703,12 +733,17 @@
     .nav-button { width: 40px; height: 40px; right: 10px; bottom: 10px; }
     .nav-button-back { width: 40px; height: 40px; left: 10px; bottom: 10px; }
 
+    .card-grid {
+        gap: 0.6rem;
+        padding: 0.6rem 0.3rem;
+    }
+
     .card-title {
-        font-size: 0.7rem;
+        font-size: 0.8rem;
     }
 
     .card-icon {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
     }
 }
