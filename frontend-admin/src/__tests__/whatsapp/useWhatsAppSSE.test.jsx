@@ -48,7 +48,7 @@ test('sets connected on SSE open and updates realtimeStatus on message', () => {
   render(<TestComponent />);
 
   const es = MockEventSource.instances[0];
-  expect(es.url).toBe('/api/whatsapp-service/events');
+  expect(es.url).toBe('api/whatsapp-service/events');
 
   act(() => es.emitOpen());
   expect(screen.getByTestId('conn').textContent).toBe('connected');
