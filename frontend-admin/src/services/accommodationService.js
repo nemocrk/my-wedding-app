@@ -1,4 +1,4 @@
-const API_URL = '/api/admin/accommodations';
+const API_URL = 'api/admin/accommodations';
 
 const triggerGlobalError = (error) => {
   const event = new CustomEvent('api-error', { detail: error });
