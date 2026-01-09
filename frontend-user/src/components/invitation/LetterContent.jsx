@@ -1,11 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useAnimation } from 'motion/react';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
 import rightArrow from '../../assets/illustrations/right-arrow.png';
 import waxImg from '../../assets/illustrations/wax.png';
+import buttonBg from '../../assets/illustrations/button-bk.png';
+import homeIcon from '../../assets/illustrations/home.png';
+import vanIcon from '../../assets/illustrations/van.png';
+import archIcon from '../../assets/illustrations/arch.png';
+import dressIcon from '../../assets/illustrations/dress.png';
+import chestIcon from '../../assets/illustrations/chest.png';
+import questionsIcon from '../../assets/illustrations/questions.png';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const LetterContent = ({ data }) => {
@@ -14,17 +21,12 @@ const LetterContent = ({ data }) => {
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  
-  // State per gestire la "modalità modifica"
   const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
-  
-  // State per l'animazione di flip
   const [isFlipped, setIsFlipped] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
 
-  // Animation Control per il Sigillo
   const sealControls = useAnimation();
   
-  // WhatsApp Config extraction
   const groomNumber = data.config?.whatsapp_groom_number;
   const brideNumber = data.config?.whatsapp_bride_number;
   const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
@@ -33,7 +35,6 @@ const LetterContent = ({ data }) => {
   const getWaLink = (number) => 
     `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
 
-  // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
     heatmapTracker.start();
     logInteraction('view_letter'); 
@@ -49,6 +50,7 @@ const LetterContent = ({ data }) => {
         setMessage(null);
         setSubmitting(false);
         setIsFlipped(false);
+        setExpandedCard(null);
         return;
       }
 
@@ -117,7 +119,6 @@ const LetterContent = ({ data }) => {
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
-
     logInteraction('click_rsvp', { status_chosen: status });
 
     try {
@@ -151,6 +152,178 @@ const LetterContent = ({ data }) => {
       setMessage(null);
   };
 
+  const handleCardClick = (cardId) => {
+    setExpandedCard(cardId);
+    logInteraction('card_expand', { card: cardId });
+  };
+
+  const handleCloseExpanded = () => {
+    setExpandedCard(null);
+    logInteraction('card_collapse');
+  };
+
+  // Card Grid Configuration
+  const cards = [
+    { id: 'alloggio', title: 'Alloggio', icon: homeIcon },
+    { id: 'viaggio', title: 'Viaggio', icon: vanIcon },
+    { id: 'evento', title: 'Evento', icon: archIcon },
+    { id: 'dresscode', title: 'Dress Code', icon: dressIcon },
+    { id: 'bottino', title: 'Bottino', icon: chestIcon },
+    { id: 'cosaltro', title: "Cos'altro?", icon: questionsIcon },
+  ];
+
+  const renderCardContent = (cardId) => {
+    switch(cardId) {
+      case 'alloggio':
+        return (
+          <div className="expanded-content">
+            <h2>Alloggio</h2>
+            {data.accommodation_offered ? (
+              <p>Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!</p>
+            ) : (
+              <p>Per suggerimenti sugli alloggi nella zona, contattateci!</p>
+            )}
+          </div>
+        );
+      case 'viaggio':
+        return (
+          <div className="expanded-content">
+            <h2>Viaggio</h2>
+            {data.transfer_offered ? (
+              <p>Organizzeremo un transfer per facilitare i vostri spostamenti. Dettagli in arrivo!</p>
+            ) : (
+              <p>Informazioni sui trasporti e come raggiungere la location disponibili a breve.</p>
+            )}
+          </div>
+        );
+      case 'evento':
+        return (
+          <div className="expanded-content">
+            <h2>L'Evento</h2>
+            <div className="letter-body">
+              {data.letter_content.split('\n').map((line, idx) => (
+                <p key={idx}>{line}</p>
+              ))}
+            </div>
+          </div>
+        );
+      case 'dresscode':
+        return (
+          <div className="expanded-content">
+            <h2>Dress Code</h2>
+            <p><strong>Beach Chic</strong></p>
+            <p>Eleganti ma comodi! Ricordatevi che saremo sulla spiaggia: i tacchi a spillo sono i nemici numero uno della sabbia!</p>
+          </div>
+        );
+      case 'bottino':
+        return (
+          <div className="expanded-content">
+            <h2>Lista Nozze</h2>
+            <p>La vostra presenza è il regalo più grande, ma se desiderate contribuire al nostro viaggio di nozze...</p>
+            <p><em>Dettagli IBAN in arrivo!</em></p>
+          </div>
+        );
+      case 'cosaltro':
+        return (
+          <div className="expanded-content">
+            <h2>Hai domande?</h2>
+            <p>Per qualsiasi informazione, non esitate a contattarci via WhatsApp:</p>
+            {(groomNumber || brideNumber) && (
+              <div className="whatsapp-section">
+                <div className="whatsapp-buttons">
+                  {groomNumber && (
+                    <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {groomName}
+                    </a>
+                  )}
+                  {brideNumber && (
+                    <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {brideName}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'rsvp':
+        return (
+          <div className="expanded-content rsvp-expanded">
+            <h2>Conferma la tua Partecipazione</h2>
+            
+            <div className="guests-list">
+              <h3>Ospiti:</h3>
+              <ul>
+                {data.guests.map((guest, idx) => (
+                  <li key={idx}>
+                    {guest.first_name} {guest.last_name || ''}
+                    {guest.is_child && <span className="badge">Bambino</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {isEditing ? (
+              <div className="rsvp-form">
+                {data.accommodation_offered && (
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={accommodationRequested}
+                      onChange={(e) => setAccommodationRequested(e.target.checked)}
+                    />
+                    Richiedo l'alloggio
+                  </label>
+                )}
+
+                {data.transfer_offered && (
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={transferRequested}
+                      onChange={(e) => setTransferRequested(e.target.checked)}
+                    />
+                    Richiedo il transfer
+                  </label>
+                )}
+
+                <div className="button-group">
+                  <button 
+                    className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
+                    onClick={() => handleRSVP('confirmed')}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Invio...' : '✔️ Conferma'}
+                  </button>
+                  <button 
+                    className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
+                    onClick={() => handleRSVP('declined')}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Invio...' : '❌ Declina'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={rsvpStatus === 'confirmed' ? 'rsvp-confirmed' : 'rsvp-declined'}>
+                <h3>{rsvpStatus === 'confirmed' ? '✅ Partecipazione Confermata!' : '😔 Ci dispiace'}</h3>
+                <p>{rsvpStatus === 'confirmed' ? 'Non vediamo l\'ora di vedervi!' : 'Grazie per averci avvisato.'}</p>
+                <button onClick={handleReset} className="edit-response-btn">Modifica risposta</button>
+              </div>
+            )}
+
+            {message && (
+              <div className={`message ${message.type}`}>
+                {message.text}
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return <p>Contenuto non disponibile</p>;
+    }
+  };
+
   return (
     <motion.div
       className="letter-content"
@@ -159,7 +332,6 @@ const LetterContent = ({ data }) => {
       transition={{ duration: 0.5 }}
     >
       <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
-        
         <div className="flip-card-inner">
             
             {/* FRONT FACE */}
@@ -195,7 +367,6 @@ const LetterContent = ({ data }) => {
                     </p>
                 </div>
                 
-                {/* Navigation to Back */}
                 <button 
                     className="nav-button pulse-animation" 
                     onClick={() => handleFlip(true)}
@@ -208,15 +379,23 @@ const LetterContent = ({ data }) => {
                     className="wax-seal"
                     initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
                     animate={sealControls}
+                    style={{ 
+                        position: 'absolute',
+                        bottom: '1rem',
+                        left: '1rem',
+                        width: '36%',
+                        maxWidth: '90px',
+                        zIndex: 30,
+                        pointerEvents: 'none'
+                    }}
                 >
                     <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
                 </motion.div>
             </div>
 
-            {/* BACK FACE */}
+            {/* BACK FACE - CARD GRID */}
             <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
                 <div className="letter-paper">
-                    {/* Navigation to Front */}
                     <button 
                         className="nav-button-back" 
                         onClick={() => handleFlip(false)}
@@ -226,153 +405,59 @@ const LetterContent = ({ data }) => {
                         <img src={rightArrow} alt="Indietro" className="nav-arrow-img" />
                     </button>
 
-                    <h1 className="letter-title">Siete Invitati!</h1>
-                    
-                    <div className="letter-body">
-                    {data.letter_content.split('\n').map((line, idx) => (
-                        <p key={idx}>{line}</p>
-                    ))}
-                    </div>
-
-                    <div className="guests-list">
-                    <h3>Ospiti:</h3>
-                    <ul>
-                        {data.guests.map((guest, idx) => (
-                        <li key={idx}>
-                            {guest.first_name} {guest.last_name || ''}
-                            {guest.is_child && <span className="badge">Bambino</span>}
-                        </li>
-                        ))}
-                    </ul>
-                    </div>
-
-                    {data.accommodation_offered && (
-                    <div className="offer-badge">
-                        <span>🏨 Alloggio Offerto</span>
-                    </div>
-                    )}
-
-                    {data.transfer_offered && (
-                    <div className="offer-badge">
-                        <span>🚌 Transfer Offerto</span>
-                    </div>
-                    )}
-
-                    {/* RSVP FORM Section */}
-                    {isEditing && (
-                    <div className="rsvp-section">
-                        <h3>Conferma la tua partecipazione</h3>
-                        
-                        {data.accommodation_offered && (
-                        <label className="checkbox-label">
-                            <input 
-                            type="checkbox" 
-                            checked={accommodationRequested}
-                            onChange={(e) => setAccommodationRequested(e.target.checked)}
-                            />
-                            Richiedo l'alloggio
-                        </label>
-                        )}
-
-                        {data.transfer_offered && (
-                        <label className="checkbox-label">
-                            <input 
-                            type="checkbox" 
-                            checked={transferRequested}
-                            onChange={(e) => setTransferRequested(e.target.checked)}
-                            />
-                            Richiedo il transfer
-                        </label>
-                        )}
-
-                        <div className="button-group">
-                        <button 
-                            className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
-                            onClick={() => handleRSVP('confirmed')}
-                            disabled={submitting}
+                    {/* CARD GRID */}
+                    <div className="card-grid">
+                      {cards.map(card => (
+                        <div 
+                          key={card.id} 
+                          className="info-card"
+                          style={{ backgroundImage: `url(${buttonBg})` }}
+                          onClick={() => handleCardClick(card.id)}
                         >
-                            {submitting ? 'Invio...' : '✔️ Conferma'}
-                        </button>
-                        <button 
-                            className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
-                            onClick={() => handleRSVP('declined')}
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Invio...' : '❌ Declina'}
-                        </button>
+                          <img src={card.icon} alt={card.title} className="card-icon" />
+                          <h3 className="card-title">{card.title}</h3>
                         </div>
-                        {data.status && data.status !== 'pending' && (
-                            <button className="cancel-edit-btn" onClick={() => setIsEditing(false)}>
-                                Annulla modifiche
-                            </button>
-                        )}
+                      ))}
+                      
+                      {/* RSVP Card - Full Width */}
+                      <div 
+                        className="info-card rsvp-card"
+                        style={{ backgroundImage: `url(${buttonBg})` }}
+                        onClick={() => handleCardClick('rsvp')}
+                      >
+                        <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                      </div>
                     </div>
-                    )}
-
-                    {/* CONFIRMED/DECLINED VIEW */}
-                    {!isEditing && rsvpStatus === 'confirmed' && (
-                    <div className="rsvp-confirmed">
-                        <h3>✅ Partecipazione Confermata!</h3>
-                        <p>Non vediamo l'ora di vedervi al nostro matrimonio!</p>
-                        <div className="action-wrapper">
-                            <button 
-                                onClick={handleReset}
-                                className="edit-response-btn edit-response-btn-confirm"
-                            >
-                                Modifica risposta
-                            </button>
-                        </div>
-                    </div>
-                    )}
-
-                    {!isEditing && rsvpStatus === 'declined' && (
-                    <div className="rsvp-declined">
-                        <h3>😔 Ci dispiace</h3>
-                        <p>Grazie comunque per averci avvisato.</p>
-                        <div className="action-wrapper">
-                            <button 
-                                onClick={handleReset}
-                                className="edit-response-btn edit-response-btn-decline"
-                            >
-                                Modifica risposta
-                            </button>
-                        </div>
-                    </div>
-                    )}
-
-                    {/* WHATSAPP CTA SECTION */}
-                    {(groomNumber || brideNumber) && (
-                    <div className="whatsapp-section">
-                        <p className="whatsapp-label">Hai domande?</p>
-                        <div className="whatsapp-buttons">
-                            {groomNumber && (
-                                <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" 
-                                className="whatsapp-link">
-                                <FaWhatsapp size={18} /> {groomName}
-                                </a>
-                            )}
-                            {brideNumber && (
-                                <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" 
-                                className="whatsapp-link">
-                                <FaWhatsapp size={18} /> {brideName}
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                    )}
-
-                    {message && (
-                    <div className={`message ${message.type}`}>
-                        {message.text}
-                    </div>
-                    )}
-                    
-                    {/* Spacer for bottom scrolling */}
-                    <div style={{height: '20px'}}></div>
                 </div>
             </div>
         </div>
       </div>
+
+      {/* EXPANDED CARD MODAL */}
+      <AnimatePresence>
+        {expandedCard && (
+          <motion.div 
+            className="card-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseExpanded}
+          >
+            <motion.div 
+              className="card-modal-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <button className="close-modal-btn" onClick={handleCloseExpanded}>
+                ✕
+              </button>
+              {renderCardContent(expandedCard)}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 };
