@@ -60,18 +60,32 @@ jobs:
           - service: backend
             context: ./backend
             image_name: my-wedding-app-backend
+            target: production
             build_args: ""
           - service: frontend-user
             context: ./frontend-user
             image_name: my-wedding-app-frontend-user
+            target: production
             build_args: "REACT_APP_API_URL=/api"
           - service: frontend-admin
             context: ./frontend-admin
             image_name: my-wedding-app-frontend-admin
+            target: production
             build_args: "REACT_APP_API_URL=/api"
           - service: whatsapp-integration
             context: ./whatsapp-integration
             image_name: my-wedding-app-whatsapp-integration
+            target: production
+            build_args: ""
+          - service: nginx-public
+            context: ./nginx
+            image_name: my-wedding-app-nginx-public
+            target: public
+            build_args: ""
+          - service: nginx-intranet
+            context: ./nginx
+            image_name: my-wedding-app-nginx-intranet
+            target: intranet
             build_args: ""
 
     steps:
@@ -106,8 +120,7 @@ jobs:
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/Dockerfile
-          # Usiamo il target 'production' definito nei Dockerfile
-          target: production
+          target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

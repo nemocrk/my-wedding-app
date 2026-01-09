@@ -157,13 +157,12 @@ services:
   # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
   # ---------------------------------------------
   nginx-public:
-    image: nginx:alpine
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-nginx-public:${IMAGE_TAG:-latest}
     restart: always
     ports:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/public.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
       - static_volume:/var/www/static:ro
       - media_volume:/var/www/media:ro
@@ -185,12 +184,11 @@ services:
   # 6. NGINX INTRANET - Gateway Intranet (solo frontend-admin)
   # ---------------------------------------------
   nginx-intranet:
-    image: nginx:alpine
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-nginx-intranet:${IMAGE_TAG:-latest}
     restart: always
     ports:
       - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
-    volumes:
-      - ./nginx/intranet.conf:/etc/nginx/nginx.conf:ro
+    # Nessun volume di config necessario, solo il default nginx
     depends_on:
       frontend-admin:
         condition: service_healthy
