@@ -46,7 +46,7 @@ test.describe('Negative Authentication Scenarios', () => {
         const inv = await api.createInvitation({
             code: `auth-test-${Date.now()}`,
             name: `Auth Test Family`,
-            status: 'pending',
+            status: 'created',
             guests: [{ first_name: 'Test', last_name: 'User', is_child: false }]
         });
         createdInvId = inv.id;

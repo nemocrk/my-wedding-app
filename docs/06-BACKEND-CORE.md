@@ -16,6 +16,17 @@ Il cuore del sistema.
 ### Modello `Invitation`
 Raggruppa un nucleo familiare.
 - **Codice Univoco (`code`)**: Slug utilizzato nell'URL pubblico. È la chiave di accesso principale.
+- **Contatti & Origine**:
+  - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
+  - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
+  - `contact_verified`: Enum (`ok`, `not_valid`, `not_exist`, `not_present`) che indica lo stato di verifica del numero su WhatsApp.
+- **Affinities**: Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
+- **Workflow Status**:
+  Gestisce il ciclo di vita dell'invito:
+  1. `created`: Inserito a sistema.
+  2. `sent`: Messaggio inviato agli ospiti.
+  3. `read`: Gli ospiti hanno visualizzato la pagina (pixel tracking).
+  4. `confirmed` / `declined`: Scelta finale.
 - **Flags Logistici**:
     - `accommodation_offered`: Se True, sblocca il form "Richiesta Alloggio" nel frontend.
     - `transfer_offered`: Se True, sblocca la selezione "Navetta".
@@ -28,7 +39,35 @@ Rappresenta il singolo ospite.
     - Calcolo costi pasti (Menu ridotto).
 - `assigned_room`: FK verso `Room`, permette un'assegnazione granulare degli ospiti alle stanze disponibili.
 
-## 3. Gestione Alloggi (`Accommodation` & `Room`)
+## 3. Automazione e Workflow (Signals)
+
+Il sistema implementa logiche reattive tramite Django Signals (`backend/core/signals.py`).
+
+### Verifica Contatto WhatsApp (`Invitation.contact_verified`)
+Quando un numero viene creato o modificato, o lo stato viene resettato manualmente a `not_valid`:
+1.  Il signal `post_save` intercetta il cambio.
+2.  Lancia il task sincrono `verify_whatsapp_contact_task` (in `utils.py`).
+3.  Il task chiama il microservizio `whatsapp-integration` (`GET /api/contacts`) che verifica:
+    - Esistenza del numero su WhatsApp.
+    - Presenza del numero nella rubrica della sessione (Sposo/Sposa).
+4.  Lo stato `contact_verified` viene aggiornato con il risultato (`ok`, `not_exist`, `not_present`).
+
+### Trigger Cambio Stato (`Invitation.status`)
+Quando lo stato di un invito cambia (es. da `sent` a `read` o da `read` a `confirmed`), il sistema:
+1.  Verifica se esiste un `WhatsAppTemplate` attivo con `condition='status_change'` e `trigger_status` corrispondente al nuovo stato.
+2.  Se esiste, genera un messaggio personalizzato sostituendo i placeholder:
+    - `{name}`: Nome invito (es. Famiglia Rossi)
+    - `{code}`: Codice invito
+    - `{link}`: Link pubblico autologin
+    - `{guest_names}`: Lista nomi ospiti
+3.  Accoda il messaggio in `WhatsAppMessageQueue` per l'invio asincrono.
+
+### Auto-Mark as Read
+Quando viene registrata la prima analytics di tipo `visit` su un invito in stato `sent`:
+- L'API `PublicLogInteractionView` aggiorna automaticamente lo stato a `read`.
+- Questo triggera a cascata il signal di cui sopra (se configurato un template per lo stato `read`).
+
+## 4. Gestione Alloggi (`Accommodation` & `Room`)
 Sistema gerarchico per la gestione ospitalità.
 
 ### Logica "Available Slots"
@@ -62,7 +101,7 @@ L'endpoint `/auto-assign` può essere chiamato in due modalità:
 > L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
 > Usare i dati prefetched (`room.assigned_guests.all()`) causerebbe letture "stale" (vecchie) all'interno della stessa transazione, portando alla violazione della Regola 1 (più inviti nella stessa stanza).
 
-## 4. Analytics (`GuestInteraction` & `GuestHeatmap`)
+## 5. Analytics (`GuestInteraction` & `GuestHeatmap`)
 Sistema di tracciamento integrato.
 - **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
 - **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
@@ -79,6 +118,10 @@ classDiagram
 
     class Invitation {
         +Slug code
+        +Enum origin
+        +String phone_number
+        +Enum contact_verified
+        +Enum status
         +Boolean accommodation_offered
         +generate_token()
     }
@@ -94,6 +137,14 @@ classDiagram
         +available_slots()
     }
 
+    class WhatsAppTemplate {
+        +String name
+        +Enum condition
+        +Enum trigger_status
+        +String content
+    }
+
     Invitation "1" *-- "*" Person : contains
     Room "1" o-- "*" Person : houses
+    WhatsAppTemplate "1" .. "*" Invitation : triggers
 ```

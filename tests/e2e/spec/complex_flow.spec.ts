@@ -70,7 +70,7 @@ test.describe('Complex Wedding Flow', () => {
                 name: `Famiglia Test ${i}`,
                 accommodation_offered: true,
                 transfer_offered: true,
-                status: 'pending',
+                status: 'created',
                 guests: generateRandomGuests()
             });
             invitations.push(inv);

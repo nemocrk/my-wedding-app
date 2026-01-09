@@ -235,6 +235,87 @@ app.get('/events', (req, res) => {
     });
 });
 
+// GET /:session_type/:contact_id/check - Verify contact
+app.get('/:session_type/:contact_id/check', async (req, res) => {
+    const { session_type, contact_id } = req.params;
+
+    if (!session_type || !contact_id) {
+        return res.status(400).json({ error: 'Missing params' });
+    }
+    
+    const wahaUrl = WAHA_URLS[session_type];
+    if (!wahaUrl) {
+        return res.status(400).json({ error: 'Invalid session type' });
+    }
+
+    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+    const cleanPhone = contact_id.replace(/[^0-9]/g, '');
+    const SESSION_NAME = 'default';
+
+    try {
+        console.log(`[${session_type}] Checking contact ${cleanPhone}`);
+
+        // 1) Check if number exists on WhatsApp
+        // WAHA: GET /api/contacts/check-exists?phone=...&session=...
+        const checkResp = await axios.get(`${wahaUrl}/api/contacts/check-exists`, {
+            headers,
+            timeout: 5000,
+            params: { phone: cleanPhone, session: SESSION_NAME }
+        });
+
+        const numberExists = !!checkResp.data?.numberExists;
+        const chatId = checkResp.data?.chatId || `${cleanPhone}@c.us`;
+
+        if (!numberExists) {
+            return res.json({ 
+                contact_id: cleanPhone, 
+                status: 'not_exist',
+                description: 'The number is not registered on WhatsApp'
+            });
+        }
+
+        // 2) Check if contact is in address book
+        // WAHA: GET /api/contacts?contactId=...&session=...
+        let inAddressBook = false;
+        try {
+            const contactResp = await axios.get(`${wahaUrl}/api/contacts`, {
+                headers,
+                timeout: 3000,
+                params: { contactId: chatId, session: SESSION_NAME }
+            });
+
+            if (contactResp.data && (contactResp.data.isMyContact === true || contactResp.data.name || contactResp.data.pushName)) {
+                inAddressBook = true;
+            }
+        } catch (e) {
+            if (e.response && e.response.status === 404) {
+                inAddressBook = false;
+            } else {
+                console.warn(`[${session_type}] Contact lookup failed (non-blocking): ${e.message}`);
+            }
+        }
+
+        if (inAddressBook) {
+            return res.json({ 
+                contact_id: cleanPhone, 
+                status: 'ok',
+                description: 'Contact verified and present in address book'
+            });
+        }
+
+        return res.json({ 
+            contact_id: cleanPhone, 
+            status: 'not_present',
+            description: 'Number exists but not in your contacts list'
+        });
+
+    } catch (error) {
+        const { userMessage } = extractErrorDetails(error, 'checkContact');
+        return res.status(500).json({ error: userMessage, status: 'error' });
+    }
+});
+
+
 // GET /:session_type/status
 app.get('/:session_type/status', async (req, res) => {
   const { session_type } = req.params;

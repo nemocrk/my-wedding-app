@@ -21,7 +21,7 @@ test.describe('Concurrency Scenarios', () => {
             const inv = await api.createInvitation({
                 code: `concurrent-user-${Date.now()}-${i}`,
                 name: `Concurrent Family ${i}`,
-                status: 'pending',
+                status: 'created',
                 accommodation_offered: true,
                 guests: [{ first_name: 'User', last_name: `${i}`, is_child: false }]
             });

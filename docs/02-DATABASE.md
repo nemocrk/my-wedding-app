@@ -19,7 +19,9 @@ erDiagram
         int id PK
         string code "Slug URL univoco"
         string name "Nome famiglia/gruppo"
-        enum status "pending, confirmed, declined"
+        enum status "created, sent, read, confirmed, declined"
+        enum origin "groom, bride"
+        string phone_number "Referente gruppo"
         boolean accommodation_offered
         boolean transfer_offered
     }
@@ -63,7 +65,15 @@ erDiagram
 ### 1. Invitation (Partecipazione)
 L'entità radice del sistema. Ogni invito è identificato univocamente da un codice (`code`) che viene utilizzato nell'URL pubblico.
 - **Logica**: Un invito raggruppa più persone.
-- **RSVP**: Contiene lo stato complessivo della risposta (`status`).
+- **Workflow Status**:
+  - `created`: Invito creato ma non inviato.
+  - `sent`: Invito inviato (via WhatsApp/Link).
+  - `read`: L'utente ha aperto il link (tracking automatico).
+  - `confirmed`: L'utente ha confermato la presenza.
+  - `declined`: L'utente ha declinato.
+- **Contatti**:
+  - `origin`: Indica se l'invito è lato Sposo o Sposa (per statistiche e gestione tavoli).
+  - `phone_number`: Numero di telefono del capofamiglia/referente per invio WhatsApp.
 
 ### 2. Person (Ospite)
 Rappresenta il singolo invitato. Distingue tra adulti e bambini (`is_child`) per calcoli logistici.

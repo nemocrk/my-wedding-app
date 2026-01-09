@@ -1,5 +1,9 @@
 from rest_framework import serializers
-from .models import Invitation, Person, GlobalConfig, Accommodation, Room
+from .models import (
+    Invitation, Person, GlobalConfig, Accommodation, Room,
+    GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, 
+    WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate
+)
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -34,12 +38,14 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
     """Serializer per endpoint pubblico con lettera renderizzata"""
     guests = PublicPersonSerializer(many=True, read_only=True)
     letter_content = serializers.SerializerMethodField()
+    config = serializers.SerializerMethodField()
 
     class Meta:
         model = Invitation
         fields = [
             'name', 'guests', 'letter_content',
-            'accommodation_offered', 'transfer_offered', 'status'
+            'accommodation_offered', 'transfer_offered', 'status',
+            'config'
         ]
 
     def get_letter_content(self, obj):
@@ -61,6 +67,15 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
         rendered = rendered.replace('{code}', obj.code)
         
         return rendered
+
+    def get_config(self, obj):
+        # Backward compatibility + Extra info
+        config = self.context.get('config')
+        if not config:
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        return {
+            'whatsapp_number': config.whatsapp_groom_number if obj.origin == 'groom' else config.whatsapp_bride_number
+        }
 
 class RoomDetailSerializer(serializers.ModelSerializer):
     """Serializer completo per stanze con ospiti assegnati"""
@@ -100,31 +115,6 @@ class InvitationAssignmentSerializer(serializers.ModelSerializer):
         return obj.guests.filter(is_child=True).count()
 
 class AccommodationSerializer(serializers.ModelSerializer):
-    # READ ONLY: Per la visualizzazione, usiamo i dettagli completi
-    rooms = RoomDetailSerializer(many=True, read_only=True)
-    
-    # WRITE ONLY: Per input JSON, accettiamo direttamente 'rooms'
-    # source='rooms' non serve qui perché gestiamo tutto nel create/update manualmente
-    # ma serve al framework per capire che è collegato. 
-    # Tuttavia, la discrepanza tra 'rooms' (read) e 'rooms' (write) crea problemi se usiamo nomi diversi.
-    # FIX: Usiamo lo stesso nome 'rooms' sia per input che per output, ma con serializer diversi
-    # Questo è complesso in DRF semplice.
-    
-    # APPROCCIO MIGLIORE: Accettiamo 'rooms' in input (JSON) che viene mappato su 'rooms_config'
-    # Ma il tuo JSON di input usa 'rooms'.
-    
-    # ridefiniamo 'rooms' per essere WRITABLE ma usando il serializer semplice in input
-    # e quello complesso in output? No, DRF non lo supporta bene.
-    
-    # SOLUZIONE FUNZIONANTE:
-    # rooms = RoomDetailSerializer(many=True, read_only=True)
-    # rooms_input = RoomSerializer(many=True, write_only=True, source='rooms') <-- Questo aspetta "rooms_input" nel JSON
-    
-    # Il tuo JSON ha "rooms".
-    # Quindi dobbiamo dire: "il campo 'rooms' è writable e usa RoomSerializer".
-    # Ma in lettura vogliamo RoomDetailSerializer.
-    
-    # OVERRIDE per gestire il polimorfismo Read/Write
     rooms = RoomSerializer(many=True, write_only=True)  # Input JSON "rooms" usa RoomSerializer
     rooms_details = RoomDetailSerializer(many=True, read_only=True, source='rooms') # Output JSON "rooms_details" usa RoomDetailSerializer
 
@@ -177,15 +167,17 @@ class AccommodationSerializer(serializers.ModelSerializer):
 class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
     accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
+    contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
     
     class Meta:
         model = Invitation
         fields = [
             'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
             'accommodation_requested', 'transfer_requested', 'accommodation',
-            'affinities', 'non_affinities', 'guests', 'created_at', 'status'
+            'affinities', 'non_affinities', 'guests', 'created_at', 'status',
+            'origin', 'phone_number', 'contact_verified', 'contact_verified_display'
         ]
-        read_only_fields = ['id', 'created_at']
+        read_only_fields = ['id', 'created_at', 'contact_verified_display']
 
     def create(self, validated_data):
         guests_data = validated_data.pop('guests')
@@ -206,7 +198,13 @@ class InvitationSerializer(serializers.ModelSerializer):
         guests_data = validated_data.pop('guests', None)
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
-
+        
+        # Check if phone number is changing
+        new_phone = validated_data.get('phone_number')
+        if new_phone is not None and new_phone != instance.phone_number:
+            # Reset verification status if phone changes
+            instance.contact_verified = Invitation.ContactVerified.NOT_VALID
+            
         # 1. Update Invitation Fields
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
@@ -259,6 +257,7 @@ class InvitationListSerializer(serializers.ModelSerializer):
     guests_count = serializers.IntegerField(source='guests.count', read_only=True)
     guests = PersonSerializer(many=True, read_only=True)
     accommodation_name = serializers.CharField(source='accommodation.name', read_only=True)
+    contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
 
     class Meta:
         model = Invitation
@@ -266,5 +265,40 @@ class InvitationListSerializer(serializers.ModelSerializer):
             'id', 'name', 'code', 'guests_count', 'guests', 
             'accommodation_offered', 'transfer_offered', 
             'accommodation_requested', 'transfer_requested',
-            'status', 'accommodation_name'
+            'status', 'accommodation_name', 'origin', 'phone_number',
+            'contact_verified', 'contact_verified_display'
         ]
+
+# --- NEW SERIALIZERS ---
+
+class GuestInteractionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuestInteraction
+        fields = '__all__'
+
+class GuestHeatmapSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = GuestHeatmap
+        fields = '__all__'
+
+class WhatsAppSessionStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppSessionStatus
+        fields = '__all__'
+
+class WhatsAppMessageEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppMessageEvent
+        fields = ['phase', 'timestamp', 'duration_ms', 'metadata']
+
+class WhatsAppMessageQueueSerializer(serializers.ModelSerializer):
+    events = WhatsAppMessageEventSerializer(many=True, read_only=True)
+    
+    class Meta:
+        model = WhatsAppMessageQueue
+        fields = ['id', 'session_type', 'recipient_number', 'message_body', 'status', 'scheduled_for', 'sent_at', 'attempts', 'error_log', 'events']
+
+class WhatsAppTemplateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WhatsAppTemplate
+        fields = '__all__'
