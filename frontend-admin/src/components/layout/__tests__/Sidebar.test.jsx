@@ -1,11 +1,15 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
-import { BrowserRouter } from 'react-router-dom';
+import { MemoryRouter } from 'react-router-dom';
 import Sidebar from '../Sidebar';
 
 describe('Sidebar Component', () => {
-  const renderWithRouter = (component) => {
-    return render(<BrowserRouter>{component}</BrowserRouter>);
+  const renderWithRouter = (component, route = '/') => {
+    return render(
+      <MemoryRouter initialEntries={[route]}>
+        {component}
+      </MemoryRouter>
+    );
   };
 
   it('renders navigation links correctly', () => {
@@ -20,8 +24,7 @@ describe('Sidebar Component', () => {
 
   it('applies active class to current route', () => {
     // Manually set URL to /dashboard to test active state
-    window.history.pushState({}, 'Test Page', '/dashboard');
-    renderWithRouter(<Sidebar />);
+    renderWithRouter(<Sidebar />, '/dashboard');
 
     const dashboardLink = screen.getByText('Dashboard').closest('a');
     expect(dashboardLink).toHaveClass('bg-pink-50');
