@@ -208,15 +208,6 @@ const LetterContent = ({ data }) => {
                     className="wax-seal"
                     initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
                     animate={sealControls}
-                    style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        left: '1rem',
-                        width: '36%',
-                        maxWidth: '90px',
-                        zIndex: 30,
-                        pointerEvents: 'none'
-                    }}
                 >
                     <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
                 </motion.div>
