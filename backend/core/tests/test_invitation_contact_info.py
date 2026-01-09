@@ -61,24 +61,24 @@ class TestInvitationContactInfo:
     def test_whatsapp_phone_storage(self, invitation_factory):
         """Test storing whatsapp specific number"""
         inv = invitation_factory("wa-test", "WA Test", [])
-        inv.whatsapp_phone = "+393330000000"
+        inv.phone_number = "+393330000000"
         inv.save()
         
         inv.refresh_from_db()
-        assert inv.whatsapp_phone == "+393330000000"
+        assert inv.phone_number == "+393330000000"
 
     def test_sms_phone_storage(self, invitation_factory):
         """Test storing sms specific number"""
         inv = invitation_factory("sms-test", "SMS Test", [])
-        inv.sms_phone = "+393331111111"
+        inv.phone_number = "+393331111111"
         inv.save()
         
         inv.refresh_from_db()
-        assert inv.sms_phone == "+393331111111"
+        assert inv.phone_number == "+393331111111"
 
     def test_contact_fields_are_optional(self, invitation_factory):
         """Verify new contact fields are not mandatory"""
         inv = invitation_factory("opt-test", "Optional Test", [])
         inv.full_clean() # Should pass without errors
-        assert inv.whatsapp_phone is None
-        assert inv.sms_phone is None
+        assert inv.phone_number is None
+        assert inv.contact_verified is Invitation.ContactVerified.NOT_VALID

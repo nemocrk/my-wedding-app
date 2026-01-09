@@ -51,8 +51,10 @@ class TestInvitationSerializer:
         payload = {
             'code': 'valid-contact',
             'name': 'Valid Contact',
-            'whatsapp_phone': '+393331234567',
-            'sms_phone': '+393339876543'
+            'phone_number': '+393331234567',
+            'guests': [
+                {'first_name': 'Anna', 'last_name': 'Verdi', 'is_child': False}
+            ]
         }
         serializer = InvitationSerializer(data=payload)
         assert serializer.is_valid(), serializer.errors
@@ -62,13 +64,16 @@ class TestInvitationSerializer:
         payload_invalid = {
             'code': 'invalid-contact',
             'name': 'Invalid Contact',
-            'whatsapp_phone': 'not-a-number' 
+            'phone_number': 'not-a-number',
+            'guests': [
+                {'first_name': 'Anna', 'last_name': 'Verdi', 'is_child': False}
+            ]
         }
         serializer = InvitationSerializer(data=payload_invalid)
         # Note: If no validators are set on model, DRF CharField accepts any string.
         # This test primarily ensures fields are exposed in serializer.
         assert serializer.is_valid()
-        assert 'whatsapp_phone' in serializer.validated_data
+        assert 'phone_number' in serializer.validated_data
 
 
 @pytest.mark.django_db

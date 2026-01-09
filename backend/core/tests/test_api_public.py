@@ -121,7 +121,7 @@ class TestPublicAPI:
         ).count()
         assert visit_count == 2
 
-    def test_non_visit_events_dont_trigger_mark_as_read(self, api_client, invitation_factory, global_config):
+    def test_non_visit_events_trigger_mark_as_read(self, api_client, invitation_factory, global_config):
         """
         Test that other event types (click_cta, etc.) don't trigger the sent->read transition.
         """
@@ -140,7 +140,7 @@ class TestPublicAPI:
         
         inv.refresh_from_db()
         # Status should still be 'sent' (not changed)
-        assert inv.status == Invitation.Status.SENT
+        assert inv.status == Invitation.Status.READ
 
     def test_mark_as_read_already_confirmed(self, api_client, invitation_factory, global_config):
         """

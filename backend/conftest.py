@@ -34,10 +34,19 @@ def global_config(db):
             'unauthorized_message': 'Access Denied',
             'letter_text': 'Hello {guest_names}, welcome to {family_name} wedding!',
             'whatsapp_groom_number': '393330000000',
-            'whatsapp_bride_number': '393330000001'
+            'whatsapp_bride_number': '393330000001',
+            'price_adult_meal': 100,
+            'price_child_meal': 50
         }
     )
     return config
+
+@pytest.fixture
+def accommodation_with_rooms(db):
+    acc = Accommodation.objects.create(name="Hotel Test", address="Via Test 1")
+    Room.objects.create(accommodation=acc, room_number="101", capacity_adults=2, capacity_children=0)
+    Room.objects.create(accommodation=acc, room_number="102", capacity_adults=2, capacity_children=1)
+    return acc
 
 @pytest.fixture
 def invitation_factory(db):
