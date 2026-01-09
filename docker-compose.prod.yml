@@ -1,0 +1,332 @@
+services:
+  # ---------------------------------------------
+  # 1. DATABASE - Completamente isolato
+  # ---------------------------------------------
+  db:
+    image: postgres:alpine
+    restart: always
+    environment:
+      POSTGRES_DB: wedding_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - db_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ---------------------------------------------
+  # 1c. PGBOUNCER - Connection Pooler per PostgreSQL
+  # ---------------------------------------------
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    restart: always
+    environment:
+      # Configurazione Backend DB
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: wedding_db
+      
+      # Configurazione Pooling
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 200
+      DEFAULT_POOL_SIZE: 25
+      MIN_POOL_SIZE: 5
+      RESERVE_POOL_SIZE: 5
+      SERVER_IDLE_TIMEOUT: 600
+      
+      # Configurazione Auth e Network
+      LISTEN_PORT: 5432
+      AUTH_TYPE: scram-sha-256
+      ADMIN_USERS: postgres
+      
+      # Fix DNS Docker issues
+      DNS_MAX_TTL: 15
+      DNS_ZONE_CHECK_PERIOD: 0
+    networks:
+      - db_network
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 5432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    expose:
+      - "5432"
+
+  # ---------------------------------------------
+  # 2. BACKEND API - Gunicorn per produzione
+  # ---------------------------------------------
+  backend:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-backend:${IMAGE_TAG:-latest}
+    restart: always
+    command: gunicorn wedding.wsgi:application --bind 0.0.0.0:8000 --workers 4
+    volumes:
+      - static_volume:/app/staticfiles
+      - media_volume:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+      pgbouncer:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD}@pgbouncer:5432/wedding_db
+      DJANGO_SETTINGS_MODULE: wedding.settings
+      SECRET_KEY: ${DJANGO_SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS}
+      DEBUG: "False"
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL}
+    networks:
+      - db_network
+      - backend_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    expose:
+      - "8000"
+      
+  # ---------------------------------------------
+  # 2b. BACKEND WORKER - Gestore Coda Messaggi
+  # ---------------------------------------------
+  backend-worker:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-backend:${IMAGE_TAG:-latest}
+    restart: always
+    command: python manage.py run_whatsapp_worker
+    volumes:
+      - static_volume_worker:/app/staticfiles
+      - media_volume_worker:/app/media
+    depends_on:
+      backend:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD}@pgbouncer:5432/wedding_db
+      DJANGO_SETTINGS_MODULE: wedding.settings
+      SECRET_KEY: ${DJANGO_SECRET_KEY}
+      WAHA_WORKER_INTERVAL: ${WAHA_WORKER_INTERVAL:-60}
+      WA_INTEGRATION_URL: http://whatsapp-integration:3000
+    networks:
+      - db_network
+      - whatsapp_intranet_network
+
+  # ---------------------------------------------
+  # 3. FRONTEND USER - Internet pubblico via Nginx
+  # ---------------------------------------------
+  frontend-user:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-frontend-user:${IMAGE_TAG:-latest}
+    restart: always
+    networks:
+      - frontend_public_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    expose:
+      - "80"
+
+  # ---------------------------------------------
+  # 4. FRONTEND ADMIN - Solo Intranet
+  # ---------------------------------------------
+  frontend-admin:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-frontend-admin:${IMAGE_TAG:-latest}
+    restart: always
+    networks:
+      - frontend_intranet_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+    expose:
+      - "80"
+
+  # ---------------------------------------------
+  # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
+  # ---------------------------------------------
+  nginx-public:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/public.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - static_volume:/var/www/static:ro
+      - media_volume:/var/www/media:ro
+    depends_on:
+      frontend-user:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - frontend_public_network
+      - backend_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------
+  # 6. NGINX INTRANET - Gateway Intranet (solo frontend-admin)
+  # ---------------------------------------------
+  nginx-intranet:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
+    volumes:
+      - ./nginx/intranet.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      frontend-admin:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      whatsapp-integration:
+         condition: service_healthy
+    networks:
+      - frontend_intranet_network
+      - backend_network
+      - whatsapp_intranet_network
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # ---------------------------------------------
+  # 7. WHATSAPP SERVICES (Isolated)
+  # ---------------------------------------------
+  
+  # WAHA Core - Sposo
+  waha-groom:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
+      WAHA_API_KEY: ${WAHA_API_KEY_GROOM}
+      WAHA_PRINT_QR: 'false'
+    networks:
+      - whatsapp_intranet_network
+      - whatsapp_public_network
+    volumes:
+      - waha_groom_sessions:/app/.sessions
+      - waha_groom_media:/app/.media
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_GROOM}' http://localhost:3000/api/server/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # WAHA Core - Sposa
+  waha-bride:
+    image: devlikeapro/waha:latest
+    restart: on-failure
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
+      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
+      WAHA_API_KEY: ${WAHA_API_KEY_BRIDE}
+      WAHA_PRINT_QR: 'false'
+    networks:
+      - whatsapp_intranet_network
+      - whatsapp_public_network
+    volumes:
+      - waha_bride_sessions:/app/.sessions
+      - waha_bride_media:/app/.media
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_BRIDE}' http://localhost:3000/api/server/status || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+
+  # Integration Layer (Proxy & Logic)
+  whatsapp-integration:
+    image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-whatsapp-integration:${IMAGE_TAG:-latest}
+    restart: always
+    depends_on:
+      waha-groom:
+        condition: service_healthy
+      waha-bride:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      WAHA_GROOM_URL: 'http://waha-groom:3000'
+      WAHA_BRIDE_URL: 'http://waha-bride:3000'
+      WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM}
+      WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE}
+      DJANGO_API_URL: 'http://backend:8000/api/admin'
+    networks:
+      - backend_network
+      - whatsapp_intranet_network
+    expose:
+      - "3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
+
+# ---------------------------------------------
+# RETI - Isolamento completo tra componenti
+# ---------------------------------------------
+networks:
+  db_network:
+    internal: true
+    driver: bridge
+  backend_network:
+    internal: true
+    driver: bridge
+  frontend_public_network:
+    driver: bridge
+  frontend_intranet_network:
+    driver: bridge
+  whatsapp_intranet_network:
+    internal: true
+    driver: bridge
+  whatsapp_public_network:
+    driver: bridge
+
+# ---------------------------------------------
+# VOLUMI PERSISTENTI
+# ---------------------------------------------
+volumes:
+  postgres_data:
+    driver: local
+  static_volume:
+    driver: local
+  media_volume:
+    driver: local
+  static_volume_worker:
+    driver: local
+  media_volume_worker:
+    driver: local
+  waha_groom_sessions:
+    driver: local
+  waha_groom_media:
+    driver: local
+  waha_bride_sessions:
+    driver: local
+  waha_bride_media:
+    driver: local
