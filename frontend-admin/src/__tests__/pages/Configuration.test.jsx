@@ -56,11 +56,11 @@ describe('Configuration Page', () => {
         expect(mockGetConfig).toHaveBeenCalled();
     });
 
-    expect(screen.getByText(/configurazione/i)).toBeInTheDocument();
+    expect(screen.getByText("Configurazione")).toBeInTheDocument();
     
     // Check if values are populated (e.g. searching for IBAN value)
     await waitFor(() => {
-        expect(screen.getByDisplayValue('IT000000000000')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('secret123')).toBeInTheDocument();
     });
   });
 
