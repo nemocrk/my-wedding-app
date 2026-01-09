@@ -28,7 +28,8 @@ describe('Envelope Animation E2E', () => {
         name: 'Famiglia Test',
         code: 'test-code',
         status: 'created',
-        guests: []
+        guests: [],
+        letter_content: "Caro Ospite,\nSiamo lieti di invitarti." // FIX: Added letter_content
       }
     });
 
@@ -47,7 +48,7 @@ describe('Envelope Animation E2E', () => {
     await waitFor(() => {
         const envelopes = screen.queryAllByRole('button'); // Envelope is often a button
         expect(envelopes.length).toBeGreaterThan(0);
-    });
+    }, { timeout: 3000 });
   });
 
   it('should reveal invitation content after interaction', async () => {
@@ -57,29 +58,20 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // Wait for envelope to load
-    const openAction = await screen.findByRole('button', { hidden: true }); // findBy waits automatically
+    // Wait for envelope to load (async)
+    // findByRole has a default timeout of 1000ms, usually sufficient
+    const openAction = await screen.findByRole('button', { hidden: true });
     
     if(openAction) {
         await userEvent.click(openAction);
         
         // Wait for animation to reveal content
-        // Note: EnvelopeAnimation logic needs to eventually render invitation content
-        // Currently EnvelopeAnimation in InvitationPage sets animationComplete=true
-        // which might trigger LetterContent or similar.
-        // We need to check what actually happens.
-        // In InvitationPage:
-        // {invitationData && ( <EnvelopeAnimation onComplete={() => setAnimationComplete(true)} ... /> )}
-        // But the LetterContent is commented out in InvitationPage!
-        // {/*animationComplete && invitationData && ( <LetterContent data={invitationData} /> )*/}
-        
-        // So checking for 'invitation-card' might fail if it's commented out in the component.
-        // Let's assume the test expects the EnvelopeAnimation itself to change state 
-        // OR that the commented out part was supposed to be uncommented.
-        
-        // However, based on the provided InvitationPage.jsx, LetterContent IS commented out.
-        // This test will likely fail on the expect part unless EnvelopeAnimation renders the card internally.
-        // Let's look at EnvelopeAnimation.jsx.
+        // Since LetterContent is now inside EnvelopeAnimation and rendered after opening
+        // we check for elements that LetterContent would render
+        await waitFor(() => {
+            // Check for text from the mock letter content or the mocked InvitationCard
+            expect(screen.getByText(/Caro Ospite/i)).toBeInTheDocument();
+        }, { timeout: 5000 });
     }
   });
 });
