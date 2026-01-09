@@ -123,6 +123,17 @@
     margin-top: 0.5rem;
 }
 
+/* Wax Seal Style */
+.wax-seal {
+    position: absolute;
+    bottom: 1rem;
+    left: 1rem;
+    width: 36%;
+    max-width: 90px;
+    z-index: 30;
+    pointer-events: none;
+}
+
 /* BACK FACE */
 .flip-card-back {
   transform: rotateY(180deg);
@@ -417,6 +428,13 @@
         font-size: 1rem;
     }
 
+    /* Wax Seal Mobile Adjustment */
+    .wax-seal {
+        max-width: 70px; /* Reduced from 90px */
+        bottom: 0.8rem;
+        left: 0.8rem;
+    }
+
     /* Back Face Adjustments */
     .letter-paper {
         padding: 1rem;
@@ -467,6 +485,11 @@
     .text-names { font-size: 1.6rem; }
     .text-wit { font-size: 0.75rem; }
     .text-date { font-size: 1rem; }
+    
+    .wax-seal {
+        max-width: 60px; /* Even smaller for very small screens */
+    }
+    
     .nav-button { width: 40px; height: 40px; }
     .nav-button-back { width: 30px; height: 30px; }
 }
