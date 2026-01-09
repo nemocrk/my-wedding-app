@@ -159,11 +159,7 @@ services:
   nginx-public:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-nginx-public:${IMAGE_TAG:-latest}
     restart: always
-    ports:
-      - "80:80"
-      - "443:443"
     volumes:
-      - ./nginx/certs:/etc/nginx/certs:ro
       - static_volume:/var/www/static:ro
       - media_volume:/var/www/media:ro
     depends_on:
@@ -174,6 +170,7 @@ services:
     networks:
       - frontend_public_network
       - backend_network
+      - wedding_app_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -186,8 +183,6 @@ services:
   nginx-intranet:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-nginx-intranet:${IMAGE_TAG:-latest}
     restart: always
-    ports:
-      - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
     # Nessun volume di config necessario, solo il default nginx
     depends_on:
       frontend-admin:
@@ -200,6 +195,7 @@ services:
       - frontend_intranet_network
       - backend_network
       - whatsapp_intranet_network
+      - wedding_app_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -304,6 +300,8 @@ networks:
     internal: true
     driver: bridge
   whatsapp_public_network:
+    driver: bridge
+  wedding_app_network:
     driver: bridge
 
 # ---------------------------------------------
