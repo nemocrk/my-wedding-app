@@ -68,8 +68,8 @@ if [ "$CLEAN_ONLY" = false ]; then
     echo "  [4/4] Avvio il progetto in dev mode con hot-reload..."
     echo "--------------------------------------------------------"
     if [ "$DETACH" = false ]; then
-        docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file ./.env.dev up --build
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
     else
-        docker compose -f docker-compose.yml -f docker-compose.dev.yml --env-file ./.env.dev up --build --detach
+        docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build --detach
     fi
 fi
