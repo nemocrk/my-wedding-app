@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import {  useAnimation } from 'framer-motion';
+import { motion, useAnimation } from 'motion/react';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
 import rightArrow from '../../assets/illustrations/right-arrow.png';
-import waxImg from '../../assets/illustrations/wax.png'; // Import del sigillo
-import { FaWhatsapp } from 'react-icons/fa'; // Assicurati che react-icons sia installato
+import waxImg from '../../assets/illustrations/wax.png';
+import { FaWhatsapp } from 'react-icons/fa';
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -36,22 +36,19 @@ const LetterContent = ({ data }) => {
   // Initialize Analytics + Replay commands listener (Admin -> iframe)
   useEffect(() => {
     heatmapTracker.start();
-    // Tracking implicito dell'apertura lettera
     logInteraction('view_letter'); 
 
     const handleReplayMessage = (event) => {
-      // Hardening minimo: richiede payload con type noto
       if (!event?.data?.type) return;
 
       if (event.data.type === 'REPLAY_RESET') {
-        // Stato base deterministico per il replay
         setRsvpStatus('pending');
         setAccommodationRequested(false);
         setTransferRequested(false);
         setIsEditing(true);
         setMessage(null);
         setSubmitting(false);
-        setIsFlipped(false); // Reset flip state
+        setIsFlipped(false);
         return;
       }
 
@@ -59,14 +56,12 @@ const LetterContent = ({ data }) => {
         const { action, details } = event.data.payload || {};
         if (!action) return;
 
-        // Eventi gestiti
         if (action === 'rsvp_reset') {
           setIsEditing(true);
           setMessage(null);
           return;
         }
 
-        // click_rsvp: mostra lo stato come se l'utente avesse confermato/declinato
         if (action === 'click_rsvp' || action === 'rsvp_submit') {
           const status = details?.status_chosen || details?.status;
           if (status === 'confirmed' || status === 'declined') {
@@ -77,16 +72,13 @@ const LetterContent = ({ data }) => {
           return;
         }
         
-        // Handle flip action replay if needed
         if (action === 'card_flip') {
             setIsFlipped(details?.flipped || false);
         }
       }
     };
 
-    // LISTENER PER IL RIENTRO DEL SIGILLO (Step 5 di EnvelopeAnimation)
     const onSealReturn = () => {
-        // Avvia l'animazione di rientro
         sealControls.start({
             x: 0,
             y: 0,
@@ -105,8 +97,6 @@ const LetterContent = ({ data }) => {
     window.addEventListener('message', handleReplayMessage);
     window.addEventListener('wax-seal:return', onSealReturn);
 
-    // Fallback: se dopo 100ms non abbiamo ricevuto eventi, assumiamo che siamo già in stato finale (es. refresh pagina)
-    // e mostriamo il sigillo.
     const timer = setTimeout(() => {
          sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 });
     }, 500);
@@ -128,7 +118,6 @@ const LetterContent = ({ data }) => {
     setSubmitting(true);
     setMessage(null);
 
-    // Track button click
     logInteraction('click_rsvp', { status_chosen: status });
 
     try {
@@ -141,7 +130,7 @@ const LetterContent = ({ data }) => {
       if (result.success) {
         logInteraction('rsvp_submit', { status, result: 'success' });
         setRsvpStatus(status);
-        setIsEditing(false); // Switch to confirmed view
+        setIsEditing(false);
         setMessage({ type: 'success', text: result.message });
       } else {
         logInteraction('rsvp_submit', { status, result: 'error' });
@@ -165,7 +154,7 @@ const LetterContent = ({ data }) => {
   return (
     <motion.div
       className="letter-content"
-      initial={{ opacity: 0 }} // Opacity gestita dall'envelope transition
+      initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
@@ -217,13 +206,13 @@ const LetterContent = ({ data }) => {
                 </button>
                 <motion.div
                     className="wax-seal"
-                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} // Parte fuori
+                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
                     animate={sealControls}
                     style={{ 
                         position: 'absolute',
                         bottom: '1rem',
                         left: '1rem',
-                        width: '36%', // Dimensionamento dinamico relativo alla card
+                        width: '36%',
                         maxWidth: '90px',
                         zIndex: 30,
                         pointerEvents: 'none'
@@ -238,15 +227,15 @@ const LetterContent = ({ data }) => {
                 <div className="letter-paper">
                     {/* Navigation to Front */}
                     <button 
-                        className="nav-button-flipped" 
+                        className="nav-button-back" 
                         onClick={() => handleFlip(false)}
                         aria-label="Torna alla copertina"
                         title="Torna alla copertina"
                     >
-                        <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
+                        <img src={rightArrow} alt="Indietro" className="nav-arrow-img" />
                     </button>
 
-                    <h1 className="letter-title" style={{marginTop: '2rem'}}>Siete Invitati!</h1>
+                    <h1 className="letter-title">Siete Invitati!</h1>
                     
                     <div className="letter-body">
                     {data.letter_content.split('\n').map((line, idx) => (
@@ -322,7 +311,7 @@ const LetterContent = ({ data }) => {
                         </button>
                         </div>
                         {data.status && data.status !== 'pending' && (
-                            <button className="text-gray-400 text-xs mt-2 underline block text-center w-full" onClick={() => setIsEditing(false)}>
+                            <button className="cancel-edit-btn" onClick={() => setIsEditing(false)}>
                                 Annulla modifiche
                             </button>
                         )}
@@ -331,13 +320,13 @@ const LetterContent = ({ data }) => {
 
                     {/* CONFIRMED/DECLINED VIEW */}
                     {!isEditing && rsvpStatus === 'confirmed' && (
-                    <div className="rsvp-confirmed animate-fadeIn">
+                    <div className="rsvp-confirmed">
                         <h3>✅ Partecipazione Confermata!</h3>
                         <p>Non vediamo l'ora di vedervi al nostro matrimonio!</p>
-                        <div className="mt-4">
+                        <div className="action-wrapper">
                             <button 
                                 onClick={handleReset}
-                                className="text-pink-600 font-semibold underline hover:text-pink-800 text-sm"
+                                className="edit-response-btn edit-response-btn-confirm"
                             >
                                 Modifica risposta
                             </button>
@@ -346,13 +335,13 @@ const LetterContent = ({ data }) => {
                     )}
 
                     {!isEditing && rsvpStatus === 'declined' && (
-                    <div className="rsvp-declined animate-fadeIn">
+                    <div className="rsvp-declined">
                         <h3>😔 Ci dispiace</h3>
                         <p>Grazie comunque per averci avvisato.</p>
-                        <div className="mt-4">
+                        <div className="action-wrapper">
                             <button 
                                 onClick={handleReset}
-                                className="text-gray-600 font-semibold underline hover:text-gray-800 text-sm"
+                                className="edit-response-btn edit-response-btn-decline"
                             >
                                 Modifica risposta
                             </button>
@@ -362,18 +351,18 @@ const LetterContent = ({ data }) => {
 
                     {/* WHATSAPP CTA SECTION */}
                     {(groomNumber || brideNumber) && (
-                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                        <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">Hai domande?</p>
-                        <div className="flex justify-center gap-4">
+                    <div className="whatsapp-section">
+                        <p className="whatsapp-label">Hai domande?</p>
+                        <div className="whatsapp-buttons">
                             {groomNumber && (
                                 <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" 
-                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
+                                className="whatsapp-link">
                                 <FaWhatsapp size={18} /> {groomName}
                                 </a>
                             )}
                             {brideNumber && (
                                 <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" 
-                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
+                                className="whatsapp-link">
                                 <FaWhatsapp size={18} /> {brideName}
                                 </a>
                             )}
