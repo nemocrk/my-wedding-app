@@ -27,3 +27,4 @@ postgres_data/
 **/coverage/**
 **/.coverage/**
 **/.coverage
+.env.dev
