@@ -200,10 +200,10 @@
 
 .nav-button-back {
     position: absolute;
-    top: 15px;
-    left: 15px;
-    width: 35px;
-    height: 35px;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    height: 50px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.8);
     border: none;
@@ -430,9 +430,9 @@
 
     /* Wax Seal Mobile Adjustment */
     .wax-seal {
-        max-width: 70px; /* Reduced from 90px */
-        bottom: 0.8rem;
-        left: 0.8rem;
+        max-width: 50px; /* Reduced from 90px */
+        bottom: -6px;
+        left: 20px;
     }
 
     /* Back Face Adjustments */
@@ -487,9 +487,11 @@
     .text-date { font-size: 1rem; }
     
     .wax-seal {
-        max-width: 60px; /* Even smaller for very small screens */
+        max-width: 40px; /* Even smaller for very small screens */
+        left: 10px;
+        bottom: -11px;
     }
     
-    .nav-button { width: 40px; height: 40px; }
-    .nav-button-back { width: 30px; height: 30px; }
+    .nav-button { width: 40px; height: 40px; right: 10px; bottom: 10px }
+    .nav-button-back { width: 40px; height: 40px; left: 10px; bottom: 10px }
 }

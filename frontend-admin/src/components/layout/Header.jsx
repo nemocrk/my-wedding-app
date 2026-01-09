@@ -1,6 +1,6 @@
 // frontend-admin/src/components/layout/Header.jsx
 import React, { useState } from 'react';
-import { Menu, X, Home, Users, Settings } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 const Header = () => {
@@ -9,9 +9,11 @@ const Header = () => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const menuItems = [
-    { title: 'Dashboard', icon: <Home size={20} />, path: '/' },
-    { title: 'Inviti', icon: <Users size={20} />, path: '/invitations' },
-    { title: 'Impostazioni', icon: <Settings size={20} />, path: '/config' }, // Corrected route
+        { path: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard size={20} /> },
+        { path: '/invitations', title: 'Inviti', icon: <Users size={20} /> },
+        { path: '/accommodations', title: 'Alloggi', icon: <Home size={20} /> },
+        { path: '/whatsapp', title: 'WhatsApp', icon: <MessageCircle size={20} /> },
+        { path: '/config', title: 'Configurazione', icon: <Settings size={20} /> }
   ];
 
   return (
