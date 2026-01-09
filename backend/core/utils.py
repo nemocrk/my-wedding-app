@@ -21,7 +21,7 @@ def verify_whatsapp_contact_task(invitation_id):
     phone_number = invitation.phone_number
     if not phone_number:
         invitation.contact_verified = Invitation.ContactVerified.NOT_VALID
-        invitation.save()
+        invitation.save(update_fields=['contact_verified'])
         return
 
     # Determina sessione (groom/bride)
@@ -64,5 +64,5 @@ def verify_whatsapp_contact_task(invitation_id):
 
     # Aggiorna stato (senza triggerare nuovi segnali ricorsivi se possibile)
     invitation.contact_verified = status
-    invitation.save()
+    invitation.save(update_fields=['contact_verified'])
     logger.info(f"✅ Contact verification result for {invitation.code}: {status}")

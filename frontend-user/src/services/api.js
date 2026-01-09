@@ -3,7 +3,7 @@
  * Gestisce tutte le chiamate al backend con session-based auth
  */
 
-const API_BASE = '/api/public';
+const API_BASE = 'api/public';
 
 /**
  * Helper to get session ID from storage (same logic as analytics.js)

@@ -251,6 +251,27 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     const cleanPhone = contact_id.replace(/[^0-9]/g, '');
     const SESSION_NAME = 'default';
+    const statusUrl = `${wahaUrl}/api/sessions/default`; 
+    let status = 'UNKNOWN';
+    
+    try {
+        console.log(`[${session_type}] Verify contact: checking current status`);
+        const s = await axios.get(statusUrl, { headers, timeout: 5000 });
+        status = s.data.status;
+        console.log(`[${session_type}] Verify contact: current status is ${status}`);
+    } catch (e) {
+        const { userMessage } = extractErrorDetails(e, 'verifyContactStatusCheck');
+        console.warn(`Verify contact status check failed: ${userMessage}`);
+        status = 'STOPPED';
+    }
+
+    if (status !== 'WORKING') {
+        return res.json({ 
+            contact_id: cleanPhone, 
+            status: 'not_valid',
+            description: 'The number is not registered on WhatsApp'
+        });
+    }
 
     try {
         console.log(`[${session_type}] Checking contact ${cleanPhone}`);

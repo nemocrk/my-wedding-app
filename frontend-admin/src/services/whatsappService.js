@@ -1,4 +1,4 @@
-const API_BASE_URL = '/api/admin';
+const API_BASE_URL = 'api/admin';
 
 const handleResponse = async (response) => {
   let data;

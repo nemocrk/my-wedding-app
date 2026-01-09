@@ -3,7 +3,7 @@
  * Gestisce il tracciamento delle interazioni e delle heatmap
  */
 
-const API_BASE = '/api/public';
+const API_BASE = 'api/public';
 
 // Generate or retrieve session ID for this tab session
 const getSessionId = () => {

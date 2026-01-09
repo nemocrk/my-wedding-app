@@ -5,7 +5,7 @@ export const useWhatsAppSSE = () => {
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
   useEffect(() => {
-    const eventSource = new EventSource('/api/whatsapp-service/events');
+    const eventSource = new EventSource('api/whatsapp-service/events');
 
     eventSource.onopen = () => {
       setConnectionStatus('connected');
