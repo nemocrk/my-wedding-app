@@ -372,13 +372,14 @@
 }
 
 .nav-button-back {
-    position: absolute;
-    bottom: 20px;
+    position: sticky;
+    top: 20px;
     left: 20px;
     width: 50px;
     height: 50px;
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(4px);
     border: none;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
     display: flex;
@@ -389,6 +390,8 @@
     transition: all 0.3s ease;
     padding: 0;
     transform: rotate(180deg);
+    margin-left: 1rem;
+    margin-top: 1rem;
 }
 
 .nav-button-back:hover {
@@ -731,7 +734,7 @@
     }
     
     .nav-button { width: 40px; height: 40px; right: 10px; bottom: 10px; }
-    .nav-button-back { width: 40px; height: 40px; left: 10px; bottom: 10px; }
+    .nav-button-back { width: 40px; height: 40px; }
 
     .card-grid {
         gap: 0.6rem;
