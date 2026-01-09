@@ -238,13 +238,12 @@ const LetterContent = ({ data }) => {
                 <div className="letter-paper">
                     {/* Navigation to Front */}
                     <button 
-                        className="nav-button" 
-                        style={{ left: 15, right: 'auto', bottom: 'auto', top: 15, transform: 'rotate(180deg)', width: 35, height: 35, fontSize: '1rem' }}
+                        className="nav-button-flipped" 
                         onClick={() => handleFlip(false)}
                         aria-label="Torna alla copertina"
                         title="Torna alla copertina"
                     >
-                        <span role="img" aria-label="arrow-left">➡️</span>
+                        <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
                     </button>
 
                     <h1 className="letter-title" style={{marginTop: '2rem'}}>Siete Invitati!</h1>
