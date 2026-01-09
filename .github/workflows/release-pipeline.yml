@@ -96,6 +96,10 @@ jobs:
           tags: |
             type=raw,value=latest
             type=raw,value=${{ inputs.version }}
+          labels: |
+            org.opencontainers.image.version=${{ inputs.version }}
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
 
       - name: Build and Push (${{ matrix.service }})
         uses: docker/build-push-action@v6
