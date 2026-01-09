@@ -170,7 +170,7 @@ services:
     networks:
       - frontend_public_network
       - backend_network
-      - wedding_app_network
+      - wedding_app_public_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -195,7 +195,7 @@ services:
       - frontend_intranet_network
       - backend_network
       - whatsapp_intranet_network
-      - wedding_app_network
+      - wedding_app_private_network
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
       interval: 30s
@@ -301,8 +301,14 @@ networks:
     driver: bridge
   whatsapp_public_network:
     driver: bridge
-  wedding_app_network:
+  wedding_app_public_network:
     driver: bridge
+    name: wedding_app_public_network
+    external: true
+  wedding_app_private_network:
+    driver: bridge
+    name: wedding_app_private_network
+    external: true
 
 # ---------------------------------------------
 # VOLUMI PERSISTENTI
