@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'motion/react';
+import { useAnimation } from 'motion/react';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import './LetterContent.css';
