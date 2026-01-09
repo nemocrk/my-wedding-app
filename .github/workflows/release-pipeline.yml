@@ -60,12 +60,19 @@ jobs:
           - service: backend
             context: ./backend
             image_name: my-wedding-app-backend
+            build_args: ""
           - service: frontend-user
             context: ./frontend-user
             image_name: my-wedding-app-frontend-user
+            build_args: "REACT_APP_API_URL=/api"
           - service: frontend-admin
             context: ./frontend-admin
             image_name: my-wedding-app-frontend-admin
+            build_args: "REACT_APP_API_URL=/api"
+          - service: whatsapp-integration
+            context: ./whatsapp-integration
+            image_name: my-wedding-app-whatsapp-integration
+            build_args: ""
 
     steps:
       - name: Checkout Code
@@ -100,5 +107,6 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: ${{ matrix.build_args }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
