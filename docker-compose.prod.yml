@@ -10,7 +10,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data_prod:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     networks:
       - db_network
     healthcheck:
@@ -312,7 +312,7 @@ networks:
 # VOLUMI PERSISTENTI
 # ---------------------------------------------
 volumes:
-  postgres_data_prod:
+  postgres_data:
     driver: local
   static_volume:
     driver: local
