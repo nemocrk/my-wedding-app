@@ -80,7 +80,7 @@ test.describe('Complex Wedding Flow', () => {
 
         // 2. ADMIN: Verify Dashboard (via UI or API)
         // Using UI for Admin verification
-        await page.goto('http://localhost:8080/dashboard');
+        await page.goto('http://localhost:8080/#/dashboard');
         
         // Wait for dashboard to fully render
         await expect(page.locator('body')).toContainText('In Attesa');
@@ -138,7 +138,7 @@ test.describe('Complex Wedding Flow', () => {
 
         // 5. ADMIN: Auto Assignment
         console.log('Triggering Auto Assignment...');
-        await page.goto('http://localhost:8080/accommodations');
+        await page.goto('http://localhost:8080/#/accommodations');
         
         // Wait for accommodations page to render
         await expect(page.getByRole('heading', { name: 'Gestione Alloggi' })).toBeVisible();
@@ -158,7 +158,7 @@ test.describe('Complex Wedding Flow', () => {
 
         // 6. ADMIN: Verify Results
         // Check Dashboard again
-        await page.goto('http://localhost:8080/dashboard');
+        await page.goto('http://localhost:8080/#/dashboard');
         
         // Wait for dashboard to refresh with new data
         await expect(page.getByText('Alloggi')).toBeVisible();
