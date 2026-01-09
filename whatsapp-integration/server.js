@@ -251,11 +251,9 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     const cleanPhone = contact_id.replace(/[^0-9]/g, '');
     const SESSION_NAME = 'default';
-
-    try {
     const statusUrl = `${wahaUrl}/api/sessions/default`; 
-    
     let status = 'UNKNOWN';
+    
     try {
         console.log(`[${session_type}] Verify contact: checking current status`);
         const s = await axios.get(statusUrl, { headers, timeout: 5000 });
