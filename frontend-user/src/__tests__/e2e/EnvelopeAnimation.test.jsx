@@ -57,7 +57,7 @@ describe('Envelope Animation E2E', () => {
     expect(envelopes.length).toBeGreaterThanOrEqual(0); 
   });
 
-  it('should reveal invitation content after interaction', async () => {
+  it('should reveal invitation content after interaction', { timeout: 15000 }, async () => {
     // Setup userEvent with fake timers
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
@@ -68,10 +68,6 @@ describe('Envelope Animation E2E', () => {
     );
 
     // 1. Advance time to complete the FULL animation sequence
-    // Initial fly-in: 2000ms
-    // Sequence delays: 500 + 600 + 600 + 1200 + 1500 + 1000 = 5400ms
-    // Total approx: 7400ms. 
-    // We advance 12000ms to be safe and ensure pointer-events: auto is applied.
     await act(async () => {
         vi.advanceTimersByTime(12000);
     });
@@ -84,5 +80,5 @@ describe('Envelope Animation E2E', () => {
     
     // 4. Verify content is visible
     expect(screen.getByText(/Caro Ospite/i)).toBeInTheDocument();
-  }, { timeout: 15000 }); // Increase test timeout to handle heavy fake timer processing if needed
+  }); 
 });
