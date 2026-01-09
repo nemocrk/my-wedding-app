@@ -8,6 +8,7 @@ set -e # Interrompe l'esecuzione se un comando fallisce
 
 # Default values
 CLEAN_ONLY=false
+DETACH=false
 
 # Parse arguments
 for arg in "$@"
@@ -15,6 +16,12 @@ do
     case $arg in
         --clean_only)
         CLEAN_ONLY=true
+        shift
+        ;;
+    esac
+    case $arg in
+        --detach)
+        DETACH=true
         shift
         ;;
     esac
@@ -60,5 +67,8 @@ if [ "$CLEAN_ONLY" = false ]; then
 echo "--------------------------------------------------------"
 echo "  [4/4] Avvio il progetto in dev mode con hot-reload..."
 echo "--------------------------------------------------------"
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+if [ "$DETACH" = false ]; then
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+else
+    docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build --detach
 fi

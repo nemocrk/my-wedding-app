@@ -140,24 +140,59 @@ class Room(models.Model):
 
 class Invitation(models.Model):
     class Status(models.TextChoices):
-        PENDING = 'pending', 'In Attesa'
-        CONFIRMED = 'confirmed', 'Confermato'
+        CREATED = 'created', 'Creato'
+        SENT = 'sent', 'Inviato'
+        READ = 'read', 'Letto'
+        CONFIRMED = 'confirmed', 'Accettato'
         DECLINED = 'declined', 'Declinato'
+        
+    class Origin(models.TextChoices):
+        GROOM = 'groom', 'Lato Sposo'
+        BRIDE = 'bride', 'Lato Sposa'
+
+    class ContactVerified(models.TextChoices):
+        NOT_VALID = 'not_valid', 'Numero non valido/assente'
+        NOT_EXIST = 'not_exist', 'Non esiste su WhatsApp'
+        NOT_PRESENT = 'not_present', 'Non in rubrica'
+        OK = 'ok', 'OK (Verificato)'
 
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
+    
+    # Contatti & Organizzazione
+    origin = models.CharField(
+        max_length=10, 
+        choices=Origin.choices, 
+        default=Origin.GROOM,
+        verbose_name="Appartenenza"
+    )
+    phone_number = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True, 
+        verbose_name="Numero Telefono (Referente)"
+    )
+
+    contact_verified = models.CharField(
+        max_length=20,
+        choices=ContactVerified.choices,
+        default=ContactVerified.NOT_VALID,
+        verbose_name="Stato Verifica Contatto"
+    )
     
     # OPZIONI OFFERTE (Lato Sposi - Configurazione)
     accommodation_offered = models.BooleanField(default=False, verbose_name="Alloggio Offerto")
     transfer_offered = models.BooleanField(default=False, verbose_name="Transfer Offerto")
     
-    # RISPOSTE RSVP (Lato Invitati - Scelte)
+    # STATO DEL WORKFLOW
     status = models.CharField(
         max_length=20,
         choices=Status.choices,
-        default=Status.PENDING,
-        verbose_name="Stato RSVP"
+        default=Status.CREATED,
+        verbose_name="Stato Invito"
     )
+    
+    # RISPOSTE RSVP (Lato Invitati - Scelte)
     accommodation_requested = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
     transfer_requested = models.BooleanField(default=False, verbose_name="Richiede Transfer")
     
@@ -395,3 +430,34 @@ class WhatsAppMessageEvent(models.Model):
             models.Index(fields=['queue_message', 'timestamp']),
             models.Index(fields=['phase']),
         ]
+
+class WhatsAppTemplate(models.Model):
+    class Condition(models.TextChoices):
+        STATUS_CHANGE = 'status_change', 'Cambio di Stato'
+        MANUAL = 'manual', 'Manuale (Spot)'
+
+    name = models.CharField(max_length=100, help_text="Nome descrittivo del template")
+    condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.STATUS_CHANGE)
+    
+    # Se condition == STATUS_CHANGE, questo campo definisce QUANDO inviare
+    trigger_status = models.CharField(
+        max_length=20, 
+        choices=Invitation.Status.choices, 
+        blank=True, 
+        null=True,
+        help_text="Stato che attiva l'invio automatico"
+    )
+    
+    content = models.TextField(help_text="Usa {name}, {link}, {code} come placeholder")
+    is_active = models.BooleanField(default=True, verbose_name="Attivo")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ['trigger_status', 'condition'] # Un solo template automatico per stato
+        verbose_name = "Template WhatsApp"
+        verbose_name_plural = "Template WhatsApp"
+
+    def __str__(self):
+        return f"{self.name} ({self.get_condition_display()})"

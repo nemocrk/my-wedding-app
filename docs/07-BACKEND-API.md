@@ -1,46 +1,124 @@
-# Backend API (Views & Serializers)
+# Backend API Documentation
 
-Questa sezione documenta come i dati vengono trasformati (Serializer) ed esposti (Views) tramite Django REST Framework.
+Il backend espone API RESTful sviluppate con Django REST Framework.
+Le API sono divise in due macro-categorie:
+1. **Public API**: Accessibili dagli invitati (Internet). Protette da Session + Token HMAC.
+2. **Admin API**: Accessibili solo dalla rete interna (Intranet) o VPN. Gestione completa.
 
-## 1. Serializers (`backend/core/serializers.py`)
+## Authentication & Security
 
-### Serializers Pubblici
-Utilizzati per l'interfaccia ospite, con un set ridotto di campi per privacy.
-- **`PublicInvitationSerializer`**: Include un campo calcolato `letter_content` che renderizza dinamicamente il testo di benvenuto usando placeholder (`{family_name}`, `{code}`) configurati nel database.
-- **`PublicPersonSerializer`**: Mostra solo nome, cognome e flag bambino.
+### Public API
+- **Session-Based**: L'accesso inizia con una `POST /api/public/auth/` inviando `code` e `token`.
+- **HMAC Verification**: Il token nell'URL viene validato crittograficamente usando una `SECRET_KEY` lato server.
+- **Session Persistence**: Dopo l'autenticazione, `invitation_id` viene salvato nella sessione server-side (cookie `sessionid`).
 
-### Serializers Amministrativi
-Gestiscono CRUD completi per il pannello di controllo.
-- **`InvitationSerializer`**: Gestisce relazioni nested complesse in fase di creazione/aggiornamento:
-    - **Guests**: Logica di sync (crea nuovi, aggiorna esistenti, cancella mancanti) preservando l'assegnazione stanze (`assigned_room`).
-    - **Affinities**: Gestione automatica della simmetria nelle relazioni ManyToMany (se A piace a B, B piace ad A).
-- **`AccommodationSerializer`**: Include logica per creazione/aggiornamento massivo delle stanze (`rooms_config`). Calcola dinamicamente la capacità totale e residua.
-- **`RoomDetailSerializer`**: Espone il metodo `available_slots()` del modello per mostrare in tempo reale quanti posti (Adulti/Bambini) sono liberi.
+### Admin API
+- **Network Isolation**: In produzione, queste API non sono esposte su Internet (blocco Nginx).
+- **Django Auth**: Richiedono utente Staff/Superuser (Session Auth standard).
 
-## 2. Gestione ViewSet
-Le API sono divise logicamente in due namespace.
+---
 
-### Namespace `/api/public/`
-- **Autenticazione**: Mista.
-    - `GET /invitation/{code}`: Aperta (rate-limited).
-    - `POST /rsvp`: Richiede Token HMAC o sessione valida.
-- **Permessi**: ReadOnly per la maggior parte, Write solo su campi specifici (`status`, `dietary_requirements`).
+## Endpoint Reference
 
-### Namespace `/api/admin/`
-- **Autenticazione**: SessionAuthentication (richiede login Django standard).
-- **Permessi**: `IsAdminUser`.
-- **Logica Bulk**: Endpoint ottimizzati per dashboard (`InvitationListSerializer` con `prefetch_related` per evitare query N+1).
+### 🌍 Public Endpoints (`/api/public/`)
 
-## Flusso Dati Complesso
-### Aggiornamento RSVP
-1. Il frontend invia un payload JSON con lo stato di ogni ospite.
-2. `InvitationSerializer.update()` intercetta la richiesta.
-3. I dati degli ospiti vengono iterati: se l'ID esiste, si aggiorna il record `Person`; se manca, si crea.
-4. Vengono ricalcolati i totali per accommodation e transfer.
-5. Viene emesso un segnale (se configurato) per notificare gli sposi via email/Telegram.
+#### `POST /auth/`
+Inizia una sessione ospite.
+- **Body**: `{ "code": "rossi-family", "token": "a1b2c3d4..." }`
+- **Response**: `{ "valid": true, "invitation": { ... } }`
 
-### Assegnazione Alloggi
-L'assegnazione è a doppio livello:
-1. **Invito → Struttura (`Accommodation`)**: Definisce DOVE dorme il gruppo.
-2. **Ospite → Stanza (`Room`)**: Definisce IN QUALE CAMERA dorme il singolo.
-Il serializer `PersonSerializer` gestisce il campo `assigned_room` come FK nullable, permettendo flessibilità (es. assegnare solo la struttura senza specificare ancora la camera).
+#### `GET /invitation/`
+Recupera i dati dell'invito corrente (dalla sessione).
+- **Response**: Dettagli invito + lista ospiti (Person).
+
+#### `POST /rsvp/`
+Invia o aggiorna la risposta (RSVP).
+- **Body**: 
+  ```json
+  {
+    "status": "confirmed", // o "declined"
+    "accommodation_requested": true,
+    "transfer_requested": false
+  }
+  ```
+
+#### `POST /log-interaction/`
+Traccia eventi analitici (es. click su bottoni).
+- **Body**: `{ "event_type": "click_cta", "metadata": { "btn": "map" } }`
+
+---
+
+### 🔒 Admin Endpoints (`/api/admin/`)
+
+#### Invitations (`/invitations/`)
+CRUD completo sugli inviti.
+- `GET /` : Lista paginata inviti.
+- `POST /` : Crea nuovo invito.
+- `GET /{id}/` : Dettaglio invito.
+- `PUT /{id}/` : Aggiorna invito.
+- `DELETE /{id}/` : Elimina invito.
+
+**Custom Actions:**
+- `GET /{id}/generate_link/` : Genera URL pubblico con token valido.
+- `POST /{id}/mark-as-sent/` : Imposta manualmente lo stato a "Inviato" (senza inviare messaggi).
+- `GET /{id}/interactions/` : Storico log interazioni.
+- `GET /{id}/heatmaps/` : Dati heatmap sessioni utente.
+
+#### Accommodations (`/accommodations/`)
+Gestione strutture e stanze.
+- `POST /auto-assign/`: Lancia l'algoritmo di assegnazione automatica.
+  - Body: `{ "strategy": "SPACE_OPTIMIZER", "reset_previous": false }`
+
+#### WhatsApp Templates (`/whatsapp-templates/`)
+Gestione template messaggi.
+- `GET /` : Lista template.
+- `POST /` : Crea template.
+- `PUT /{id}/` : Aggiorna template.
+- `DELETE /{id}/` : Elimina template.
+
+**Schema Template:**
+```json
+{
+  "name": "Conferma Ricezione",
+  "condition": "status_change", // o "manual"
+  "trigger_status": "read", // "sent", "confirmed", etc. (solo se condition=status_change)
+  "content": "Ciao {name}, abbiamo ricevuto la tua risposta!",
+  "is_active": true
+}
+```
+
+#### Dashboard (`/dashboard/stats/`)
+- `GET /`: Restituisce contatori aggregati (Ospiti, Budget, Logistica).
+
+#### Config (`/config/`)
+Gestione singleton `GlobalConfig`.
+- `GET /`: Leggi configurazione attuale.
+- `POST /`: Aggiorna prezzi e testi.
+
+#### WhatsApp (`/whatsapp/`)
+Gestione integrazione WAHA.
+- `GET /{type}/status/`: Status sessione (connected/disconnected/qr).
+- `POST /{type}/refresh/`: Forza refresh sessione.
+- `POST /{type}/test/`: Invia messaggio test al numero admin.
+
+---
+
+## Data Models (JSON Schemas)
+
+### Invitation Object
+```json
+{
+  "id": 1,
+  "code": "rossi-family",
+  "name": "Famiglia Rossi",
+  "status": "confirmed",
+  "origin": "groom", // "groom" | "bride"
+  "phone_number": "+393331234567",
+  "accommodation_offered": true,
+  "transfer_offered": false,
+  "guests": [
+    { "first_name": "Mario", "is_child": false },
+    { "first_name": "Luigi", "is_child": true }
+  ]
+}
+```

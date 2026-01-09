@@ -1,6 +1,6 @@
 // frontend-admin/src/components/invitations/CreateInvitationModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone } from 'lucide-react';
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
 
@@ -21,6 +21,8 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const [formData, setFormData] = useState({
     name: '',
     code: '',
+    origin: 'groom', // 'groom' or 'bride'
+    phone_number: '',
     accommodation_offered: false,
     transfer_offered: false,
     guests: [
@@ -36,6 +38,8 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       setFormData({
         name: initialData.name || '',
         code: initialData.code || '',
+        origin: initialData.origin || 'groom',
+        phone_number: initialData.phone_number || '',
         accommodation_offered: initialData.accommodation_offered || false,
         transfer_offered: initialData.transfer_offered || false,
         guests: initialData.guests && initialData.guests.length > 0 
@@ -202,6 +206,36 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       Dettagli Invito
                     </h3>
                     
+                    {/* ORIGIN TOGGLE */}
+                    <div className="flex justify-center mb-6">
+                      <div className="bg-gray-100 p-1 rounded-lg flex space-x-1">
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, origin: 'groom' }))}
+                          className={`flex items-center px-6 py-2 rounded-md text-sm font-medium transition-all ${
+                            formData.origin === 'groom' 
+                              ? 'bg-white text-blue-600 shadow-sm' 
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span className="mr-2">🤵</span>
+                          Lato Sposo
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setFormData(prev => ({ ...prev, origin: 'bride' }))}
+                          className={`flex items-center px-6 py-2 rounded-md text-sm font-medium transition-all ${
+                            formData.origin === 'bride' 
+                              ? 'bg-white text-pink-600 shadow-sm' 
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          <span className="mr-2">👰</span>
+                          Lato Sposa
+                        </button>
+                      </div>
+                    </div>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 mb-2">Nome Visualizzato</label>
@@ -226,6 +260,27 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all font-mono text-sm"
                         />
                       </div>
+                    </div>
+
+                    {/* PHONE NUMBER */}
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Numero Telefono Referente</label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                          <Phone size={18} className="text-gray-400" />
+                        </div>
+                        <input
+                          type="text"
+                          name="phone_number"
+                          value={formData.phone_number}
+                          onChange={handleInputChange}
+                          placeholder="+39 333 1234567"
+                          className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
+                        />
+                      </div>
+                      <p className="text-xs text-gray-500 mt-1">
+                        Utilizzato per l'invio automatizzato WhatsApp (includere prefisso internazionale)
+                      </p>
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">

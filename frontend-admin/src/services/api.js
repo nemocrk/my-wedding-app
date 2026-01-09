@@ -67,6 +67,25 @@ export const api = {
     return handleResponse(response);
   },
 
+  markInvitationAsSent: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/mark-as-sent/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({}) // Empty body for action
+    });
+    return handleResponse(response);
+  },
+
+  verifyContact: async (id) => {
+    // Uses fallback option (PATCH to set state to not_valid which triggers backend task)
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contact_verified: 'not_valid' }),
+    });
+    return handleResponse(response);
+  },
+
   deleteInvitation: async (id) => {
     const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'DELETE',
@@ -187,5 +206,52 @@ export const api = {
         headers: { 'Content-Type': 'application/json' }
     });
     return handleResponse(response);
+  },
+
+  // --- WHATSAPP QUEUE ---
+  fetchWhatsAppQueue: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`);
+    return handleResponse(response);
+  },
+
+  enqueueWhatsAppMessage: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    });
+    return handleResponse(response);
+  },
+
+  // --- WHATSAPP TEMPLATES ---
+  fetchWhatsAppTemplates: async () => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`);
+      return handleResponse(response);
+  },
+
+  createWhatsAppTemplate: async (data) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+      });
+      return handleResponse(response);
+  },
+
+  updateWhatsAppTemplate: async (id, data) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+      });
+      return handleResponse(response);
+  },
+
+  deleteWhatsAppTemplate: async (id) => {
+      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+          method: 'DELETE'
+      });
+      if (response.status === 204) return true;
+      return handleResponse(response);
   }
 };
