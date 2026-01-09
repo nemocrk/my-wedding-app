@@ -3,12 +3,14 @@ name: Full Stack Test Suite
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'docs/**'
+      - '**.md'
   pull_request:
     branches: [ "main" ]
     paths-ignore:
       - 'docs/**'
       - '**.md'
-
 jobs:
   # ==============================================================================
   # 1. BACKEND TESTS (Matches run_all_tests.sh Section 1)
