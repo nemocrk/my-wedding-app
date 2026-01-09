@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
@@ -434,8 +435,9 @@ const LetterContent = ({ data }) => {
       </div>
 
       {/* EXPANDED CARD MODAL */}
-      <AnimatePresence>
-        {expandedCard && (
+      {/* EXPANDED CARD MODAL - Rendered via Portal */}
+      {expandedCard && ReactDOM.createPortal(
+        <AnimatePresence>
           <motion.div 
             className="card-modal-overlay"
             initial={{ opacity: 0 }}
@@ -456,8 +458,9 @@ const LetterContent = ({ data }) => {
               {renderCardContent(expandedCard)}
             </motion.div>
           </motion.div>
-        )}
-      </AnimatePresence>
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };
