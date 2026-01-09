@@ -42,26 +42,40 @@ def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
     
     should_verify = False
     
-    # Caso 1: Creazione con telefono
-    if created and instance.phone_number:
-        should_verify = True
-        
-    # Caso 2: Modifica telefono
-    elif not created and hasattr(instance, '_previous_phone'):
-        if instance.phone_number != instance._previous_phone and instance.phone_number:
+    # Avoid infinite loop: if update_fields was used and only contains 'contact_verified', skip
+    if kwargs.get('update_fields') and 'contact_verified' in kwargs['update_fields'] and len(kwargs['update_fields']) == 1:
+        should_verify = False
+    else:
+        # Caso 1: Creazione con telefono
+        if created and instance.phone_number:
             should_verify = True
             
-    # Caso 3: Stato esplicitamente non valido (es. reset da UI)
-    if instance.contact_verified == Invitation.ContactVerified.NOT_VALID and instance.phone_number:
-        should_verify = True
+        # Caso 2: Modifica telefono
+        elif not created and hasattr(instance, '_previous_phone'):
+            if instance.phone_number != instance._previous_phone and instance.phone_number:
+                should_verify = True
+                
+        # Caso 3: Stato esplicitamente non valido (es. reset da UI)
+        # Nota: dobbiamo stare attenti a non triggerare loop se il task stesso imposta NOT_VALID su errore
+        if instance.contact_verified == Invitation.ContactVerified.NOT_VALID and instance.phone_number and not getattr(instance, '_skip_signal', False):
+             # Aggiungiamo un check per evitare di ritentare se è appena stato settato a NOT_VALID dal task
+             # (concettualmente complesso senza async, per ora ci fidiamo del update_fields check sopra nel task)
+             if not created and instance.phone_number == instance._previous_phone:
+                 # Se il telefono non è cambiato e siamo qui, potrebbe essere un reset manuale
+                 should_verify = True
 
     if should_verify:
         logger.info(f"🔍 Triggering contact verification for {instance.name} ({instance.phone_number})")
         # Chiamata asincrona al microservizio di verifica (via Celery o chiamata diretta non bloccante)
-        # Per ora simuliamo/implementiamo la chiamata diretta ma idealmente andrebbe in background task
         try:
             from .utils import verify_whatsapp_contact_task
-            verify_whatsapp_contact_task(instance.id)
+            # Passiamo l'id per evitare serializzazione oggetto
+            # Eseguiamo solo se non siamo in test environment SENZA mocking, 
+            # altrimenti blocca i test unitari cercando di connettersi a localhost:3000
+            if not os.environ.get('DJANGO_TEST_MODE', 'False') == 'True':
+                 verify_whatsapp_contact_task(instance.id)
+            else:
+                 logger.info("Skipping actual verification call in TEST MODE")
         except ImportError:
             logger.warning("Verification task not implemented yet")
 
