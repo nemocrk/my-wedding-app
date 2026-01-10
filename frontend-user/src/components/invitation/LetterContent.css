@@ -336,6 +336,82 @@
   margin-top: 1rem;
 }
 
+/* ========== RSVP STATUS HEADER ========== */
+.rsvp-status-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.2rem;
+  margin-bottom: 1.5rem;
+  border-radius: 12px;
+  border-left: 4px solid;
+}
+
+.rsvp-status-emoji {
+  font-size: 2.5rem;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.rsvp-status-content {
+  flex: 1;
+}
+
+.rsvp-status-title {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin: 0 0 0.3rem 0;
+  line-height: 1.2;
+}
+
+.rsvp-status-message {
+  font-size: 0.95rem;
+  line-height: 1.4;
+  margin: 0;
+  white-space: pre-line;
+}
+
+/* Status Variants */
+.rsvp-status-pending {
+  background: rgba(255, 243, 205, 0.95);
+  border-left-color: #f59e0b;
+}
+
+.rsvp-status-pending .rsvp-status-title {
+  color: #d97706;
+}
+
+.rsvp-status-pending .rsvp-status-message {
+  color: #92400e;
+}
+
+.rsvp-status-confirmed {
+  background: rgba(232, 245, 233, 0.95);
+  border-left-color: #4caf50;
+}
+
+.rsvp-status-confirmed .rsvp-status-title {
+  color: #2e7d32;
+}
+
+.rsvp-status-confirmed .rsvp-status-message {
+  color: #1b5e20;
+}
+
+.rsvp-status-declined {
+  background: rgba(243, 244, 246, 0.95);
+  border-left-color: #9ca3af;
+}
+
+.rsvp-status-declined .rsvp-status-title {
+  color: #6b7280;
+}
+
+.rsvp-status-declined .rsvp-status-message {
+  color: #4b5563;
+}
+
 /* RSVP Expanded specific */
 .rsvp-expanded .guests-list,
 .rsvp-expanded .offer-badge,
@@ -377,6 +453,7 @@
 }
 
 .rsvp-section h3 { color: #8b7355; margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
+.rsvp-form { margin-top: 1.5rem; }
 .checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; margin-bottom: 0.8rem; cursor: pointer; }
 .button-group { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem; }
 .rsvp-button { width: 100%; border: none; padding: 0.8rem; font-size: 1rem; border-radius: 25px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; font-weight: 600; }
@@ -404,7 +481,7 @@
     color: #6b7280;
 }
 
-/* Confirmed/Declined Views */
+/* Confirmed/Declined Views - Legacy (se ancora necessario) */
 .rsvp-confirmed, .rsvp-declined { 
     margin-top: 2rem; 
     padding: 1.5rem; 
@@ -417,35 +494,25 @@
 .rsvp-declined h3 { color: #c62828; margin-bottom: 1rem; }
 
 /* Action Wrapper for Edit Response Button */
-.action-wrapper {
-    margin-top: 1rem;
+.rsvp-actions {
+    margin-top: 1.5rem;
+    text-align: center;
 }
 
 .edit-response-btn {
     background: transparent;
     border: none;
     font-weight: 600;
-    font-size: 0.875rem;
+    font-size: 0.95rem;
     text-decoration: underline;
     cursor: pointer;
     transition: color 0.2s;
-    padding: 0.5rem 0;
+    padding: 0.5rem 1rem;
+    color: #8b7355;
 }
 
-.edit-response-btn-confirm {
-    color: #ec4899;
-}
-
-.edit-response-btn-confirm:hover {
-    color: #be185d;
-}
-
-.edit-response-btn-decline {
-    color: #6b7280;
-}
-
-.edit-response-btn-decline:hover {
-    color: #374151;
+.edit-response-btn:hover {
+    color: #6b5638;
 }
 
 /* WhatsApp CTA Section */
@@ -588,6 +655,24 @@
         font-size: 1.4rem;
     }
 
+    /* RSVP Status Header Mobile */
+    .rsvp-status-header {
+        padding: 1rem;
+        gap: 0.8rem;
+    }
+
+    .rsvp-status-emoji {
+        font-size: 2rem;
+    }
+
+    .rsvp-status-title {
+        font-size: 1rem;
+    }
+
+    .rsvp-status-message {
+        font-size: 0.85rem;
+    }
+
     .guests-list {
         margin-top: 1rem;
         padding: 0.8rem;
@@ -601,13 +686,8 @@
         font-size: 0.9rem;
     }
 
-    .rsvp-section {
-        margin-top: 1.5rem;
-        padding: 1rem;
-    }
-
-    .rsvp-section h3 {
-        font-size: 1.1rem;
+    .rsvp-form {
+        margin-top: 1rem;
     }
 
     .rsvp-button {
@@ -662,4 +742,15 @@
         font-size: 0.8rem;
     }
 
+    .rsvp-status-emoji {
+        font-size: 1.8rem;
+    }
+
+    .rsvp-status-title {
+        font-size: 0.95rem;
+    }
+
+    .rsvp-status-message {
+        font-size: 0.8rem;
+    }
 }
