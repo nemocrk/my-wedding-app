@@ -66,10 +66,10 @@ class PublicInvitationView(APIView):
 class PublicRSVPView(APIView):
     """
     Enhanced RSVP Endpoint supporting Multi-Step Wizard payload:
-    - phone_number: str
+    - phone_number: str (tracks old/new)
     - guest_updates: dict {guest_index: {first_name, last_name}}
-    - excluded_guests: list [guest_indices]
-    - travel_info: dict {transport_type, schedule, car_option, carpool_interest}
+    - excluded_guests: list [guest_indices] → sets Person.not_coming=True
+    - travel_info: dict {transport_type, schedule, car_option, carpool_interest} → persisted to Invitation.travel_*
     """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
@@ -80,71 +80,103 @@ class PublicRSVPView(APIView):
             with transaction.atomic():
                 invitation = Invitation.objects.select_for_update().get(id=invitation_id)
                 
+                # Metadata logging container
+                metadata = {
+                    'payload_received': request.data.copy()
+                }
+                
                 # 1. Validate Status
                 new_status = request.data.get('status')
                 if new_status not in ['confirmed', 'declined']:
                     return Response({'success': False, 'message': 'Stato non valido'}, status=status.HTTP_400_BAD_REQUEST)
                 
-                # 2. Update Phone Number
+                # 2. Update Phone Number (Track Changes)
                 phone_number = request.data.get('phone_number')
                 if phone_number:
-                    invitation.phone_number = phone_number
+                    old_phone = invitation.phone_number
+                    if old_phone != phone_number:
+                        invitation.phone_number = phone_number
+                        metadata['phone_number_old'] = old_phone
+                        metadata['phone_number_new'] = phone_number
+                        metadata['phone_number_changed'] = True
+                        logger.info(f"Phone updated for {invitation.code}: {old_phone} → {phone_number}")
+                    else:
+                        metadata['phone_number_changed'] = False
                 
                 # 3. Apply Guest Updates (Edit Names)
                 guest_updates = request.data.get('guest_updates', {})
                 if guest_updates:
                     guests = list(invitation.guests.all())
+                    updated_guests = []
                     for idx_str, updates in guest_updates.items():
                         try:
                             idx = int(idx_str)
                             if 0 <= idx < len(guests):
                                 guest = guests[idx]
+                                old_name = f"{guest.first_name} {guest.last_name or ''}".strip()
                                 if 'first_name' in updates:
                                     guest.first_name = updates['first_name']
                                 if 'last_name' in updates:
                                     guest.last_name = updates['last_name']
                                 guest.save()
+                                new_name = f"{guest.first_name} {guest.last_name or ''}".strip()
+                                updated_guests.append({'idx': idx, 'old': old_name, 'new': new_name})
+                                logger.info(f"Guest name updated: {old_name} → {new_name}")
                         except (ValueError, IndexError) as e:
                             logger.warning(f"Invalid guest update index {idx_str}: {e}")
+                    metadata['updated_guests'] = updated_guests
                 
-                # 4. Handle Excluded Guests (Soft Exclusion)
+                # 4. Handle Excluded Guests (Hard Flag: not_coming=True)
                 excluded_guests = request.data.get('excluded_guests', [])
                 if excluded_guests:
                     guests = list(invitation.guests.all())
+                    excluded_ids = []
                     for idx in excluded_guests:
                         try:
                             if 0 <= idx < len(guests):
                                 guest = guests[idx]
-                                # Soft exclusion: reset room assignment
+                                # Set not_coming flag
+                                guest.not_coming = True
+                                # Clear room assignment for consistency
                                 guest.assigned_room = None
                                 guest.save()
+                                excluded_ids.append(guest.id)
+                                logger.info(f"Guest excluded (not_coming=True): {guest.first_name} {guest.last_name or ''}")
                         except IndexError as e:
                             logger.warning(f"Invalid excluded guest index {idx}: {e}")
+                    metadata['excluded_guests_ids'] = excluded_ids
                 
-                # 5. Store Travel Info (JSONField approach)
+                # 5. Persist Travel Info to Invitation Fields
                 travel_info = request.data.get('travel_info')
                 if travel_info:
-                    # TODO: Add 'metadata' JSONField to Invitation model via migration
-                    # For now, we'll log it (non-blocking)
-                    logger.info(f"Travel Info for {invitation.code}: {travel_info}")
-                    # Future: invitation.metadata['travel_info'] = travel_info
+                    invitation.travel_transport_type = travel_info.get('transport_type')  # 'traghetto' or 'aereo'
+                    invitation.travel_schedule = travel_info.get('schedule')  # free-text
+                    invitation.travel_car_with = travel_info.get('car_option')  # bool nullable
+                    invitation.travel_carpool_interest = travel_info.get('carpool_interest')  # bool nullable
+                    
+                    metadata['travel_info'] = {
+                        'transport': invitation.travel_transport_type,
+                        'has_schedule': bool(invitation.travel_schedule),
+                        'car_with': invitation.travel_car_with,
+                        'carpool_interest': invitation.travel_carpool_interest
+                    }
+                    logger.info(f"Travel info saved for {invitation.code}: {metadata['travel_info']}")
                 
                 # 6. Update RSVP Status & Logistics
                 invitation.status = new_status
                 if new_status == 'confirmed':
                     invitation.accommodation_requested = request.data.get('accommodation_requested', False)
-                    # transfer_requested deprecato ma mantenuto per backward compatibility
+                    # transfer_requested deprecated but kept for backward compatibility
                     invitation.transfer_requested = request.data.get('transfer_requested', False)
                 else:
-                    # Se declina, reset logistics
+                    # If declined, reset logistics
                     invitation.accommodation_requested = False
                     invitation.transfer_requested = False
                 
                 invitation.save()
                 
-                # 7. Log Interaction
-                meta = request.data.copy()
-                _log_interaction(request, invitation, 'rsvp_submit', metadata=meta)
+                # 7. Log Interaction with Enhanced Metadata
+                _log_interaction(request, invitation, 'rsvp_submit', metadata=metadata)
                 
                 return Response({
                     'success': True, 
@@ -359,15 +391,18 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['get'], url_path='unassigned-invitations')
     def unassigned_invitations(self, request):
+        """Fetch confirmed invitations requesting accommodation with unassigned guests (excluding not_coming)"""
         unassigned = Invitation.objects.filter(
             status=Invitation.Status.CONFIRMED,
             accommodation_requested=True,
-            guests__assigned_room__isnull=True
+            guests__assigned_room__isnull=True,
+            guests__not_coming=False  # Exclude deselected guests
         ).distinct().prefetch_related('guests')
         data = []
         for inv in unassigned:
-            adults = inv.guests.filter(is_child=False).count()
-            children = inv.guests.filter(is_child=True).count()
+            # Count only guests who are coming
+            adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            children = inv.guests.filter(is_child=True, not_coming=False).count()
             data.append({'id': inv.id, 'name': inv.name, 'code': inv.code, 'adults_count': adults, 'children_count': children, 'total_guests': adults + children})
         return Response(data)
 
@@ -387,21 +422,21 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             'SPACE_OPTIMIZER': {
                 'name': 'Space Optimizer (Tetris)',
                 'description': 'Priorità ai gruppi numerosi su stanze "Best Fit" (piccole ma sufficienti).',
-                'invitation_sort': lambda i: -(i.guests.count()),
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count()),
                 'room_sort': lambda r: r.total_capacity(),
                 'group_affinity': True
             },
             'CHILDREN_FIRST': {
                 'name': 'Children First',
                 'description': 'Priorità alle famiglie con bambini per occupare slot specifici.',
-                'invitation_sort': lambda i: -(i.guests.filter(is_child=True).count()),
+                'invitation_sort': lambda i: -(i.guests.filter(is_child=True, not_coming=False).count()),
                 'room_sort': lambda r: -(r.capacity_children),
                 'group_affinity': True
             },
             'PERFECT_MATCH': {
                 'name': 'Perfect Match Only',
                 'description': 'Cerca di riempire le stanze al 100% della capienza.',
-                'invitation_sort': lambda i: -(i.guests.count()),
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count()),
                 'room_sort': lambda r: r.total_capacity(),
                 'group_affinity': False,
                 'perfect_match_only': True
@@ -409,14 +444,14 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             'SMALLEST_FIRST': {
                 'name': 'Smallest First',
                 'description': 'Riempimento dal basso (coppie e singoli prima).',
-                'invitation_sort': lambda i: i.guests.count(),
+                'invitation_sort': lambda i: i.guests.filter(not_coming=False).count(),
                 'room_sort': lambda r: r.total_capacity(),
                 'group_affinity': False
             },
             'AFFINITY_CLUSTER': {
                 'name': 'Affinity Cluster',
                 'description': 'Massimizza la coesione dei gruppi affini trattandoli come blocchi unici.',
-                'invitation_sort': lambda i: -(i.guests.count() + sum(a.guests.count() for a in i.affinities.all())),
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count() + sum(a.guests.filter(not_coming=False).count() for a in i.affinities.all())),
                 'room_sort': lambda r: -r.total_capacity(),
                 'group_affinity': True,
                 'force_cluster': True
@@ -434,7 +469,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 invitations = list(Invitation.objects.filter(
                     status=Invitation.Status.CONFIRMED,
                     accommodation_requested=True,
-                    guests__assigned_room__isnull=True
+                    guests__assigned_room__isnull=True,
+                    guests__not_coming=False  # Exclude not_coming guests
                 ).distinct().prefetch_related('guests', 'affinities', 'non_affinities'))
 
                 accommodations = list(Accommodation.objects.prefetch_related(
@@ -447,7 +483,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 assignment_log = []
 
                 def get_room_owner(room):
-                    owner_ids = list(Person.objects.filter(assigned_room=room).values_list('invitation_id', flat=True).distinct())
+                    owner_ids = list(Person.objects.filter(assigned_room=room, not_coming=False).values_list('invitation_id', flat=True).distinct())
                     if not owner_ids: return None
                     if len(owner_ids) > 1: return -1
                     return owner_ids[0]
@@ -455,7 +491,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 def is_accommodation_compatible(acc, inv):
                     non_affine_ids = set(inv.non_affinities.values_list('id', flat=True))
                     existing_inv_ids = set(Person.objects.filter(
-                        assigned_room__accommodation=acc
+                        assigned_room__accommodation=acc,
+                        not_coming=False
                     ).values_list('invitation_id', flat=True))
                     
                     if non_affine_ids.intersection(existing_inv_ids):
@@ -477,11 +514,11 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     nonlocal assigned_count, wasted_beds
                     
                     if strategy_params.get('perfect_match_only', False):
-                        if acc.available_capacity() < inv.guests.count(): return False
+                        if acc.available_capacity() < inv.guests.filter(not_coming=False).count(): return False
 
                     if not is_accommodation_compatible(acc, inv): return False
 
-                    persons = list(inv.guests.filter(assigned_room__isnull=True))
+                    persons = list(inv.guests.filter(assigned_room__isnull=True, not_coming=False))
                     if not persons: return True
 
                     rooms = list(acc.rooms.all())
@@ -565,10 +602,11 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 unassigned_count = Person.objects.filter(
                     invitation__status=Invitation.Status.CONFIRMED,
                     invitation__accommodation_requested=True,
-                    assigned_room__isnull=True
+                    assigned_room__isnull=True,
+                    not_coming=False
                 ).count()
 
-                occupied_rooms = Room.objects.filter(assigned_guests__isnull=False).distinct()
+                occupied_rooms = Room.objects.filter(assigned_guests__isnull=False, assigned_guests__not_coming=False).distinct()
                 for r in occupied_rooms:
                     slots = r.available_slots()
                     wasted_beds += slots['total_free']
@@ -621,7 +659,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             })
 
 class DashboardStatsView(APIView):
-    """Statistiche dashboard (solo admin)"""
+    """Statistiche dashboard (solo admin) - UPDATED to exclude not_coming guests"""
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
@@ -629,14 +667,15 @@ class DashboardStatsView(APIView):
         pending_invitations = Invitation.objects.filter(status__in=[Invitation.Status.SENT, Invitation.Status.READ])
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
         
-        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False).count()
-        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True).count()
+        # CRITICAL: Exclude not_coming guests from all counts
+        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False, not_coming=False).count()
+        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True, not_coming=False).count()
         
-        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False).count()
-        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True).count()
+        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False, not_coming=False).count()
+        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True, not_coming=False).count()
         
-        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False).count()
-        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True).count()
+        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False, not_coming=False).count()
+        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True, not_coming=False).count()
 
         stats_guests = {
             'adults_confirmed': adults_confirmed,
@@ -652,8 +691,8 @@ class DashboardStatsView(APIView):
         trans_confirmed = 0
 
         for inv in confirmed_invitations:
-            inv_adults = inv.guests.filter(is_child=False).count()
-            inv_children = inv.guests.filter(is_child=True).count()
+            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
             
             if inv.accommodation_requested:
                 acc_confirmed_adults += inv_adults
@@ -682,8 +721,8 @@ class DashboardStatsView(APIView):
         est_trans = trans_confirmed
 
         for inv in pending_invitations:
-            inv_adults = inv.guests.filter(is_child=False).count()
-            inv_children = inv.guests.filter(is_child=True).count()
+            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
             
             if inv.accommodation_offered:
                 est_acc_adults += inv_adults
