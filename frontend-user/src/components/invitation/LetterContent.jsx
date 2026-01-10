@@ -37,6 +37,40 @@ const LetterContent = ({ data }) => {
   const getWaLink = (number) => 
     `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
 
+  // RSVP Status Messages
+  const getRSVPStatusMessage = () => {
+    switch(rsvpStatus) {
+      case 'pending':
+        return {
+          emoji: '⏳',
+          title: 'In Attesa',
+          message: 'Cosa aspetti? Conferma subito la tua partecipazione!',
+          className: 'rsvp-status-pending'
+        };
+      case 'confirmed':
+        return {
+          emoji: '🎉',
+          title: 'Confermato',
+          message: 'Magnifico! Ti aspettiamo!!!',
+          className: 'rsvp-status-confirmed'
+        };
+      case 'declined':
+        return {
+          emoji: '😢',
+          title: 'Declinato',
+          message: 'Mi dispiace che tu non possa partecipare!\nFaremo un brindisi anche per te!',
+          className: 'rsvp-status-declined'
+        };
+      default:
+        return {
+          emoji: '❓',
+          title: 'Stato Sconosciuto',
+          message: 'Si prega di confermare o declinare.',
+          className: 'rsvp-status-pending'
+        };
+    }
+  };
+
   useEffect(() => {
     heatmapTracker.start();
     logInteraction('view_letter'); 
@@ -249,10 +283,20 @@ const LetterContent = ({ data }) => {
           </div>
         );
       case 'rsvp':
+        const statusInfo = getRSVPStatusMessage();
         return (
           <div className="expanded-content rsvp-expanded">
             <h2>Conferma la tua Partecipazione</h2>
             
+            {/* RSVP Status Header */}
+            <div className={`rsvp-status-header ${statusInfo.className}`}>
+              <div className="rsvp-status-emoji">{statusInfo.emoji}</div>
+              <div className="rsvp-status-content">
+                <h3 className="rsvp-status-title">{statusInfo.title}</h3>
+                <p className="rsvp-status-message">{statusInfo.message}</p>
+              </div>
+            </div>
+
             <div className="guests-list">
               <h3>Ospiti:</h3>
               <ul>
@@ -307,9 +351,7 @@ const LetterContent = ({ data }) => {
                 </div>
               </div>
             ) : (
-              <div className={rsvpStatus === 'confirmed' ? 'rsvp-confirmed' : 'rsvp-declined'}>
-                <h3>{rsvpStatus === 'confirmed' ? '✅ Partecipazione Confermata!' : '😔 Ci dispiace'}</h3>
-                <p>{rsvpStatus === 'confirmed' ? 'Non vediamo l\'ora di vedervi!' : 'Grazie per averci avvisato.'}</p>
+              <div className="rsvp-actions">
                 <button onClick={handleReset} className="edit-response-btn">Modifica risposta</button>
               </div>
             )}
