@@ -381,6 +381,33 @@
   line-height: 1.3;
 }
 
+/* ========== RSVP SUMMARY PAGE (Step iniziale se già confermato) ========== */
+.rsvp-summary-page {
+  padding: 1rem 0;
+  text-align: center;
+}
+
+.summary-status {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.summary-emoji {
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.summary-text {
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1.1rem;
+  color: #333;
+  font-weight: 500;
+  margin: 0;
+}
+
 /* ========== GUESTS LIST EDITABLE - NIENTE BORDI/SFONDI ========== */
 .guests-list-editable {
   margin-top: 1.5rem;
@@ -669,6 +696,149 @@
   font-weight: 500;
 }
 
+/* ========== TRAVEL FORM (STEP 3 - Info Viaggio) ========== */
+.travel-form {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+}
+
+.travel-form h3 {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+  margin-top: 1.2rem;
+  color: #8b7355;
+}
+
+.travel-form h3:first-child {
+  margin-top: 0;
+}
+
+/* Radio Buttons */
+.radio-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  margin-bottom: 0.6rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.radio-label input[type="radio"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #8b7355;
+}
+
+/* Travel Input (Orari) */
+.travel-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #c9a581;
+  padding: 0.5rem 0;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.travel-input:focus {
+  border-bottom-color: #8b7355;
+}
+
+.travel-input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+/* Checkbox Labels (Auto, Carpool) */
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  margin-bottom: 0.8rem;
+  cursor: pointer;
+  color: #333;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  accent-color: #8b7355;
+}
+
+/* ========== ACCOMMODATION FORM (STEP 4 - Richiesta Alloggio) ========== */
+.accommodation-form {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+}
+
+.accommodation-form h3 {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #8b7355;
+}
+
+/* ========== FINAL SUMMARY (STEP 5 - Riepilogo Finale) ========== */
+.final-summary {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(249, 247, 241, 0.5);
+  border-radius: 8px;
+  border: 1px solid #c9a581;
+}
+
+.final-summary h3 {
+  font-family: 'Georgia', serif;
+  font-size: 1.2rem;
+  margin-bottom: 1rem;
+  color: #8b7355;
+}
+
+.final-summary p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  margin-bottom: 0.5rem;
+  color: #333;
+}
+
+.final-summary p strong {
+  color: #8b7355;
+}
+
+/* ========== WHATSAPP ALERT (Validazione Modifiche) ========== */
+.whatsapp-alert {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: rgba(255, 243, 224, 0.9);
+  border: 2px solid #ff9800;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.whatsapp-alert p {
+  font-size: 0.95rem;
+  color: #8b5a00;
+  margin-bottom: 1rem;
+  font-weight: 600;
+}
+
+.whatsapp-alert .whatsapp-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 /* ========== RSVP BACK BUTTON - STILE LINK ========== */
 .rsvp-back-btn {
   width: 100%;
@@ -788,7 +958,7 @@
 
 .rsvp-section h3 { color: #8b7355; margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
 .rsvp-form { margin-top: 1.5rem; }
-.checkbox-label { display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; margin-bottom: 0.8rem; cursor: pointer; }
+
 .button-group { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem; }
 .rsvp-button { width: 100%; border: none; padding: 0.8rem; font-size: 1rem; border-radius: 25px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; font-weight: 600; }
 .rsvp-button:disabled { opacity: 0.6; cursor: not-allowed; }
@@ -1012,6 +1182,15 @@
         font-size: 1.3rem;
     }
 
+    /* Summary Page Mobile */
+    .summary-emoji {
+        font-size: 2.5rem;
+    }
+
+    .summary-text {
+        font-size: 1rem;
+    }
+
     /* Guests List Editable Mobile */
     .guests-list-editable {
         padding: 0;
@@ -1069,6 +1248,50 @@
 
     .phone-error {
         font-size: 0.8rem;
+    }
+
+    /* Travel Form Mobile */
+    .travel-form h3 {
+        font-size: 1rem;
+    }
+
+    .radio-label {
+        font-size: 0.9rem;
+    }
+
+    .travel-input {
+        font-size: 0.9rem;
+    }
+
+    .checkbox-label {
+        font-size: 0.85rem;
+    }
+
+    /* Accommodation Form Mobile */
+    .accommodation-form h3 {
+        font-size: 1rem;
+    }
+
+    /* Final Summary Mobile */
+    .final-summary {
+        padding: 0.8rem;
+    }
+
+    .final-summary h3 {
+        font-size: 1rem;
+    }
+
+    .final-summary p {
+        font-size: 0.85rem;
+    }
+
+    /* WhatsApp Alert Mobile */
+    .whatsapp-alert {
+        padding: 0.8rem;
+    }
+
+    .whatsapp-alert p {
+        font-size: 0.85rem;
     }
 
     /* RSVP Back Button Mobile */
@@ -1175,6 +1398,14 @@
         font-size: 1.2rem;
     }
 
+    .summary-emoji {
+        font-size: 2rem;
+    }
+
+    .summary-text {
+        font-size: 0.9rem;
+    }
+
     .guest-name {
         font-size: 0.85rem;
     }
@@ -1203,6 +1434,26 @@
 
     .phone-input {
         font-size: 0.85rem;
+    }
+
+    .travel-form h3 {
+        font-size: 0.95rem;
+    }
+
+    .radio-label {
+        font-size: 0.85rem;
+    }
+
+    .travel-input {
+        font-size: 0.85rem;
+    }
+
+    .checkbox-label {
+        font-size: 0.8rem;
+    }
+
+    .final-summary p {
+        font-size: 0.8rem;
     }
 
     .rsvp-back-btn {
