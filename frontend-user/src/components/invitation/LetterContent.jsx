@@ -440,8 +440,8 @@ const LetterContent = ({ data }) => {
       </div>
 
       {/* EXPANDED CARD MODAL */}
-      <AnimatePresence>
-        {expandedCard && ReactDOM.createPortal(
+      {expandedCard && ReactDOM.createPortal(
+        <AnimatePresence>
             <div 
                 className="card-modal-overlay"
                 onClick={handleCloseExpanded}
@@ -462,7 +462,7 @@ const LetterContent = ({ data }) => {
                     onClick={(e) => e.stopPropagation()}
                     transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 >
-                    <PaperModal style={{ width: '100%', minHeight: '400px' }}>
+                    <PaperModal style={{ width: '100%' }}>
                         <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
                             <motion.button 
                                 initial={{ opacity: 0 }}
@@ -484,10 +484,10 @@ const LetterContent = ({ data }) => {
                         </div>
                     </PaperModal>
                 </motion.div>
-            </div>,
-            document.body
-        )}
-      </AnimatePresence>
+            </div>
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };
