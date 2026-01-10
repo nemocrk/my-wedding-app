@@ -23,25 +23,35 @@ const LetterContent = ({ data }) => {
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   
-  // Stato per gestire ospiti esclusi (barrati)
+  // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
+  const [rsvpStep, setRsvpStep] = useState(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+  
+  // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
-  // Stato per step del form RSVP
-  const [rsvpStep, setRsvpStep] = useState('guests'); // 'guests' | 'confirm'
-  // Stato per editing ospiti
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
   const [editedGuests, setEditedGuests] = useState({});
-  // Stato temporaneo per input durante editing ospiti
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
-  // NUOVO: Stato per telefono
+  
+  // Step 2: Contatto
   const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
   const [editingPhone, setEditingPhone] = useState(false);
   const [tempPhoneNumber, setTempPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  
+  // Step 3: Viaggio
+  const [travelInfo, setTravelInfo] = useState({
+    transport_type: '', // 'traghetto' | 'aereo'
+    schedule: '',
+    car_option: false, // 'noleggio' | 'proprio' | false
+    carpool_interest: false
+  });
+  
+  // Step 4: Alloggio
+  const [accommodationChoice, setAccommodationChoice] = useState(accommodationRequested);
 
   const sealControls = useAnimation();
   
@@ -50,61 +60,46 @@ const LetterContent = ({ data }) => {
   const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
   const brideName = data.config?.whatsapp_bride_firstname || "Sposa";
 
-  const getWaLink = (number) => 
-    `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
+  const getWaLink = (number, customMessage) => {
+    const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
+    return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
+  };
 
-  // RSVP Status Messages - Versione compatta per card grid
+  // RSVP Status Messages
   const getRSVPStatusMessageCompact = () => {
     switch(rsvpStatus) {
       case 'pending':
-        return {
-          emoji: '⏳',
-          text: 'Cosa aspetti? Conferma subito!',
-          className: 'rsvp-card-status-pending'
-        };
+        return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
       case 'confirmed':
-        return {
-          emoji: '🎉',
-          text: 'Magnifico! Ti aspettiamo!!!',
-          className: 'rsvp-card-status-confirmed'
-        };
+        return { emoji: '🎉', text: 'Magnifico! Ti aspettiamo!!!', className: 'rsvp-card-status-confirmed' };
       case 'declined':
-        return {
-          emoji: '😢',
-          text: 'Faremo un brindisi per te!',
-          className: 'rsvp-card-status-declined'
-        };
+        return { emoji: '😢', text: 'Faremo un brindisi per te!', className: 'rsvp-card-status-declined' };
       default:
-        return {
-          emoji: '❓',
-          text: 'Conferma o declina',
-          className: 'rsvp-card-status-pending'
-        };
+        return { emoji: '❓', text: 'Conferma o declina', className: 'rsvp-card-status-pending' };
     }
   };
 
-  // Titolo dinamico per modal RSVP
-  const getRSVPModalTitle = () => {
-    if (rsvpStatus === 'pending') {
-      return 'Abbiamo bisogno ancora di qualche informazione';
-    } else {
-      return 'Hai cambiato Idea? Modifica ciò che ti pare';
+  // Wizard Step Titles
+  const getStepTitle = () => {
+    switch(rsvpStep) {
+      case 'summary': return 'Il tuo RSVP';
+      case 'guests': return 'Conferma Ospiti';
+      case 'contact': return 'Numero di Contatto';
+      case 'travel': return 'Come Viaggerai?';
+      case 'accommodation': return 'Alloggio';
+      case 'final': return 'Conferma Finale';
+      default: return 'RSVP';
     }
   };
 
-  // Toggle guest exclusion (barra/sbarra)
+  // Guest Management
   const toggleGuestExclusion = (guestIndex) => {
-    setExcludedGuests(prev => {
-      if (prev.includes(guestIndex)) {
-        return prev.filter(idx => idx !== guestIndex);
-      } else {
-        return [...prev, guestIndex];
-      }
-    });
-    logInteraction('toggle_guest_exclusion', { guestIndex, excluded: !excludedGuests.includes(guestIndex) });
+    setExcludedGuests(prev => 
+      prev.includes(guestIndex) ? prev.filter(idx => idx !== guestIndex) : [...prev, guestIndex]
+    );
+    logInteraction('toggle_guest_exclusion', { guestIndex });
   };
 
-  // Start editing guest
   const handleStartEdit = (guestIndex) => {
     const guest = data.guests[guestIndex];
     const edited = editedGuests[guestIndex] || guest;
@@ -114,229 +109,183 @@ const LetterContent = ({ data }) => {
     logInteraction('start_edit_guest', { guestIndex });
   };
 
-  // Save edited guest
   const handleSaveEdit = (guestIndex) => {
-    setEditedGuests(prev => ({
-      ...prev,
-      [guestIndex]: {
-        first_name: tempFirstName,
-        last_name: tempLastName
-      }
-    }));
+    setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
     setEditingGuestIndex(null);
-    logInteraction('save_edit_guest', { guestIndex, first_name: tempFirstName, last_name: tempLastName });
+    logInteraction('save_edit_guest', { guestIndex });
   };
 
-  // Cancel editing guest
   const handleCancelEdit = () => {
     setEditingGuestIndex(null);
     setTempFirstName('');
     setTempLastName('');
-    logInteraction('cancel_edit_guest');
   };
 
-  // Get guest display name (edited or original)
   const getGuestDisplayName = (guestIndex) => {
     const guest = data.guests[guestIndex];
-    const edited = editedGuests[guestIndex];
-    if (edited) {
-      return {
-        first_name: edited.first_name,
-        last_name: edited.last_name,
-        is_child: guest.is_child
-      };
-    }
-    return guest;
+    return editedGuests[guestIndex] ? { ...editedGuests[guestIndex], is_child: guest.is_child } : guest;
   };
 
-  // NUOVO: Validazione formato telefono
+  const getActiveGuests = () => data.guests.filter((_, idx) => !excludedGuests.includes(idx));
+
+  // Phone Validation
   const validatePhoneNumber = (phone) => {
-    // Rimuove spazi, trattini, parentesi per validazione
     const cleaned = phone.replace(/[\s\-\(\)]/g, '');
-    
-    // Regex per formato telefono internazionale:
-    // - Opzionale prefisso + (es. +39)
-    // - Da 8 a 15 cifre (standard ITU-T E.164)
-    const phoneRegex = /^\+?[0-9]{8,15}$/;
-    
-    return phoneRegex.test(cleaned);
+    return /^\+?[0-9]{8,15}$/.test(cleaned);
   };
 
-  // NUOVO: Start editing phone
   const handleStartEditPhone = () => {
     setEditingPhone(true);
     setTempPhoneNumber(phoneNumber);
     setPhoneError('');
-    logInteraction('start_edit_phone');
   };
 
-  // NUOVO: Save edited phone
   const handleSaveEditPhone = () => {
     const trimmed = tempPhoneNumber.trim();
-    
     if (!trimmed) {
       setPhoneError('Il numero di telefono è obbligatorio');
       return;
     }
-    
     if (!validatePhoneNumber(trimmed)) {
-      setPhoneError('Formato non valido (es: +39 333 1234567 o 3331234567)');
+      setPhoneError('Formato non valido (es: +39 333 1234567)');
       return;
     }
-    
     setPhoneNumber(trimmed);
     setEditingPhone(false);
     setPhoneError('');
-    logInteraction('save_edit_phone', { phone: trimmed });
   };
 
-  // NUOVO: Cancel editing phone
   const handleCancelEditPhone = () => {
     setEditingPhone(false);
     setTempPhoneNumber('');
     setPhoneError('');
-    logInteraction('cancel_edit_phone');
   };
 
-  // Get confirmed guests (non esclusi)
-  const getConfirmedGuests = () => {
-    return data.guests
-      .map((guest, idx) => ({ ...getGuestDisplayName(idx), originalIndex: idx }))
-      .filter((_, idx) => !excludedGuests.includes(idx));
-  };
-
-  useEffect(() => {
-    heatmapTracker.start();
-    logInteraction('view_letter'); 
-
-    const handleReplayMessage = (event) => {
-      if (!event?.data?.type) return;
-
-      if (event.data.type === 'REPLAY_RESET') {
-        setRsvpStatus('pending');
-        setAccommodationRequested(false);
-        setTransferRequested(false);
-        setIsEditing(true);
-        setMessage(null);
-        setSubmitting(false);
-        setIsFlipped(false);
-        setExpandedCard(null);
-        setExcludedGuests([]);
-        setRsvpStep('guests');
-        setEditingGuestIndex(null);
-        setEditedGuests({});
-        setPhoneNumber(data.phone_number || '');
-        setEditingPhone(false);
-        setPhoneError('');
+  // Step Navigation with Validation
+  const handleNextStep = () => {
+    // Validazione Step Guests
+    if (rsvpStep === 'guests') {
+      if (getActiveGuests().length === 0) {
+        setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
         return;
       }
-
-      if (event.data.type === 'REPLAY_ACTION') {
-        const { action, details } = event.data.payload || {};
-        if (!action) return;
-
-        if (action === 'rsvp_reset') {
-          setIsEditing(true);
-          setMessage(null);
-          setRsvpStep('guests');
-          return;
-        }
-
-        if (action === 'click_rsvp' || action === 'rsvp_submit') {
-          const status = details?.status_chosen || details?.status;
-          if (status === 'confirmed' || status === 'declined') {
-            setRsvpStatus(status);
-            setIsEditing(false);
-            setMessage(null);
-          }
-          return;
-        }
-        
-        if (action === 'card_flip') {
-            setIsFlipped(details?.flipped || false);
-        }
+      setMessage(null);
+      setRsvpStep('contact');
+    }
+    // Validazione Step Contact
+    else if (rsvpStep === 'contact') {
+      if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
+        setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
+        return;
       }
-    };
-
-    const onSealReturn = () => {
-        sealControls.start({
-            x: 0,
-            y: 0,
-            rotate: 0,
-            scale: 1,
-            opacity: 1,
-            transition: { 
-                duration: 0.6, 
-                ease: "easeOut",
-                type: "spring",
-                bounce: 0.3
-            }
-        });
-    };
-
-    window.addEventListener('message', handleReplayMessage);
-    window.addEventListener('wax-seal:return', onSealReturn);
-
-    const timer = setTimeout(() => {
-         sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 });
-    }, 500);
-
-    return () => {
-      heatmapTracker.stop();
-      window.removeEventListener('message', handleReplayMessage);
-      window.removeEventListener('wax-seal:return', onSealReturn);
-      clearTimeout(timer);
-    };
-  }, [sealControls, data.phone_number]);
-
-  const handleFlip = (flipped) => {
-      setIsFlipped(flipped);
-      logInteraction('card_flip', { flipped });
+      setMessage(null);
+      setRsvpStep('travel');
+    }
+    // Validazione Step Travel
+    else if (rsvpStep === 'travel') {
+      if (!travelInfo.transport_type || !travelInfo.schedule) {
+        setMessage({ type: 'error', text: 'Compila tutti i campi del viaggio!' });
+        return;
+      }
+      setMessage(null);
+      // Skip step accommodation se non offerto
+      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'final');
+    }
+    // Step Accommodation -> Final
+    else if (rsvpStep === 'accommodation') {
+      setMessage(null);
+      setRsvpStep('final');
+    }
   };
 
+  const handleBackStep = () => {
+    if (rsvpStep === 'contact') setRsvpStep('guests');
+    else if (rsvpStep === 'travel') setRsvpStep('contact');
+    else if (rsvpStep === 'accommodation') setRsvpStep('travel');
+    else if (rsvpStep === 'final') {
+      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'travel');
+    }
+  };
+
+  const handleStartModify = () => {
+    setRsvpStep('guests');
+    logInteraction('start_modify_rsvp');
+  };
+
+  // Final Submit
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
     logInteraction('click_rsvp', { status_chosen: status });
 
     try {
+      const payload = {
+        phone_number: phoneNumber,
+        guest_updates: editedGuests,
+        excluded_guests: excludedGuests,
+        travel_info: travelInfo,
+      };
+
       const result = await submitRSVP(
         status,
-        status === 'confirmed' ? accommodationRequested : false,
-        status === 'confirmed' ? transferRequested : false
+        status === 'confirmed' ? accommodationChoice : false,
+        false, // transferRequested deprecato
+        payload
       );
 
       if (result.success) {
         logInteraction('rsvp_submit', { status, result: 'success' });
         setRsvpStatus(status);
-        setIsEditing(false);
+        setRsvpStep('summary');
         setMessage({ type: 'success', text: result.message });
       } else {
-        logInteraction('rsvp_submit', { status, result: 'error' });
         setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
-      logInteraction('rsvp_submit', { status, result: 'error', error: err.message });
-      setMessage({ type: 'error', text: err.message || 'Errore di connessione. Riprova.' });
+      setMessage({ type: 'error', text: err.message || 'Errore di connessione.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReset = () => {
-      logInteraction('rsvp_reset');
-      setIsEditing(true);
-      setMessage(null);
-      setRsvpStep('guests');
+  useEffect(() => {
+    heatmapTracker.start();
+    logInteraction('view_letter');
+
+    const handleReplayMessage = (event) => {
+      if (!event?.data?.type) return;
+      if (event.data.type === 'REPLAY_RESET') {
+        setRsvpStatus('pending');
+        setRsvpStep('guests');
+        setExcludedGuests([]);
+        setEditedGuests({});
+        setPhoneNumber(data.phone_number || '');
+        setTravelInfo({ transport_type: '', schedule: '', car_option: false, carpool_interest: false });
+        setAccommodationChoice(false);
+      }
+    };
+
+    window.addEventListener('message', handleReplayMessage);
+    const timer = setTimeout(() => sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 }), 500);
+
+    return () => {
+      heatmapTracker.stop();
+      window.removeEventListener('message', handleReplayMessage);
+      clearTimeout(timer);
+    };
+  }, [sealControls, data.phone_number]);
+
+  const handleFlip = (flipped) => {
+    setIsFlipped(flipped);
+    logInteraction('card_flip', { flipped });
   };
 
   const handleCardClick = (cardId) => {
     setExpandedCard(cardId);
     logInteraction('card_expand', { card: cardId });
-    // Reset RSVP step when opening modal
     if (cardId === 'rsvp') {
-      setRsvpStep('guests');
+      setRsvpStep(rsvpStatus !== 'pending' ? 'summary' : 'guests');
     }
   };
 
@@ -345,28 +294,17 @@ const LetterContent = ({ data }) => {
     logInteraction('card_collapse');
   };
 
-  const handleNextStep = () => {
-    setRsvpStep('confirm');
-    logInteraction('rsvp_next_step', { excludedGuests, editedGuests });
-  };
-
-  const handleBackStep = () => {
-    setRsvpStep('guests');
-    logInteraction('rsvp_back_step');
-  };
-
-  // Card Grid Configuration
   const cards = {
-    'alloggio': {title: 'Alloggio', icon: homeIcon },
-    'viaggio': {title: 'Viaggio', icon: vanIcon },
-    'evento': {title: 'Evento', icon: archIcon },
-    'dresscode': {title: 'Dress Code', icon: dressIcon },
-    'bottino': {title: 'Bottino di nozze', icon: chestIcon },
-    'cosaltro': {title: "Cos'altro?", icon: questionsIcon },
+    'alloggio': { title: 'Alloggio', icon: homeIcon },
+    'viaggio': { title: 'Viaggio', icon: vanIcon },
+    'evento': { title: 'Evento', icon: archIcon },
+    'dresscode': { title: 'Dress Code', icon: dressIcon },
+    'bottino': { title: 'Bottino di nozze', icon: chestIcon },
+    'cosaltro': { title: "Cos'altro?", icon: questionsIcon },
   };
 
   const renderCardContent = (cardId) => {
-    switch(cardId) {
+    switch (cardId) {
       case 'alloggio':
         return (
           <div className="expanded-content">
@@ -382,11 +320,7 @@ const LetterContent = ({ data }) => {
         return (
           <div className="expanded-content">
             <h2>Viaggio</h2>
-            {data.transfer_offered ? (
-              <p>Organizzeremo un transfer per facilitare i vostri spostamenti. Dettagli in arrivo!</p>
-            ) : (
-              <p>Informazioni sui trasporti e come raggiungere la location disponibili a breve.</p>
-            )}
+            <p>Informazioni sui trasporti e come raggiungere la location.</p>
           </div>
         );
       case 'evento':
@@ -405,14 +339,14 @@ const LetterContent = ({ data }) => {
           <div className="expanded-content">
             <h2>Dress Code</h2>
             <p><strong>Beach Chic</strong></p>
-            <p>Eleganti ma comodi! Ricordatevi che saremo sulla spiaggia: i tacchi a spillo sono i nemici numero uno della sabbia!</p>
+            <p>Eleganti ma comodi! Tacchi a spillo vietati sulla sabbia!</p>
           </div>
         );
       case 'bottino':
         return (
           <div className="expanded-content">
             <h2>Lista Nozze</h2>
-            <p>La vostra presenza è il regalo più grande, ma se desiderate contribuire al nostro viaggio di nozze...</p>
+            <p>La vostra presenza è il regalo più grande!</p>
             <p><em>Dettagli IBAN in arrivo!</em></p>
           </div>
         );
@@ -420,7 +354,7 @@ const LetterContent = ({ data }) => {
         return (
           <div className="expanded-content">
             <h2>Hai domande?</h2>
-            <p>Per qualsiasi informazione, non esitate a contattarci via WhatsApp:</p>
+            <p>Contattaci via WhatsApp:</p>
             {(groomNumber || brideNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
@@ -442,11 +376,27 @@ const LetterContent = ({ data }) => {
       case 'rsvp':
         return (
           <div className="expanded-content rsvp-expanded">
-            {/* Titolo dinamico */}
-            <h2 className="rsvp-modal-title">{getRSVPModalTitle()}</h2>
-            
-            {rsvpStep === 'guests' ? (
-              // STEP 1: Gestione ospiti
+            <h2 className="rsvp-modal-title">{getStepTitle()}</h2>
+
+            {/* PAGINA RIEPILOGO (se già confermato) */}
+            {rsvpStep === 'summary' && (
+              <div className="rsvp-summary-page">
+                <div className="summary-status">
+                  <span className="summary-emoji">{getRSVPStatusMessageCompact().emoji}</span>
+                  <p className="summary-text">
+                    {rsvpStatus === 'confirmed'
+                      ? 'Hai già confermato la tua presenza!'
+                      : 'Hai declinato l\'invito.'}
+                  </p>
+                </div>
+                <button className="rsvp-next-btn" onClick={handleStartModify}>
+                  Modifica Risposta
+                </button>
+              </div>
+            )}
+
+            {/* STEP 1: OSPITI */}
+            {rsvpStep === 'guests' && (
               <>
                 <div className="guests-list-editable">
                   <h3>Ospiti invitati:</h3>
@@ -457,12 +407,8 @@ const LetterContent = ({ data }) => {
                       const isExcluded = excludedGuests.includes(idx);
 
                       return (
-                        <li 
-                          key={idx} 
-                          className={isExcluded ? 'guest-excluded' : ''}
-                        >
+                        <li key={idx} className={isExcluded ? 'guest-excluded' : ''}>
                           {isEditing ? (
-                            // EDITING MODE
                             <>
                               <div className="guest-edit-inputs">
                                 <input
@@ -482,44 +428,19 @@ const LetterContent = ({ data }) => {
                                 />
                               </div>
                               <div className="guest-actions">
-                                <button 
-                                  className="guest-action-btn save"
-                                  onClick={() => handleSaveEdit(idx)}
-                                  title="Salva modifiche"
-                                >
-                                  ✓
-                                </button>
-                                <button 
-                                  className="guest-action-btn cancel"
-                                  onClick={handleCancelEdit}
-                                  title="Annulla"
-                                >
-                                  ✕
-                                </button>
+                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(idx)}>✓</button>
+                                <button className="guest-action-btn cancel" onClick={handleCancelEdit}>✕</button>
                               </div>
                             </>
                           ) : (
-                            // NORMAL MODE
                             <>
                               <span className="guest-name">
                                 {displayGuest.first_name} {displayGuest.last_name || ''}
                                 {displayGuest.is_child && <span className="badge">Bambino</span>}
                               </span>
                               <div className="guest-actions">
-                                <button 
-                                  className="guest-action-btn edit"
-                                  onClick={() => handleStartEdit(idx)}
-                                  title="Modifica nome"
-                                >
-                                  ✏️
-                                </button>
-                                <button 
-                                  className="guest-action-btn exclude"
-                                  onClick={() => toggleGuestExclusion(idx)}
-                                  title={isExcluded ? 'Riattiva ospite' : 'Escludi ospite'}
-                                >
-                                  ✕
-                                </button>
+                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
+                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(idx)}>✕</button>
                               </div>
                             </>
                           )}
@@ -529,34 +450,31 @@ const LetterContent = ({ data }) => {
                   </ul>
                 </div>
 
-                <button 
-                  className="rsvp-next-btn"
-                  onClick={handleNextStep}
-                >
-                  Avanti →
-                </button>
-              </>
-            ) : (
-              // STEP 2: Conferma finale con telefono
-              <div className="rsvp-form">
-                {/* Riepilogo ospiti confermati */}
-                <div className="guests-summary">
-                  <h3>Ospiti che parteciperanno:</h3>
-                  <ul>
-                    {getConfirmedGuests().map((guest, idx) => (
-                      <li key={idx}>
-                        {guest.first_name} {guest.last_name || ''}
-                        {guest.is_child && <span className="badge">Bambino</span>}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
+                {/* Alert se già confermato e vuole escludere tutti */}
+                {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
+                  <div className="whatsapp-alert">
+                    <p>⚠️ Hai già confermato! Per modificare contatta gli sposi:</p>
+                    <div className="whatsapp-buttons">
+                      {groomNumber && (
+                        <a href={getWaLink(groomNumber, 'Devo modificare la lista ospiti')} target="_blank" rel="noreferrer" className="whatsapp-link">
+                          <FaWhatsapp size={20} /> {groomName}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                )}
 
-                {/* Campo Telefono Editabile */}
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 2: CONTATTO */}
+            {rsvpStep === 'contact' && (
+              <>
                 <div className="phone-field">
                   <h3>Numero di contatto:</h3>
                   {editingPhone ? (
-                    // EDITING MODE
                     <>
                       <div className="phone-edit-container">
                         <input
@@ -564,98 +482,184 @@ const LetterContent = ({ data }) => {
                           className="phone-input"
                           value={tempPhoneNumber}
                           onChange={(e) => setTempPhoneNumber(e.target.value)}
-                          placeholder="es: +39 333 1234567"
+                          placeholder="+39 333 1234567"
                           autoFocus
                         />
                         <div className="guest-actions">
-                          <button 
-                            className="guest-action-btn save"
-                            onClick={handleSaveEditPhone}
-                            title="Salva numero"
-                          >
-                            ✓
-                          </button>
-                          <button 
-                            className="guest-action-btn cancel"
-                            onClick={handleCancelEditPhone}
-                            title="Annulla"
-                          >
-                            ✕
-                          </button>
+                          <button className="guest-action-btn save" onClick={handleSaveEditPhone}>✓</button>
+                          <button className="guest-action-btn cancel" onClick={handleCancelEditPhone}>✕</button>
                         </div>
                       </div>
                       {phoneError && <div className="phone-error">{phoneError}</div>}
                     </>
                   ) : (
-                    // NORMAL MODE
                     <div className="phone-display">
                       <span className="phone-number">{phoneNumber || 'Non specificato'}</span>
-                      <button 
-                        className="guest-action-btn edit"
-                        onClick={handleStartEditPhone}
-                        title="Modifica numero"
-                      >
-                        ✏️
-                      </button>
+                      <button className="guest-action-btn edit" onClick={handleStartEditPhone}>✏️</button>
                     </div>
                   )}
                 </div>
 
-                {/* Checkbox Alloggio/Transfer */}
-                {data.accommodation_offered && (
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={accommodationRequested}
-                      onChange={(e) => setAccommodationRequested(e.target.checked)}
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 3: VIAGGIO */}
+            {rsvpStep === 'travel' && (
+              <>
+                <div className="travel-form">
+                  <h3>Tipo di trasporto:</h3>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="transport"
+                      value="traghetto"
+                      checked={travelInfo.transport_type === 'traghetto'}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: false })}
                     />
-                    Richiedo l'alloggio
+                    Traghetto
                   </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="transport"
+                      value="aereo"
+                      checked={travelInfo.transport_type === 'aereo'}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: false })}
+                    />
+                    Aereo
+                  </label>
+
+                  <h3>Orari:</h3>
+                  <input
+                    type="text"
+                    className="travel-input"
+                    value={travelInfo.schedule}
+                    onChange={(e) => setTravelInfo({ ...travelInfo, schedule: e.target.value })}
+                    placeholder="es: Partenza 10:00, Arrivo 14:00"
+                  />
+
+                  {travelInfo.transport_type === 'traghetto' && (
+                    <>
+                      <h3>Auto:</h3>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={travelInfo.car_option === 'proprio'}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'proprio' : false })}
+                        />
+                        Auto al seguito
+                      </label>
+                    </>
+                  )}
+
+                  {travelInfo.transport_type === 'aereo' && (
+                    <>
+                      <h3>Noleggio Auto:</h3>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={travelInfo.car_option === 'noleggio'}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'noleggio' : false })}
+                        />
+                        Noleggerò un'auto
+                      </label>
+                    </>
+                  )}
+
+                  {!travelInfo.car_option && travelInfo.transport_type && (
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={travelInfo.carpool_interest}
+                        onChange={(e) => setTravelInfo({ ...travelInfo, carpool_interest: e.target.checked })}
+                      />
+                      Sarebbe carino organizzarmi con qualcun altro
+                    </label>
+                  )}
+                </div>
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 4: ALLOGGIO */}
+            {rsvpStep === 'accommodation' && data.accommodation_offered && (
+              <>
+                <div className="accommodation-form">
+                  <h3>Vuoi richiedere l'alloggio per la notte tra il 19 e il 20 settembre?</h3>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={accommodationChoice}
+                      onChange={(e) => setAccommodationChoice(e.target.checked)}
+                    />
+                    Sì, richiedo l'alloggio
+                  </label>
+
+                  {/* Alert se modifica da accepted a rejected */}
+                  {accommodationRequested && !accommodationChoice && (
+                    <div className="whatsapp-alert">
+                      <p>⚠️ Avevi già accettato! Contatta gli sposi:</p>
+                      <div className="whatsapp-buttons">
+                        {groomNumber && (
+                          <a href={getWaLink(groomNumber, 'Devo modificare la richiesta alloggio')} target="_blank" rel="noreferrer" className="whatsapp-link">
+                            <FaWhatsapp size={20} /> {groomName}
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+              </>
+            )}
+
+            {/* STEP 5: CONFERMA FINALE */}
+            {rsvpStep === 'final' && (
+              <>
+                <div className="final-summary">
+                  <h3>Riepilogo:</h3>
+                  <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                  <p><strong>Telefono:</strong> {phoneNumber}</p>
+                  <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                  {data.accommodation_offered && (
+                    <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                  )}
+                </div>
+
+                {/* Alert se già confermato e declina */}
+                {rsvpStatus === 'confirmed' && (
+                  <div className="whatsapp-alert">
+                    <p>⚠️ Se vuoi declinare dopo aver confermato, contatta gli sposi:</p>
+                    <div className="whatsapp-buttons">
+                      {groomNumber && (
+                        <a href={getWaLink(groomNumber, 'Devo declinare la partecipazione')} target="_blank" rel="noreferrer" className="whatsapp-link">
+                          <FaWhatsapp size={20} /> {groomName}
+                        </a>
+                      )}
+                    </div>
+                  </div>
                 )}
 
-                {data.transfer_offered && (
-                  <label className="checkbox-label">
-                    <input 
-                      type="checkbox" 
-                      checked={transferRequested}
-                      onChange={(e) => setTransferRequested(e.target.checked)}
-                    />
-                    Richiedo il transfer
-                  </label>
-                )}
-
-                {/* Pulsanti Azione */}
                 <div className="button-group">
-                  <button 
-                    className="rsvp-button confirm"
-                    onClick={() => handleRSVP('confirmed')}
-                    disabled={submitting || !phoneNumber}
-                  >
-                    {submitting ? 'Invio...' : '✔️ Conferma'}
+                  <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
+                    {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
                   </button>
-                  <button 
-                    className="rsvp-button decline"
-                    onClick={() => handleRSVP('declined')}
-                    disabled={submitting}
-                  >
+                  <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
                     {submitting ? 'Invio...' : '❌ Declina'}
                   </button>
                 </div>
 
-                {/* Pulsante Indietro */}
-                <button 
-                  className="rsvp-back-btn"
-                  onClick={handleBackStep}
-                >
-                  ← Indietro
-                </button>
-
-                {message && (
-                  <div className={`message ${message.type}`}>
-                    {message.text}
-                  </div>
-                )}
-              </div>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
             )}
           </div>
         );
@@ -667,178 +671,80 @@ const LetterContent = ({ data }) => {
   const rsvpCardStatus = getRSVPStatusMessageCompact();
 
   return (
-    <motion.div
-      className="letter-content"
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
+    <motion.div className="letter-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
       <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
         <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
           <div className="flip-card-inner">
-              
-              {/* FRONT FACE */}
-              <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
-                  <div className="front-content">
-                      <div className="spacer-top"></div>
-                      
-                      <h1 className="text-names">Domenico & Loredana</h1>
-                      
-                      <p className="text-wit">
-                          Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
-                      </p>
-                      
-                      <p className="text-date">
-                          Ci sposiamo il 19 Settembre 2026<br/>
-                          sulla spiaggia di Golfo Aranci
-                      </p>
-                      
-                      <p className="text-details">
-                          (Sì! in Sardegna!!)<br/>
-                          Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
-                      </p>
-                      
-                      <div className="text-details" style={{ fontWeight: 500 }}>
-                          Poca formalità • Molto spritz • Un tramonto indimenticabile
-                      </div>
-                      
-                      <p className="text-dress">
-                          Dress Code: Beach Chic<br/>
-                          <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
-                              (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
-                          </span>
-                      </p>
-                  </div>
-                  
-                  <motion.div
-                      className="wax-seal"
-                      initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
-                      animate={sealControls}
-                      style={{ 
-                          position: 'absolute',
-                          bottom: '1rem',
-                          left: '1rem',
-                          width: '36%',
-                          maxWidth: '90px',
-                          zIndex: 30,
-                          pointerEvents: 'none'
-                      }}
-                  >
-                      <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-                  </motion.div>
+            {/* FRONT FACE */}
+            <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
+              <div className="front-content">
+                <div className="spacer-top"></div>
+                <h1 className="text-names">Domenico & Loredana</h1>
+                <p className="text-wit">Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!</p>
+                <p className="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
+                <p className="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
+                <div className="text-details" style={{ fontWeight: 500 }}>Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
+                <p className="text-dress">Dress Code: Beach Chic<br /><span style={{ fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8 }}>(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
               </div>
+              <motion.div className="wax-seal" initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} animate={sealControls} style={{ position: 'absolute', bottom: '1rem', left: '1rem', width: '36%', maxWidth: '90px', zIndex: 30, pointerEvents: 'none' }}>
+                <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
+              </motion.div>
+            </div>
 
-              {/* BACK FACE - CARD GRID */}
-              <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
-                  <div className="letter-paper">
-                      {/* CARD GRID */}
-                      <div className="card-grid">
-                        {Object.keys(cards).map(card => (
-                          <motion.div
-                            key={card}
-                            onClick={() => handleCardClick(card)}
-                            style={{ cursor: 'pointer' }}
-                            animate={{ opacity: expandedCard === card ? 0 : 1 }}
-                            transition={{ duration: 0.2 }}
-                            whileHover={{ scale: 1.02 }}
-                            whileTap={{ scale: 0.98 }}
-                          >
-                            <PaperModal>
-                              <div className="info-card">
-                                <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
-                                <h3 className="card-title">{cards[card].title}</h3>
-                              </div>
-                            </PaperModal>
-                          </motion.div>
-                        ))}
-                        
-                        {/* RSVP Card - Full Width with Status */}
-                        <motion.div
-                          onClick={() => handleCardClick('rsvp')}
-                          style={{ cursor: 'pointer', gridColumn: '1 / -1' }}
-                          animate={{ opacity: expandedCard === 'rsvp' ? 0 : 1 }}
-                          transition={{ duration: 0.2 }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <PaperModal>
-                            <div className="info-card rsvp-card">
-                              <h3 className="card-title">RSVP - Conferma Presenza</h3>
-                              <div className={`rsvp-card-status ${rsvpCardStatus.className}`}>
-                                <span className="rsvp-card-emoji">{rsvpCardStatus.emoji}</span>
-                                <span className="rsvp-card-text">{rsvpCardStatus.text}</span>
-                              </div>
-                            </div>
-                          </PaperModal>
-                        </motion.div>
+            {/* BACK FACE */}
+            <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
+              <div className="letter-paper">
+                <div className="card-grid">
+                  {Object.keys(cards).map(card => (
+                    <motion.div key={card} onClick={() => handleCardClick(card)} style={{ cursor: 'pointer' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <PaperModal>
+                        <div className="info-card">
+                          <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
+                          <h3 className="card-title">{cards[card].title}</h3>
+                        </div>
+                      </PaperModal>
+                    </motion.div>
+                  ))}
+                  <motion.div onClick={() => handleCardClick('rsvp')} style={{ cursor: 'pointer', gridColumn: '1 / -1' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <PaperModal>
+                      <div className="info-card rsvp-card">
+                        <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        <div className={`rsvp-card-status ${rsvpCardStatus.className}`}>
+                          <span className="rsvp-card-emoji">{rsvpCardStatus.emoji}</span>
+                          <span className="rsvp-card-text">{rsvpCardStatus.text}</span>
+                        </div>
                       </div>
-                  </div>
+                    </PaperModal>
+                  </motion.div>
+                </div>
               </div>
+            </div>
           </div>
         </div>
-
-        {/* FAB */}
-        <Fab
-          onClick={() => handleFlip(!isFlipped)}
-          isFlipped={isFlipped}
-          visible={!expandedCard}
-        />
+        <Fab onClick={() => handleFlip(!isFlipped)} isFlipped={isFlipped} visible={!expandedCard} />
       </div>
 
-      {/* EXPANDED CARD MODAL - PORTAL */}
+      {/* MODAL */}
       {ReactDOM.createPortal(
         <AnimatePresence>
-            {expandedCard && (
-                <motion.div 
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: 0.2 }}
-                    className="card-modal-overlay"
-                    onClick={handleCloseExpanded}
-                >
-                    <motion.div 
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ 
-                          type: "spring", 
-                          stiffness: 300, 
-                          damping: 25,
-                          opacity: { duration: 0.2 }
-                        }}
-                        className="card-modal-content"
-                        onClick={(e) => e.stopPropagation()}
-                    >
-                        <PaperModal style={{ width: '100%'}}>
-                            <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
-                                <motion.button 
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ delay: 0.1 }}
-                                    className="close-modal-btn" 
-                                    onClick={handleCloseExpanded}
-                                >
-                                    ✕
-                                </motion.button>
-                                <div style={{ marginBottom: '1rem' }}>
-                                    <img src={cards[expandedCard]?.icon} alt={cards[expandedCard]?.title} className="card-icon" />
-                                    <h3 className="card-title">{cards[expandedCard]?.title}</h3>
-                                </div>
-                                <motion.div
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    exit={{ opacity: 0, y: 10 }}
-                                    transition={{ delay: 0.15 }}
-                                >
-                                    {renderCardContent(expandedCard)}
-                                </motion.div>
-                            </div>
-                        </PaperModal>
+          {expandedCard && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="card-modal-overlay" onClick={handleCloseExpanded}>
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="card-modal-content" onClick={(e) => e.stopPropagation()}>
+                <PaperModal style={{ width: '100%' }}>
+                  <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
+                    <motion.button className="close-modal-btn" onClick={handleCloseExpanded}>✕</motion.button>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <img src={cards[expandedCard]?.icon} alt={cards[expandedCard]?.title} className="card-icon" />
+                      <h3 className="card-title">{cards[expandedCard]?.title}</h3>
+                    </div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.15 }}>
+                      {renderCardContent(expandedCard)}
                     </motion.div>
-                </motion.div>
-            )}
+                  </div>
+                </PaperModal>
+              </motion.div>
+            </motion.div>
+          )}
         </AnimatePresence>,
         document.body
       )}
