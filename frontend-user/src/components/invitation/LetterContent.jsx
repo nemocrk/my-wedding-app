@@ -440,51 +440,56 @@ const LetterContent = ({ data }) => {
       </div>
 
       {/* EXPANDED CARD MODAL */}
-      {expandedCard && ReactDOM.createPortal(
+      {ReactDOM.createPortal(
         <AnimatePresence>
-            <div 
-                className="card-modal-overlay"
-                onClick={handleCloseExpanded}
-            >
+            {expandedCard && (
                 <motion.div 
-                    layoutId={`card-${expandedCard}`}
-                    className="card-modal-content"
-                    style={{ 
-                        width: '90vw', 
-                        maxWidth: '600px', 
-                        height: 'auto',
-                        maxHeight: '85vh',
-                        position: 'relative',
-                        background: 'transparent', 
-                        boxShadow: 'none',
-                        pointerEvents: 'auto'
-                    }}
-                    onClick={(e) => e.stopPropagation()}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="card-modal-overlay"
+                    onClick={handleCloseExpanded}
                 >
-                    <PaperModal style={{ width: '100%' }}>
-                        <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
-                            <motion.button 
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                exit={{ opacity: 0 }}
-                                className="close-modal-btn" 
-                                onClick={handleCloseExpanded}
-                            >
-                                ✕
-                            </motion.button>
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                exit={{ opacity: 0, y: 10 }}
-                                transition={{ delay: 0.15 }}
-                            >
-                                {renderCardContent(expandedCard)}
-                            </motion.div>
-                        </div>
-                    </PaperModal>
+                    <motion.div 
+                        layoutId={`card-${expandedCard}`}
+                        className="card-modal-content"
+                        style={{ 
+                            width: '90vw', 
+                            maxWidth: '600px', 
+                            height: 'auto',
+                            maxHeight: '85vh',
+                            position: 'relative',
+                            background: 'transparent', 
+                            boxShadow: 'none',
+                            pointerEvents: 'auto'
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+                    >
+                        <PaperModal style={{ width: '100%', minHeight: '400px' }}>
+                            <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
+                                <motion.button 
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    className="close-modal-btn" 
+                                    onClick={handleCloseExpanded}
+                                >
+                                    ✕
+                                </motion.button>
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    exit={{ opacity: 0, y: 10 }}
+                                    transition={{ delay: 0.15 }}
+                                >
+                                    {renderCardContent(expandedCard)}
+                                </motion.div>
+                            </div>
+                        </PaperModal>
+                    </motion.div>
                 </motion.div>
-            </div>
+            )}
         </AnimatePresence>,
         document.body
       )}
