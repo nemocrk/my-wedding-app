@@ -1,0 +1,46 @@
+.wedding-fab {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  box-shadow: 0 4px 12px rgba(139, 69, 19, 0.25);
+
+  z-index: 1000; /* High enough to be above the letter, but below modals if needed */
+  color: #8B4513;
+  
+  transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  outline: none;
+}
+
+.wedding-fab:hover {
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(139, 69, 19, 0.35);
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.wedding-fab:active {
+  transform: scale(0.95);
+  box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+}
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .wedding-fab {
+    width: 48px;
+    height: 48px;
+    right: 16px;
+    bottom: 16px;
+  }
+}
