@@ -436,10 +436,16 @@
   font-weight: bold;
 }
 
-.guest-toggle-btn {
+/* ========== GUEST ACTIONS (Edit + Exclude Buttons) ========== */
+.guest-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guest-action-btn {
   background: transparent;
   border: none;
-  color: #8b7355;
   width: 28px;
   height: 28px;
   border-radius: 0;
@@ -452,13 +458,61 @@
   flex-shrink: 0;
 }
 
-.guest-toggle-btn:hover {
+.guest-action-btn:hover {
   background: transparent;
   transform: scale(1.1);
 }
 
-.guest-toggle-btn:active {
+.guest-action-btn:active {
   transform: scale(0.95);
+}
+
+.guest-action-btn.edit {
+  color: #8b7355;
+}
+
+.guest-action-btn.exclude {
+  color: #8b7355;
+}
+
+.guest-action-btn.save {
+  color: #2e7d32;
+  font-size: 1.2rem;
+}
+
+.guest-action-btn.cancel {
+  color: #c62828;
+}
+
+/* ========== GUEST EDIT INPUTS ========== */
+.guest-edit-inputs {
+  display: flex;
+  gap: 0.5rem;
+  flex: 1;
+}
+
+.guest-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #c9a581;
+  padding: 0.3rem 0;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+  flex: 1;
+  min-width: 0;
+}
+
+.guest-input:focus {
+  border-bottom-color: #8b7355;
+}
+
+.guest-input::placeholder {
+  color: #999;
+  font-weight: 400;
 }
 
 /* Stato Ospite Escluso (Barrato) */
@@ -471,9 +525,7 @@
   color: #999;
 }
 
-.guest-excluded .guest-toggle-btn {
-  background: transparent;
-  border: none;
+.guest-excluded .guest-action-btn {
   color: #999;
 }
 
@@ -837,9 +889,13 @@
         font-size: 0.9rem;
     }
 
-    .guest-toggle-btn {
+    .guest-action-btn {
         width: 26px;
         height: 26px;
+        font-size: 0.9rem;
+    }
+
+    .guest-input {
         font-size: 0.9rem;
     }
 
@@ -952,9 +1008,13 @@
         font-size: 0.85rem;
     }
 
-    .guest-toggle-btn {
+    .guest-action-btn {
         width: 24px;
         height: 24px;
+        font-size: 0.85rem;
+    }
+
+    .guest-input {
         font-size: 0.85rem;
     }
 
