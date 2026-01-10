@@ -169,7 +169,7 @@ const LetterContent = ({ data }) => {
     { id: 'viaggio', title: 'Viaggio', icon: vanIcon },
     { id: 'evento', title: 'Evento', icon: archIcon },
     { id: 'dresscode', title: 'Dress Code', icon: dressIcon },
-    { id: 'bottino', title: 'Bottino', icon: chestIcon },
+    { id: 'bottino', title: 'Bottino di nozze', icon: chestIcon },
     { id: 'cosaltro', title: "Cos'altro?", icon: questionsIcon },
   ];
 
@@ -397,15 +397,6 @@ const LetterContent = ({ data }) => {
             {/* BACK FACE - CARD GRID */}
             <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
                 <div className="letter-paper">
-                    <button 
-                        className="nav-button-back" 
-                        onClick={() => handleFlip(false)}
-                        aria-label="Torna alla copertina"
-                        title="Torna alla copertina"
-                    >
-                        <img src={rightArrow} alt="Indietro" className="nav-arrow-img" />
-                    </button>
-
                     {/* CARD GRID */}
                     <div className="card-grid">
                       {cards.map(card => (
@@ -430,6 +421,14 @@ const LetterContent = ({ data }) => {
                       </div>
                     </div>
                 </div>
+                <button 
+                    className="nav-button-back" 
+                    onClick={() => handleFlip(false)}
+                    aria-label="Torna alla copertina"
+                    title="Torna alla copertina"
+                >
+                    <img src={rightArrow} alt="Indietro" className="nav-arrow-img" />
+                </button>
             </div>
         </div>
       </div>
