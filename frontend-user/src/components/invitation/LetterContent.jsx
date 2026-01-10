@@ -388,9 +388,9 @@ const LetterContent = ({ data }) => {
                   </motion.div>
               </div>
 
-              {/* BACK FACE - CARD GRID WITH PAPER MODAL */}
-              <div className="flip-card-back" style={{ background: 'transparent', boxShadow: 'none' }}>
-                  <PaperModal>
+              {/* BACK FACE - CARD GRID */}
+              <div className="flip-card-back" style={{ backgroundImage: `   url(${letterBg})` }}>
+                  <div className="letter-paper">
                       {/* CARD GRID */}
                       <div className="card-grid">
                         {cards.map(card => (
@@ -414,7 +414,7 @@ const LetterContent = ({ data }) => {
                           <h3 className="card-title">RSVP - Conferma Presenza</h3>
                         </div>
                       </div>
-                  </PaperModal>
+                  </div>
               </div>
           </div>
         </div>
