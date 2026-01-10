@@ -26,6 +26,11 @@ const LetterContent = ({ data }) => {
   const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
+  
+  // NUOVO: Stato per gestire ospiti esclusi (barrati)
+  const [excludedGuests, setExcludedGuests] = useState([]);
+  // NUOVO: Stato per step del form RSVP
+  const [rsvpStep, setRsvpStep] = useState('guests'); // 'guests' | 'confirm'
 
   const sealControls = useAnimation();
   
@@ -67,38 +72,25 @@ const LetterContent = ({ data }) => {
     }
   };
 
-  // RSVP Status Messages - Versione completa per modal
-  const getRSVPStatusMessage = () => {
-    switch(rsvpStatus) {
-      case 'pending':
-        return {
-          emoji: '⏳',
-          title: 'In Attesa',
-          message: 'Cosa aspetti? Conferma subito la tua partecipazione!',
-          className: 'rsvp-status-pending'
-        };
-      case 'confirmed':
-        return {
-          emoji: '🎉',
-          title: 'Confermato',
-          message: 'Magnifico! Ti aspettiamo!!!',
-          className: 'rsvp-status-confirmed'
-        };
-      case 'declined':
-        return {
-          emoji: '😢',
-          title: 'Declinato',
-          message: 'Mi dispiace che tu non possa partecipare!\nFaremo un brindisi anche per te!',
-          className: 'rsvp-status-declined'
-        };
-      default:
-        return {
-          emoji: '❓',
-          title: 'Stato Sconosciuto',
-          message: 'Si prega di confermare o declinare.',
-          className: 'rsvp-status-pending'
-        };
+  // Titolo dinamico per modal RSVP
+  const getRSVPModalTitle = () => {
+    if (rsvpStatus === 'pending') {
+      return 'Abbiamo bisogno ancora di qualche informazione';
+    } else {
+      return 'Hai cambiato Idea? Modifica ciò che ti pare';
     }
+  };
+
+  // Toggle guest exclusion (barra/sbarra)
+  const toggleGuestExclusion = (guestIndex) => {
+    setExcludedGuests(prev => {
+      if (prev.includes(guestIndex)) {
+        return prev.filter(idx => idx !== guestIndex);
+      } else {
+        return [...prev, guestIndex];
+      }
+    });
+    logInteraction('toggle_guest_exclusion', { guestIndex, excluded: !excludedGuests.includes(guestIndex) });
   };
 
   useEffect(() => {
@@ -117,6 +109,8 @@ const LetterContent = ({ data }) => {
         setSubmitting(false);
         setIsFlipped(false);
         setExpandedCard(null);
+        setExcludedGuests([]);
+        setRsvpStep('guests');
         return;
       }
 
@@ -127,6 +121,7 @@ const LetterContent = ({ data }) => {
         if (action === 'rsvp_reset') {
           setIsEditing(true);
           setMessage(null);
+          setRsvpStep('guests');
           return;
         }
 
@@ -216,16 +211,26 @@ const LetterContent = ({ data }) => {
       logInteraction('rsvp_reset');
       setIsEditing(true);
       setMessage(null);
+      setRsvpStep('guests');
   };
 
   const handleCardClick = (cardId) => {
     setExpandedCard(cardId);
     logInteraction('card_expand', { card: cardId });
+    // Reset RSVP step when opening modal
+    if (cardId === 'rsvp') {
+      setRsvpStep('guests');
+    }
   };
 
   const handleCloseExpanded = () => {
     setExpandedCard(null);
     logInteraction('card_collapse');
+  };
+
+  const handleNextStep = () => {
+    setRsvpStep('confirm');
+    logInteraction('rsvp_next_step', { excludedGuests });
   };
 
   // Card Grid Configuration
@@ -313,33 +318,47 @@ const LetterContent = ({ data }) => {
           </div>
         );
       case 'rsvp':
-        const statusInfo = getRSVPStatusMessage();
         return (
           <div className="expanded-content rsvp-expanded">
-            <h2>Conferma la tua Partecipazione</h2>
+            {/* Titolo dinamico */}
+            <h2 className="rsvp-modal-title">{getRSVPModalTitle()}</h2>
             
-            {/* RSVP Status Header */}
-            <div className={`rsvp-status-header ${statusInfo.className}`}>
-              <div className="rsvp-status-emoji">{statusInfo.emoji}</div>
-              <div className="rsvp-status-content">
-                <h3 className="rsvp-status-title">{statusInfo.title}</h3>
-                <p className="rsvp-status-message">{statusInfo.message}</p>
-              </div>
-            </div>
+            {rsvpStep === 'guests' ? (
+              // STEP 1: Gestione ospiti
+              <>
+                <div className="guests-list-editable">
+                  <h3>Ospiti invitati:</h3>
+                  <ul>
+                    {data.guests.map((guest, idx) => (
+                      <li 
+                        key={idx} 
+                        className={excludedGuests.includes(idx) ? 'guest-excluded' : ''}
+                      >
+                        <span className="guest-name">
+                          {guest.first_name} {guest.last_name || ''}
+                          {guest.is_child && <span className="badge">Bambino</span>}
+                        </span>
+                        <button 
+                          className="guest-toggle-btn"
+                          onClick={() => toggleGuestExclusion(idx)}
+                          title={excludedGuests.includes(idx) ? 'Riattiva ospite' : 'Escludi ospite'}
+                        >
+                          ✕
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
 
-            <div className="guests-list">
-              <h3>Ospiti:</h3>
-              <ul>
-                {data.guests.map((guest, idx) => (
-                  <li key={idx}>
-                    {guest.first_name} {guest.last_name || ''}
-                    {guest.is_child && <span className="badge">Bambino</span>}
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {isEditing ? (
+                <button 
+                  className="rsvp-next-btn"
+                  onClick={handleNextStep}
+                >
+                  Avanti →
+                </button>
+              </>
+            ) : (
+              // STEP 2: Conferma finale (da implementare)
               <div className="rsvp-form">
                 {data.accommodation_offered && (
                   <label className="checkbox-label">
@@ -365,30 +384,26 @@ const LetterContent = ({ data }) => {
 
                 <div className="button-group">
                   <button 
-                    className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
+                    className="rsvp-button confirm"
                     onClick={() => handleRSVP('confirmed')}
                     disabled={submitting}
                   >
                     {submitting ? 'Invio...' : '✔️ Conferma'}
                   </button>
                   <button 
-                    className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
+                    className="rsvp-button decline"
                     onClick={() => handleRSVP('declined')}
                     disabled={submitting}
                   >
                     {submitting ? 'Invio...' : '❌ Declina'}
                   </button>
                 </div>
-              </div>
-            ) : (
-              <div className="rsvp-actions">
-                <button onClick={handleReset} className="edit-response-btn">Modifica risposta</button>
-              </div>
-            )}
 
-            {message && (
-              <div className={`message ${message.type}`}>
-                {message.text}
+                {message && (
+                  <div className={`message ${message.type}`}>
+                    {message.text}
+                  </div>
+                )}
               </div>
             )}
           </div>
