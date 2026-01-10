@@ -381,13 +381,13 @@
   line-height: 1.3;
 }
 
-/* ========== GUESTS LIST EDITABLE ========== */
+/* ========== GUESTS LIST EDITABLE - NIENTE BORDI/SFONDI ========== */
 .guests-list-editable {
   margin-top: 1.5rem;
-  padding: 1.2rem;
-  background: rgba(249, 247, 241, 0.9);
-  border: 2px solid #c9a581;
-  border-radius: 8px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
 }
 
 .guests-list-editable h3 {
@@ -407,8 +407,8 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.8rem 0.5rem;
-  border-bottom: 1px solid #e5dcc5;
+  padding: 0.75rem 0;
+  border-bottom: none;
   transition: all 0.3s ease;
 }
 
@@ -437,12 +437,12 @@
 }
 
 .guest-toggle-btn {
-  background: rgba(201, 165, 129, 0.2);
-  border: 1px solid #c9a581;
+  background: transparent;
+  border: none;
   color: #8b7355;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  border-radius: 0;
   font-size: 1rem;
   cursor: pointer;
   display: flex;
@@ -453,7 +453,7 @@
 }
 
 .guest-toggle-btn:hover {
-  background: rgba(201, 165, 129, 0.4);
+  background: transparent;
   transform: scale(1.1);
 }
 
@@ -472,38 +472,39 @@
 }
 
 .guest-excluded .guest-toggle-btn {
-  background: rgba(201, 165, 129, 0.3);
-  border-color: #999;
+  background: transparent;
+  border: none;
   color: #999;
 }
 
-/* ========== RSVP NEXT BUTTON ========== */
+/* ========== RSVP NEXT BUTTON - STILE LINK ========== */
 .rsvp-next-btn {
   width: 100%;
   margin-top: 1.5rem;
-  padding: 1rem 1.5rem;
-  background: rgba(249, 247, 241, 0.95);
-  border: 2px solid #c9a581;
-  border-radius: 25px;
+  padding: 0.8rem 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
   font-family: 'Caveat', cursive;
   font-size: 1.3rem;
   font-weight: 600;
   color: #8b7355;
   cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: color 0.2s;
+  text-decoration: underline;
+  box-shadow: none;
 }
 
 .rsvp-next-btn:hover {
-  background: rgba(239, 232, 216, 1);
-  border-color: #a68a5f;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  background: transparent;
+  border: none;
+  transform: none;
+  box-shadow: none;
+  color: #6b5638;
 }
 
 .rsvp-next-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transform: none;
 }
 
 /* ========== RSVP STATUS HEADER (Modal) - STILE CLASSICO ========== */
@@ -562,12 +563,12 @@
   margin-top: 1.5rem;
 }
 
-/* RSVP styles */
+/* RSVP styles - NIENTE BORDI/SFONDI */
 .guests-list { 
     margin-top: 1.5rem; 
-    padding: 1rem; 
-    background: rgba(249, 247, 241, 0.9);
-    border-left: 4px solid #c9a581; 
+    padding: 0; 
+    background: transparent;
+    border-left: none; 
 }
 .guests-list h3 { font-size: 1.1rem; margin-bottom: 0.8rem; color: #8b7355; }
 .guests-list ul { list-style: none; padding: 0; }
@@ -578,19 +579,19 @@
     display: inline-block; 
     margin-top: 0.8rem; 
     margin-right: 0.8rem; 
-    padding: 0.4rem 0.8rem; 
-    background: rgba(232, 245, 233, 0.95); 
-    border-radius: 6px; 
+    padding: 0; 
+    background: transparent; 
+    border-radius: 0; 
     font-size: 0.85rem; 
     color: #2e7d32; 
 }
 
 .rsvp-section { 
     margin-top: 2rem; 
-    padding: 1.5rem; 
-    background: rgba(240, 248, 255, 0.95); 
-    border-radius: 8px; 
-    border: 1px solid #c9a581; 
+    padding: 0; 
+    background: transparent; 
+    border-radius: 0; 
+    border: none; 
 }
 
 .rsvp-section h3 { color: #8b7355; margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
@@ -821,7 +822,7 @@
 
     /* Guests List Editable Mobile */
     .guests-list-editable {
-        padding: 1rem;
+        padding: 0;
     }
 
     .guests-list-editable h3 {
@@ -829,7 +830,7 @@
     }
 
     .guests-list-editable li {
-        padding: 0.6rem 0.3rem;
+        padding: 0.6rem 0;
     }
 
     .guest-name {
@@ -837,14 +838,14 @@
     }
 
     .guest-toggle-btn {
-        width: 28px;
-        height: 28px;
+        width: 26px;
+        height: 26px;
         font-size: 0.9rem;
     }
 
     /* RSVP Next Button Mobile */
     .rsvp-next-btn {
-        padding: 0.8rem 1.2rem;
+        padding: 0.6rem 0;
         font-size: 1.1rem;
     }
 
@@ -868,7 +869,7 @@
 
     .guests-list {
         margin-top: 1rem;
-        padding: 0.8rem;
+        padding: 0;
     }
     
     .guests-list h3 {
@@ -952,8 +953,8 @@
     }
 
     .guest-toggle-btn {
-        width: 26px;
-        height: 26px;
+        width: 24px;
+        height: 24px;
         font-size: 0.85rem;
     }
 
