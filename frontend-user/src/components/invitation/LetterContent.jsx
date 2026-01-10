@@ -396,7 +396,7 @@ const LetterContent = ({ data }) => {
                         {Object.keys(cards).map(card => (
                           <motion.div
                             key={card}
-                            layoutId={`${card}`}
+                            layoutId={`card-${card}`}
                             onClick={() => handleCardClick(card)}
                             style={{ cursor: 'pointer' }}
                             whileHover={{ scale: 1.02 }}
@@ -451,18 +451,8 @@ const LetterContent = ({ data }) => {
                     onClick={handleCloseExpanded}
                 >
                     <motion.div 
-                        layoutId={`${expandedCard}`}
+                        layoutId={`card-${expandedCard}`}
                         className="card-modal-content"
-                        style={{ 
-                            width: '90vw', 
-                            maxWidth: '600px', 
-                            height: 'auto',
-                            maxHeight: '85vh',
-                            position: 'relative',
-                            background: 'transparent', 
-                            boxShadow: 'none',
-                            pointerEvents: 'auto'
-                        }}
                         onClick={(e) => e.stopPropagation()}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
@@ -477,10 +467,10 @@ const LetterContent = ({ data }) => {
                                 >
                                     ✕
                                 </motion.button>
-                                <motion.div>
-                                    <img src={cards[expandedCard].icon} alt={cards[expandedCard].title} className="card-icon" />
-                                    <h3 className="card-title">{cards[expandedCard].title}</h3>
-                                </motion.div>
+                                <div style={{ marginBottom: '1rem' }}>
+                                    <img src={cards[expandedCard]?.icon} alt={cards[expandedCard]?.title} className="card-icon" />
+                                    <h3 className="card-title">{cards[expandedCard]?.title}</h3>
+                                </div>
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
