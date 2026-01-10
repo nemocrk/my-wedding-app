@@ -31,12 +31,17 @@ const LetterContent = ({ data }) => {
   const [excludedGuests, setExcludedGuests] = useState([]);
   // Stato per step del form RSVP
   const [rsvpStep, setRsvpStep] = useState('guests'); // 'guests' | 'confirm'
-  // NUOVO: Stato per editing ospiti
+  // Stato per editing ospiti
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
   const [editedGuests, setEditedGuests] = useState({});
-  // Stato temporaneo per input durante editing
+  // Stato temporaneo per input durante editing ospiti
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
+  // NUOVO: Stato per telefono
+  const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [tempPhoneNumber, setTempPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
 
   const sealControls = useAnimation();
   
@@ -99,7 +104,7 @@ const LetterContent = ({ data }) => {
     logInteraction('toggle_guest_exclusion', { guestIndex, excluded: !excludedGuests.includes(guestIndex) });
   };
 
-  // NUOVO: Start editing guest
+  // Start editing guest
   const handleStartEdit = (guestIndex) => {
     const guest = data.guests[guestIndex];
     const edited = editedGuests[guestIndex] || guest;
@@ -109,7 +114,7 @@ const LetterContent = ({ data }) => {
     logInteraction('start_edit_guest', { guestIndex });
   };
 
-  // NUOVO: Save edited guest
+  // Save edited guest
   const handleSaveEdit = (guestIndex) => {
     setEditedGuests(prev => ({
       ...prev,
@@ -122,7 +127,7 @@ const LetterContent = ({ data }) => {
     logInteraction('save_edit_guest', { guestIndex, first_name: tempFirstName, last_name: tempLastName });
   };
 
-  // NUOVO: Cancel editing
+  // Cancel editing guest
   const handleCancelEdit = () => {
     setEditingGuestIndex(null);
     setTempFirstName('');
@@ -142,6 +147,62 @@ const LetterContent = ({ data }) => {
       };
     }
     return guest;
+  };
+
+  // NUOVO: Validazione formato telefono
+  const validatePhoneNumber = (phone) => {
+    // Rimuove spazi, trattini, parentesi per validazione
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    
+    // Regex per formato telefono internazionale:
+    // - Opzionale prefisso + (es. +39)
+    // - Da 8 a 15 cifre (standard ITU-T E.164)
+    const phoneRegex = /^\+?[0-9]{8,15}$/;
+    
+    return phoneRegex.test(cleaned);
+  };
+
+  // NUOVO: Start editing phone
+  const handleStartEditPhone = () => {
+    setEditingPhone(true);
+    setTempPhoneNumber(phoneNumber);
+    setPhoneError('');
+    logInteraction('start_edit_phone');
+  };
+
+  // NUOVO: Save edited phone
+  const handleSaveEditPhone = () => {
+    const trimmed = tempPhoneNumber.trim();
+    
+    if (!trimmed) {
+      setPhoneError('Il numero di telefono è obbligatorio');
+      return;
+    }
+    
+    if (!validatePhoneNumber(trimmed)) {
+      setPhoneError('Formato non valido (es: +39 333 1234567 o 3331234567)');
+      return;
+    }
+    
+    setPhoneNumber(trimmed);
+    setEditingPhone(false);
+    setPhoneError('');
+    logInteraction('save_edit_phone', { phone: trimmed });
+  };
+
+  // NUOVO: Cancel editing phone
+  const handleCancelEditPhone = () => {
+    setEditingPhone(false);
+    setTempPhoneNumber('');
+    setPhoneError('');
+    logInteraction('cancel_edit_phone');
+  };
+
+  // Get confirmed guests (non esclusi)
+  const getConfirmedGuests = () => {
+    return data.guests
+      .map((guest, idx) => ({ ...getGuestDisplayName(idx), originalIndex: idx }))
+      .filter((_, idx) => !excludedGuests.includes(idx));
   };
 
   useEffect(() => {
@@ -164,6 +225,9 @@ const LetterContent = ({ data }) => {
         setRsvpStep('guests');
         setEditingGuestIndex(null);
         setEditedGuests({});
+        setPhoneNumber(data.phone_number || '');
+        setEditingPhone(false);
+        setPhoneError('');
         return;
       }
 
@@ -223,7 +287,7 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('wax-seal:return', onSealReturn);
       clearTimeout(timer);
     };
-  }, [sealControls]);
+  }, [sealControls, data.phone_number]);
 
   const handleFlip = (flipped) => {
       setIsFlipped(flipped);
@@ -284,6 +348,11 @@ const LetterContent = ({ data }) => {
   const handleNextStep = () => {
     setRsvpStep('confirm');
     logInteraction('rsvp_next_step', { excludedGuests, editedGuests });
+  };
+
+  const handleBackStep = () => {
+    setRsvpStep('guests');
+    logInteraction('rsvp_back_step');
   };
 
   // Card Grid Configuration
@@ -468,8 +537,71 @@ const LetterContent = ({ data }) => {
                 </button>
               </>
             ) : (
-              // STEP 2: Conferma finale
+              // STEP 2: Conferma finale con telefono
               <div className="rsvp-form">
+                {/* Riepilogo ospiti confermati */}
+                <div className="guests-summary">
+                  <h3>Ospiti che parteciperanno:</h3>
+                  <ul>
+                    {getConfirmedGuests().map((guest, idx) => (
+                      <li key={idx}>
+                        {guest.first_name} {guest.last_name || ''}
+                        {guest.is_child && <span className="badge">Bambino</span>}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Campo Telefono Editabile */}
+                <div className="phone-field">
+                  <h3>Numero di contatto:</h3>
+                  {editingPhone ? (
+                    // EDITING MODE
+                    <>
+                      <div className="phone-edit-container">
+                        <input
+                          type="tel"
+                          className="phone-input"
+                          value={tempPhoneNumber}
+                          onChange={(e) => setTempPhoneNumber(e.target.value)}
+                          placeholder="es: +39 333 1234567"
+                          autoFocus
+                        />
+                        <div className="guest-actions">
+                          <button 
+                            className="guest-action-btn save"
+                            onClick={handleSaveEditPhone}
+                            title="Salva numero"
+                          >
+                            ✓
+                          </button>
+                          <button 
+                            className="guest-action-btn cancel"
+                            onClick={handleCancelEditPhone}
+                            title="Annulla"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      </div>
+                      {phoneError && <div className="phone-error">{phoneError}</div>}
+                    </>
+                  ) : (
+                    // NORMAL MODE
+                    <div className="phone-display">
+                      <span className="phone-number">{phoneNumber || 'Non specificato'}</span>
+                      <button 
+                        className="guest-action-btn edit"
+                        onClick={handleStartEditPhone}
+                        title="Modifica numero"
+                      >
+                        ✏️
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Checkbox Alloggio/Transfer */}
                 {data.accommodation_offered && (
                   <label className="checkbox-label">
                     <input 
@@ -492,11 +624,12 @@ const LetterContent = ({ data }) => {
                   </label>
                 )}
 
+                {/* Pulsanti Azione */}
                 <div className="button-group">
                   <button 
                     className="rsvp-button confirm"
                     onClick={() => handleRSVP('confirmed')}
-                    disabled={submitting}
+                    disabled={submitting || !phoneNumber}
                   >
                     {submitting ? 'Invio...' : '✔️ Conferma'}
                   </button>
@@ -508,6 +641,14 @@ const LetterContent = ({ data }) => {
                     {submitting ? 'Invio...' : '❌ Declina'}
                   </button>
                 </div>
+
+                {/* Pulsante Indietro */}
+                <button 
+                  className="rsvp-back-btn"
+                  onClick={handleBackStep}
+                >
+                  ← Indietro
+                </button>
 
                 {message && (
                   <div className={`message ${message.type}`}>
