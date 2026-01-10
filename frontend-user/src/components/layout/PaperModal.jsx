@@ -13,26 +13,25 @@ export const PaperModal = ({ children, className = '', style = {} }) => {
       className={`${styles.wrapper} ${className}`} 
       style={style}
     >
-      <div className={styles.container}>
-        {/* Top Cap */}
+      {/* LAYER 1: Sfondo Grafico (Sliding Doors) */}
+      <div className={styles.backgroundLayer}>
         <div 
           className={styles.top} 
           style={{ backgroundImage: `url(${bgTop})` }}
         />
-        
-        {/* Center Body (Scrollable & Blended) */}
         <div 
           className={styles.center} 
           style={{ backgroundImage: `url(${bgCenter})` }}
-        >
-          {children}
-        </div>
-        
-        {/* Bottom Cap */}
+        />
         <div 
           className={styles.bottom} 
           style={{ backgroundImage: `url(${bgBottom})` }}
         />
+      </div>
+
+      {/* LAYER 2: Contenuto Utente (Full Height) */}
+      <div className={styles.contentLayer}>
+        {children}
       </div>
     </div>
   );
