@@ -559,6 +559,146 @@
   transform: none;
 }
 
+/* ========== GUESTS SUMMARY (STEP 2 - Riepilogo Ospiti Confermati) ========== */
+.guests-summary {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.guests-summary h3 {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #8b7355;
+}
+
+.guests-summary ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.guests-summary li {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+}
+
+.guests-summary .badge {
+  background: #ffd89b;
+  color: #8b5a00;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+/* ========== PHONE FIELD (STEP 2 - Numero Telefono Editabile) ========== */
+.phone-field {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border: none;
+}
+
+.phone-field h3 {
+  font-family: 'Georgia', serif;
+  font-size: 1.1rem;
+  margin-bottom: 1rem;
+  color: #8b7355;
+}
+
+/* Phone Display (modalità normale) */
+.phone-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.phone-number {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  flex: 1;
+}
+
+/* Phone Edit Container (modalità editing) */
+.phone-edit-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+}
+
+.phone-input {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #c9a581;
+  padding: 0.3rem 0;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+  flex: 1;
+}
+
+.phone-input:focus {
+  border-bottom-color: #8b7355;
+}
+
+.phone-input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+/* Phone Error Message */
+.phone-error {
+  margin-top: 0.5rem;
+  font-size: 0.85rem;
+  color: #c62828;
+  font-weight: 500;
+}
+
+/* ========== RSVP BACK BUTTON - STILE LINK ========== */
+.rsvp-back-btn {
+  width: 100%;
+  margin-top: 1rem;
+  padding: 0.6rem 0;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #8b7355;
+  cursor: pointer;
+  transition: color 0.2s;
+  text-decoration: underline;
+  box-shadow: none;
+}
+
+.rsvp-back-btn:hover {
+  background: transparent;
+  border: none;
+  transform: none;
+  box-shadow: none;
+  color: #6b5638;
+}
+
+.rsvp-back-btn:active {
+  transform: none;
+}
+
 /* ========== RSVP STATUS HEADER (Modal) - STILE CLASSICO ========== */
 .rsvp-status-header {
   display: flex;
@@ -905,6 +1045,37 @@
         font-size: 1.1rem;
     }
 
+    /* Guests Summary Mobile */
+    .guests-summary h3 {
+        font-size: 1rem;
+    }
+
+    .guests-summary li {
+        font-size: 0.9rem;
+    }
+
+    /* Phone Field Mobile */
+    .phone-field h3 {
+        font-size: 1rem;
+    }
+
+    .phone-number {
+        font-size: 0.9rem;
+    }
+
+    .phone-input {
+        font-size: 0.9rem;
+    }
+
+    .phone-error {
+        font-size: 0.8rem;
+    }
+
+    /* RSVP Back Button Mobile */
+    .rsvp-back-btn {
+        font-size: 1rem;
+    }
+
     /* RSVP Status Header Mobile */
     .rsvp-status-header {
         padding: 1rem;
@@ -1020,6 +1191,22 @@
 
     .rsvp-next-btn {
         font-size: 1rem;
+    }
+
+    .guests-summary li {
+        font-size: 0.85rem;
+    }
+
+    .phone-number {
+        font-size: 0.85rem;
+    }
+
+    .phone-input {
+        font-size: 0.85rem;
+    }
+
+    .rsvp-back-btn {
+        font-size: 0.95rem;
     }
 
     .rsvp-status-emoji {
