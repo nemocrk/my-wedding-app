@@ -80,7 +80,7 @@ class Accommodation(models.Model):
     def available_capacity(self):
         """Capienza disponibile sottraendo gli invitati già assegnati"""
         assigned = sum(
-            inv.guests.filter(is_child=False).count() + inv.guests.filter(is_child=True).count()
+            inv.guests.filter(is_child=False, not_coming=False).count() + inv.guests.filter(is_child=True, not_coming=False).count()
             for inv in self.assigned_invitations.all()
         )
         return self.total_capacity() - assigned
@@ -111,13 +111,13 @@ class Room(models.Model):
         return self.capacity_adults + self.capacity_children
 
     def occupied_count(self):
-        """Numero di persone assegnate a questa stanza"""
-        return self.assigned_guests.count()
+        """Numero di persone assegnate a questa stanza (escludendo not_coming)"""
+        return self.assigned_guests.filter(not_coming=False).count()
 
     def available_slots(self):
-        """Posti disponibili (considerando la logica adulti/bambini)"""
-        adults_assigned = self.assigned_guests.filter(is_child=False).count()
-        children_assigned = self.assigned_guests.filter(is_child=True).count()
+        """Posti disponibili (considerando la logica adulti/bambini, escludendo not_coming)"""
+        adults_assigned = self.assigned_guests.filter(is_child=False, not_coming=False).count()
+        children_assigned = self.assigned_guests.filter(is_child=True, not_coming=False).count()
         
         # Logica: bambini usano prima i posti bambini, poi quelli adulti
         children_in_child_slots = min(children_assigned, self.capacity_children)
@@ -196,6 +196,33 @@ class Invitation(models.Model):
     accommodation_requested = models.BooleanField(default=False, verbose_name="Richiede Alloggio")
     transfer_requested = models.BooleanField(default=False, verbose_name="Richiede Transfer")
     
+    # TRAVEL INFO (Wizard RSVP Step 3)
+    travel_transport_type = models.CharField(
+        max_length=20,
+        blank=True,
+        null=True,
+        help_text="Tipo trasporto: 'traghetto', 'aereo'",
+        verbose_name="Tipo Trasporto"
+    )
+    travel_schedule = models.TextField(
+        blank=True,
+        null=True,
+        help_text="Orari partenza/arrivo (free-text)",
+        verbose_name="Orari Viaggio"
+    )
+    travel_car_with = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="True se traghetto + auto al seguito",
+        verbose_name="Auto al Seguito"
+    )
+    travel_carpool_interest = models.BooleanField(
+        null=True,
+        blank=True,
+        help_text="True se aereo + interesse carpool",
+        verbose_name="Interesse Carpool"
+    )
+    
     # LOGISTICA (Assegnazione a livello di Struttura - manteniamo per backward compatibility)
     accommodation = models.ForeignKey(
         Accommodation,
@@ -241,6 +268,13 @@ class Person(models.Model):
     # Dettagli personali
     dietary_requirements = models.TextField(blank=True, null=True, verbose_name="Allergie/Intolleranze")
     
+    # EXCLUSION FLAG (Wizard RSVP Step 1)
+    not_coming = models.BooleanField(
+        default=False,
+        help_text="True se deselezionato nel wizard RSVP (escluso da conteggi e assignment)",
+        verbose_name="Non Partecipa"
+    )
+    
     # ASSEGNAZIONE CAMERA (Livello Granulare)
     assigned_room = models.ForeignKey(
         Room,
@@ -252,7 +286,8 @@ class Person(models.Model):
     )
 
     def __str__(self):
-        return f"{self.first_name} {self.last_name or ''}".strip()
+        suffix = " (non partecipa)" if self.not_coming else ""
+        return f"{self.first_name} {self.last_name or ''}{suffix}".strip()
 
     class Meta:
         verbose_name = "Persona"
@@ -283,7 +318,7 @@ class GuestInteraction(models.Model):
     geo_country = models.CharField(max_length=100, null=True, blank=True)
     geo_city = models.CharField(max_length=100, null=True, blank=True)
     
-    metadata = models.JSONField(default=dict, blank=True, help_text="Dati extra (es. button_id)")
+    metadata = models.JSONField(default=dict, blank=True, help_text="Dati extra (es. button_id, phone_number_old, phone_number_new)")
 
     def __str__(self):
         return f"{self.invitation.code} - {self.event_type} - {self.timestamp}"
