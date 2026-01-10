@@ -3,9 +3,9 @@ import ReactDOM from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
+import Fab from '../common/Fab';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
-import rightArrow from '../../assets/illustrations/right-arrow.png';
 import waxImg from '../../assets/illustrations/wax.png';
 import buttonBg from '../../assets/illustrations/button-bk.png';
 import homeIcon from '../../assets/illustrations/home.png';
@@ -368,14 +368,6 @@ const LetterContent = ({ data }) => {
                     </p>
                 </div>
                 
-                <button 
-                    className="nav-button pulse-animation" 
-                    onClick={() => handleFlip(true)}
-                    aria-label="Vedi dettagli"
-                    title="Vedi dettagli e conferma"
-                >
-                    <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
-                </button>
                 <motion.div
                     className="wax-seal"
                     initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
@@ -421,19 +413,17 @@ const LetterContent = ({ data }) => {
                       </div>
                     </div>
                 </div>
-                <button 
-                    className="nav-button-back" 
-                    onClick={() => handleFlip(false)}
-                    aria-label="Torna alla copertina"
-                    title="Torna alla copertina"
-                >
-                    <img src={rightArrow} alt="Indietro" className="nav-arrow-img" />
-                </button>
             </div>
         </div>
       </div>
 
-      {/* EXPANDED CARD MODAL */}
+      {/* FAB - Global Fixed Navigation Button */}
+      <Fab
+        onClick={() => handleFlip(!isFlipped)}
+        isFlipped={isFlipped}
+        visible={!expandedCard}
+      />
+
       {/* EXPANDED CARD MODAL - Rendered via Portal */}
       {expandedCard && ReactDOM.createPortal(
         <AnimatePresence>
