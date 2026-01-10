@@ -11,9 +11,26 @@ const Fab = ({ onClick, isFlipped, visible = true }) => {
           className={`wedding-fab ${isFlipped ? 'is-flipped' : 'is-front'}`}
           onClick={onClick}
           initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
+          animate={
+            isFlipped 
+              ? { scale: 1, opacity: 1, filter: "brightness(1)" } 
+              : { 
+                  scale: [1, 1.15, 1], 
+                  opacity: 1,
+                  filter: ["brightness(1)", "brightness(1.1)", "brightness(1)"]
+                }
+          }
+          transition={
+            isFlipped 
+              ? { duration: 0.3 }
+              : { 
+                  scale: { duration: 2.5, repeat: Infinity, ease: "easeInOut" },
+                  filter: { duration: 2.5, repeat: Infinity, ease: "easeInOut" },
+                  opacity: { duration: 0.3 } // Quick fade in
+                }
+          }
           exit={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1.15 }}
+          whileHover={{ scale: 1.2, transition: { duration: 0.2 } }}
           whileTap={{ scale: 0.95 }}
           aria-label={isFlipped ? "Torna alla copertina" : "Gira invito"}
         >
