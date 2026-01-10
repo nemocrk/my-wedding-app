@@ -54,8 +54,8 @@ test.describe('Complex Wedding Flow', () => {
     }
   });
 
-  test('Complete Admin -> User -> Admin Assignment Flow', async ({ page, request }) => {
-    test.setTimeout(120000); // Allow 2 minutes for full flow
+  test('Complete Admin -> User (Wizard RSVP) -> Admin Assignment Flow', async ({ page, request }) => {
+    test.setTimeout(180000); // Allow 3 minutes for full flow (wizard takes longer)
 
     const createdInvitationIds: number[] = [];
     const createdAccommodationIds: number[] = [];
@@ -68,6 +68,7 @@ test.describe('Complex Wedding Flow', () => {
             const inv = await api.createInvitation({
                 code: `family-${Date.now()}-${i}`,
                 name: `Famiglia Test ${i}`,
+                phone_number: `+39 333 ${Math.floor(Math.random() * 1000000)}`,
                 accommodation_offered: true,
                 transfer_offered: true,
                 status: 'created',
@@ -79,23 +80,19 @@ test.describe('Complex Wedding Flow', () => {
         expect(invitations.length).toBe(10);
 
         // 2. ADMIN: Verify Dashboard (via UI or API)
-        // Using UI for Admin verification
         await page.goto('http://localhost:8080/#/dashboard');
         
-        // Wait for dashboard to fully render
         await expect(page.locator('body')).toContainText('In Attesa');
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
         await waitForPageReady(page);
         
         await page.screenshot({ path: 'test-results/complex-flow-1-dashboard-initial.png', fullPage: true });
 
-        // 3. USER: Interact with invitations
-        console.log('Simulating User interactions...');
+        // 3. USER: Interact with invitations using NEW WIZARD FLOW
+        console.log('Simulating User interactions with Wizard RSVP...');
         for (const [index, inv] of invitations.entries()) {
             // Get public link
             const linkData = await api.getInvitationLink(inv.id);
-            
-            // Fix: ensure public port 80
             const publicUrl = linkData.url.replace(':8080', ':80'); 
             
             // Navigate to public link
@@ -105,24 +102,149 @@ test.describe('Complex Wedding Flow', () => {
             await expect(page.getByRole('heading', { name: 'Siete Invitati!' })).toBeVisible();
             await waitForPageReady(page);
 
-            // Take screenshot only for the first user interaction to avoid clutter
+            // Take screenshot for first user
             if (index === 0) {
-                await page.screenshot({ path: 'test-results/complex-flow-2-user-view.png', fullPage: true });
+                await page.screenshot({ path: 'test-results/complex-flow-2-user-view-landing.png', fullPage: true });
             }
 
-            // Random choices
-            const status = Math.random() > 0.1 ? 'confirmed' : 'declined'; // 90% confirm
-            const accReq = Math.random() > 0.5;
-            const transReq = Math.random() > 0.5;
+            // Random choice: 90% confirm, 10% decline
+            const willConfirm = Math.random() > 0.1;
+            
+            if (willConfirm) {
+                // ===================
+                // WIZARD FLOW SIMULATION
+                // ===================
+                
+                // Click RSVP card to open wizard modal
+                await page.getByText('RSVP - Conferma Presenza').click();
+                
+                // Wait for modal to open (Step 1: Guests)
+                await expect(page.getByText('Conferma Ospiti')).toBeVisible();
+                await page.waitForTimeout(300);
 
-            // Use Public API to simulate user action (session based)
-            await page.evaluate(async (data) => {
-                await fetch('/api/public/rsvp/', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(data)
+                // STEP 1: GUESTS - Random Edit/Exclude
+                const shouldEditGuests = Math.random() > 0.5; // 50% chance
+                if (shouldEditGuests) {
+                    // Try to edit first guest name
+                    const editButtons = await page.locator('button:has-text("✏️")').all();
+                    if (editButtons.length > 0) {
+                        await editButtons[0].click();
+                        await page.waitForTimeout(200);
+                        
+                        const firstNameInput = page.locator('input[placeholder="Nome"]').first();
+                        await firstNameInput.clear();
+                        await firstNameInput.fill(`Edited${Math.floor(Math.random() * 100)}`);
+                        
+                        const saveBtn = page.locator('button:has-text("✓")').first();
+                        await saveBtn.click();
+                        await page.waitForTimeout(300);
+                    }
+                }
+
+                // Random exclude one guest (30% chance if multiple guests)
+                const shouldExclude = Math.random() > 0.7;
+                if (shouldExclude) {
+                    const excludeButtons = await page.locator('button:has-text("✕")').all();
+                    if (excludeButtons.length > 1) { // Only exclude if multiple guests
+                        await excludeButtons[excludeButtons.length - 1].click();
+                        await page.waitForTimeout(300);
+                    }
+                }
+
+                // Next step
+                await page.getByText('Avanti →').click();
+                await page.waitForTimeout(500);
+
+                // STEP 2: CONTACT - Phone Number (usually pre-filled)
+                await expect(page.getByText('Numero di Contatto')).toBeVisible();
+                
+                // Random: edit phone (20% chance)
+                if (Math.random() > 0.8) {
+                    const editPhoneBtn = page.locator('button:has-text("✏️")').first();
+                    await editPhoneBtn.click();
+                    await page.waitForTimeout(200);
+                    
+                    const phoneInput = page.locator('input[placeholder="+39 333 1234567"]');
+                    await phoneInput.fill(`+39 333 ${Math.floor(Math.random() * 9000000) + 1000000}`);
+                    
+                    const savePhoneBtn = page.locator('button:has-text("✓")').first();
+                    await savePhoneBtn.click();
+                    await page.waitForTimeout(300);
+                }
+
+                await page.getByText('Avanti →').click();
+                await page.waitForTimeout(500);
+
+                // STEP 3: TRAVEL - Transport Info
+                await expect(page.getByText('Come Viaggerai?')).toBeVisible();
+                
+                // Random transport choice
+                const useFerrry = Math.random() > 0.5;
+                if (useFerrry) {
+                    await page.getByLabel('Traghetto').click();
+                    await page.waitForTimeout(300);
+                    
+                    // Random car option
+                    if (Math.random() > 0.5) {
+                        await page.getByLabel('Auto al seguito').click();
+                    }
+                } else {
+                    await page.getByLabel('Aereo').click();
+                    await page.waitForTimeout(300);
+                    
+                    // Random carpool interest
+                    if (Math.random() > 0.6) {
+                        await page.getByLabel(/Sarebbe carino organizzarmi/).click();
+                    }
+                }
+
+                // Fill schedule
+                const scheduleInput = page.locator('textarea[placeholder*="Partenza"]');
+                await scheduleInput.fill(`Arrivo ${Math.floor(Math.random() * 12) + 8}:00, Partenza ${Math.floor(Math.random() * 12) + 8}:00 +1`);
+
+                await page.getByText('Avanti →').click();
+                await page.waitForTimeout(500);
+
+                // STEP 4: ACCOMMODATION (if offered)
+                // Check if accommodation step is visible
+                const accommodationVisible = await page.getByText('Alloggio').isVisible().catch(() => false);
+                if (accommodationVisible) {
+                    // Random: request accommodation (60% chance)
+                    if (Math.random() > 0.4) {
+                        await page.getByLabel(/Sì, richiedo l'alloggio/).click();
+                    } else {
+                        await page.getByLabel(/No, ho già un alloggio/).click();
+                    }
+
+                    await page.getByText('Avanti →').click();
+                    await page.waitForTimeout(500);
+                }
+
+                // STEP 5: FINAL CONFIRMATION
+                await expect(page.getByText('Conferma Finale')).toBeVisible();
+                
+                if (index === 0) {
+                    await page.screenshot({ path: 'test-results/complex-flow-2b-user-wizard-final.png', fullPage: true });
+                }
+
+                // Submit RSVP
+                await page.getByText('✔️ Conferma Presenza').click();
+                await page.waitForTimeout(1000); // Wait for API call
+
+                // Wait for success message or modal close
+                await page.waitForTimeout(1000);
+
+            } else {
+                // DECLINE FLOW (simpler - direct modal or API call)
+                // For now, use direct API call for decline (wizard only for confirmed)
+                await page.evaluate(async () => {
+                    await fetch('/api/public/rsvp/', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ status: 'declined' })
+                    });
                 });
-            }, { status, accommodation_requested: accReq, transfer_requested: transReq });
+            }
         }
 
         // 4. ADMIN: Add 10 Accommodations
@@ -140,16 +262,15 @@ test.describe('Complex Wedding Flow', () => {
         console.log('Triggering Auto Assignment...');
         await page.goto('http://localhost:8080/#/accommodations');
         
-        // Wait for accommodations page to render
         await expect(page.getByRole('heading', { name: 'Gestione Alloggi' })).toBeVisible();
         await waitForPageReady(page);
         
         await page.screenshot({ path: 'test-results/complex-flow-3-accommodations-before.png', fullPage: true });
         
-        // WORKAROUND: Call API directly
+        // Call API directly for assignment
         await api.triggerAutoAssignment();
         
-        // Reload page to see results and wait for new data
+        // Reload page to see results
         await page.reload();
         await expect(page.getByRole('heading', { name: 'Gestione Alloggi' })).toBeVisible();
         await waitForPageReady(page);
@@ -157,10 +278,8 @@ test.describe('Complex Wedding Flow', () => {
         await page.screenshot({ path: 'test-results/complex-flow-4-accommodations-after.png', fullPage: true });
 
         // 6. ADMIN: Verify Results
-        // Check Dashboard again
         await page.goto('http://localhost:8080/#/dashboard');
         
-        // Wait for dashboard to refresh with new data
         await expect(page.getByRole('heading', { name: 'Dettaglio Logistica & Costi' })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
         await waitForPageReady(page);
