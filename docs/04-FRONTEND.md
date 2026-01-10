@@ -1,51 +1,46 @@
-# Frontend Documentation
+# Frontend User (React)
 
-Il progetto include due applicazioni frontend distinte, entrambe basate su React 19 e Vite, ma con scopi e stack UI differenti.
+## Overview
+L'applicazione **Frontend User** è una Single Page Application (SPA) in React dedicata agli invitati. 
+Permette di visualizzare l'invito digitale (con animazione 3D della busta) e gestire la propria partecipazione (RSVP).
 
-## 1. Frontend User (`frontend-user/`)
-L'interfaccia pubblica dedicata agli invitati.
+## Stack Tecnologico
+- **Core:** React 19, Vite
+- **UI/Animation:** Framer Motion, Motion for React, CSS Modules
+- **State Management:** React Hooks
+- **Testing:** Vitest, React Testing Library
+- **Icons:** Lucide React, React Icons
 
-### Tech Stack
-- **Core**: React 19, Vite.
-- **Animation**: `framer-motion` (Gestione transizioni, animazione busta apertura).
-- **Styling**: CSS Modules / Custom SCSS.
-- **State**: React Context API (Gestione stato invito e RSVP).
+## Struttura Componenti
 
-### Features Chiave
-- **Mobile First**: Design responsivo ottimizzato per smartphone.
-- **Esperienza Immersiva**: Animazione iniziale di apertura "busta" virtuale.
-- **Form RSVP Dinamico**: I campi (es. Hotel, Bus) appaiono solo se l'invito lo prevede.
-- **Multilingua**: Predisposizione i18n (Italiano/Inglese).
+### `InvitationPage`
+Pagina principale. Gestisce il flusso di autenticazione (tramite query params `?code=...`) e orchestra l'apertura della busta.
+- **EnvelopeAnimation**: Animazione iniziale di apertura busta e ceralacca.
+- **LetterContent**: Il cuore dell'interazione. Mostra il contenuto della lettera e permette di "girarla" per vedere i dettagli.
 
-## 2. Frontend Admin (`frontend-admin/`)
-La dashboard di gestione per gli sposi.
+### `LetterContent`
+Componente complesso che gestisce:
+- **Flip Card 3D**: Fronte (copertina) e Retro (griglia opzioni).
+- **FAB (Floating Action Button)**: Implementato con **React Portal** per sganciarsi dal contesto 3D della lettera. Gestisce la navigazione Fronte/Retro.
+- **RSVP Form**: Gestione interattiva della conferma presenza.
+- **Card Grid**: Griglia di icone per info aggiuntive (Alloggio, Viaggio, ecc.).
+- **Expanded Card Modal**: Modale per i dettagli delle singole card.
 
-### Tech Stack
-- **Core**: React 19, Vite.
-- **Routing**: React Router v7.
-- **UI Framework**: Tailwind CSS v4.
-- **Icons**: Lucide React.
-- **Charts**: Recharts (Statistiche RSVP).
+## UX & Animazioni
+1. **Envelope Flow**: Busta chiusa -> Rottura sigillo -> Estrazione lettera -> Lettura.
+2. **Navigation**: 
+   - L'utente usa il FAB per girare la lettera.
+   - Il FAB cambia icona (`ArrowRight` -> `RotateCcw`) in base al lato.
+   - Il FAB **scompare** quando si apre una modale di dettaglio per evitare conflitti visivi.
+3. **Responsive**: 
+   - Layout adattivo per mobile (single column grid).
+   - Scaling dinamico della lettera.
 
-### Moduli Dashboard
-1.  **Overview**: KPI in tempo reale (Totale confermati, Pendenti, Richieste speciali).
-2.  **Lista Inviti**: Tabella filtrabile e ricercabile di tutti gli inviti.
-3.  **Dettaglio Invito**: Modifica composizione nucleo, generazione link, log accessi.
-4.  **Heatmaps**: Visualizzazione grafica delle interazioni utente sugli inviti.
-
-## Sviluppo Locale
-Entrambi i frontend supportano Hot Module Replacement (HMR) tramite Docker.
-
+## Testing
+I test sono scritti con Vitest.
 ```bash
-# Avvio ambiente dev
-docker-compose up --build
-
-# I log mostreranno gli URL locali:
-# User: http://localhost:80
-# Admin: http://localhost:8080
+npm run test
 ```
-
-## Build Process
-I Dockerfile utilizzano un approccio multi-stage:
-1.  **Build Stage**: Node.js compila gli asset statici (`npm run build`).
-2.  **Run Stage**: I file compilati (`/dist`) vengono copiati in un container Nginx minimale (Alpine) o serviti tramite volume condiviso al Gateway principale.
+Copertura principale su:
+- `Fab.test.jsx`: Verifica rendering via Portal e visibilità condizionale.
+- `LetterContent.test.jsx`: Verifica interazioni RSVP e Flip.
