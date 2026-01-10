@@ -74,15 +74,17 @@ export const getInvitationDetails = async () => {
 
 /**
  * Invia RSVP (conferma/declino)
+ * Supporta ora payload esteso per dettagli viaggio, telefono e modifiche ospiti
  */
-export const submitRSVP = async (status, accommodationRequested = false, transferRequested = false) => {
+export const submitRSVP = async (status, accommodationRequested = false, transferRequested = false, extraData = {}) => {
   return fetchWithCredentials(`${API_BASE}/rsvp/`, {
     method: 'POST',
     body: JSON.stringify({
       status,
       accommodation_requested: accommodationRequested,
       transfer_requested: transferRequested,
-      session_id: getSessionId()
+      session_id: getSessionId(),
+      ...extraData // Include guest_changes, phone, travel_details, etc.
     }),
   });
 };
