@@ -229,16 +229,51 @@
   flex: 1;
 }
 
-/* RSVP Card - Full Width */
+/* RSVP Card - Full Width with Status */
 .info-card.rsvp-card {
   grid-column: 1 / -1;
+  flex-direction: column;
   justify-content: center;
-  padding: 1rem;
+  padding: 0.8rem 1rem;
+  gap: 0.3rem;
 }
 
 .rsvp-card .card-title {
   text-align: center;
   font-size: 1.1rem;
+}
+
+/* ========== RSVP CARD STATUS (Grid) - STILE CLASSICO ========== */
+.rsvp-card-status {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  background: rgba(249, 247, 241, 0.8);
+  border: 1px solid #c9a581;
+  border-radius: 20px;
+  margin-top: 0.3rem;
+}
+
+.rsvp-card-emoji {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.rsvp-card-text {
+  font-family: 'Caveat', cursive;
+  font-size: 0.95rem;
+  color: #8b7355;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Varianti status - tutte con stesso stile classico */
+.rsvp-card-status-pending,
+.rsvp-card-status-confirmed,
+.rsvp-card-status-declined {
+  /* Stile uniforme classico */
 }
 
 /* ========== MODAL FULLSCREEN ========== */
@@ -336,15 +371,16 @@
   margin-top: 1rem;
 }
 
-/* ========== RSVP STATUS HEADER ========== */
+/* ========== RSVP STATUS HEADER (Modal) - STILE CLASSICO ========== */
 .rsvp-status-header {
   display: flex;
   align-items: center;
   gap: 1rem;
   padding: 1.2rem;
   margin-bottom: 1.5rem;
-  border-radius: 12px;
-  border-left: 4px solid;
+  border-radius: 8px;
+  background: rgba(249, 247, 241, 0.8);
+  border: 2px solid #c9a581;
 }
 
 .rsvp-status-emoji {
@@ -363,53 +399,23 @@
   font-weight: 700;
   margin: 0 0 0.3rem 0;
   line-height: 1.2;
+  color: #8b7355;
 }
 
 .rsvp-status-message {
-  font-size: 0.95rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1.1rem;
   line-height: 1.4;
   margin: 0;
   white-space: pre-line;
+  color: #6b5638;
 }
 
-/* Status Variants */
-.rsvp-status-pending {
-  background: rgba(255, 243, 205, 0.95);
-  border-left-color: #f59e0b;
-}
-
-.rsvp-status-pending .rsvp-status-title {
-  color: #d97706;
-}
-
-.rsvp-status-pending .rsvp-status-message {
-  color: #92400e;
-}
-
-.rsvp-status-confirmed {
-  background: rgba(232, 245, 233, 0.95);
-  border-left-color: #4caf50;
-}
-
-.rsvp-status-confirmed .rsvp-status-title {
-  color: #2e7d32;
-}
-
-.rsvp-status-confirmed .rsvp-status-message {
-  color: #1b5e20;
-}
-
+/* Status Variants - tutte con stile classico uniforme */
+.rsvp-status-pending,
+.rsvp-status-confirmed,
 .rsvp-status-declined {
-  background: rgba(243, 244, 246, 0.95);
-  border-left-color: #9ca3af;
-}
-
-.rsvp-status-declined .rsvp-status-title {
-  color: #6b7280;
-}
-
-.rsvp-status-declined .rsvp-status-message {
-  color: #4b5563;
+  /* Stile uniforme classico per tutte */
 }
 
 /* RSVP Expanded specific */
@@ -641,8 +647,26 @@
         font-size: 0.75rem;
     }
 
+    .info-card.rsvp-card {
+        padding: 0.6rem 0.8rem;
+    }
+
     .rsvp-card .card-title {
         font-size: 0.95rem;
+    }
+
+    /* RSVP Card Status Mobile */
+    .rsvp-card-status {
+        padding: 0.3rem 0.6rem;
+        gap: 0.3rem;
+    }
+
+    .rsvp-card-emoji {
+        font-size: 1rem;
+    }
+
+    .rsvp-card-text {
+        font-size: 0.85rem;
     }
 
     /* Modal Mobile */
@@ -670,7 +694,7 @@
     }
 
     .rsvp-status-message {
-        font-size: 0.85rem;
+        font-size: 0.95rem;
     }
 
     .guests-list {
@@ -742,6 +766,14 @@
         font-size: 0.8rem;
     }
 
+    .rsvp-card-emoji {
+        font-size: 0.9rem;
+    }
+
+    .rsvp-card-text {
+        font-size: 0.75rem;
+    }
+
     .rsvp-status-emoji {
         font-size: 1.8rem;
     }
@@ -751,6 +783,6 @@
     }
 
     .rsvp-status-message {
-        font-size: 0.8rem;
+        font-size: 0.85rem;
     }
 }
