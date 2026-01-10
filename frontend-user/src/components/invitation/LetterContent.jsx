@@ -452,6 +452,7 @@ const LetterContent = ({ data }) => {
                 >
                     <motion.div 
                         layoutId={`card-${expandedCard}`}
+                        layout={true}
                         className="card-modal-content"
                         onClick={(e) => e.stopPropagation()}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
