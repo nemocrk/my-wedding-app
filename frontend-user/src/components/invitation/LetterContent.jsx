@@ -1,13 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import ReactDOM from 'react-dom';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
+import Fab from '../common/Fab';
 import './LetterContent.css';
-import letterBg from '../../assets/illustrations/LetterBackground.png'; // Mantenuto solo per il front
-import PaperModal from '../layout/PaperModal'; // Import del nuovo componente dinamico
-import rightArrow from '../../assets/illustrations/right-arrow.png';
+import letterBg from '../../assets/illustrations/LetterBackground.png';
 import waxImg from '../../assets/illustrations/wax.png';
+import buttonBg from '../../assets/illustrations/button-bk.png';
+import homeIcon from '../../assets/illustrations/home.png';
+import vanIcon from '../../assets/illustrations/van.png';
+import archIcon from '../../assets/illustrations/arch.png';
+import dressIcon from '../../assets/illustrations/dress.png';
+import chestIcon from '../../assets/illustrations/chest.png';
+import questionsIcon from '../../assets/illustrations/questions.png';
 import { FaWhatsapp } from 'react-icons/fa';
+import PaperModal from '../layout/PaperModal'; // Added Import
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -15,17 +23,12 @@ const LetterContent = ({ data }) => {
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  
-  // State per gestire la "modalità modifica"
   const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
-  
-  // State per l'animazione di flip
   const [isFlipped, setIsFlipped] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
 
-  // Animation Control per il Sigillo
   const sealControls = useAnimation();
   
-  // WhatsApp Config extraction
   const groomNumber = data.config?.whatsapp_groom_number;
   const brideNumber = data.config?.whatsapp_bride_number;
   const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
@@ -49,6 +52,7 @@ const LetterContent = ({ data }) => {
         setMessage(null);
         setSubmitting(false);
         setIsFlipped(false);
+        setExpandedCard(null);
         return;
       }
 
@@ -150,6 +154,178 @@ const LetterContent = ({ data }) => {
       setMessage(null);
   };
 
+  const handleCardClick = (cardId) => {
+    setExpandedCard(cardId);
+    logInteraction('card_expand', { card: cardId });
+  };
+
+  const handleCloseExpanded = () => {
+    setExpandedCard(null);
+    logInteraction('card_collapse');
+  };
+
+  // Card Grid Configuration
+  const cards = [
+    { id: 'alloggio', title: 'Alloggio', icon: homeIcon },
+    { id: 'viaggio', title: 'Viaggio', icon: vanIcon },
+    { id: 'evento', title: 'Evento', icon: archIcon },
+    { id: 'dresscode', title: 'Dress Code', icon: dressIcon },
+    { id: 'bottino', title: 'Bottino di nozze', icon: chestIcon },
+    { id: 'cosaltro', title: "Cos'altro?", icon: questionsIcon },
+  ];
+
+  const renderCardContent = (cardId) => {
+    switch(cardId) {
+      case 'alloggio':
+        return (
+          <div className="expanded-content">
+            <h2>Alloggio</h2>
+            {data.accommodation_offered ? (
+              <p>Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!</p>
+            ) : (
+              <p>Per suggerimenti sugli alloggi nella zona, contattateci!</p>
+            )}
+          </div>
+        );
+      case 'viaggio':
+        return (
+          <div className="expanded-content">
+            <h2>Viaggio</h2>
+            {data.transfer_offered ? (
+              <p>Organizzeremo un transfer per facilitare i vostri spostamenti. Dettagli in arrivo!</p>
+            ) : (
+              <p>Informazioni sui trasporti e come raggiungere la location disponibili a breve.</p>
+            )}
+          </div>
+        );
+      case 'evento':
+        return (
+          <div className="expanded-content">
+            <h2>L'Evento</h2>
+            <div className="letter-body">
+              {data.letter_content.split('\n').map((line, idx) => (
+                <p key={idx}>{line}</p>
+              ))}
+            </div>
+          </div>
+        );
+      case 'dresscode':
+        return (
+          <div className="expanded-content">
+            <h2>Dress Code</h2>
+            <p><strong>Beach Chic</strong></p>
+            <p>Eleganti ma comodi! Ricordatevi che saremo sulla spiaggia: i tacchi a spillo sono i nemici numero uno della sabbia!</p>
+          </div>
+        );
+      case 'bottino':
+        return (
+          <div className="expanded-content">
+            <h2>Lista Nozze</h2>
+            <p>La vostra presenza è il regalo più grande, ma se desiderate contribuire al nostro viaggio di nozze...</p>
+            <p><em>Dettagli IBAN in arrivo!</em></p>
+          </div>
+        );
+      case 'cosaltro':
+        return (
+          <div className="expanded-content">
+            <h2>Hai domande?</h2>
+            <p>Per qualsiasi informazione, non esitate a contattarci via WhatsApp:</p>
+            {(groomNumber || brideNumber) && (
+              <div className="whatsapp-section">
+                <div className="whatsapp-buttons">
+                  {groomNumber && (
+                    <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {groomName}
+                    </a>
+                  )}
+                  {brideNumber && (
+                    <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {brideName}
+                    </a>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'rsvp':
+        return (
+          <div className="expanded-content rsvp-expanded">
+            <h2>Conferma la tua Partecipazione</h2>
+            
+            <div className="guests-list">
+              <h3>Ospiti:</h3>
+              <ul>
+                {data.guests.map((guest, idx) => (
+                  <li key={idx}>
+                    {guest.first_name} {guest.last_name || ''}
+                    {guest.is_child && <span className="badge">Bambino</span>}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {isEditing ? (
+              <div className="rsvp-form">
+                {data.accommodation_offered && (
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={accommodationRequested}
+                      onChange={(e) => setAccommodationRequested(e.target.checked)}
+                    />
+                    Richiedo l'alloggio
+                  </label>
+                )}
+
+                {data.transfer_offered && (
+                  <label className="checkbox-label">
+                    <input 
+                      type="checkbox" 
+                      checked={transferRequested}
+                      onChange={(e) => setTransferRequested(e.target.checked)}
+                    />
+                    Richiedo il transfer
+                  </label>
+                )}
+
+                <div className="button-group">
+                  <button 
+                    className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
+                    onClick={() => handleRSVP('confirmed')}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Invio...' : '✔️ Conferma'}
+                  </button>
+                  <button 
+                    className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
+                    onClick={() => handleRSVP('declined')}
+                    disabled={submitting}
+                  >
+                    {submitting ? 'Invio...' : '❌ Declina'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className={rsvpStatus === 'confirmed' ? 'rsvp-confirmed' : 'rsvp-declined'}>
+                <h3>{rsvpStatus === 'confirmed' ? '✅ Partecipazione Confermata!' : '😔 Ci dispiace'}</h3>
+                <p>{rsvpStatus === 'confirmed' ? 'Non vediamo l\'ora di vedervi!' : 'Grazie per averci avvisato.'}</p>
+                <button onClick={handleReset} className="edit-response-btn">Modifica risposta</button>
+              </div>
+            )}
+
+            {message && (
+              <div className={`message ${message.type}`}>
+                {message.text}
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return <p>Contenuto non disponibile</p>;
+    }
+  };
+
   return (
     <motion.div
       className="letter-content"
@@ -157,240 +333,129 @@ const LetterContent = ({ data }) => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
-        
-        <div className="flip-card-inner">
-            
-            {/* FRONT FACE (Originale con LetterBackground statico) */}
-            <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
-                <div className="front-content">
-                    <div className="spacer-top"></div>
-                    
-                    <h1 className="text-names">Domenico & Loredana</h1>
-                    
-                    <p className="text-wit">
-                        Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
-                    </p>
-                    
-                    <p className="text-date">
-                        Ci sposiamo il 19 Settembre 2026<br/>
-                        sulla spiaggia di Golfo Aranci
-                    </p>
-                    
-                    <p className="text-details">
-                        (Sì! in Sardegna!!)<br/>
-                        Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
-                    </p>
-                    
-                    <div className="text-details" style={{ fontWeight: 500 }}>
-                        Poca formalità • Molto spritz • Un tramonto indimenticabile
-                    </div>
-                    
-                    <p className="text-dress">
-                        Dress Code: Beach Chic<br/>
-                        <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
-                            (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
-                        </span>
-                    </p>
-                </div>
-                
-                <button 
-                    className="nav-button pulse-animation" 
-                    onClick={() => handleFlip(true)}
-                    aria-label="Vedi dettagli"
-                    title="Vedi dettagli e conferma"
-                >
-                    <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
-                </button>
-                <motion.div
-                    className="wax-seal"
-                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
-                    animate={sealControls}
-                    style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        left: '1rem',
-                        width: '36%',
-                        maxWidth: '90px',
-                        zIndex: 30,
-                        pointerEvents: 'none'
-                    }}
-                >
-                    <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-                </motion.div>
-            </div>
+      <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
+        <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+          <div className="flip-card-inner">
+              
+              {/* FRONT FACE */}
+              <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
+                  <div className="front-content">
+                      <div className="spacer-top"></div>
+                      
+                      <h1 className="text-names">Domenico & Loredana</h1>
+                      
+                      <p className="text-wit">
+                          Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
+                      </p>
+                      
+                      <p className="text-date">
+                          Ci sposiamo il 19 Settembre 2026<br/>
+                          sulla spiaggia di Golfo Aranci
+                      </p>
+                      
+                      <p className="text-details">
+                          (Sì! in Sardegna!!)<br/>
+                          Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
+                      </p>
+                      
+                      <div className="text-details" style={{ fontWeight: 500 }}>
+                          Poca formalità • Molto spritz • Un tramonto indimenticabile
+                      </div>
+                      
+                      <p className="text-dress">
+                          Dress Code: Beach Chic<br/>
+                          <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
+                              (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
+                          </span>
+                      </p>
+                  </div>
+                  
+                  <motion.div
+                      className="wax-seal"
+                      initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
+                      animate={sealControls}
+                      style={{ 
+                          position: 'absolute',
+                          bottom: '1rem',
+                          left: '1rem',
+                          width: '36%',
+                          maxWidth: '90px',
+                          zIndex: 30,
+                          pointerEvents: 'none'
+                      }}
+                  >
+                      <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                  </motion.div>
+              </div>
 
-            {/* BACK FACE (Nuovo PaperModal Dinamico) */}
-            <div className="flip-card-back" style={{ background: 'transparent', boxShadow: 'none' }}>
-                <PaperModal className="back-paper-modal">
-                    
-                    {/* Navigation to Front */}
-                    <button 
-                        className="nav-button" 
-                        style={{ 
-                            position: 'absolute', 
-                            left: 15, 
-                            top: 15, 
-                            transform: 'rotate(180deg)', 
-                            width: 35, 
-                            height: 35, 
-                            fontSize: '1rem',
-                            zIndex: 10,
-                            background: 'rgba(255,255,255,0.8)'
-                        }}
-                        onClick={() => handleFlip(false)}
-                        aria-label="Torna alla copertina"
-                        title="Torna alla copertina"
-                    >
-                        <span role="img" aria-label="arrow-left">➡️</span>
-                    </button>
-
-                    <div className="letter-paper" style={{ padding: 0, boxShadow: 'none', background: 'transparent' }}>
-                        <h1 className="letter-title" style={{marginTop: '2rem'}}>Siete Invitati!</h1>
-                        
-                        <div className="letter-body">
-                        {data.letter_content.split('\n').map((line, idx) => (
-                            <p key={idx}>{line}</p>
+              {/* BACK FACE - CARD GRID WITH PAPER MODAL */}
+              <div className="flip-card-back" style={{ background: 'transparent', boxShadow: 'none' }}>
+                  <PaperModal>
+                      {/* CARD GRID */}
+                      <div className="card-grid">
+                        {cards.map(card => (
+                          <div 
+                            key={card.id} 
+                            className="info-card"
+                            style={{ backgroundImage: `url(${buttonBg})` }}
+                            onClick={() => handleCardClick(card.id)}
+                          >
+                            <img src={card.icon} alt={card.title} className="card-icon" />
+                            <h3 className="card-title">{card.title}</h3>
+                          </div>
                         ))}
-                        </div>
-
-                        <div className="guests-list">
-                        <h3>Ospiti:</h3>
-                        <ul>
-                            {data.guests.map((guest, idx) => (
-                            <li key={idx}>
-                                {guest.first_name} {guest.last_name || ''}
-                                {guest.is_child && <span className="badge">Bambino</span>}
-                            </li>
-                            ))}
-                        </ul>
-                        </div>
-
-                        {data.accommodation_offered && (
-                        <div className="offer-badge">
-                            <span>🏨 Alloggio Offerto</span>
-                        </div>
-                        )}
-
-                        {data.transfer_offered && (
-                        <div className="offer-badge">
-                            <span>🚌 Transfer Offerto</span>
-                        </div>
-                        )}
-
-                        {/* RSVP FORM Section */}
-                        {isEditing && (
-                        <div className="rsvp-section">
-                            <h3>Conferma la tua partecipazione</h3>
-                            
-                            {data.accommodation_offered && (
-                            <label className="checkbox-label">
-                                <input 
-                                type="checkbox" 
-                                checked={accommodationRequested}
-                                onChange={(e) => setAccommodationRequested(e.target.checked)}
-                                />
-                                Richiedo l'alloggio
-                            </label>
-                            )}
-
-                            {data.transfer_offered && (
-                            <label className="checkbox-label">
-                                <input 
-                                type="checkbox" 
-                                checked={transferRequested}
-                                onChange={(e) => setTransferRequested(e.target.checked)}
-                                />
-                                Richiedo il transfer
-                            </label>
-                            )}
-
-                            <div className="button-group">
-                            <button 
-                                className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
-                                onClick={() => handleRSVP('confirmed')}
-                                disabled={submitting}
-                            >
-                                {submitting ? 'Invio...' : '✔️ Conferma'}
-                            </button>
-                            <button 
-                                className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
-                                onClick={() => handleRSVP('declined')}
-                                disabled={submitting}
-                            >
-                                {submitting ? 'Invio...' : '❌ Declina'}
-                            </button>
-                            </div>
-                            {data.status && data.status !== 'pending' && (
-                                <button className="text-gray-400 text-xs mt-2 underline block text-center w-full" onClick={() => setIsEditing(false)}>
-                                    Annulla modifiche
-                                </button>
-                            )}
-                        </div>
-                        )}
-
-                        {!isEditing && rsvpStatus === 'confirmed' && (
-                        <div className="rsvp-confirmed animate-fadeIn">
-                            <h3>✅ Partecipazione Confermata!</h3>
-                            <p>Non vediamo l'ora di vedervi al nostro matrimonio!</p>
-                            <div className="mt-4">
-                                <button 
-                                    onClick={handleReset}
-                                    className="text-pink-600 font-semibold underline hover:text-pink-800 text-sm"
-                                >
-                                    Modifica risposta
-                                </button>
-                            </div>
-                        </div>
-                        )}
-
-                        {!isEditing && rsvpStatus === 'declined' && (
-                        <div className="rsvp-declined animate-fadeIn">
-                            <h3>😔 Ci dispiace</h3>
-                            <p>Grazie comunque per averci avvisato.</p>
-                            <div className="mt-4">
-                                <button 
-                                    onClick={handleReset}
-                                    className="text-gray-600 font-semibold underline hover:text-gray-800 text-sm"
-                                >
-                                    Modifica risposta
-                                </button>
-                            </div>
-                        </div>
-                        )}
-
-                        {(groomNumber || brideNumber) && (
-                        <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                            <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">Hai domande?</p>
-                            <div className="flex justify-center gap-4">
-                                {groomNumber && (
-                                    <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" 
-                                    className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
-                                    <FaWhatsapp size={18} /> {groomName}
-                                    </a>
-                                )}
-                                {brideNumber && (
-                                    <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" 
-                                    className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
-                                    <FaWhatsapp size={18} /> {brideName}
-                                    </a>
-                                )}
-                            </div>
-                        </div>
-                        )}
-
-                        {message && (
-                        <div className={`message ${message.type}`}>
-                            {message.text}
-                        </div>
-                        )}
                         
-                        <div style={{height: '20px'}}></div>
-                    </div>
-                </PaperModal>
-            </div>
+                        {/* RSVP Card - Full Width */}
+                        <div 
+                          className="info-card rsvp-card"
+                          style={{ backgroundImage: `url(${buttonBg})` }}
+                          onClick={() => handleCardClick('rsvp')}
+                        >
+                          <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        </div>
+                      </div>
+                  </PaperModal>
+              </div>
+          </div>
         </div>
+
+        {/* FAB - Inside wrapper for relative positioning, outside flip-card for stability */}
+        <Fab
+          onClick={() => handleFlip(!isFlipped)}
+          isFlipped={isFlipped}
+          visible={!expandedCard}
+        />
       </div>
+
+      {/* EXPANDED CARD MODAL - Rendered via Portal */}
+      {expandedCard && ReactDOM.createPortal(
+        <AnimatePresence>
+          <motion.div 
+            className="card-modal-overlay"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={handleCloseExpanded}
+          >
+            <motion.div 
+              className="card-modal-content"
+              initial={{ scale: 0.8, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.8, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Use PaperModal for expanded content too for consistent look */}
+              <PaperModal style={{ width: '100%', height: '100%', maxWidth: '600px', maxHeight: '80vh' }}>
+                  <button className="close-modal-btn" onClick={handleCloseExpanded} style={{position: 'absolute', top: 10, right: 10, zIndex: 10}}>
+                    ✕
+                  </button>
+                  {renderCardContent(expandedCard)}
+              </PaperModal>
+            </motion.div>
+          </motion.div>
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };
