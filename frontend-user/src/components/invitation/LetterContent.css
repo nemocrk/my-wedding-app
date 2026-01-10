@@ -345,74 +345,6 @@
   margin-top: 1.5rem;
 }
 
-/* Navigation Buttons Animation */
-@keyframes attention-pulse {
-    0% { transform: scale(1); filter: brightness(1); }
-    50% { transform: scale(1.15); filter: brightness(1.1); }
-    100% { transform: scale(1); filter: brightness(1); }
-}
-
-.nav-button {
-    position: absolute;
-    bottom: 20px;
-    right: 20px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 20;
-    transition: all 0.3s ease;
-    padding: 0;
-}
-
-.nav-button-back {
-    position: absolute;
-    bottom: 20px;
-    left: 20px;
-    width: 50px;
-    height: 50px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(4px);
-    border: none;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 30;
-    transition: all 0.3s ease;
-    padding: 0;
-    transform: rotate(180deg);
-}
-
-.nav-button-back:hover {
-    transform: rotate(180deg) scale(1.15);
-    background: rgba(255, 255, 255, 0.95);
-}
-
-.nav-button.pulse-animation {
-    animation: attention-pulse 2s infinite ease-in-out;
-}
-
-.nav-button:hover {
-    transform: scale(1.2);
-    animation: none;
-}
-
-.nav-arrow-img {
-    width: 100%;
-    height: 100%;
-    object-fit: contain;
-    display: block;
-}
-
 /* RSVP styles */
 .guests-list { 
     margin-top: 1.5rem; 
@@ -720,9 +652,6 @@
         left: 10px;
         bottom: -11px;
     }
-    
-    .nav-button { width: 40px; height: 40px; right: 10px; bottom: 10px; }
-    .nav-button-back { width: 40px; height: 40px; }
 
     .card-grid {
         gap: 0.6rem;
