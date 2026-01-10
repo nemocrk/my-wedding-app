@@ -332,97 +332,99 @@ const LetterContent = ({ data }) => {
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
     >
-      <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
-        <div className="flip-card-inner">
-            
-            {/* FRONT FACE */}
-            <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
-                <div className="front-content">
-                    <div className="spacer-top"></div>
-                    
-                    <h1 className="text-names">Domenico & Loredana</h1>
-                    
-                    <p className="text-wit">
-                        Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
-                    </p>
-                    
-                    <p className="text-date">
-                        Ci sposiamo il 19 Settembre 2026<br/>
-                        sulla spiaggia di Golfo Aranci
-                    </p>
-                    
-                    <p className="text-details">
-                        (Sì! in Sardegna!!)<br/>
-                        Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
-                    </p>
-                    
-                    <div className="text-details" style={{ fontWeight: 500 }}>
-                        Poca formalità • Molto spritz • Un tramonto indimenticabile
-                    </div>
-                    
-                    <p className="text-dress">
-                        Dress Code: Beach Chic<br/>
-                        <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
-                            (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
-                        </span>
-                    </p>
-                </div>
-                
-                <motion.div
-                    className="wax-seal"
-                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
-                    animate={sealControls}
-                    style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        left: '1rem',
-                        width: '36%',
-                        maxWidth: '90px',
-                        zIndex: 30,
-                        pointerEvents: 'none'
-                    }}
-                >
-                    <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-                </motion.div>
-            </div>
-
-            {/* BACK FACE - CARD GRID */}
-            <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
-                <div className="letter-paper">
-                    {/* CARD GRID */}
-                    <div className="card-grid">
-                      {cards.map(card => (
-                        <div 
-                          key={card.id} 
-                          className="info-card"
-                          style={{ backgroundImage: `url(${buttonBg})` }}
-                          onClick={() => handleCardClick(card.id)}
-                        >
-                          <img src={card.icon} alt={card.title} className="card-icon" />
-                          <h3 className="card-title">{card.title}</h3>
-                        </div>
-                      ))}
+      <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
+        <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+          <div className="flip-card-inner">
+              
+              {/* FRONT FACE */}
+              <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
+                  <div className="front-content">
+                      <div className="spacer-top"></div>
                       
-                      {/* RSVP Card - Full Width */}
-                      <div 
-                        className="info-card rsvp-card"
-                        style={{ backgroundImage: `url(${buttonBg})` }}
-                        onClick={() => handleCardClick('rsvp')}
-                      >
-                        <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                      <h1 className="text-names">Domenico & Loredana</h1>
+                      
+                      <p className="text-wit">
+                          Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
+                      </p>
+                      
+                      <p className="text-date">
+                          Ci sposiamo il 19 Settembre 2026<br/>
+                          sulla spiaggia di Golfo Aranci
+                      </p>
+                      
+                      <p className="text-details">
+                          (Sì! in Sardegna!!)<br/>
+                          Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
+                      </p>
+                      
+                      <div className="text-details" style={{ fontWeight: 500 }}>
+                          Poca formalità • Molto spritz • Un tramonto indimenticabile
                       </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-      </div>
+                      
+                      <p className="text-dress">
+                          Dress Code: Beach Chic<br/>
+                          <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
+                              (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
+                          </span>
+                      </p>
+                  </div>
+                  
+                  <motion.div
+                      className="wax-seal"
+                      initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
+                      animate={sealControls}
+                      style={{ 
+                          position: 'absolute',
+                          bottom: '1rem',
+                          left: '1rem',
+                          width: '36%',
+                          maxWidth: '90px',
+                          zIndex: 30,
+                          pointerEvents: 'none'
+                      }}
+                  >
+                      <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                  </motion.div>
+              </div>
 
-      {/* FAB - Global Fixed Navigation Button */}
-      <Fab
-        onClick={() => handleFlip(!isFlipped)}
-        isFlipped={isFlipped}
-        visible={!expandedCard}
-      />
+              {/* BACK FACE - CARD GRID */}
+              <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
+                  <div className="letter-paper">
+                      {/* CARD GRID */}
+                      <div className="card-grid">
+                        {cards.map(card => (
+                          <div 
+                            key={card.id} 
+                            className="info-card"
+                            style={{ backgroundImage: `url(${buttonBg})` }}
+                            onClick={() => handleCardClick(card.id)}
+                          >
+                            <img src={card.icon} alt={card.title} className="card-icon" />
+                            <h3 className="card-title">{card.title}</h3>
+                          </div>
+                        ))}
+                        
+                        {/* RSVP Card - Full Width */}
+                        <div 
+                          className="info-card rsvp-card"
+                          style={{ backgroundImage: `url(${buttonBg})` }}
+                          onClick={() => handleCardClick('rsvp')}
+                        >
+                          <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+        </div>
+
+        {/* FAB - Inside wrapper for relative positioning, outside flip-card for stability */}
+        <Fab
+          onClick={() => handleFlip(!isFlipped)}
+          isFlipped={isFlipped}
+          visible={!expandedCard}
+        />
+      </div>
 
       {/* EXPANDED CARD MODAL - Rendered via Portal */}
       {expandedCard && ReactDOM.createPortal(
