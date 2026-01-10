@@ -37,7 +37,37 @@ const LetterContent = ({ data }) => {
   const getWaLink = (number) => 
     `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
 
-  // RSVP Status Messages
+  // RSVP Status Messages - Versione compatta per card grid
+  const getRSVPStatusMessageCompact = () => {
+    switch(rsvpStatus) {
+      case 'pending':
+        return {
+          emoji: '⏳',
+          text: 'Cosa aspetti? Conferma subito!',
+          className: 'rsvp-card-status-pending'
+        };
+      case 'confirmed':
+        return {
+          emoji: '🎉',
+          text: 'Magnifico! Ti aspettiamo!!!',
+          className: 'rsvp-card-status-confirmed'
+        };
+      case 'declined':
+        return {
+          emoji: '😢',
+          text: 'Faremo un brindisi per te!',
+          className: 'rsvp-card-status-declined'
+        };
+      default:
+        return {
+          emoji: '❓',
+          text: 'Conferma o declina',
+          className: 'rsvp-card-status-pending'
+        };
+    }
+  };
+
+  // RSVP Status Messages - Versione completa per modal
   const getRSVPStatusMessage = () => {
     switch(rsvpStatus) {
       case 'pending':
@@ -368,6 +398,8 @@ const LetterContent = ({ data }) => {
     }
   };
 
+  const rsvpCardStatus = getRSVPStatusMessageCompact();
+
   return (
     <motion.div
       className="letter-content"
@@ -454,7 +486,7 @@ const LetterContent = ({ data }) => {
                           </motion.div>
                         ))}
                         
-                        {/* RSVP Card - Full Width */}
+                        {/* RSVP Card - Full Width with Status */}
                         <motion.div
                           onClick={() => handleCardClick('rsvp')}
                           style={{ cursor: 'pointer', gridColumn: '1 / -1' }}
@@ -466,6 +498,10 @@ const LetterContent = ({ data }) => {
                           <PaperModal>
                             <div className="info-card rsvp-card">
                               <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                              <div className={`rsvp-card-status ${rsvpCardStatus.className}`}>
+                                <span className="rsvp-card-emoji">{rsvpCardStatus.emoji}</span>
+                                <span className="rsvp-card-text">{rsvpCardStatus.text}</span>
+                              </div>
                             </div>
                           </PaperModal>
                         </motion.div>
