@@ -1,10 +1,3 @@
-/* Pulse Animation for Front State */
-@keyframes attention-pulse {
-  0% { transform: scale(1); filter: brightness(1); }
-  50% { transform: scale(1.1); filter: brightness(1.1); }
-  100% { transform: scale(1); filter: brightness(1); }
-}
-
 .wedding-fab {
   /* Position absolute relative to the card container */
   position: absolute;
@@ -26,16 +19,11 @@
   transition: background 0.3s ease, box-shadow 0.3s ease;
 }
 
-/* --- STATE: FRONT (Transparent, Pulse) --- */
+/* --- STATE: FRONT (Transparent) --- */
+/* Pulse handled by Motion JS to prevent transform conflicts */
 .wedding-fab.is-front {
   background: transparent;
   box-shadow: none;
-  animation: attention-pulse 2.5s infinite ease-in-out;
-}
-
-.wedding-fab.is-front:hover {
-  transform: scale(1.2); /* Handled by Motion but CSS helps fallback */
-  animation: none;
 }
 
 /* --- STATE: FLIPPED (Back, Glassmorphism) --- */
