@@ -1,36 +1,34 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { ArrowRight, RotateCcw } from 'lucide-react';
 import './Fab.css';
+import rightArrow from '../../assets/illustrations/right-arrow.png';
 
 const Fab = ({ onClick, isFlipped, visible = true }) => {
-  return ReactDOM.createPortal(
+  return (
     <AnimatePresence>
       {visible && (
         <motion.button
-          className="wedding-fab"
+          className={`wedding-fab ${isFlipped ? 'is-flipped' : 'is-front'}`}
           onClick={onClick}
           initial={{ scale: 0, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0, opacity: 0 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          aria-label={isFlipped ? "Torna indietro" : "Gira invito"}
+          whileHover={{ scale: 1.15 }}
+          whileTap={{ scale: 0.95 }}
+          aria-label={isFlipped ? "Torna alla copertina" : "Gira invito"}
         >
-          <motion.div
-            key={isFlipped ? 'back' : 'front'}
-            initial={{ rotate: -180, opacity: 0 }}
-            animate={{ rotate: 0, opacity: 1 }}
-            exit={{ rotate: 180, opacity: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {isFlipped ? <RotateCcw size={24} color="#8B4513" /> : <ArrowRight size={24} color="#8B4513" />}
-          </motion.div>
+          <motion.img 
+            src={rightArrow} 
+            alt="Navigation Arrow" 
+            className="fab-icon"
+            animate={{ 
+              rotate: isFlipped ? 180 : 0 
+            }}
+            transition={{ duration: 0.4, ease: "backOut" }}
+          />
         </motion.button>
       )}
-    </AnimatePresence>,
-    document.body
+    </AnimatePresence>
   );
 };
 
