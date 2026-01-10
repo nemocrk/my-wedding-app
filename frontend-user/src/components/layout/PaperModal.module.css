@@ -2,16 +2,14 @@
 .externalWrapper {
   container-type: inline-size;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
 }
 /* Wrapper interno */
 .wrapper {
   position: relative;
   width: 100%;
-  height: 100%;
+  min-height: 100%;
   display: block;
-  
-  min-height: calc(100cqw / 3.58);
 }
 
 
