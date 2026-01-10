@@ -165,14 +165,14 @@ const LetterContent = ({ data }) => {
   };
 
   // Card Grid Configuration
-  const cards = [
-    { id: 'alloggio', title: 'Alloggio', icon: homeIcon },
-    { id: 'viaggio', title: 'Viaggio', icon: vanIcon },
-    { id: 'evento', title: 'Evento', icon: archIcon },
-    { id: 'dresscode', title: 'Dress Code', icon: dressIcon },
-    { id: 'bottino', title: 'Bottino di nozze', icon: chestIcon },
-    { id: 'cosaltro', title: "Cos'altro?", icon: questionsIcon },
-  ];
+  const cards = {
+    'alloggio': {title: 'Alloggio', icon: homeIcon },
+    'viaggio': {title: 'Viaggio', icon: vanIcon },
+    'evento': {title: 'Evento', icon: archIcon },
+    'dresscode': {title: 'Dress Code', icon: dressIcon },
+    'bottino': {title: 'Bottino di nozze', icon: chestIcon },
+    'cosaltro': {title: "Cos'altro?", icon: questionsIcon },
+  };
 
   const renderCardContent = (cardId) => {
     switch(cardId) {
@@ -393,19 +393,19 @@ const LetterContent = ({ data }) => {
                   <div className="letter-paper">
                       {/* CARD GRID */}
                       <div className="card-grid">
-                        {cards.map(card => (
+                        {Object.keys(cards).map(card => (
                           <motion.div
-                            key={card.id}
-                            layoutId={`card-${card.id}`}
-                            onClick={() => handleCardClick(card.id)}
+                            key={card}
+                            layoutId={`${card}`}
+                            onClick={() => handleCardClick(card)}
                             style={{ cursor: 'pointer' }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                           >
                             <PaperModal>
                               <div className="info-card">
-                                <img src={card.icon} alt={card.title} className="card-icon" />
-                                <h3 className="card-title">{card.title}</h3>
+                                <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
+                                <h3 className="card-title">{cards[card].title}</h3>
                               </div>
                             </PaperModal>
                           </motion.div>
@@ -451,7 +451,7 @@ const LetterContent = ({ data }) => {
                     onClick={handleCloseExpanded}
                 >
                     <motion.div 
-                        layoutId={`card-${expandedCard}`}
+                        layoutId={`${expandedCard}`}
                         className="card-modal-content"
                         style={{ 
                             width: '90vw', 
@@ -466,7 +466,7 @@ const LetterContent = ({ data }) => {
                         onClick={(e) => e.stopPropagation()}
                         transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
-                        <PaperModal style={{ width: '100%', minHeight: '400px' }}>
+                        <PaperModal style={{ width: '100%'}}>
                             <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
                                 <motion.button 
                                     initial={{ opacity: 0 }}
@@ -477,6 +477,10 @@ const LetterContent = ({ data }) => {
                                 >
                                     ✕
                                 </motion.button>
+                                <motion.div>
+                                    <img src={cards[expandedCard].icon} alt={cards[expandedCard].title} className="card-icon" />
+                                    <h3 className="card-title">{cards[expandedCard].title}</h3>
+                                </motion.div>
                                 <motion.div
                                     initial={{ opacity: 0, y: 20 }}
                                     animate={{ opacity: 1, y: 0 }}
