@@ -1,0 +1,40 @@
+import { render, screen, fireEvent } from '@testing-library/react';
+import React from 'react';
+import Fab from '../Fab';
+import { describe, it, expect, vi } from 'vitest';
+
+describe('Fab Component', () => {
+  it('renders in document.body via Portal when visible is true', () => {
+    render(<Fab onClick={() => {}} isFlipped={false} visible={true} />);
+    const button = screen.getByRole('button');
+    expect(button).toBeInTheDocument();
+    // Portal element is appended to body, not container
+    expect(button.parentElement).toBe(document.body);
+  });
+
+  it('does not render when visible is false', () => {
+    render(<Fab onClick={() => {}} isFlipped={false} visible={false} />);
+    const button = screen.queryByRole('button');
+    expect(button).not.toBeInTheDocument();
+  });
+
+  it('calls onClick when clicked', () => {
+    const handleClick = vi.fn();
+    render(<Fab onClick={handleClick} isFlipped={false} visible={true} />);
+    const button = screen.getByRole('button');
+    fireEvent.click(button);
+    expect(handleClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('renders ArrowRight icon when isFlipped is false', () => {
+    render(<Fab onClick={() => {}} isFlipped={false} visible={true} />);
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-label', 'Gira invito');
+  });
+
+  it('renders RotateCcw icon when isFlipped is true', () => {
+    render(<Fab onClick={() => {}} isFlipped={true} visible={true} />);
+    const button = screen.getByRole('button');
+    expect(button).toHaveAttribute('aria-label', 'Torna indietro');
+  });
+});
