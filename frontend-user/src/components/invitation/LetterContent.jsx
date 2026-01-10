@@ -27,10 +27,16 @@ const LetterContent = ({ data }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   
-  // NUOVO: Stato per gestire ospiti esclusi (barrati)
+  // Stato per gestire ospiti esclusi (barrati)
   const [excludedGuests, setExcludedGuests] = useState([]);
-  // NUOVO: Stato per step del form RSVP
+  // Stato per step del form RSVP
   const [rsvpStep, setRsvpStep] = useState('guests'); // 'guests' | 'confirm'
+  // NUOVO: Stato per editing ospiti
+  const [editingGuestIndex, setEditingGuestIndex] = useState(null);
+  const [editedGuests, setEditedGuests] = useState({});
+  // Stato temporaneo per input durante editing
+  const [tempFirstName, setTempFirstName] = useState('');
+  const [tempLastName, setTempLastName] = useState('');
 
   const sealControls = useAnimation();
   
@@ -93,6 +99,51 @@ const LetterContent = ({ data }) => {
     logInteraction('toggle_guest_exclusion', { guestIndex, excluded: !excludedGuests.includes(guestIndex) });
   };
 
+  // NUOVO: Start editing guest
+  const handleStartEdit = (guestIndex) => {
+    const guest = data.guests[guestIndex];
+    const edited = editedGuests[guestIndex] || guest;
+    setEditingGuestIndex(guestIndex);
+    setTempFirstName(edited.first_name);
+    setTempLastName(edited.last_name || '');
+    logInteraction('start_edit_guest', { guestIndex });
+  };
+
+  // NUOVO: Save edited guest
+  const handleSaveEdit = (guestIndex) => {
+    setEditedGuests(prev => ({
+      ...prev,
+      [guestIndex]: {
+        first_name: tempFirstName,
+        last_name: tempLastName
+      }
+    }));
+    setEditingGuestIndex(null);
+    logInteraction('save_edit_guest', { guestIndex, first_name: tempFirstName, last_name: tempLastName });
+  };
+
+  // NUOVO: Cancel editing
+  const handleCancelEdit = () => {
+    setEditingGuestIndex(null);
+    setTempFirstName('');
+    setTempLastName('');
+    logInteraction('cancel_edit_guest');
+  };
+
+  // Get guest display name (edited or original)
+  const getGuestDisplayName = (guestIndex) => {
+    const guest = data.guests[guestIndex];
+    const edited = editedGuests[guestIndex];
+    if (edited) {
+      return {
+        first_name: edited.first_name,
+        last_name: edited.last_name,
+        is_child: guest.is_child
+      };
+    }
+    return guest;
+  };
+
   useEffect(() => {
     heatmapTracker.start();
     logInteraction('view_letter'); 
@@ -111,6 +162,8 @@ const LetterContent = ({ data }) => {
         setExpandedCard(null);
         setExcludedGuests([]);
         setRsvpStep('guests');
+        setEditingGuestIndex(null);
+        setEditedGuests({});
         return;
       }
 
@@ -230,7 +283,7 @@ const LetterContent = ({ data }) => {
 
   const handleNextStep = () => {
     setRsvpStep('confirm');
-    logInteraction('rsvp_next_step', { excludedGuests });
+    logInteraction('rsvp_next_step', { excludedGuests, editedGuests });
   };
 
   // Card Grid Configuration
@@ -329,24 +382,81 @@ const LetterContent = ({ data }) => {
                 <div className="guests-list-editable">
                   <h3>Ospiti invitati:</h3>
                   <ul>
-                    {data.guests.map((guest, idx) => (
-                      <li 
-                        key={idx} 
-                        className={excludedGuests.includes(idx) ? 'guest-excluded' : ''}
-                      >
-                        <span className="guest-name">
-                          {guest.first_name} {guest.last_name || ''}
-                          {guest.is_child && <span className="badge">Bambino</span>}
-                        </span>
-                        <button 
-                          className="guest-toggle-btn"
-                          onClick={() => toggleGuestExclusion(idx)}
-                          title={excludedGuests.includes(idx) ? 'Riattiva ospite' : 'Escludi ospite'}
+                    {data.guests.map((guest, idx) => {
+                      const displayGuest = getGuestDisplayName(idx);
+                      const isEditing = editingGuestIndex === idx;
+                      const isExcluded = excludedGuests.includes(idx);
+
+                      return (
+                        <li 
+                          key={idx} 
+                          className={isExcluded ? 'guest-excluded' : ''}
                         >
-                          ✕
-                        </button>
-                      </li>
-                    ))}
+                          {isEditing ? (
+                            // EDITING MODE
+                            <>
+                              <div className="guest-edit-inputs">
+                                <input
+                                  type="text"
+                                  className="guest-input"
+                                  value={tempFirstName}
+                                  onChange={(e) => setTempFirstName(e.target.value)}
+                                  placeholder="Nome"
+                                  autoFocus
+                                />
+                                <input
+                                  type="text"
+                                  className="guest-input"
+                                  value={tempLastName}
+                                  onChange={(e) => setTempLastName(e.target.value)}
+                                  placeholder="Cognome"
+                                />
+                              </div>
+                              <div className="guest-actions">
+                                <button 
+                                  className="guest-action-btn save"
+                                  onClick={() => handleSaveEdit(idx)}
+                                  title="Salva modifiche"
+                                >
+                                  ✓
+                                </button>
+                                <button 
+                                  className="guest-action-btn cancel"
+                                  onClick={handleCancelEdit}
+                                  title="Annulla"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </>
+                          ) : (
+                            // NORMAL MODE
+                            <>
+                              <span className="guest-name">
+                                {displayGuest.first_name} {displayGuest.last_name || ''}
+                                {displayGuest.is_child && <span className="badge">Bambino</span>}
+                              </span>
+                              <div className="guest-actions">
+                                <button 
+                                  className="guest-action-btn edit"
+                                  onClick={() => handleStartEdit(idx)}
+                                  title="Modifica nome"
+                                >
+                                  ✏️
+                                </button>
+                                <button 
+                                  className="guest-action-btn exclude"
+                                  onClick={() => toggleGuestExclusion(idx)}
+                                  title={isExcluded ? 'Riattiva ospite' : 'Escludi ospite'}
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
 
@@ -358,7 +468,7 @@ const LetterContent = ({ data }) => {
                 </button>
               </>
             ) : (
-              // STEP 2: Conferma finale (da implementare)
+              // STEP 2: Conferma finale
               <div className="rsvp-form">
                 {data.accommodation_offered && (
                   <label className="checkbox-label">
