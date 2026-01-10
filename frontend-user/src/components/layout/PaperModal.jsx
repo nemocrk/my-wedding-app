@@ -10,28 +10,32 @@ import bgBottom from '../../assets/illustrations/paper-bottom.png';
 export const PaperModal = ({ children, className = '', style = {} }) => {
   return (
     <div 
-      className={`${styles.wrapper} ${className}`} 
-      style={style}
+      className={`${className} ${styles.externalWrapper}`} 
+      style={{...style, padding:'0'}}
     >
-      {/* LAYER 1: Sfondo Grafico (Sliding Doors) */}
-      <div className={styles.backgroundLayer}>
-        <div 
-          className={styles.top} 
-          style={{ backgroundImage: `url(${bgTop})` }}
-        />
-        <div 
-          className={styles.center} 
-          style={{ backgroundImage: `url(${bgCenter})` }}
-        />
-        <div 
-          className={styles.bottom} 
-          style={{ backgroundImage: `url(${bgBottom})` }}
-        />
-      </div>
+      <div 
+        className={`${styles.wrapper} ${className}`} 
+      >
+        {/* LAYER 1: Sfondo Grafico (Sliding Doors) */}
+        <div className={styles.backgroundLayer}>
+          <div 
+            className={styles.top} 
+            style={{ backgroundImage: `url(${bgTop})` }}
+          />
+          <div 
+            className={styles.center} 
+            style={{ backgroundImage: `url(${bgCenter})` }}
+          />
+          <div 
+            className={styles.bottom} 
+            style={{ backgroundImage: `url(${bgBottom})` }}
+          />
+        </div>
 
-      {/* LAYER 2: Contenuto Utente (Full Height) */}
-      <div className={styles.contentLayer}>
-        {children}
+        {/* LAYER 2: Contenuto Utente (Full Height) */}
+        <div className={styles.contentLayer}>
+          {children}
+        </div>
       </div>
     </div>
   );

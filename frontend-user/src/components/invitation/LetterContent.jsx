@@ -394,25 +394,25 @@ const LetterContent = ({ data }) => {
                       {/* CARD GRID */}
                       <div className="card-grid">
                         {cards.map(card => (
-                          <div 
-                            key={card.id} 
-                            className="info-card"
-                            style={{ backgroundImage: `url(${buttonBg})` }}
-                            onClick={() => handleCardClick(card.id)}
-                          >
-                            <img src={card.icon} alt={card.title} className="card-icon" />
-                            <h3 className="card-title">{card.title}</h3>
-                          </div>
+                          <PaperModal>
+                            <div 
+                                key={card.id} 
+                                onClick={() => handleCardClick(card.id)}
+                                className="info-card"
+                            >
+                                <img src={card.icon} alt={card.title} className="card-icon" />
+                                <h3 className="card-title">{card.title}</h3>
+                            </div>
+                            </PaperModal>
                         ))}
                         
                         {/* RSVP Card - Full Width */}
-                        <div 
-                          className="info-card rsvp-card"
-                          style={{ backgroundImage: `url(${buttonBg})` }}
-                          onClick={() => handleCardClick('rsvp')}
+                        <PaperModal 
+                            className="rsvp-card info-card"
+                            onClick={() => handleCardClick('rsvp')}
                         >
-                          <h3 className="card-title">RSVP - Conferma Presenza</h3>
-                        </div>
+                            <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        </PaperModal>
                       </div>
                   </div>
               </div>
