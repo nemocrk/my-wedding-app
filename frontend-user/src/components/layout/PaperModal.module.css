@@ -4,17 +4,28 @@
   filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4));
   width: 100%;
   height: 100%;
-  /* Non è più flex column diretto, perché contiene due layer sovrapposti */
-  display: block; 
+  display: block;
+  
+  /* Constraint: aspect ratio massimo 3.58 (larghezza / altezza) */
+  /* Se l'altezza è troppo bassa rispetto alla larghezza, forza un minimo */
+  max-height: calc(100vw / 3.58); /* Se troppo largo, limita l'altezza */
+  aspect-ratio: auto; /* Lascia che sia il contenuto o il parent a decidere, ma rispetta max-height */
+}
+
+/* Variante: se vuoi che rispetti sempre 3.58 come massimo */
+@supports (aspect-ratio: 3.58 / 1) {
+  .wrapper {
+    max-aspect-ratio: 3.58 / 1; /* Non supportato da tutti i browser, fallback sopra */
+  }
 }
 
 /* --- LAYER 1: SFONDO GRAFICO (Sliding Doors) --- */
 .backgroundLayer {
   position: absolute;
-  inset: 0; /* Top, Right, Bottom, Left a 0 */
+  inset: 0;
   display: flex;
   flex-direction: column;
-  pointer-events: none; /* Il click passa attraverso la grafica */
+  pointer-events: none;
   z-index: 0;
 }
 
@@ -33,7 +44,7 @@
   background-position: center;
   background-size: 100% auto;
   
-  /* Logica di fusione grafica (rimane identica) */
+  /* Logica di fusione grafica */
   margin-top: -15px;
   margin-bottom: -15px;
   position: relative;
@@ -66,10 +77,8 @@
   position: relative;
   width: 100%;
   height: 100%;
-  z-index: 2; /* Sta sopra la grafica */
-  overflow-y: auto; /* Abilita lo scroll del contenuto se necessario */
-  
-  /* Reset del layout: ora è il child a decidere come disporsi */
+  z-index: 2;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
 }
