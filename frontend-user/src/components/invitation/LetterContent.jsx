@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useAnimation, AnimatePresence, LayoutGroup } from 'framer-motion';
+import ReactDOM from 'react-dom';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import Fab from '../common/Fab';
@@ -326,134 +327,144 @@ const LetterContent = ({ data }) => {
   };
 
   return (
-    <LayoutGroup>
-      <motion.div
-        className="letter-content"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
-          <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
-            <div className="flip-card-inner">
-                
-                {/* FRONT FACE */}
-                <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
-                    <div className="front-content">
-                        <div className="spacer-top"></div>
-                        
-                        <h1 className="text-names">Domenico & Loredana</h1>
-                        
-                        <p className="text-wit">
-                            Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
-                        </p>
-                        
-                        <p className="text-date">
-                            Ci sposiamo il 19 Settembre 2026<br/>
-                            sulla spiaggia di Golfo Aranci
-                        </p>
-                        
-                        <p className="text-details">
-                            (Sì! in Sardegna!!)<br/>
-                            Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
-                        </p>
-                        
-                        <div className="text-details" style={{ fontWeight: 500 }}>
-                            Poca formalità • Molto spritz • Un tramonto indimenticabile
-                        </div>
-                        
-                        <p className="text-dress">
-                            Dress Code: Beach Chic<br/>
-                            <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
-                                (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
-                            </span>
-                        </p>
-                    </div>
-                    
-                    <motion.div
-                        className="wax-seal"
-                        initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
-                        animate={sealControls}
-                        style={{ 
-                            position: 'absolute',
-                            bottom: '1rem',
-                            left: '1rem',
-                            width: '36%',
-                            maxWidth: '90px',
-                            zIndex: 30,
-                            pointerEvents: 'none'
-                        }}
-                    >
-                        <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-                    </motion.div>
-                </div>
+    <motion.div
+      className="letter-content"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
+      <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
+        <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+          <div className="flip-card-inner">
+              
+              {/* FRONT FACE */}
+              <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
+                  <div className="front-content">
+                      <div className="spacer-top"></div>
+                      
+                      <h1 className="text-names">Domenico & Loredana</h1>
+                      
+                      <p className="text-wit">
+                          Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
+                      </p>
+                      
+                      <p className="text-date">
+                          Ci sposiamo il 19 Settembre 2026<br/>
+                          sulla spiaggia di Golfo Aranci
+                      </p>
+                      
+                      <p className="text-details">
+                          (Sì! in Sardegna!!)<br/>
+                          Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
+                      </p>
+                      
+                      <div className="text-details" style={{ fontWeight: 500 }}>
+                          Poca formalità • Molto spritz • Un tramonto indimenticabile
+                      </div>
+                      
+                      <p className="text-dress">
+                          Dress Code: Beach Chic<br/>
+                          <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
+                              (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
+                          </span>
+                      </p>
+                  </div>
+                  
+                  <motion.div
+                      className="wax-seal"
+                      initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }}
+                      animate={sealControls}
+                      style={{ 
+                          position: 'absolute',
+                          bottom: '1rem',
+                          left: '1rem',
+                          width: '36%',
+                          maxWidth: '90px',
+                          zIndex: 30,
+                          pointerEvents: 'none'
+                      }}
+                  >
+                      <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
+                  </motion.div>
+              </div>
 
-                {/* BACK FACE - CARD GRID */}
-                <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
-                    <div className="letter-paper">
-                        {/* CARD GRID */}
-                        <div className="card-grid">
-                          {Object.keys(cards).map(card => (
-                            <motion.div
-                              key={card}
-                              layoutId={`card-${card}`}
-                              onClick={() => handleCardClick(card)}
-                              style={{ cursor: 'pointer' }}
-                              whileHover={{ scale: 1.02 }}
-                              whileTap={{ scale: 0.98 }}
-                            >
-                              <PaperModal>
-                                <div className="info-card">
-                                  <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
-                                  <h3 className="card-title">{cards[card].title}</h3>
-                                </div>
-                              </PaperModal>
-                            </motion.div>
-                          ))}
-                          
-                          {/* RSVP Card - Full Width */}
+              {/* BACK FACE - CARD GRID */}
+              <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
+                  <div className="letter-paper">
+                      {/* CARD GRID */}
+                      <div className="card-grid">
+                        {Object.keys(cards).map(card => (
                           <motion.div
-                            layoutId="card-rsvp"
-                            onClick={() => handleCardClick('rsvp')}
-                            style={{ cursor: 'pointer', gridColumn: '1 / -1' }}
+                            key={card}
+                            onClick={() => handleCardClick(card)}
+                            style={{ cursor: 'pointer' }}
+                            animate={{ opacity: expandedCard === card ? 0 : 1 }}
+                            transition={{ duration: 0.2 }}
                             whileHover={{ scale: 1.02 }}
                             whileTap={{ scale: 0.98 }}
                           >
                             <PaperModal>
-                              <div className="info-card rsvp-card">
-                                <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                              <div className="info-card">
+                                <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
+                                <h3 className="card-title">{cards[card].title}</h3>
                               </div>
                             </PaperModal>
                           </motion.div>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                        ))}
+                        
+                        {/* RSVP Card - Full Width */}
+                        <motion.div
+                          onClick={() => handleCardClick('rsvp')}
+                          style={{ cursor: 'pointer', gridColumn: '1 / -1' }}
+                          animate={{ opacity: expandedCard === 'rsvp' ? 0 : 1 }}
+                          transition={{ duration: 0.2 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <PaperModal>
+                            <div className="info-card rsvp-card">
+                              <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                            </div>
+                          </PaperModal>
+                        </motion.div>
+                      </div>
+                  </div>
+              </div>
           </div>
-
-          {/* FAB */}
-          <Fab
-            onClick={() => handleFlip(!isFlipped)}
-            isFlipped={isFlipped}
-            visible={!expandedCard}
-          />
         </div>
 
-        {/* EXPANDED CARD MODAL - INLINE (NO PORTAL) */}
+        {/* FAB */}
+        <Fab
+          onClick={() => handleFlip(!isFlipped)}
+          isFlipped={isFlipped}
+          visible={!expandedCard}
+        />
+      </div>
+
+      {/* EXPANDED CARD MODAL - PORTAL */}
+      {ReactDOM.createPortal(
         <AnimatePresence>
             {expandedCard && (
                 <motion.div 
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
+                    transition={{ duration: 0.2 }}
                     className="card-modal-overlay"
                     onClick={handleCloseExpanded}
                 >
                     <motion.div 
-                        layoutId={`card-${expandedCard}`}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, scale: 0.8 }}
+                        transition={{ 
+                          type: "spring", 
+                          stiffness: 300, 
+                          damping: 25,
+                          opacity: { duration: 0.2 }
+                        }}
                         className="card-modal-content"
                         onClick={(e) => e.stopPropagation()}
-                        transition={{ type: "spring", stiffness: 300, damping: 30 }}
                     >
                         <PaperModal style={{ width: '100%'}}>
                             <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
@@ -461,6 +472,7 @@ const LetterContent = ({ data }) => {
                                     initial={{ opacity: 0 }}
                                     animate={{ opacity: 1 }}
                                     exit={{ opacity: 0 }}
+                                    transition={{ delay: 0.1 }}
                                     className="close-modal-btn" 
                                     onClick={handleCloseExpanded}
                                 >
@@ -483,9 +495,10 @@ const LetterContent = ({ data }) => {
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>
-      </motion.div>
-    </LayoutGroup>
+        </AnimatePresence>,
+        document.body
+      )}
+    </motion.div>
   );
 };
 
