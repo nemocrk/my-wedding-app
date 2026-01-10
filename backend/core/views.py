@@ -64,25 +64,98 @@ class PublicInvitationView(APIView):
             return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicRSVPView(APIView):
+    """
+    Enhanced RSVP Endpoint supporting Multi-Step Wizard payload:
+    - phone_number: str
+    - guest_updates: dict {guest_index: {first_name, last_name}}
+    - excluded_guests: list [guest_indices]
+    - travel_info: dict {transport_type, schedule, car_option, carpool_interest}
+    """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id:
             return Response({'success': False, 'message': 'Sessione scaduta'}, status=status.HTTP_401_UNAUTHORIZED)
+        
         try:
-            invitation = Invitation.objects.get(id=invitation_id)
-            new_status = request.data.get('status')
-            if new_status not in ['confirmed', 'declined']:
-                return Response({'success': False, 'message': 'Stato non valido'}, status=status.HTTP_400_BAD_REQUEST)
-            invitation.status = new_status
-            if new_status == 'confirmed':
-                invitation.accommodation_requested = request.data.get('accommodation_requested', False)
-                invitation.transfer_requested = request.data.get('transfer_requested', False)
-            invitation.save()
-            meta = request.data.copy()
-            _log_interaction(request, invitation, 'rsvp_submit', metadata=meta)
-            return Response({'success': True, 'message': 'Risposta registrata con successo!'})
+            with transaction.atomic():
+                invitation = Invitation.objects.select_for_update().get(id=invitation_id)
+                
+                # 1. Validate Status
+                new_status = request.data.get('status')
+                if new_status not in ['confirmed', 'declined']:
+                    return Response({'success': False, 'message': 'Stato non valido'}, status=status.HTTP_400_BAD_REQUEST)
+                
+                # 2. Update Phone Number
+                phone_number = request.data.get('phone_number')
+                if phone_number:
+                    invitation.phone_number = phone_number
+                
+                # 3. Apply Guest Updates (Edit Names)
+                guest_updates = request.data.get('guest_updates', {})
+                if guest_updates:
+                    guests = list(invitation.guests.all())
+                    for idx_str, updates in guest_updates.items():
+                        try:
+                            idx = int(idx_str)
+                            if 0 <= idx < len(guests):
+                                guest = guests[idx]
+                                if 'first_name' in updates:
+                                    guest.first_name = updates['first_name']
+                                if 'last_name' in updates:
+                                    guest.last_name = updates['last_name']
+                                guest.save()
+                        except (ValueError, IndexError) as e:
+                            logger.warning(f"Invalid guest update index {idx_str}: {e}")
+                
+                # 4. Handle Excluded Guests (Soft Exclusion)
+                excluded_guests = request.data.get('excluded_guests', [])
+                if excluded_guests:
+                    guests = list(invitation.guests.all())
+                    for idx in excluded_guests:
+                        try:
+                            if 0 <= idx < len(guests):
+                                guest = guests[idx]
+                                # Soft exclusion: reset room assignment
+                                guest.assigned_room = None
+                                guest.save()
+                        except IndexError as e:
+                            logger.warning(f"Invalid excluded guest index {idx}: {e}")
+                
+                # 5. Store Travel Info (JSONField approach)
+                travel_info = request.data.get('travel_info')
+                if travel_info:
+                    # TODO: Add 'metadata' JSONField to Invitation model via migration
+                    # For now, we'll log it (non-blocking)
+                    logger.info(f"Travel Info for {invitation.code}: {travel_info}")
+                    # Future: invitation.metadata['travel_info'] = travel_info
+                
+                # 6. Update RSVP Status & Logistics
+                invitation.status = new_status
+                if new_status == 'confirmed':
+                    invitation.accommodation_requested = request.data.get('accommodation_requested', False)
+                    # transfer_requested deprecato ma mantenuto per backward compatibility
+                    invitation.transfer_requested = request.data.get('transfer_requested', False)
+                else:
+                    # Se declina, reset logistics
+                    invitation.accommodation_requested = False
+                    invitation.transfer_requested = False
+                
+                invitation.save()
+                
+                # 7. Log Interaction
+                meta = request.data.copy()
+                _log_interaction(request, invitation, 'rsvp_submit', metadata=meta)
+                
+                return Response({
+                    'success': True, 
+                    'message': 'Risposta registrata con successo!'
+                })
+                
         except Invitation.DoesNotExist:
             return Response({'success': False, 'message': 'Invito non trovato'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error processing RSVP: {e}", exc_info=True)
+            return Response({'success': False, 'message': 'Errore interno. Riprova.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 def _log_interaction(request, invitation, event_type, metadata=None):
     user_agent = request.META.get('HTTP_USER_AGENT', '')
