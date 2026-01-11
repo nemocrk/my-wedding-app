@@ -25,7 +25,7 @@ const Header = () => {
         </div>
 
         {/* Desktop Navigation (Visible only if Sidebar is hidden/not used, kept for robustness) */}
-        <nav className="hidden md:flex space-x-6">
+        <nav className="hidden xl:flex space-x-6">
           {menuItems.map((item) => (
             <Link
               key={item.path}
@@ -38,9 +38,9 @@ const Header = () => {
           ))}
         </nav>
 
-        {/* Mobile Burger Menu */}
+        {/* Mobile Burger Menu - Visible until XL */}
         <button
-          className="md:hidden text-gray-600 focus:outline-none"
+          className="xl:hidden text-gray-600 focus:outline-none"
           onClick={toggleMenu}
         >
           {isOpen ? <X size={24} /> : <Menu size={24} />}
@@ -49,7 +49,7 @@ const Header = () => {
 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden bg-white border-t">
+        <div className="xl:hidden bg-white border-t">
           <nav className="flex flex-col p-4 space-y-3">
             {menuItems.map((item) => (
               <Link
