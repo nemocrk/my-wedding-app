@@ -3,6 +3,7 @@ from rest_framework import viewsets, permissions, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
+from django.db.models import Min
 from core.models import Invitation, GlobalConfig, GuestInteraction, GuestHeatmap
 
 from rest_framework import serializers
@@ -76,7 +77,7 @@ class AdminInvitationViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['get'])
     def heatmaps(self, request, pk=None):
-        """Recupera le sessioni di heatmap per un dato invito"""
+        """Recupera le sessioni di heatmap per un dato invito (endpoint legacy)"""
         invitation = self.get_object()
         heatmaps = GuestHeatmap.objects.filter(invitation=invitation).order_by('-timestamp')
         data = [{
@@ -88,6 +89,62 @@ class AdminInvitationViewSet(viewsets.ModelViewSet):
             'screen_height': h.screen_height
         } for h in heatmaps]
         return Response(data)
+
+    @action(detail=True, methods=['get'])
+    def interactions(self, request, pk=None):
+        """
+        Recupera sessioni unificate con eventi e heatmap innestato.
+        Raggruppa GuestInteraction per session_id e associa GuestHeatmap corrispondente.
+        """
+        invitation = self.get_object()
+        
+        # Recupera tutte le interazioni per questo invito
+        interactions = GuestInteraction.objects.filter(
+            invitation=invitation
+        ).order_by('timestamp')
+        
+        # Raggruppa per session_id
+        sessions_dict = {}
+        for interaction in interactions:
+            sid = interaction.session_id
+            if sid not in sessions_dict:
+                sessions_dict[sid] = {
+                    'session_id': sid,
+                    'start_time': interaction.timestamp,
+                    'device_info': f"{interaction.device_type} - {interaction.geo_city or 'Unknown'}",
+                    'events': [],
+                    'heatmap': None
+                }
+            sessions_dict[sid]['events'].append({
+                'type': interaction.event_type,
+                'timestamp': interaction.timestamp.isoformat(),
+                'details': interaction.metadata
+            })
+        
+        # Associa heatmap per session_id
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation)
+        for heatmap in heatmaps:
+            if heatmap.session_id in sessions_dict:
+                sessions_dict[heatmap.session_id]['heatmap'] = {
+                    'id': heatmap.id,
+                    'timestamp': heatmap.timestamp.isoformat(),
+                    'mouse_data': heatmap.mouse_data,
+                    'screen_width': heatmap.screen_width,
+                    'screen_height': heatmap.screen_height
+                }
+        
+        # Converti in lista e ordina per start_time desc
+        sessions_list = sorted(
+            sessions_dict.values(),
+            key=lambda x: x['start_time'],
+            reverse=True
+        )
+        
+        # Serializza start_time
+        for sess in sessions_list:
+            sess['start_time'] = sess['start_time'].isoformat()
+        
+        return Response(sessions_list)
 
 
 class PublicInvitationViewSet(viewsets.ViewSet):
@@ -112,9 +169,13 @@ class PublicInvitationViewSet(viewsets.ViewSet):
             geo_data = metadata['geo']
             geo_country = geo_data.get('country_name') or geo_data.get('country')
             geo_city = geo_data.get('city')
+        
+        # Estrazione session_id dal metadata (generato dal frontend)
+        session_id = metadata.get('session_id', 'unknown') if metadata else 'unknown'
             
         GuestInteraction.objects.create(
             invitation=invitation,
+            session_id=session_id,
             event_type=event_type,
             ip_address=ip,
             user_agent=user_agent,
