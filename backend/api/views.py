@@ -95,6 +95,7 @@ class AdminInvitationViewSet(viewsets.ModelViewSet):
         """
         Recupera sessioni unificate con eventi e heatmap innestato.
         Raggruppa GuestInteraction per session_id e associa GuestHeatmap corrispondente.
+        MERGE di tutti i mouse_data array per session_id.
         """
         invitation = self.get_object()
         
@@ -121,16 +122,35 @@ class AdminInvitationViewSet(viewsets.ModelViewSet):
                 'details': interaction.metadata
             })
         
-        # Associa heatmap per session_id
-        heatmaps = GuestHeatmap.objects.filter(invitation=invitation)
+        # Associa heatmap per session_id (MERGE di tutti i mouse_data)
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation).order_by('timestamp')
+        
+        # Raggruppa heatmap per session_id
+        heatmap_by_session = {}
         for heatmap in heatmaps:
-            if heatmap.session_id in sessions_dict:
-                sessions_dict[heatmap.session_id]['heatmap'] = {
+            sid = heatmap.session_id
+            if sid not in heatmap_by_session:
+                heatmap_by_session[sid] = {
                     'id': heatmap.id,
-                    'timestamp': heatmap.timestamp.isoformat(),
-                    'mouse_data': heatmap.mouse_data,
+                    'timestamp': heatmap.timestamp,
+                    'mouse_data': [],
                     'screen_width': heatmap.screen_width,
                     'screen_height': heatmap.screen_height
+                }
+            # MERGE: Concatena tutti i mouse_data arrays dello stesso session_id
+            heatmap_by_session[sid]['mouse_data'].extend(heatmap.mouse_data)
+        
+        # Assegna heatmap merged alle sessioni
+        for sid, heatmap_data in heatmap_by_session.items():
+            if sid in sessions_dict:
+                # Ordina mouse_data per timestamp (campo 't' dentro ogni punto)
+                merged_data = sorted(heatmap_data['mouse_data'], key=lambda p: p.get('t', 0))
+                sessions_dict[sid]['heatmap'] = {
+                    'id': heatmap_data['id'],
+                    'timestamp': heatmap_data['timestamp'].isoformat(),
+                    'mouse_data': merged_data,
+                    'screen_width': heatmap_data['screen_width'],
+                    'screen_height': heatmap_data['screen_height']
                 }
         
         # Converti in lista e ordina per start_time desc
