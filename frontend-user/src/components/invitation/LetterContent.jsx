@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
@@ -25,6 +25,7 @@ const LetterContent = ({ data }) => {
   const [message, setMessage] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
+  const isReplayMode = useRef(false); // Ref to track replay mode without re-rendering for logic checks
   
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
   const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
@@ -58,9 +59,16 @@ const LetterContent = ({ data }) => {
   const waNumber = data.whatsapp.whatsapp_number;
   const waName = data.whatsapp.whatsapp_name || "Sposi";
 
+  // Helper per logging condizionale
+  const safeLogInteraction = (eventName, details) => {
+    if (!isReplayMode.current) {
+      logInteraction(eventName, details);
+    }
+  };
+
   const getWaLink = (number, customMessage) => {
     const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
-    logInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
+    safeLogInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
@@ -100,7 +108,7 @@ const LetterContent = ({ data }) => {
     setExcludedGuests(prev => 
       prev.includes(guestIndex) ? prev.filter(idx => idx !== guestIndex) : [...prev, guestIndex]
     );
-    logInteraction('toggle_guest_exclusion', { 
+    safeLogInteraction('toggle_guest_exclusion', { 
       guestIndex, 
       action: isExcluding ? 'exclude' : 'include',
       guest_name: data.guests[guestIndex].first_name
@@ -113,7 +121,7 @@ const LetterContent = ({ data }) => {
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
     setTempLastName(edited.last_name || '');
-    logInteraction('start_edit_guest', { 
+    safeLogInteraction('start_edit_guest', { 
       guestIndex,
       original_name: `${guest.first_name} ${guest.last_name || ''}`
     });
@@ -123,7 +131,7 @@ const LetterContent = ({ data }) => {
     const originalGuest = data.guests[guestIndex];
     setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
     setEditingGuestIndex(null);
-    logInteraction('save_edit_guest', { 
+    safeLogInteraction('save_edit_guest', { 
       guestIndex,
       original_name: `${originalGuest.first_name} ${originalGuest.last_name || ''}`,
       new_name: `${tempFirstName} ${tempLastName}`
@@ -131,7 +139,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleCancelEdit = () => {
-    logInteraction('cancel_edit_guest', { guestIndex: editingGuestIndex });
+    safeLogInteraction('cancel_edit_guest', { guestIndex: editingGuestIndex });
     setEditingGuestIndex(null);
     setTempFirstName('');
     setTempLastName('');
@@ -154,25 +162,25 @@ const LetterContent = ({ data }) => {
     setEditingPhone(true);
     setTempPhoneNumber(phoneNumber);
     setPhoneError('');
-    logInteraction('start_edit_phone', { has_existing_phone: !!phoneNumber });
+    safeLogInteraction('start_edit_phone', { has_existing_phone: !!phoneNumber });
   };
 
   const handleSaveEditPhone = () => {
     const trimmed = tempPhoneNumber.trim();
     if (!trimmed) {
       setPhoneError('Il numero di telefono è obbligatorio');
-      logInteraction('phone_validation_error', { error: 'empty' });
+      safeLogInteraction('phone_validation_error', { error: 'empty' });
       return;
     }
     if (!validatePhoneNumber(trimmed)) {
       setPhoneError('Formato non valido (es: +39 333 1234567)');
-      logInteraction('phone_validation_error', { error: 'invalid_format' });
+      safeLogInteraction('phone_validation_error', { error: 'invalid_format' });
       return;
     }
     setPhoneNumber(trimmed);
     setEditingPhone(false);
     setPhoneError('');
-    logInteraction('save_edit_phone', { 
+    safeLogInteraction('save_edit_phone', { 
       original_phone: phoneNumber,
       new_phone: trimmed
     });
@@ -183,7 +191,7 @@ const LetterContent = ({ data }) => {
     setEditingPhone(false);
     setTempPhoneNumber('');
     setPhoneError('');
-    logInteraction('cancel_edit_phone');
+    safeLogInteraction('cancel_edit_phone');
   };
 
   // Step Navigation with Validation
@@ -193,11 +201,11 @@ const LetterContent = ({ data }) => {
       editingGuestIndex !== null & handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
         setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
-        logInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
+        safeLogInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
         return;
       }
       setMessage(null);
-      logInteraction('rsvp_next_step', { from: 'guests', to: 'contact', active_guests: getActiveGuests().length });
+      safeLogInteraction('rsvp_next_step', { from: 'guests', to: 'contact', active_guests: getActiveGuests().length });
       setRsvpStep('contact');
     }
     // Validazione Step Contact
@@ -207,12 +215,12 @@ const LetterContent = ({ data }) => {
           const trimmed = tempPhoneNumber.trim();
           if (!trimmed) {
             setMessage({ type: 'error', text: 'Il numero di telefono è obbligatorio'});
-            logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
+            safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
             return;
           }
           if (!validatePhoneNumber(trimmed)) {
             setMessage({ type: 'error', text: 'Formato non valido (es: +39 333 1234567)'});
-            logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
+            safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
             return;
           }
           setPhoneNumber(trimmed);
@@ -220,19 +228,19 @@ const LetterContent = ({ data }) => {
           setPhoneError('');
         } else {
           setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
-          logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_missing' });
+          safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_missing' });
           return;
         }
       }
       setMessage(null);
-      logInteraction('rsvp_next_step', { from: 'contact', to: 'travel' });
+      safeLogInteraction('rsvp_next_step', { from: 'contact', to: 'travel' });
       setRsvpStep('travel');
     }
     // Validazione Step Travel
     else if (rsvpStep === 'travel') {
       if (!travelInfo.transport_type || !travelInfo.schedule) {
         setMessage({ type: 'error', text: 'Compila tutti i campi del viaggio!' });
-        logInteraction('rsvp_validation_error', { 
+        safeLogInteraction('rsvp_validation_error', { 
           step: 'travel', 
           error: 'incomplete_fields',
           missing_transport: !travelInfo.transport_type,
@@ -242,13 +250,13 @@ const LetterContent = ({ data }) => {
       }
       setMessage(null);
       const nextStep = data.accommodation_offered ? 'accommodation' : 'final';
-      logInteraction('rsvp_next_step', { from: 'travel', to: nextStep });
+      safeLogInteraction('rsvp_next_step', { from: 'travel', to: nextStep });
       setRsvpStep(nextStep);
     }
     // Step Accommodation -> Final
     else if (rsvpStep === 'accommodation') {
       setMessage(null);
-      logInteraction('rsvp_next_step', { from: 'accommodation', to: 'final', accommodation_requested: accommodationChoice });
+      safeLogInteraction('rsvp_next_step', { from: 'accommodation', to: 'final', accommodation_requested: accommodationChoice });
       setRsvpStep('final');
     }
   };
@@ -275,19 +283,19 @@ const LetterContent = ({ data }) => {
       setRsvpStep(toStep);
     }
     
-    logInteraction('rsvp_back_step', { from: fromStep, to: toStep });
+    safeLogInteraction('rsvp_back_step', { from: fromStep, to: toStep });
   };
 
   const handleStartModify = () => {
     setRsvpStep('guests');
-    logInteraction('start_modify_rsvp', { current_status: rsvpStatus });
+    safeLogInteraction('start_modify_rsvp', { current_status: rsvpStatus });
   };
 
   // Final Submit
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
-    logInteraction('click_rsvp_submit', { 
+    safeLogInteraction('click_rsvp_submit', { 
       status_chosen: status,
       previous_status: rsvpStatus,
       active_guests: getActiveGuests().length,
@@ -310,7 +318,7 @@ const LetterContent = ({ data }) => {
       );
 
       if (result.success) {
-        logInteraction('rsvp_submit_success', { 
+        safeLogInteraction('rsvp_submit_success', { 
           status, 
           active_guests: getActiveGuests().length,
           travel_type: travelInfo.transport_type,
@@ -321,12 +329,12 @@ const LetterContent = ({ data }) => {
         setRsvpStep('summary');
         setMessage({ type: 'success', text: result.message });
       } else {
-        logInteraction('rsvp_submit_error', { status, error: result.message });
+        safeLogInteraction('rsvp_submit_error', { status, error: result.message });
         setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
-      logInteraction('rsvp_submit_exception', { status, error: err.message });
+      safeLogInteraction('rsvp_submit_exception', { status, error: err.message });
       setMessage({ type: 'error', text: err.message || 'Errore di connessione.' });
     } finally {
       setSubmitting(false);
@@ -336,7 +344,7 @@ const LetterContent = ({ data }) => {
   // Travel Form Handlers with Analytics
   const handleTransportChange = (transport_type) => {
     setTravelInfo({ ...travelInfo, transport_type, car_option: 'none' });
-    logInteraction('travel_transport_selected', { transport_type });
+    safeLogInteraction('travel_transport_selected', { transport_type });
   };
 
   const handleScheduleChange = (schedule) => {
@@ -345,44 +353,64 @@ const LetterContent = ({ data }) => {
 
   const handleScheduleBlur = () => {
     if (travelInfo.schedule) {
-      logInteraction('travel_schedule_entered', { schedule_length: travelInfo.schedule.length, schedule_text: travelInfo.schedule });
+      safeLogInteraction('travel_schedule_entered', { schedule_length: travelInfo.schedule.length, schedule_text: travelInfo.schedule });
     }
   };
 
   const handleCarOptionChange = (car_option) => {
     setTravelInfo({ ...travelInfo, car_option });
-    logInteraction('travel_car_option_selected', { car_option });
+    safeLogInteraction('travel_car_option_selected', { car_option });
   };
 
   const handleCarpoolChange = (carpool_interest) => {
     setTravelInfo({ ...travelInfo, carpool_interest });
-    logInteraction('travel_carpool_toggle', { interested: carpool_interest });
+    safeLogInteraction('travel_carpool_toggle', { interested: carpool_interest });
   };
 
   // Accommodation Handler with Analytics
   const handleAccommodationChange = (requested) => {
     setAccommodationChoice(requested);
-    logInteraction('accommodation_choice_toggle', { 
+    safeLogInteraction('accommodation_choice_toggle', { 
       requested,
       was_previously_requested: accommodationRequested
     });
   };
 
   useEffect(() => {
-    heatmapTracker.start();
-    logInteraction('view_letter', { 
-      status: rsvpStatus,
-      has_phone: !!data.phone_number,
-      guests_count: data.guests.length
-    });
+    // Analytics initialization
+    // Check if we are in an iframe and if the parent context suggests replay mode
+    // (This is a safety check, but the main driver is the message event)
+    const isInsideIframe = window.self !== window.top;
+    
+    // Only start tracker if NOT in replay mode (default assumption is normal mode unless told otherwise)
+    if (!isReplayMode.current) {
+      heatmapTracker.start();
+      logInteraction('view_letter', { 
+        status: rsvpStatus,
+        has_phone: !!data.phone_number,
+        guests_count: data.guests.length,
+        is_iframe: isInsideIframe
+      });
+    }
 
     const handleReplayMessage = (event) => {
       if (!event?.data) return;
       const { type, payload } = event.data;
+      
+      // If we receive ANY replay message, we confirm we are in replay mode
+      if (['REPLAY_START', 'REPLAY_RESET'].includes(type) || Object.values(cards).some(c => type === 'card_expand')) {
+         if (!isReplayMode.current) {
+            isReplayMode.current = true;
+            heatmapTracker.stop(); // Stop heatmap immediately if we detect replay activity
+            console.log("Replay Mode Activated: Analytics disabled");
+         }
+      }
 
       // REPLAY SIMULATOR: Handle mapped analytics events
       switch (type) {
         case 'REPLAY_RESET':
+          isReplayMode.current = true; // Force True
+          heatmapTracker.stop();
           setRsvpStatus('read');
           setRsvpStep('guests');
           setExcludedGuests([]);
@@ -434,13 +462,6 @@ const LetterContent = ({ data }) => {
 
         case 'save_edit_guest':
           if (payload?.guestIndex !== undefined) {
-             // In replay, we might assume the payload contains the new values if we tracked them,
-             // BUT current tracking only tracks "original_name" and "new_name" string. 
-             // Ideally we should have tracked struct data. 
-             // Fallback: we use current temp state if available (meaning replay is sequential)
-             // or try to parse name.
-             // Given we are simulating, we assume the replay sequence included the input changes or we just accept the state transition.
-             // Actually, "save_edit_guest" commits the temp state.
              setEditedGuests(prev => ({ ...prev, [payload.guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
              setEditingGuestIndex(null);
           }
@@ -466,7 +487,6 @@ const LetterContent = ({ data }) => {
           break;
           
         case 'save_edit_phone':
-          // Similar to guest save, commits temp state
           setPhoneNumber(tempPhoneNumber);
           setEditingPhone(false);
           break;
@@ -483,7 +503,6 @@ const LetterContent = ({ data }) => {
           break;
 
         case 'travel_schedule_entered':
-          // Updated to use schedule_text if available, otherwise length is just a stat
           if (payload?.schedule_text) {
              setTravelInfo(prev => ({ ...prev, schedule: payload.schedule_text }));
           }
@@ -515,8 +534,6 @@ const LetterContent = ({ data }) => {
           }
           break;
           
-        // For input fields, real-time typing replay might require distinct events not currently tracked
-        // but state updates on 'blur' or 'save' provide 'jump' updates which are acceptable for MVP replay.
         default:
           break;
       }
@@ -534,26 +551,26 @@ const LetterContent = ({ data }) => {
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
-    logInteraction('card_flip', { flipped, side: flipped ? 'back' : 'front' });
+    safeLogInteraction('card_flip', { flipped, side: flipped ? 'back' : 'front' });
   };
 
   const handleCardClick = (cardId) => {
     setExpandedCard(cardId);
-    logInteraction('card_expand', { card: cardId });
+    safeLogInteraction('card_expand', { card: cardId });
     if (cardId === 'rsvp') {
       const targetStep = !['created', 'sent', 'read'].includes(rsvpStatus) ? 'summary' : 'guests';
       setRsvpStep(targetStep);
-      logInteraction('rsvp_card_opened', { starting_step: targetStep, current_status: rsvpStatus });
+      safeLogInteraction('rsvp_card_opened', { starting_step: targetStep, current_status: rsvpStatus });
     }
   };
 
   const handleCloseExpanded = () => {
-    logInteraction('card_collapse', { card: expandedCard });
+    safeLogInteraction('card_collapse', { card: expandedCard });
     setExpandedCard(null);
   };
 
   const handleWhatsAppClick = (recipient) => {
-    logInteraction('whatsapp_click', { recipient, context: expandedCard || 'unknown' });
+    safeLogInteraction('whatsapp_click', { recipient, context: expandedCard || 'unknown' });
   };
 
   const cards = {
