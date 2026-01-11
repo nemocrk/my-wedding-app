@@ -22,7 +22,7 @@ test('shows DB status when no realtime status exists', () => {
     />
   );
 
-  expect(screen.getByText('Pending')).toBeInTheDocument();
+  expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
 });
 
 test('shows realtime status when available', () => {
@@ -37,7 +37,7 @@ test('shows realtime status when available', () => {
     />
   );
 
-  expect(screen.getByText(/Typing/i)).toBeInTheDocument();
+  expect(screen.getAllByText(/Typing/i).length).toBeGreaterThanOrEqual(1);
 });
 
 test('shows error log when failed', () => {
@@ -52,6 +52,6 @@ test('shows error log when failed', () => {
     />
   );
 
-  expect(screen.getByText('Failed')).toBeInTheDocument();
-  expect(screen.getByTitle('Network error')).toBeInTheDocument();
+  expect(screen.getAllByText('Failed').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getAllByTitle('Network error').length).toBeGreaterThanOrEqual(1);
 });

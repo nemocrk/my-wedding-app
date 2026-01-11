@@ -29,7 +29,7 @@ vi.mock('framer-motion', () => ({
 
 describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
   const mockData = {
-    status: 'pending',
+    status: 'sent',
     name: 'Mario Rossi',
     letter_content: 'Benvenuti al nostro matrimonio!',
     guests: [

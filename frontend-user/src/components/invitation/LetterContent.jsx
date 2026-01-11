@@ -197,7 +197,7 @@ const LetterContent = ({ data }) => {
   const handleNextStep = () => {
     // Validazione Step Guests
     if (rsvpStep === 'guests') {
-      editingGuestIndex !== null & handleSaveEdit(editingGuestIndex);
+      editingGuestIndex !== null && handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
         setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
         safeLogInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
