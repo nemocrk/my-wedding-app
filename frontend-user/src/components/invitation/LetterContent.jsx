@@ -345,7 +345,7 @@ const LetterContent = ({ data }) => {
 
   const handleScheduleBlur = () => {
     if (travelInfo.schedule) {
-      logInteraction('travel_schedule_entered', { schedule_length: travelInfo.schedule.length });
+      logInteraction('travel_schedule_entered', { schedule_length: travelInfo.schedule.length, schedule_text: travelInfo.schedule });
     }
   };
 
@@ -377,16 +377,148 @@ const LetterContent = ({ data }) => {
     });
 
     const handleReplayMessage = (event) => {
-      if (!event?.data?.type) return;
-      if (event.data.type === 'REPLAY_RESET') {
-        logInteraction('replay_reset_triggered');
-        setRsvpStatus('read');
-        setRsvpStep('guests');
-        setExcludedGuests([]);
-        setEditedGuests({});
-        setPhoneNumber(data.phone_number || '');
-        setTravelInfo({ transport_type: '', schedule: '', car_option: 'none', carpool_interest: false });
-        setAccommodationChoice(false);
+      if (!event?.data) return;
+      const { type, payload } = event.data;
+
+      // REPLAY SIMULATOR: Handle mapped analytics events
+      switch (type) {
+        case 'REPLAY_RESET':
+          setRsvpStatus('read');
+          setRsvpStep('guests');
+          setExcludedGuests([]);
+          setEditedGuests({});
+          setPhoneNumber(data.phone_number || '');
+          setTravelInfo({ transport_type: '', schedule: '', car_option: 'none', carpool_interest: false });
+          setAccommodationChoice(false);
+          setExpandedCard(null);
+          setIsFlipped(false);
+          setMessage(null);
+          break;
+
+        case 'card_flip':
+          if (payload?.flipped !== undefined) setIsFlipped(payload.flipped);
+          break;
+
+        case 'card_expand':
+          if (payload?.card) {
+            setExpandedCard(payload.card);
+            // Sync step logic if opening RSVP
+            if (payload.card === 'rsvp') {
+              const targetStep = !['created', 'sent', 'read'].includes(rsvpStatus) ? 'summary' : 'guests';
+              setRsvpStep(targetStep);
+            }
+          }
+          break;
+
+        case 'card_collapse':
+          setExpandedCard(null);
+          break;
+
+        case 'toggle_guest_exclusion':
+          if (payload?.guestIndex !== undefined) {
+            setExcludedGuests(prev => 
+              prev.includes(payload.guestIndex) ? prev.filter(idx => idx !== payload.guestIndex) : [...prev, payload.guestIndex]
+            );
+          }
+          break;
+
+        case 'start_edit_guest':
+          if (payload?.guestIndex !== undefined) {
+            const guest = data.guests[payload.guestIndex];
+            const edited = editedGuests[payload.guestIndex] || guest;
+            setEditingGuestIndex(payload.guestIndex);
+            setTempFirstName(edited.first_name);
+            setTempLastName(edited.last_name || '');
+          }
+          break;
+
+        case 'save_edit_guest':
+          if (payload?.guestIndex !== undefined) {
+             // In replay, we might assume the payload contains the new values if we tracked them,
+             // BUT current tracking only tracks "original_name" and "new_name" string. 
+             // Ideally we should have tracked struct data. 
+             // Fallback: we use current temp state if available (meaning replay is sequential)
+             // or try to parse name.
+             // Given we are simulating, we assume the replay sequence included the input changes or we just accept the state transition.
+             // Actually, "save_edit_guest" commits the temp state.
+             setEditedGuests(prev => ({ ...prev, [payload.guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
+             setEditingGuestIndex(null);
+          }
+          break;
+
+        case 'cancel_edit_guest':
+          setEditingGuestIndex(null);
+          setTempFirstName('');
+          setTempLastName('');
+          break;
+
+        case 'rsvp_next_step':
+          if (payload?.to) setRsvpStep(payload.to);
+          break;
+
+        case 'rsvp_back_step':
+          if (payload?.to) setRsvpStep(payload.to);
+          break;
+
+        case 'start_edit_phone':
+          setEditingPhone(true);
+          setTempPhoneNumber(phoneNumber);
+          break;
+          
+        case 'save_edit_phone':
+          // Similar to guest save, commits temp state
+          setPhoneNumber(tempPhoneNumber);
+          setEditingPhone(false);
+          break;
+
+        case 'cancel_edit_phone':
+          setEditingPhone(false);
+          setTempPhoneNumber('');
+          break;
+
+        case 'travel_transport_selected':
+          if (payload?.transport_type) {
+            setTravelInfo(prev => ({ ...prev, transport_type: payload.transport_type, car_option: 'none' }));
+          }
+          break;
+
+        case 'travel_schedule_entered':
+          // Updated to use schedule_text if available, otherwise length is just a stat
+          if (payload?.schedule_text) {
+             setTravelInfo(prev => ({ ...prev, schedule: payload.schedule_text }));
+          }
+          break;
+
+        case 'travel_car_option_selected':
+          if (payload?.car_option) {
+            setTravelInfo(prev => ({ ...prev, car_option: payload.car_option }));
+          }
+          break;
+
+        case 'travel_carpool_toggle':
+          if (payload?.interested !== undefined) {
+            setTravelInfo(prev => ({ ...prev, carpool_interest: payload.interested }));
+          }
+          break;
+
+        case 'accommodation_choice_toggle':
+          if (payload?.requested !== undefined) {
+            setAccommodationChoice(payload.requested);
+          }
+          break;
+
+        case 'rsvp_submit_success':
+          if (payload?.status) {
+            setRsvpStatus(payload.status);
+            setRsvpStep('summary');
+            setMessage({ type: 'success', text: 'RSVP simulato con successo!' });
+          }
+          break;
+          
+        // For input fields, real-time typing replay might require distinct events not currently tracked
+        // but state updates on 'blur' or 'save' provide 'jump' updates which are acceptable for MVP replay.
+        default:
+          break;
       }
     };
 
@@ -398,7 +530,7 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('message', handleReplayMessage);
       clearTimeout(timer);
     };
-  }, [sealControls, data.phone_number]);
+  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus, editingGuestIndex, tempFirstName, tempLastName, tempPhoneNumber, phoneNumber, editingPhone, travelInfo, accommodationChoice, editedGuests, excludedGuests]);
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
