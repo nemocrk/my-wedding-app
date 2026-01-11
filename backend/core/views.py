@@ -353,6 +353,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
             sid = hm.session_id
             if sid not in sessions_map:
                 sessions_map[sid] = {'session_id': sid, 'start_time': hm.timestamp, 'heatmap': {'id': hm.id, 'mouse_data': hm.mouse_data, 'screen_width': hm.screen_width, 'screen_height': hm.screen_height}, 'events': [], 'device_info': 'Unknown'}
+            else:
+                sessions_map[sid]['heatmap']['mouse_data'].extend(hm.mouse_data)
         for evt in interactions:
             meta = evt.metadata or {}
             sid = meta.get('session_id')

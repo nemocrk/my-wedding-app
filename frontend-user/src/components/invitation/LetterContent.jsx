@@ -18,7 +18,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import PaperModal from '../layout/PaperModal';
 
 const LetterContent = ({ data }) => {
-  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
+  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
   const [accommodationRequested, setAccommodationRequested] = useState(data.accommodation_requested || false);
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +27,7 @@ const LetterContent = ({ data }) => {
   const [expandedCard, setExpandedCard] = useState(null);
   
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
-  const [rsvpStep, setRsvpStep] = useState(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+  const [rsvpStep, setRsvpStep] = useState(['confirmed','delined'].includes(rsvpStatus) ? 'summary' : 'guests');
   
   // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
@@ -66,7 +66,9 @@ const LetterContent = ({ data }) => {
   // RSVP Status Messages
   const getRSVPStatusMessageCompact = () => {
     switch(rsvpStatus) {
-      case 'pending':
+      case 'created':
+      case 'sent':
+      case 'read':
         return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
       case 'confirmed':
         return { emoji: '🎉', text: 'Magnifico! Ti aspettiamo!!!', className: 'rsvp-card-status-confirmed' };
@@ -272,7 +274,7 @@ const LetterContent = ({ data }) => {
     const handleReplayMessage = (event) => {
       if (!event?.data?.type) return;
       if (event.data.type === 'REPLAY_RESET') {
-        setRsvpStatus('pending');
+        setRsvpStatus('read');
         setRsvpStep('guests');
         setExcludedGuests([]);
         setEditedGuests({});
@@ -301,7 +303,7 @@ const LetterContent = ({ data }) => {
     setExpandedCard(cardId);
     logInteraction('card_expand', { card: cardId });
     if (cardId === 'rsvp') {
-      setRsvpStep(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+      setRsvpStep(!['created','sent','read'].includes(rsvpStatus) ? 'summary' : 'guests');
     }
   };
 
@@ -672,15 +674,15 @@ const LetterContent = ({ data }) => {
                 )
                 :
                 (<div className="button-group">
-                  {rsvpStatus === 'pending' && (
+                  {!['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
                     {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
                   </button> )}
-                  {(rsvpStatus === 'confirmed' ||  rsvpStatus === 'declined') && (
+                  {['confirmed','declined'].includes(rsvpStatus) && (
                   <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
                     {submitting ? 'Invio...' : '💾 Salva Modifiche'}
                   </button> )}
-                  {(rsvpStatus === 'pending' || rsvpStatus === 'confirmed') && (
+                  {rsvpStatus !== 'declined' && (
                   <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
                     {submitting ? 'Invio...' : '❌ Declina'}
                   </button> )}

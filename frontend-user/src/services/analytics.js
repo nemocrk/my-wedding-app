@@ -90,7 +90,7 @@ class HeatmapTracker {
     // Flush periodico ogni 10 secondi se ci sono dati
     this.interval = setInterval(() => {
         if (this.mouseData.length > 0) this.flush();
-    }, 10000);
+    }, 1000);
   }
 
   stop() {
