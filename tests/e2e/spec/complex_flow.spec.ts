@@ -161,7 +161,8 @@ test.describe('Complex Wedding Flow', () => {
         await page.goto('http://localhost:8080/#/dashboard');
         
         // Wait for dashboard to refresh with new data
-        await expect(page.getByText('Alloggi')).toBeVisible();
+        // Fix strict mode violation by scoping to main content area
+        await expect(page.locator('main').getByText('Alloggi')).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
         await waitForPageReady(page);
         
