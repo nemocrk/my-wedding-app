@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LetterContent from '../LetterContent';
 import * as apiService from '../../../services/api';
@@ -92,9 +92,14 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
 
       await waitFor(() => {
-        // In step guests there are exclude buttons "✕" for each guest.
-        const excludeButtons = screen.getAllByText('✕');
-        excludeButtons.forEach(btn => fireEvent.click(btn));
+        // Find guest list items
+        const listItems = screen.getAllByRole('listitem');
+        // Click the exclude button (✕) within each list item
+        // This avoids clicking the modal close button which also has "✕"
+        listItems.forEach(item => {
+           const excludeBtn = within(item).getByText('✕');
+           fireEvent.click(excludeBtn);
+        });
       });
 
       const nextBtn = screen.getByText(/Avanti/i);
@@ -277,7 +282,9 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByText(/Avanti →/i));
 
       await waitFor(() => {
-        expect(screen.getByText('Alloggio')).toBeInTheDocument();
+        // 'Alloggio' appears twice: as card title (h3) and modal title (h2)
+        // Check for modal title (h2)
+        expect(screen.getByRole('heading', { name: 'Alloggio', level: 2 })).toBeInTheDocument();
         expect(screen.getByLabelText(/Sì, richiedo l'alloggio/i)).toBeInTheDocument();
       });
     });
