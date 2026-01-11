@@ -327,7 +327,8 @@ const InvitationList = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      {/* --- DESKTOP VIEW (Table) --- */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -602,6 +603,159 @@ const InvitationList = () => {
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* --- MOBILE VIEW (Cards) --- */}
+      <div className="md:hidden space-y-4">
+        {loading ? (
+          <div className="text-center py-8">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
+            <span className="text-sm text-gray-500 mt-2">Caricamento...</span>
+          </div>
+        ) : invitations.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <Users size={48} className="text-gray-300 mb-3 mx-auto" />
+            <p className="text-lg font-medium text-gray-900">Nessun invito presente</p>
+            <button onClick={handleCreateNew} className="text-pink-600 font-medium hover:underline mt-2">
+              Crea il tuo primo invito
+            </button>
+          </div>
+        ) : (
+          invitations.map((invitation) => {
+            const verifyInfo = getVerificationIcon(invitation.contact_verified);
+            const isVerifying = verifyingSingleFor === invitation.id;
+            return (
+              <div
+                key={invitation.id}
+                className={`bg-white p-4 rounded-xl shadow-sm border ${
+                  selectedIds.includes(invitation.id)
+                    ? 'border-pink-500 ring-2 ring-pink-500'
+                    : 'border-gray-200'
+                }`}
+              >
+                {/* Header Card: Selezione + Nome + Status */}
+                <div className="flex justify-between items-start mb-3">
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.includes(invitation.id)}
+                      onChange={() => toggleSelectOne(invitation.id)}
+                      className="w-5 h-5 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                    />
+                    <div>
+                      <div className="font-bold text-gray-900 flex items-center gap-2">
+                        {invitation.name}
+                        <span className="text-lg">{invitation.origin === 'bride' ? '👰' : '🤵'}</span>
+                      </div>
+                      <div className="text-xs text-gray-500 font-mono">{invitation.code}</div>
+                    </div>
+                  </div>
+                  <div>{getStatusBadge(invitation.status)}</div>
+                </div>
+
+                {/* Body Card: Contatto e Ospiti */}
+                <div className="mb-4 space-y-2">
+                  {invitation.phone_number ? (
+                    <div className="flex items-center text-sm text-gray-600 bg-gray-50 p-2 rounded">
+                      <button
+                        onClick={() => handleVerifyContact(invitation)}
+                        disabled={isVerifying || invitation.contact_verified === 'ok'}
+                        className={`mr-2 ${verifyInfo.color} p-1 rounded-full`}
+                      >
+                        {isVerifying ? <Loader size={12} className="animate-spin" /> : verifyInfo.icon}
+                      </button>
+                      {invitation.phone_number}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-gray-400 italic">Nessun contatto</div>
+                  )}
+
+                  <div className="flex flex-wrap gap-1">
+                    {invitation.guests?.map((g, idx) => (
+                      <span
+                        key={idx}
+                        className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200 flex items-center"
+                      >
+                        {g.is_child ? <Baby size={10} className="mr-1" /> : <User size={10} className="mr-1" />}
+                        {g.first_name}
+                      </span>
+                    ))}
+                  </div>
+
+                  {/* Service indicators */}
+                  {(invitation.accommodation_offered || invitation.transfer_offered) && (
+                    <div className="flex gap-2 mt-2">
+                      {invitation.accommodation_offered && (
+                        <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center">
+                          <Home size={10} className="mr-1" /> Alloggio
+                        </span>
+                      )}
+                      {invitation.transfer_offered && (
+                        <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100 flex items-center">
+                          <Bus size={10} className="mr-1" /> Transfer
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Footer Card: Azioni (Mobile Optimized) */}
+                <div className="flex justify-between items-center pt-3 border-t border-gray-100">
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleSingleSend(invitation)}
+                      disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
+                      className={`p-2 rounded-lg transition-colors ${
+                        !isContactValid(invitation)
+                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                          : 'bg-green-50 text-green-600 hover:bg-green-100'
+                      }`}
+                    >
+                      {openingWASingleFor === invitation.id ? (
+                        <Loader size={18} className="animate-spin" />
+                      ) : (
+                        <MessageCircle size={18} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => handleGenerateLink(invitation.id)}
+                      disabled={generatingLinkFor === invitation.id}
+                      className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                    >
+                      {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                        <Loader size={18} className="animate-spin" />
+                      ) : generatedLink?.id === invitation.id ? (
+                        <CheckCircle size={18} />
+                      ) : (
+                        <Copy size={18} />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
+                      className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"
+                    >
+                      <Activity size={18} />
+                    </button>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(invitation.id)}
+                      className="p-2 text-gray-500 hover:bg-gray-100 rounded-lg"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteClick(invitation.id)}
+                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {isModalOpen && (
