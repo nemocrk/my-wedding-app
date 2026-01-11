@@ -88,8 +88,8 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
 
   return (
     <div className="flex flex-col">
-      {/* --- DESKTOP VIEW (Table) --- */}
-      <div className="overflow-x-auto hidden md:block">
+      {/* --- DESKTOP VIEW (Table) - Visible only LG+ --- */}
+      <div className="overflow-x-auto hidden lg:block">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
@@ -153,8 +153,8 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
         </table>
       </div>
 
-      {/* --- MOBILE VIEW (Cards) --- */}
-      <div className="md:hidden space-y-3">
+      {/* --- MOBILE VIEW (Cards) - Visible until LG --- */}
+      <div className="lg:hidden space-y-3">
         {messages.map((msg) => (
           <div key={msg.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col gap-3">
             
@@ -202,10 +202,10 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
         ))}
       </div>
 
-      {/* Fixed Position Tooltip (Desktop only) */}
+      {/* Fixed Position Tooltip (Desktop only - LG+) */}
       {tooltip.show && (
         <div 
-          className="fixed z-[9999] w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl pointer-events-none hidden md:block"
+          className="fixed z-[9999] w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl pointer-events-none hidden lg:block"
           style={{ 
             top: tooltip.y - 10,
             left: tooltip.x,
