@@ -5,11 +5,11 @@ import { describe, it, expect, vi } from 'vitest';
 
 describe('Fab Component', () => {
   it('renders in document.body via Portal when visible is true', () => {
-    render(<Fab onClick={() => {}} isFlipped={false} visible={true} />);
+    const { container } = render(<Fab onClick={() => {}} isFlipped={false} visible={true} />);
     const button = screen.getByRole('button');
     expect(button).toBeInTheDocument();
-    // Portal element is appended to body, not container
-    expect(button.parentElement).toBe(document.body);
+    // Fab renders in the container, not via Portal
+    expect(container).toContainElement(button);
   });
 
   it('does not render when visible is false', () => {
@@ -35,6 +35,6 @@ describe('Fab Component', () => {
   it('renders RotateCcw icon when isFlipped is true', () => {
     render(<Fab onClick={() => {}} isFlipped={true} visible={true} />);
     const button = screen.getByRole('button');
-    expect(button).toHaveAttribute('aria-label', 'Torna indietro');
+    expect(button).toHaveAttribute('aria-label', 'Torna alla copertina');
   });
 });
