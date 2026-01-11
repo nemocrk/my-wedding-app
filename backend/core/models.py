@@ -324,7 +324,7 @@ class GuestInteraction(models.Model):
         default='unknown',
         help_text="ID univoco sessione frontend"
     )
-    event_type = models.CharField(max_length=20, choices=EventType.choices)
+    event_type = models.CharField(max_length=50, choices=EventType.choices)
     timestamp = models.DateTimeField(auto_now_add=True)
     
     # Dettagli Tecnici

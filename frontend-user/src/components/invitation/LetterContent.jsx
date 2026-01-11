@@ -7,7 +7,6 @@ import Fab from '../common/Fab';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
 import waxImg from '../../assets/illustrations/wax.png';
-import buttonBg from '../../assets/illustrations/button-bk.png';
 import homeIcon from '../../assets/illustrations/home.png';
 import vanIcon from '../../assets/illustrations/van.png';
 import archIcon from '../../assets/illustrations/arch.png';
@@ -25,7 +24,7 @@ const LetterContent = ({ data }) => {
   const [message, setMessage] = useState(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
-  const isReplayMode = useRef(false); // Ref to track replay mode without re-rendering for logic checks
+  const isReplayMode = useRef(window.self !== window.top); // Ref to track replay mode without re-rendering for logic checks
   
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
   const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
@@ -398,7 +397,7 @@ const LetterContent = ({ data }) => {
       const { type, payload } = event.data;
       
       // If we receive ANY replay message, we confirm we are in replay mode
-      if (['REPLAY_START', 'REPLAY_RESET'].includes(type) || Object.values(cards).some(c => type === 'card_expand')) {
+      if (['REPLAY_START', 'REPLAY_RESET','REPLAY_ACTION'].includes(type)) {
          if (!isReplayMode.current) {
             isReplayMode.current = true;
             heatmapTracker.stop(); // Stop heatmap immediately if we detect replay activity
@@ -422,115 +421,122 @@ const LetterContent = ({ data }) => {
           setIsFlipped(false);
           setMessage(null);
           break;
+        case 'REPLAY_ACTION':
+          switch (payload?.action){
 
-        case 'card_flip':
-          if (payload?.flipped !== undefined) setIsFlipped(payload.flipped);
-          break;
+            case 'card_flip':
+              if (payload?.details?.flipped !== undefined) setIsFlipped(payload.details.flipped);
+              break;
 
-        case 'card_expand':
-          if (payload?.card) {
-            setExpandedCard(payload.card);
-            // Sync step logic if opening RSVP
-            if (payload.card === 'rsvp') {
-              const targetStep = !['created', 'sent', 'read'].includes(rsvpStatus) ? 'summary' : 'guests';
-              setRsvpStep(targetStep);
-            }
-          }
-          break;
+            case 'card_expand':
+              if (payload?.details?.card) {
+                setExpandedCard(payload.details.card);
+                // Sync step logic if opening RSVP
+                if (payload.details.card === 'rsvp') {
+                  const targetStep = !['created', 'sent', 'read'].includes(rsvpStatus) ? 'summary' : 'guests';
+                  setRsvpStep(targetStep);
+                }
+              }
+              break;
 
-        case 'card_collapse':
-          setExpandedCard(null);
-          break;
+            case 'card_collapse':
+              setExpandedCard(null);
+              break;
 
-        case 'toggle_guest_exclusion':
-          if (payload?.guestIndex !== undefined) {
-            setExcludedGuests(prev => 
-              prev.includes(payload.guestIndex) ? prev.filter(idx => idx !== payload.guestIndex) : [...prev, payload.guestIndex]
-            );
-          }
-          break;
+            case 'toggle_guest_exclusion':
+              if (payload?.details?.guestIndex !== undefined) {
+                setExcludedGuests(prev => 
+                  prev.includes(payload.details.guestIndex) ? prev.filter(idx => idx !== payload.details.guestIndex) : [...prev, payload.details.guestIndex]
+                );
+              }
+              break;
 
-        case 'start_edit_guest':
-          if (payload?.guestIndex !== undefined) {
-            const guest = data.guests[payload.guestIndex];
-            const edited = editedGuests[payload.guestIndex] || guest;
-            setEditingGuestIndex(payload.guestIndex);
-            setTempFirstName(edited.first_name);
-            setTempLastName(edited.last_name || '');
-          }
-          break;
+            case 'start_edit_guest':
+              if (payload?.details?.guestIndex !== undefined) {
+                const guest = data.guests[payload.details.guestIndex];
+                const edited = editedGuests[payload.details.guestIndex] || guest;
+                setEditingGuestIndex(payload.details.guestIndex);
+                setTempFirstName(edited.first_name);
+                setTempLastName(edited.last_name || '');
+              }
+              break;
 
-        case 'save_edit_guest':
-          if (payload?.guestIndex !== undefined) {
-             setEditedGuests(prev => ({ ...prev, [payload.guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
-             setEditingGuestIndex(null);
-          }
-          break;
+            case 'save_edit_guest':
+              if (payload?.details?.guestIndex !== undefined) {
+                setEditedGuests(prev => ({ ...prev, [payload.details.guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
+                setEditingGuestIndex(null);
+              }
+              break;
 
-        case 'cancel_edit_guest':
-          setEditingGuestIndex(null);
-          setTempFirstName('');
-          setTempLastName('');
-          break;
+            case 'cancel_edit_guest':
+              setEditingGuestIndex(null);
+              setTempFirstName('');
+              setTempLastName('');
+              break;
 
-        case 'rsvp_next_step':
-          if (payload?.to) setRsvpStep(payload.to);
-          break;
+            case 'rsvp_next_step':
+              if (payload?.details?.to) setRsvpStep(payload.details.to);
+              break;
 
-        case 'rsvp_back_step':
-          if (payload?.to) setRsvpStep(payload.to);
-          break;
+            case 'rsvp_back_step':
+              if (payload?.details?.to) setRsvpStep(payload.details.to);
+              break;
 
-        case 'start_edit_phone':
-          setEditingPhone(true);
-          setTempPhoneNumber(phoneNumber);
-          break;
+            case 'start_edit_phone':
+              setEditingPhone(true);
+              setTempPhoneNumber(phoneNumber);
+              break;
+              
+            case 'save_edit_phone':
+              setPhoneNumber(tempPhoneNumber);
+              setEditingPhone(false);
+              break;
+
+            case 'cancel_edit_phone':
+              setEditingPhone(false);
+              setTempPhoneNumber('');
+              break;
+
+            case 'travel_transport_selected':
+              if (payload?.details?.transport_type) {
+                setTravelInfo(prev => ({ ...prev, transport_type: payload.details.transport_type, car_option: 'none' }));
+              }
+              break;
+
+            case 'travel_schedule_entered':
+              if (payload?.details?.schedule_text) {
+                setTravelInfo(prev => ({ ...prev, schedule: payload.details.schedule_text }));
+              }
+              break;
+
+            case 'travel_car_option_selected':
+              if (payload?.details?.car_option) {
+                setTravelInfo(prev => ({ ...prev, car_option: payload.details.car_option }));
+              }
+              break;
+
+            case 'travel_carpool_toggle':
+              if (payload?.details?.interested !== undefined) {
+                setTravelInfo(prev => ({ ...prev, carpool_interest: payload.details.interested }));
+              }
+              break;
+
+            case 'accommodation_choice_toggle':
+              if (payload?.details?.requested !== undefined) {
+                setAccommodationChoice(payload.details.requested);
+              }
+              break;
+
+            case 'rsvp_submit_success':
+              if (payload?.details?.status) {
+                setRsvpStatus(payload.details.status);
+                setRsvpStep('summary');
+                setMessage({ type: 'success', text: 'RSVP simulato con successo!' });
+              }
+              break;
           
-        case 'save_edit_phone':
-          setPhoneNumber(tempPhoneNumber);
-          setEditingPhone(false);
-          break;
-
-        case 'cancel_edit_phone':
-          setEditingPhone(false);
-          setTempPhoneNumber('');
-          break;
-
-        case 'travel_transport_selected':
-          if (payload?.transport_type) {
-            setTravelInfo(prev => ({ ...prev, transport_type: payload.transport_type, car_option: 'none' }));
-          }
-          break;
-
-        case 'travel_schedule_entered':
-          if (payload?.schedule_text) {
-             setTravelInfo(prev => ({ ...prev, schedule: payload.schedule_text }));
-          }
-          break;
-
-        case 'travel_car_option_selected':
-          if (payload?.car_option) {
-            setTravelInfo(prev => ({ ...prev, car_option: payload.car_option }));
-          }
-          break;
-
-        case 'travel_carpool_toggle':
-          if (payload?.interested !== undefined) {
-            setTravelInfo(prev => ({ ...prev, carpool_interest: payload.interested }));
-          }
-          break;
-
-        case 'accommodation_choice_toggle':
-          if (payload?.requested !== undefined) {
-            setAccommodationChoice(payload.requested);
-          }
-          break;
-
-        case 'rsvp_submit_success':
-          if (payload?.status) {
-            setRsvpStatus(payload.status);
-            setRsvpStep('summary');
-            setMessage({ type: 'success', text: 'RSVP simulato con successo!' });
+            default:
+              break;
           }
           break;
           

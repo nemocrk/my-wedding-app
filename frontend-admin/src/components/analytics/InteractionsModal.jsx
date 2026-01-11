@@ -85,7 +85,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       .map((evt, idx) => ({
         ...evt,
         _idx: idx,
-        t_ms: new Date(evt.timestamp).getTime(),
+        t_ms: evt.details?.t??new Date(evt.timestamp).getTime(),
       }))
       .filter((evt) => Number.isFinite(evt.t_ms))
       // keep only events inside heatmap window (optional but cleaner)
