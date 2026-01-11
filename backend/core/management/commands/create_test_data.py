@@ -1,5 +1,5 @@
 from django.core.management.base import BaseCommand
-from core.models import Invitation, GlobalConfig
+from core.models import Invitation, GlobalConfig, WhatsAppSessionStatus
 import sys
 
 class Command(BaseCommand):
@@ -12,11 +12,13 @@ class Command(BaseCommand):
         # 2. Create or Get Test Invitation
         # Using a code that is unlikely to collide with real data
         code = "test-load-user"
+        WhatsAppSessionStatus.objects.get_or_create(session_type='groom')
         invitation, created = Invitation.objects.get_or_create(
             code=code,
             defaults={
                 "name": "Test Load User",
-                "status": Invitation.Status.CREATED
+                "status": Invitation.Status.CREATED,
+                "origin": 'groom'
             }
         )
         
