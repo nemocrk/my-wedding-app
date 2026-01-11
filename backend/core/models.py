@@ -318,6 +318,12 @@ class GuestInteraction(models.Model):
         RSVP_RESET = 'rsvp_reset', 'Reset RSVP'
         
     invitation = models.ForeignKey(Invitation, on_delete=models.CASCADE, related_name='interactions')
+    session_id = models.CharField(
+        max_length=100, 
+        blank=True, 
+        default='unknown',
+        help_text="ID univoco sessione frontend"
+    )
     event_type = models.CharField(max_length=20, choices=EventType.choices)
     timestamp = models.DateTimeField(auto_now_add=True)
     
