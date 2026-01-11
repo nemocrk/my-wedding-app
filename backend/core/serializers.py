@@ -38,14 +38,16 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
     """Serializer per endpoint pubblico con lettera renderizzata"""
     guests = PublicPersonSerializer(many=True, read_only=True)
     letter_content = serializers.SerializerMethodField()
-    config = serializers.SerializerMethodField()
+    whatsapp = serializers.SerializerMethodField()
+    travel_info = serializers.SerializerMethodField()
+
 
     class Meta:
         model = Invitation
         fields = [
             'name', 'guests', 'letter_content',
             'accommodation_offered', 'transfer_offered', 'status',
-            'config'
+            'whatsapp', 'phone_number', 'travel_info'
         ]
 
     def get_letter_content(self, obj):
@@ -68,14 +70,28 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
         
         return rendered
 
-    def get_config(self, obj):
-        # Backward compatibility + Extra info
-        config = self.context.get('config')
-        if not config:
-            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+    def get_whatsapp(self, obj):
+        whatsAppSessionStatus = WhatsAppSessionStatus.objects.get(session_type=obj.origin)
+        if not whatsAppSessionStatus:
+            return {
+                'whatsapp_number': '',
+                'whatsapp_name': '',
+                'whatsapp_picture': '',
+            }
         return {
-            'whatsapp_number': config.whatsapp_groom_number if obj.origin == 'groom' else config.whatsapp_bride_number
+            'whatsapp_number': f"+{whatsAppSessionStatus.phone_number}",
+            'whatsapp_name': whatsAppSessionStatus.name,
+            'whatsapp_picture': whatsAppSessionStatus.picture
         }
+    
+    def get_travel_info(self, obj):
+        return {
+            'transport_type': obj.travel_transport_type,
+            'schedule': obj.travel_schedule,
+            'car_option': obj.travel_car_with,
+            'carpool_interest': obj.travel_carpool_interest
+        }
+
 
 class RoomDetailSerializer(serializers.ModelSerializer):
     """Serializer completo per stanze con ospiti assegnati"""

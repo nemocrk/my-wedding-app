@@ -43,10 +43,10 @@ const LetterContent = ({ data }) => {
   const [phoneError, setPhoneError] = useState('');
   
   // Step 3: Viaggio
-  const [travelInfo, setTravelInfo] = useState({
+  const [travelInfo, setTravelInfo] = useState(data.travel_info || {
     transport_type: '', // 'traghetto' | 'aereo'
     schedule: '',
-    car_option: false, // 'noleggio' | 'proprio' | false
+    car_option: 'none', // 'noleggio' | 'proprio' | false
     carpool_interest: false
   });
   
@@ -55,10 +55,8 @@ const LetterContent = ({ data }) => {
 
   const sealControls = useAnimation();
   
-  const groomNumber = data.config?.whatsapp_groom_number;
-  const brideNumber = data.config?.whatsapp_bride_number;
-  const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
-  const brideName = data.config?.whatsapp_bride_firstname || "Sposa";
+  const waNumber = data.whatsapp.whatsapp_number;
+  const waName = data.whatsapp.whatsapp_name || "Sposi";
 
   const getWaLink = (number, customMessage) => {
     const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
@@ -153,6 +151,7 @@ const LetterContent = ({ data }) => {
     setPhoneNumber(trimmed);
     setEditingPhone(false);
     setPhoneError('');
+    return;
   };
 
   const handleCancelEditPhone = () => {
@@ -165,6 +164,7 @@ const LetterContent = ({ data }) => {
   const handleNextStep = () => {
     // Validazione Step Guests
     if (rsvpStep === 'guests') {
+      editingGuestIndex !== null & handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
         setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
         return;
@@ -175,8 +175,23 @@ const LetterContent = ({ data }) => {
     // Validazione Step Contact
     else if (rsvpStep === 'contact') {
       if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
-        setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
-        return;
+        if(editingPhone){
+          const trimmed = tempPhoneNumber.trim();
+          if (!trimmed) {
+            setMessage({ type: 'error', text: 'Il numero di telefono è obbligatorio'});
+            return;
+          }
+          if (!validatePhoneNumber(trimmed)) {
+            setMessage({ type: 'error', text: 'Formato non valido (es: +39 333 1234567)'});
+            return;
+          }
+          setPhoneNumber(trimmed);
+          setEditingPhone(false);
+          setPhoneError('');
+        } else {
+          setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
+          return;
+        }
       }
       setMessage(null);
       setRsvpStep('travel');
@@ -199,6 +214,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleBackStep = () => {
+    setMessage(null);
     if (rsvpStep === 'contact') setRsvpStep('guests');
     else if (rsvpStep === 'travel') setRsvpStep('contact');
     else if (rsvpStep === 'accommodation') setRsvpStep('travel');
@@ -261,7 +277,7 @@ const LetterContent = ({ data }) => {
         setExcludedGuests([]);
         setEditedGuests({});
         setPhoneNumber(data.phone_number || '');
-        setTravelInfo({ transport_type: '', schedule: '', car_option: false, carpool_interest: false });
+        setTravelInfo({ transport_type: '', schedule: '', car_option: 'none', carpool_interest: false });
         setAccommodationChoice(false);
       }
     };
@@ -355,19 +371,12 @@ const LetterContent = ({ data }) => {
           <div className="expanded-content">
             <h2>Hai domande?</h2>
             <p>Contattaci via WhatsApp:</p>
-            {(groomNumber || brideNumber) && (
+            {(waNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
-                  {groomNumber && (
-                    <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                      <FaWhatsapp size={20} /> {groomName}
+                  <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {waName}
                     </a>
-                  )}
-                  {brideNumber && (
-                    <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                      <FaWhatsapp size={20} /> {brideName}
-                    </a>
-                  )}
                 </div>
               </div>
             )}
@@ -382,12 +391,20 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'summary' && (
               <div className="rsvp-summary-page">
                 <div className="summary-status">
-                  <span className="summary-emoji">{getRSVPStatusMessageCompact().emoji}</span>
                   <p className="summary-text">
                     {rsvpStatus === 'confirmed'
                       ? 'Hai già confermato la tua presenza!'
                       : 'Hai declinato l\'invito.'}
                   </p>
+                  <div className="final-summary">
+                    <h3>Riepilogo:</h3>
+                    <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>Telefono:</strong> {phoneNumber}</p>
+                    <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    {data.accommodation_offered && (
+                      <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                    )}
+                  </div>
                 </div>
                 <button className="rsvp-next-btn" onClick={handleStartModify}>
                   Modifica Risposta
@@ -454,13 +471,15 @@ const LetterContent = ({ data }) => {
                 {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
                   <div className="whatsapp-alert">
                     <p>⚠️ Hai già confermato! Per modificare contatta gli sposi:</p>
-                    <div className="whatsapp-buttons">
-                      {groomNumber && (
-                        <a href={getWaLink(groomNumber, 'Devo modificare la lista ospiti')} target="_blank" rel="noreferrer" className="whatsapp-link">
-                          <FaWhatsapp size={20} /> {groomName}
-                        </a>
+                      {(waNumber) && (
+                        <div className="whatsapp-section">
+                          <div className="whatsapp-buttons">
+                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                                <FaWhatsapp size={20} /> {waName}
+                              </a>
+                          </div>
+                        </div>
                       )}
-                    </div>
                   </div>
                 )}
 
@@ -517,7 +536,7 @@ const LetterContent = ({ data }) => {
                       name="transport"
                       value="traghetto"
                       checked={travelInfo.transport_type === 'traghetto'}
-                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: false })}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
                     />
                     Traghetto
                   </label>
@@ -527,7 +546,7 @@ const LetterContent = ({ data }) => {
                       name="transport"
                       value="aereo"
                       checked={travelInfo.transport_type === 'aereo'}
-                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: false })}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
                     />
                     Aereo
                   </label>
@@ -548,7 +567,7 @@ const LetterContent = ({ data }) => {
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'proprio'}
-                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'proprio' : false })}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'proprio' : 'none' })}
                         />
                         Auto al seguito
                       </label>
@@ -562,7 +581,7 @@ const LetterContent = ({ data }) => {
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'noleggio'}
-                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'noleggio' : false })}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'noleggio' : 'none' })}
                         />
                         Noleggerò un'auto
                       </label>
@@ -605,13 +624,15 @@ const LetterContent = ({ data }) => {
                   {accommodationRequested && !accommodationChoice && (
                     <div className="whatsapp-alert">
                       <p>⚠️ Avevi già accettato! Contatta gli sposi:</p>
-                      <div className="whatsapp-buttons">
-                        {groomNumber && (
-                          <a href={getWaLink(groomNumber, 'Devo modificare la richiesta alloggio')} target="_blank" rel="noreferrer" className="whatsapp-link">
-                            <FaWhatsapp size={20} /> {groomName}
-                          </a>
-                        )}
-                      </div>
+                      {(waNumber) && (
+                        <div className="whatsapp-section">
+                          <div className="whatsapp-buttons">
+                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                                <FaWhatsapp size={20} /> {waName}
+                              </a>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -635,28 +656,36 @@ const LetterContent = ({ data }) => {
                 </div>
 
                 {/* Alert se già confermato e declina */}
-                {rsvpStatus === 'confirmed' && (
+                {rsvpStatus === 'declined' ? (
                   <div className="whatsapp-alert">
-                    <p>⚠️ Se vuoi declinare dopo aver confermato, contatta gli sposi:</p>
-                    <div className="whatsapp-buttons">
-                      {groomNumber && (
-                        <a href={getWaLink(groomNumber, 'Devo declinare la partecipazione')} target="_blank" rel="noreferrer" className="whatsapp-link">
-                          <FaWhatsapp size={20} /> {groomName}
-                        </a>
-                      )}
-                    </div>
+                    <p>⚠️ Se vuoi confermare dopo aver declinato, contatta gli sposi:</p>
+                    {(waNumber) && (
+                      <div className="whatsapp-section">
+                        <div className="whatsapp-buttons">
+                          <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                              <FaWhatsapp size={20} /> {waName}
+                            </a>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-
-                <div className="button-group">
-                  <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
+                )
+                :
+                (<div className="button-group">
+                  {rsvpStatus === 'pending' && (
+                    <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
                     {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
-                  </button>
+                  </button> )}
+                  {(rsvpStatus === 'confirmed' ||  rsvpStatus === 'declined') && (
+                  <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
+                    {submitting ? 'Invio...' : '💾 Salva Modifiche'}
+                  </button> )}
+                  {(rsvpStatus === 'pending' || rsvpStatus === 'confirmed') && (
                   <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
                     {submitting ? 'Invio...' : '❌ Declina'}
-                  </button>
+                  </button> )}
                 </div>
-
+                )}
                 <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>

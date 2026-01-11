@@ -963,6 +963,7 @@
 .rsvp-button { width: 100%; border: none; padding: 0.8rem; font-size: 1rem; border-radius: 25px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; font-weight: 600; }
 .rsvp-button:disabled { opacity: 0.6; cursor: not-allowed; }
 .rsvp-button.confirm { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; }
+.rsvp-button.save { background: linear-gradient(135deg, #3e9eec 0%, #368acf 100%); color: white; }
 .rsvp-button.decline { background: linear-gradient(135deg, #f44336 0%, #c62828 100%); color: white; }
 
 /* Cancel Edit Button (inside RSVP form) */

@@ -156,6 +156,11 @@ class Invitation(models.Model):
         NOT_PRESENT = 'not_present', 'Non in rubrica'
         OK = 'ok', 'OK (Verificato)'
 
+    class TravelCarInfo(models.TextChoices):
+        NOT_AVAILABLE = 'none', 'Non Disponibile'
+        CAR_RENTAL = 'noleggio', 'Auto a Noleggio'
+        MY_CAR = 'proprio', 'Auto Propria'
+
     code = models.SlugField(unique=True, help_text="Codice univoco per l'URL (es. famiglia-rossi)")
     name = models.CharField(max_length=200, help_text="Nome visualizzato (es. Famiglia Rossi)")
     
@@ -213,13 +218,20 @@ class Invitation(models.Model):
     travel_car_with = models.BooleanField(
         null=True,
         blank=True,
-        help_text="True se traghetto + auto al seguito",
-        verbose_name="Auto al Seguito"
+        help_text="True se auto disponibile",
+        verbose_name="Auto disponibile"
+    )
+    travel_car_with = models.CharField(
+        max_length=10,
+        choices=TravelCarInfo.choices,
+        default=TravelCarInfo.NOT_AVAILABLE,
+        help_text="True se auto disponibile",
+        verbose_name="Auto disponibile"
     )
     travel_carpool_interest = models.BooleanField(
         null=True,
         blank=True,
-        help_text="True se aereo + interesse carpool",
+        help_text="True se interesse carpool",
         verbose_name="Interesse Carpool"
     )
     
@@ -367,6 +379,9 @@ class WhatsAppSessionStatus(models.Model):
         choices=[('groom', 'Sposo'), ('bride', 'Sposa')],
         unique=True
     )
+    phone_number = models.TextField(blank=True, null=True)
+    name = models.TextField(blank=True, null=True)
+    picture = models.TextField(blank=True, null=True)
     state = models.CharField(
         max_length=20,
         choices=SessionState.choices,
