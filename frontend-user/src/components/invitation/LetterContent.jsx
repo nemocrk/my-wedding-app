@@ -18,7 +18,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import PaperModal from '../layout/PaperModal';
 
 const LetterContent = ({ data }) => {
-  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
+  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
   const [accommodationRequested, setAccommodationRequested] = useState(data.accommodation_requested || false);
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +27,7 @@ const LetterContent = ({ data }) => {
   const [expandedCard, setExpandedCard] = useState(null);
   
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
-  const [rsvpStep, setRsvpStep] = useState(['confirmed','delined'].includes(rsvpStatus) ? 'summary' : 'guests');
+  const [rsvpStep, setRsvpStep] = useState(rsvpStatus !== 'pending' ? 'summary' : 'guests');
   
   // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
@@ -60,15 +60,14 @@ const LetterContent = ({ data }) => {
 
   const getWaLink = (number, customMessage) => {
     const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
+    logInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
   // RSVP Status Messages
   const getRSVPStatusMessageCompact = () => {
     switch(rsvpStatus) {
-      case 'created':
-      case 'sent':
-      case 'read':
+      case 'pending':
         return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
       case 'confirmed':
         return { emoji: '🎉', text: 'Magnifico! Ti aspettiamo!!!', className: 'rsvp-card-status-confirmed' };
@@ -94,10 +93,15 @@ const LetterContent = ({ data }) => {
 
   // Guest Management
   const toggleGuestExclusion = (guestIndex) => {
+    const isExcluding = !excludedGuests.includes(guestIndex);
     setExcludedGuests(prev => 
       prev.includes(guestIndex) ? prev.filter(idx => idx !== guestIndex) : [...prev, guestIndex]
     );
-    logInteraction('toggle_guest_exclusion', { guestIndex });
+    logInteraction('toggle_guest_exclusion', { 
+      guestIndex, 
+      action: isExcluding ? 'exclude' : 'include',
+      guest_name: data.guests[guestIndex].first_name
+    });
   };
 
   const handleStartEdit = (guestIndex) => {
@@ -106,16 +110,25 @@ const LetterContent = ({ data }) => {
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
     setTempLastName(edited.last_name || '');
-    logInteraction('start_edit_guest', { guestIndex });
+    logInteraction('start_edit_guest', { 
+      guestIndex,
+      original_name: `${guest.first_name} ${guest.last_name || ''}`
+    });
   };
 
   const handleSaveEdit = (guestIndex) => {
+    const originalGuest = data.guests[guestIndex];
     setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
     setEditingGuestIndex(null);
-    logInteraction('save_edit_guest', { guestIndex });
+    logInteraction('save_edit_guest', { 
+      guestIndex,
+      original_name: `${originalGuest.first_name} ${originalGuest.last_name || ''}`,
+      new_name: `${tempFirstName} ${tempLastName}`
+    });
   };
 
   const handleCancelEdit = () => {
+    logInteraction('cancel_edit_guest', { guestIndex: editingGuestIndex });
     setEditingGuestIndex(null);
     setTempFirstName('');
     setTempLastName('');
@@ -138,21 +151,28 @@ const LetterContent = ({ data }) => {
     setEditingPhone(true);
     setTempPhoneNumber(phoneNumber);
     setPhoneError('');
+    logInteraction('start_edit_phone', { has_existing_phone: !!phoneNumber });
   };
 
   const handleSaveEditPhone = () => {
     const trimmed = tempPhoneNumber.trim();
     if (!trimmed) {
       setPhoneError('Il numero di telefono è obbligatorio');
+      logInteraction('phone_validation_error', { error: 'empty' });
       return;
     }
     if (!validatePhoneNumber(trimmed)) {
       setPhoneError('Formato non valido (es: +39 333 1234567)');
+      logInteraction('phone_validation_error', { error: 'invalid_format' });
       return;
     }
     setPhoneNumber(trimmed);
     setEditingPhone(false);
     setPhoneError('');
+    logInteraction('save_edit_phone', { 
+      original_phone: phoneNumber,
+      new_phone: trimmed
+    });
     return;
   };
 
@@ -160,6 +180,7 @@ const LetterContent = ({ data }) => {
     setEditingPhone(false);
     setTempPhoneNumber('');
     setPhoneError('');
+    logInteraction('cancel_edit_phone');
   };
 
   // Step Navigation with Validation
@@ -169,9 +190,11 @@ const LetterContent = ({ data }) => {
       editingGuestIndex !== null & handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
         setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
+        logInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
         return;
       }
       setMessage(null);
+      logInteraction('rsvp_next_step', { from: 'guests', to: 'contact', active_guests: getActiveGuests().length });
       setRsvpStep('contact');
     }
     // Validazione Step Contact
@@ -181,10 +204,12 @@ const LetterContent = ({ data }) => {
           const trimmed = tempPhoneNumber.trim();
           if (!trimmed) {
             setMessage({ type: 'error', text: 'Il numero di telefono è obbligatorio'});
+            logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
             return;
           }
           if (!validatePhoneNumber(trimmed)) {
             setMessage({ type: 'error', text: 'Formato non valido (es: +39 333 1234567)'});
+            logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
             return;
           }
           setPhoneNumber(trimmed);
@@ -192,49 +217,79 @@ const LetterContent = ({ data }) => {
           setPhoneError('');
         } else {
           setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
+          logInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_missing' });
           return;
         }
       }
       setMessage(null);
+      logInteraction('rsvp_next_step', { from: 'contact', to: 'travel' });
       setRsvpStep('travel');
     }
     // Validazione Step Travel
     else if (rsvpStep === 'travel') {
       if (!travelInfo.transport_type || !travelInfo.schedule) {
         setMessage({ type: 'error', text: 'Compila tutti i campi del viaggio!' });
+        logInteraction('rsvp_validation_error', { 
+          step: 'travel', 
+          error: 'incomplete_fields',
+          missing_transport: !travelInfo.transport_type,
+          missing_schedule: !travelInfo.schedule
+        });
         return;
       }
       setMessage(null);
-      // Skip step accommodation se non offerto
-      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'final');
+      const nextStep = data.accommodation_offered ? 'accommodation' : 'final';
+      logInteraction('rsvp_next_step', { from: 'travel', to: nextStep });
+      setRsvpStep(nextStep);
     }
     // Step Accommodation -> Final
     else if (rsvpStep === 'accommodation') {
       setMessage(null);
+      logInteraction('rsvp_next_step', { from: 'accommodation', to: 'final', accommodation_requested: accommodationChoice });
       setRsvpStep('final');
     }
   };
 
   const handleBackStep = () => {
     setMessage(null);
-    if (rsvpStep === 'contact') setRsvpStep('guests');
-    else if (rsvpStep === 'travel') setRsvpStep('contact');
-    else if (rsvpStep === 'accommodation') setRsvpStep('travel');
-    else if (rsvpStep === 'final') {
-      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'travel');
+    let fromStep = rsvpStep;
+    let toStep = '';
+    
+    if (rsvpStep === 'contact') {
+      toStep = 'guests';
+      setRsvpStep('guests');
     }
+    else if (rsvpStep === 'travel') {
+      toStep = 'contact';
+      setRsvpStep('contact');
+    }
+    else if (rsvpStep === 'accommodation') {
+      toStep = 'travel';
+      setRsvpStep('travel');
+    }
+    else if (rsvpStep === 'final') {
+      toStep = data.accommodation_offered ? 'accommodation' : 'travel';
+      setRsvpStep(toStep);
+    }
+    
+    logInteraction('rsvp_back_step', { from: fromStep, to: toStep });
   };
 
   const handleStartModify = () => {
     setRsvpStep('guests');
-    logInteraction('start_modify_rsvp');
+    logInteraction('start_modify_rsvp', { current_status: rsvpStatus });
   };
 
   // Final Submit
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
-    logInteraction('click_rsvp', { status_chosen: status });
+    logInteraction('click_rsvp_submit', { 
+      status_chosen: status,
+      previous_status: rsvpStatus,
+      active_guests: getActiveGuests().length,
+      accommodation_requested: accommodationChoice
+    });
 
     try {
       const payload = {
@@ -252,29 +307,77 @@ const LetterContent = ({ data }) => {
       );
 
       if (result.success) {
-        logInteraction('rsvp_submit', { status, result: 'success' });
+        logInteraction('rsvp_submit_success', { 
+          status, 
+          active_guests: getActiveGuests().length,
+          travel_type: travelInfo.transport_type,
+          car_option: travelInfo.car_option,
+          accommodation_requested: accommodationChoice
+        });
         setRsvpStatus(status);
         setRsvpStep('summary');
         setMessage({ type: 'success', text: result.message });
       } else {
+        logInteraction('rsvp_submit_error', { status, error: result.message });
         setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
+      logInteraction('rsvp_submit_exception', { status, error: err.message });
       setMessage({ type: 'error', text: err.message || 'Errore di connessione.' });
     } finally {
       setSubmitting(false);
     }
   };
 
+  // Travel Form Handlers with Analytics
+  const handleTransportChange = (transport_type) => {
+    setTravelInfo({ ...travelInfo, transport_type, car_option: 'none' });
+    logInteraction('travel_transport_selected', { transport_type });
+  };
+
+  const handleScheduleChange = (schedule) => {
+    setTravelInfo({ ...travelInfo, schedule });
+  };
+
+  const handleScheduleBlur = () => {
+    if (travelInfo.schedule) {
+      logInteraction('travel_schedule_entered', { schedule_length: travelInfo.schedule.length });
+    }
+  };
+
+  const handleCarOptionChange = (car_option) => {
+    setTravelInfo({ ...travelInfo, car_option });
+    logInteraction('travel_car_option_selected', { car_option });
+  };
+
+  const handleCarpoolChange = (carpool_interest) => {
+    setTravelInfo({ ...travelInfo, carpool_interest });
+    logInteraction('travel_carpool_toggle', { interested: carpool_interest });
+  };
+
+  // Accommodation Handler with Analytics
+  const handleAccommodationChange = (requested) => {
+    setAccommodationChoice(requested);
+    logInteraction('accommodation_choice_toggle', { 
+      requested,
+      was_previously_requested: accommodationRequested
+    });
+  };
+
   useEffect(() => {
     heatmapTracker.start();
-    logInteraction('view_letter');
+    logInteraction('view_letter', { 
+      status: rsvpStatus,
+      has_phone: !!data.phone_number,
+      guests_count: data.guests.length
+    });
 
     const handleReplayMessage = (event) => {
       if (!event?.data?.type) return;
       if (event.data.type === 'REPLAY_RESET') {
-        setRsvpStatus('read');
+        logInteraction('replay_reset_triggered');
+        setRsvpStatus('pending');
         setRsvpStep('guests');
         setExcludedGuests([]);
         setEditedGuests({});
@@ -292,24 +395,30 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('message', handleReplayMessage);
       clearTimeout(timer);
     };
-  }, [sealControls, data.phone_number]);
+  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus]);
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
-    logInteraction('card_flip', { flipped });
+    logInteraction('card_flip', { flipped, side: flipped ? 'back' : 'front' });
   };
 
   const handleCardClick = (cardId) => {
     setExpandedCard(cardId);
     logInteraction('card_expand', { card: cardId });
     if (cardId === 'rsvp') {
-      setRsvpStep(!['created','sent','read'].includes(rsvpStatus) ? 'summary' : 'guests');
+      const targetStep = rsvpStatus !== 'pending' ? 'summary' : 'guests';
+      setRsvpStep(targetStep);
+      logInteraction('rsvp_card_opened', { starting_step: targetStep, current_status: rsvpStatus });
     }
   };
 
   const handleCloseExpanded = () => {
+    logInteraction('card_collapse', { card: expandedCard });
     setExpandedCard(null);
-    logInteraction('card_collapse');
+  };
+
+  const handleWhatsAppClick = (recipient) => {
+    logInteraction('whatsapp_click', { recipient, context: expandedCard || 'unknown' });
   };
 
   const cards = {
@@ -376,9 +485,15 @@ const LetterContent = ({ data }) => {
             {(waNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
-                  <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                      <FaWhatsapp size={20} /> {waName}
-                    </a>
+                  <a 
+                    href={getWaLink(waNumber)} 
+                    target="_blank" 
+                    rel="noreferrer" 
+                    className="whatsapp-link"
+                    onClick={() => handleWhatsAppClick(waName)}
+                  >
+                    <FaWhatsapp size={20} /> {waName}
+                  </a>
                 </div>
               </div>
             )}
@@ -476,9 +591,15 @@ const LetterContent = ({ data }) => {
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
-                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                                <FaWhatsapp size={20} /> {waName}
-                              </a>
+                            <a 
+                              href={getWaLink(waNumber)} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="whatsapp-link"
+                              onClick={() => handleWhatsAppClick(waName)}
+                            >
+                              <FaWhatsapp size={20} /> {waName}
+                            </a>
                           </div>
                         </div>
                       )}
@@ -538,7 +659,7 @@ const LetterContent = ({ data }) => {
                       name="transport"
                       value="traghetto"
                       checked={travelInfo.transport_type === 'traghetto'}
-                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
+                      onChange={(e) => handleTransportChange(e.target.value)}
                     />
                     Traghetto
                   </label>
@@ -548,7 +669,7 @@ const LetterContent = ({ data }) => {
                       name="transport"
                       value="aereo"
                       checked={travelInfo.transport_type === 'aereo'}
-                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
+                      onChange={(e) => handleTransportChange(e.target.value)}
                     />
                     Aereo
                   </label>
@@ -558,7 +679,8 @@ const LetterContent = ({ data }) => {
                     type="text"
                     className="travel-input"
                     value={travelInfo.schedule}
-                    onChange={(e) => setTravelInfo({ ...travelInfo, schedule: e.target.value })}
+                    onChange={(e) => handleScheduleChange(e.target.value)}
+                    onBlur={handleScheduleBlur}
                     placeholder="es: Partenza 10:00, Arrivo 14:00"
                   />
 
@@ -569,7 +691,7 @@ const LetterContent = ({ data }) => {
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'proprio'}
-                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'proprio' : 'none' })}
+                          onChange={(e) => handleCarOptionChange(e.target.checked ? 'proprio' : 'none')}
                         />
                         Auto al seguito
                       </label>
@@ -583,7 +705,7 @@ const LetterContent = ({ data }) => {
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'noleggio'}
-                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'noleggio' : 'none' })}
+                          onChange={(e) => handleCarOptionChange(e.target.checked ? 'noleggio' : 'none')}
                         />
                         Noleggerò un'auto
                       </label>
@@ -595,7 +717,7 @@ const LetterContent = ({ data }) => {
                       <input
                         type="checkbox"
                         checked={travelInfo.carpool_interest}
-                        onChange={(e) => setTravelInfo({ ...travelInfo, carpool_interest: e.target.checked })}
+                        onChange={(e) => handleCarpoolChange(e.target.checked)}
                       />
                       Sarebbe carino organizzarmi con qualcun altro
                     </label>
@@ -617,7 +739,7 @@ const LetterContent = ({ data }) => {
                     <input
                       type="checkbox"
                       checked={accommodationChoice}
-                      onChange={(e) => setAccommodationChoice(e.target.checked)}
+                      onChange={(e) => handleAccommodationChange(e.target.checked)}
                     />
                     Sì, richiedo l'alloggio
                   </label>
@@ -629,9 +751,15 @@ const LetterContent = ({ data }) => {
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
-                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                                <FaWhatsapp size={20} /> {waName}
-                              </a>
+                            <a 
+                              href={getWaLink(waNumber)} 
+                              target="_blank" 
+                              rel="noreferrer" 
+                              className="whatsapp-link"
+                              onClick={() => handleWhatsAppClick(waName)}
+                            >
+                              <FaWhatsapp size={20} /> {waName}
+                            </a>
                           </div>
                         </div>
                       )}
@@ -664,9 +792,15 @@ const LetterContent = ({ data }) => {
                     {(waNumber) && (
                       <div className="whatsapp-section">
                         <div className="whatsapp-buttons">
-                          <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
-                              <FaWhatsapp size={20} /> {waName}
-                            </a>
+                          <a 
+                            href={getWaLink(waNumber)} 
+                            target="_blank" 
+                            rel="noreferrer" 
+                            className="whatsapp-link"
+                            onClick={() => handleWhatsAppClick(waName)}
+                          >
+                            <FaWhatsapp size={20} /> {waName}
+                          </a>
                         </div>
                       </div>
                     )}
@@ -674,15 +808,15 @@ const LetterContent = ({ data }) => {
                 )
                 :
                 (<div className="button-group">
-                  {!['confirmed','declined'].includes(rsvpStatus) && (
+                  {rsvpStatus === 'pending' && (
                     <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
                     {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
                   </button> )}
-                  {['confirmed','declined'].includes(rsvpStatus) && (
+                  {(rsvpStatus === 'confirmed' ||  rsvpStatus === 'declined') && (
                   <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
                     {submitting ? 'Invio...' : '💾 Salva Modifiche'}
                   </button> )}
-                  {rsvpStatus !== 'declined' && (
+                  {(rsvpStatus === 'pending' || rsvpStatus === 'confirmed') && (
                   <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
                     {submitting ? 'Invio...' : '❌ Declina'}
                   </button> )}
