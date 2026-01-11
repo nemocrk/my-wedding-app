@@ -1,26 +1,29 @@
-/* Wrapper esterno per il posizionamento e l'ombra */
+/* Wrapper esterno */
+.externalWrapper {
+  container-type: inline-size;
+  width: 100%;
+  min-height: 100%;
+}
+/* Wrapper interno */
 .wrapper {
   position: relative;
-  filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.4));
-  /* Default size - sovrascrivibile via props */
   width: 100%;
-  height: 100%;
-  display: flex;
+  min-height: 100%;
+  display: block;
 }
 
-/* Container flex verticale */
-.container {
-  width: 100%;
-  height: 100%;
-  position: relative;
+
+/* --- LAYER 1: SFONDO GRAFICO (Sliding Doors) --- */
+.backgroundLayer {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
+  pointer-events: none;
+  z-index: 0;
 }
 
-/* --- SEZIONI SLIDING DOORS --- */
-
 .top {
-  /* Aspect ratio fisso basato sull'immagine originale */
   aspect-ratio: 794 / 111;
   background-repeat: no-repeat;
   background-position: center top;
@@ -35,15 +38,7 @@
   background-position: center;
   background-size: 100% auto;
   
-  /* Layout interno del contenuto */
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  /* Padding laterale per sicurezza */
-  padding: 10px 30px; 
-  overflow-y: auto;
-
-  /* --- LOGICA DI FUSIONE --- */
+  /* Logica di fusione grafica */
   margin-top: -15px;
   margin-bottom: -15px;
   position: relative;
@@ -55,7 +50,6 @@
     black calc(100% - 15px), 
     transparent 100%
   );
-  
   mask-image: linear-gradient(to bottom, 
     transparent 0px, 
     black 15px, 
@@ -72,9 +66,13 @@
   flex-shrink: 0;
 }
 
-/* Media Query per Mobile (adatta il padding) */
-@media (max-width: 480px) {
-  .center {
-    padding: 10px 15px;
-  }
+/* --- LAYER 2: CONTENUTO UTENTE --- */
+.contentLayer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
 }

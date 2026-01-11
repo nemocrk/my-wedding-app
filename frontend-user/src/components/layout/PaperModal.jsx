@@ -10,29 +10,32 @@ import bgBottom from '../../assets/illustrations/paper-bottom.png';
 export const PaperModal = ({ children, className = '', style = {} }) => {
   return (
     <div 
-      className={`${styles.wrapper} ${className}`} 
-      style={style}
+      className={`${className} ${styles.externalWrapper}`} 
+      style={{...style, padding:'0'}}
     >
-      <div className={styles.container}>
-        {/* Top Cap */}
-        <div 
-          className={styles.top} 
-          style={{ backgroundImage: `url(${bgTop})` }}
-        />
-        
-        {/* Center Body (Scrollable & Blended) */}
-        <div 
-          className={styles.center} 
-          style={{ backgroundImage: `url(${bgCenter})` }}
-        >
+      <div 
+        className={`${styles.wrapper} ${className}`} 
+      >
+        {/* LAYER 1: Sfondo Grafico (Sliding Doors) */}
+        <div className={styles.backgroundLayer}>
+          <div 
+            className={styles.top} 
+            style={{ backgroundImage: `url(${bgTop})` }}
+          />
+          <div 
+            className={styles.center} 
+            style={{ backgroundImage: `url(${bgCenter})` }}
+          />
+          <div 
+            className={styles.bottom} 
+            style={{ backgroundImage: `url(${bgBottom})` }}
+          />
+        </div>
+
+        {/* LAYER 2: Contenuto Utente (Full Height) */}
+        <div className={styles.contentLayer}>
           {children}
         </div>
-        
-        {/* Bottom Cap */}
-        <div 
-          className={styles.bottom} 
-          style={{ backgroundImage: `url(${bgBottom})` }}
-        />
       </div>
     </div>
   );

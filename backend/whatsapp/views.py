@@ -71,7 +71,6 @@ def whatsapp_status(request, session_type):
             status_obj.state = data.get('state', 'error')
             if data.get('qr_code'):
                 status_obj.last_qr_code = data.get('qr_code')
-            status_obj.save()
             
             # Estrazione Info Profilo
             raw_data = data.get('raw', {})
@@ -90,6 +89,11 @@ def whatsapp_status(request, session_type):
                         profile_info['user'] = profile_info['id'].split('@')[0]
                      elif isinstance(profile_info['id'], dict) and 'user' in profile_info['id']:
                         profile_info['user'] = profile_info['id']['user']
+                status_obj.phone_number = profile_info.get('user', None)
+                status_obj.name = profile_info.get('name', None)
+                status_obj.picture = profile_info.get('picture', None)
+                
+            status_obj.save()
                         
     except Exception as e:
         print(f"Integration error: {e}")
@@ -139,6 +143,10 @@ def whatsapp_refresh_status(request, session_type):
                 pass
 
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
+        if data.get('state') != 'connected':
+            status_obj.phone_number = None
+            status_obj.name = None
+            status_obj.picture = None
         status_obj.state = data.get('state', 'error')
         status_obj.last_qr_code = data.get('qr_code')
         status_obj.error_message = data.get('error')
@@ -159,6 +167,9 @@ def whatsapp_logout(request, session_type):
         data = resp.json()
         
         status_obj, _ = WhatsAppSessionStatus.objects.get_or_create(session_type=session_type)
+        status_obj.phone_number = None
+        status_obj.name = None
+        status_obj.picture = None
         status_obj.state = 'disconnected'
         status_obj.last_qr_code = None
         status_obj.error_message = None
