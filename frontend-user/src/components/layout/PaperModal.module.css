@@ -1,0 +1,78 @@
+/* Wrapper esterno */
+.externalWrapper {
+  container-type: inline-size;
+  width: 100%;
+  min-height: 100%;
+}
+/* Wrapper interno */
+.wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 100%;
+  display: block;
+}
+
+
+/* --- LAYER 1: SFONDO GRAFICO (Sliding Doors) --- */
+.backgroundLayer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.top {
+  aspect-ratio: 794 / 111;
+  background-repeat: no-repeat;
+  background-position: center top;
+  background-size: 100% 100%;
+  flex-shrink: 0;
+}
+
+.center {
+  width: 100%;
+  flex: 1;
+  background-repeat: repeat-y;
+  background-position: center;
+  background-size: 100% auto;
+  
+  /* Logica di fusione grafica */
+  margin-top: -15px;
+  margin-bottom: -15px;
+  position: relative;
+  z-index: 1; 
+
+  -webkit-mask-image: linear-gradient(to bottom, 
+    transparent 0px, 
+    black 15px, 
+    black calc(100% - 15px), 
+    transparent 100%
+  );
+  mask-image: linear-gradient(to bottom, 
+    transparent 0px, 
+    black 15px, 
+    black calc(100% - 15px), 
+    transparent 100%
+  );
+}
+
+.bottom {
+  aspect-ratio: 794 / 111;
+  background-repeat: no-repeat;
+  background-position: center bottom;
+  background-size: 100% 100%;
+  flex-shrink: 0;
+}
+
+/* --- LAYER 2: CONTENUTO UTENTE --- */
+.contentLayer {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  overflow: visible;
+}

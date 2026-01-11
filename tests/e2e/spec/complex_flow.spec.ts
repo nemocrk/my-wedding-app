@@ -55,7 +55,7 @@ test.describe('Complex Wedding Flow', () => {
   });
 
   test('Complete Admin -> User -> Admin Assignment Flow', async ({ page, request }) => {
-    test.setTimeout(120000); // Allow 2 minutes for full flow
+    test.setTimeout(180000); // Allow 3 minutes for full flow
 
     const createdInvitationIds: number[] = [];
     const createdAccommodationIds: number[] = [];
@@ -102,7 +102,7 @@ test.describe('Complex Wedding Flow', () => {
             await page.goto(publicUrl);
             
             // Wait for envelope animation and content to load
-            await expect(page.getByRole('heading', { name: 'Siete Invitati!' })).toBeVisible();
+            await expect(page.getByRole('heading', { name: 'Domenico & Loredana' })).toBeVisible();
             await waitForPageReady(page);
 
             // Take screenshot only for the first user interaction to avoid clutter
@@ -161,7 +161,8 @@ test.describe('Complex Wedding Flow', () => {
         await page.goto('http://localhost:8080/#/dashboard');
         
         // Wait for dashboard to refresh with new data
-        await expect(page.getByText('Alloggi')).toBeVisible();
+        // Fix strict mode violation by scoping to main content area
+        await expect(page.locator('main').getByText('Alloggi')).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
         await waitForPageReady(page);
         

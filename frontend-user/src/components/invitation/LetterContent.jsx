@@ -1,12 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { motion, useAnimation } from 'framer-motion';
+import ReactDOM from 'react-dom';
+import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
+import Fab from '../common/Fab';
 import './LetterContent.css';
 import letterBg from '../../assets/illustrations/LetterBackground.png';
-import rightArrow from '../../assets/illustrations/right-arrow.png';
-import waxImg from '../../assets/illustrations/wax.png'; // Import del sigillo
-import { FaWhatsapp } from 'react-icons/fa'; // Assicurati che react-icons sia installato
+import waxImg from '../../assets/illustrations/wax.png';
+import buttonBg from '../../assets/illustrations/button-bk.png';
+import homeIcon from '../../assets/illustrations/home.png';
+import vanIcon from '../../assets/illustrations/van.png';
+import archIcon from '../../assets/illustrations/arch.png';
+import dressIcon from '../../assets/illustrations/dress.png';
+import chestIcon from '../../assets/illustrations/chest.png';
+import questionsIcon from '../../assets/illustrations/questions.png';
+import { FaWhatsapp } from 'react-icons/fa';
+import PaperModal from '../layout/PaperModal';
 
 const LetterContent = ({ data }) => {
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
@@ -14,386 +23,760 @@ const LetterContent = ({ data }) => {
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState(null);
-  
-  // State per gestire la "modalità modifica"
-  const [isEditing, setIsEditing] = useState(rsvpStatus === 'pending');
-  
-  // State per l'animazione di flip
   const [isFlipped, setIsFlipped] = useState(false);
+  const [expandedCard, setExpandedCard] = useState(null);
+  
+  // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
+  const [rsvpStep, setRsvpStep] = useState(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+  
+  // Step 1: Ospiti
+  const [excludedGuests, setExcludedGuests] = useState([]);
+  const [editingGuestIndex, setEditingGuestIndex] = useState(null);
+  const [editedGuests, setEditedGuests] = useState({});
+  const [tempFirstName, setTempFirstName] = useState('');
+  const [tempLastName, setTempLastName] = useState('');
+  
+  // Step 2: Contatto
+  const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [tempPhoneNumber, setTempPhoneNumber] = useState('');
+  const [phoneError, setPhoneError] = useState('');
+  
+  // Step 3: Viaggio
+  const [travelInfo, setTravelInfo] = useState(data.travel_info || {
+    transport_type: '', // 'traghetto' | 'aereo'
+    schedule: '',
+    car_option: 'none', // 'noleggio' | 'proprio' | false
+    carpool_interest: false
+  });
+  
+  // Step 4: Alloggio
+  const [accommodationChoice, setAccommodationChoice] = useState(accommodationRequested);
 
-  // Animation Control per il Sigillo
   const sealControls = useAnimation();
   
-  // WhatsApp Config extraction
-  const groomNumber = data.config?.whatsapp_groom_number;
-  const brideNumber = data.config?.whatsapp_bride_number;
-  const groomName = data.config?.whatsapp_groom_firstname || "Sposo";
-  const brideName = data.config?.whatsapp_bride_firstname || "Sposa";
+  const waNumber = data.whatsapp.whatsapp_number;
+  const waName = data.whatsapp.whatsapp_name || "Sposi";
 
-  const getWaLink = (number) => 
-    `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(`Ciao, sono ${data.name}, avrei una domanda!`)}`;
-
-  // Initialize Analytics + Replay commands listener (Admin -> iframe)
-  useEffect(() => {
-    heatmapTracker.start();
-    // Tracking implicito dell'apertura lettera
-    logInteraction('view_letter'); 
-
-    const handleReplayMessage = (event) => {
-      // Hardening minimo: richiede payload con type noto
-      if (!event?.data?.type) return;
-
-      if (event.data.type === 'REPLAY_RESET') {
-        // Stato base deterministico per il replay
-        setRsvpStatus('pending');
-        setAccommodationRequested(false);
-        setTransferRequested(false);
-        setIsEditing(true);
-        setMessage(null);
-        setSubmitting(false);
-        setIsFlipped(false); // Reset flip state
-        return;
-      }
-
-      if (event.data.type === 'REPLAY_ACTION') {
-        const { action, details } = event.data.payload || {};
-        if (!action) return;
-
-        // Eventi gestiti
-        if (action === 'rsvp_reset') {
-          setIsEditing(true);
-          setMessage(null);
-          return;
-        }
-
-        // click_rsvp: mostra lo stato come se l'utente avesse confermato/declinato
-        if (action === 'click_rsvp' || action === 'rsvp_submit') {
-          const status = details?.status_chosen || details?.status;
-          if (status === 'confirmed' || status === 'declined') {
-            setRsvpStatus(status);
-            setIsEditing(false);
-            setMessage(null);
-          }
-          return;
-        }
-        
-        // Handle flip action replay if needed
-        if (action === 'card_flip') {
-            setIsFlipped(details?.flipped || false);
-        }
-      }
-    };
-
-    // LISTENER PER IL RIENTRO DEL SIGILLO (Step 5 di EnvelopeAnimation)
-    const onSealReturn = () => {
-        // Avvia l'animazione di rientro
-        sealControls.start({
-            x: 0,
-            y: 0,
-            rotate: 0,
-            scale: 1,
-            opacity: 1,
-            transition: { 
-                duration: 0.6, 
-                ease: "easeOut",
-                type: "spring",
-                bounce: 0.3
-            }
-        });
-    };
-
-    window.addEventListener('message', handleReplayMessage);
-    window.addEventListener('wax-seal:return', onSealReturn);
-
-    // Fallback: se dopo 100ms non abbiamo ricevuto eventi, assumiamo che siamo già in stato finale (es. refresh pagina)
-    // e mostriamo il sigillo.
-    const timer = setTimeout(() => {
-         sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 });
-    }, 500);
-
-    return () => {
-      heatmapTracker.stop();
-      window.removeEventListener('message', handleReplayMessage);
-      window.removeEventListener('wax-seal:return', onSealReturn);
-      clearTimeout(timer);
-    };
-  }, [sealControls]);
-
-  const handleFlip = (flipped) => {
-      setIsFlipped(flipped);
-      logInteraction('card_flip', { flipped });
+  const getWaLink = (number, customMessage) => {
+    const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
+    return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
+  // RSVP Status Messages
+  const getRSVPStatusMessageCompact = () => {
+    switch(rsvpStatus) {
+      case 'pending':
+        return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
+      case 'confirmed':
+        return { emoji: '🎉', text: 'Magnifico! Ti aspettiamo!!!', className: 'rsvp-card-status-confirmed' };
+      case 'declined':
+        return { emoji: '😢', text: 'Faremo un brindisi per te!', className: 'rsvp-card-status-declined' };
+      default:
+        return { emoji: '❓', text: 'Conferma o declina', className: 'rsvp-card-status-pending' };
+    }
+  };
+
+  // Wizard Step Titles
+  const getStepTitle = () => {
+    switch(rsvpStep) {
+      case 'summary': return 'Il tuo RSVP';
+      case 'guests': return 'Conferma Ospiti';
+      case 'contact': return 'Numero di Contatto';
+      case 'travel': return 'Come Viaggerai?';
+      case 'accommodation': return 'Alloggio';
+      case 'final': return 'Conferma Finale';
+      default: return 'RSVP';
+    }
+  };
+
+  // Guest Management
+  const toggleGuestExclusion = (guestIndex) => {
+    setExcludedGuests(prev => 
+      prev.includes(guestIndex) ? prev.filter(idx => idx !== guestIndex) : [...prev, guestIndex]
+    );
+    logInteraction('toggle_guest_exclusion', { guestIndex });
+  };
+
+  const handleStartEdit = (guestIndex) => {
+    const guest = data.guests[guestIndex];
+    const edited = editedGuests[guestIndex] || guest;
+    setEditingGuestIndex(guestIndex);
+    setTempFirstName(edited.first_name);
+    setTempLastName(edited.last_name || '');
+    logInteraction('start_edit_guest', { guestIndex });
+  };
+
+  const handleSaveEdit = (guestIndex) => {
+    setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
+    setEditingGuestIndex(null);
+    logInteraction('save_edit_guest', { guestIndex });
+  };
+
+  const handleCancelEdit = () => {
+    setEditingGuestIndex(null);
+    setTempFirstName('');
+    setTempLastName('');
+  };
+
+  const getGuestDisplayName = (guestIndex) => {
+    const guest = data.guests[guestIndex];
+    return editedGuests[guestIndex] ? { ...editedGuests[guestIndex], is_child: guest.is_child } : guest;
+  };
+
+  const getActiveGuests = () => data.guests.filter((_, idx) => !excludedGuests.includes(idx));
+
+  // Phone Validation
+  const validatePhoneNumber = (phone) => {
+    const cleaned = phone.replace(/[\s\-\(\)]/g, '');
+    return /^\+?[0-9]{8,15}$/.test(cleaned);
+  };
+
+  const handleStartEditPhone = () => {
+    setEditingPhone(true);
+    setTempPhoneNumber(phoneNumber);
+    setPhoneError('');
+  };
+
+  const handleSaveEditPhone = () => {
+    const trimmed = tempPhoneNumber.trim();
+    if (!trimmed) {
+      setPhoneError('Il numero di telefono è obbligatorio');
+      return;
+    }
+    if (!validatePhoneNumber(trimmed)) {
+      setPhoneError('Formato non valido (es: +39 333 1234567)');
+      return;
+    }
+    setPhoneNumber(trimmed);
+    setEditingPhone(false);
+    setPhoneError('');
+    return;
+  };
+
+  const handleCancelEditPhone = () => {
+    setEditingPhone(false);
+    setTempPhoneNumber('');
+    setPhoneError('');
+  };
+
+  // Step Navigation with Validation
+  const handleNextStep = () => {
+    // Validazione Step Guests
+    if (rsvpStep === 'guests') {
+      editingGuestIndex !== null & handleSaveEdit(editingGuestIndex);
+      if (getActiveGuests().length === 0) {
+        setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
+        return;
+      }
+      setMessage(null);
+      setRsvpStep('contact');
+    }
+    // Validazione Step Contact
+    else if (rsvpStep === 'contact') {
+      if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
+        if(editingPhone){
+          const trimmed = tempPhoneNumber.trim();
+          if (!trimmed) {
+            setMessage({ type: 'error', text: 'Il numero di telefono è obbligatorio'});
+            return;
+          }
+          if (!validatePhoneNumber(trimmed)) {
+            setMessage({ type: 'error', text: 'Formato non valido (es: +39 333 1234567)'});
+            return;
+          }
+          setPhoneNumber(trimmed);
+          setEditingPhone(false);
+          setPhoneError('');
+        } else {
+          setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
+          return;
+        }
+      }
+      setMessage(null);
+      setRsvpStep('travel');
+    }
+    // Validazione Step Travel
+    else if (rsvpStep === 'travel') {
+      if (!travelInfo.transport_type || !travelInfo.schedule) {
+        setMessage({ type: 'error', text: 'Compila tutti i campi del viaggio!' });
+        return;
+      }
+      setMessage(null);
+      // Skip step accommodation se non offerto
+      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'final');
+    }
+    // Step Accommodation -> Final
+    else if (rsvpStep === 'accommodation') {
+      setMessage(null);
+      setRsvpStep('final');
+    }
+  };
+
+  const handleBackStep = () => {
+    setMessage(null);
+    if (rsvpStep === 'contact') setRsvpStep('guests');
+    else if (rsvpStep === 'travel') setRsvpStep('contact');
+    else if (rsvpStep === 'accommodation') setRsvpStep('travel');
+    else if (rsvpStep === 'final') {
+      setRsvpStep(data.accommodation_offered ? 'accommodation' : 'travel');
+    }
+  };
+
+  const handleStartModify = () => {
+    setRsvpStep('guests');
+    logInteraction('start_modify_rsvp');
+  };
+
+  // Final Submit
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
-
-    // Track button click
     logInteraction('click_rsvp', { status_chosen: status });
 
     try {
+      const payload = {
+        phone_number: phoneNumber,
+        guest_updates: editedGuests,
+        excluded_guests: excludedGuests,
+        travel_info: travelInfo,
+      };
+
       const result = await submitRSVP(
         status,
-        status === 'confirmed' ? accommodationRequested : false,
-        status === 'confirmed' ? transferRequested : false
+        status === 'confirmed' ? accommodationChoice : false,
+        false, // transferRequested deprecato
+        payload
       );
 
       if (result.success) {
         logInteraction('rsvp_submit', { status, result: 'success' });
         setRsvpStatus(status);
-        setIsEditing(false); // Switch to confirmed view
+        setRsvpStep('summary');
         setMessage({ type: 'success', text: result.message });
       } else {
-        logInteraction('rsvp_submit', { status, result: 'error' });
         setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
-      logInteraction('rsvp_submit', { status, result: 'error', error: err.message });
-      setMessage({ type: 'error', text: err.message || 'Errore di connessione. Riprova.' });
+      setMessage({ type: 'error', text: err.message || 'Errore di connessione.' });
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleReset = () => {
-      logInteraction('rsvp_reset');
-      setIsEditing(true);
-      setMessage(null);
+  useEffect(() => {
+    heatmapTracker.start();
+    logInteraction('view_letter');
+
+    const handleReplayMessage = (event) => {
+      if (!event?.data?.type) return;
+      if (event.data.type === 'REPLAY_RESET') {
+        setRsvpStatus('pending');
+        setRsvpStep('guests');
+        setExcludedGuests([]);
+        setEditedGuests({});
+        setPhoneNumber(data.phone_number || '');
+        setTravelInfo({ transport_type: '', schedule: '', car_option: 'none', carpool_interest: false });
+        setAccommodationChoice(false);
+      }
+    };
+
+    window.addEventListener('message', handleReplayMessage);
+    const timer = setTimeout(() => sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 }), 500);
+
+    return () => {
+      heatmapTracker.stop();
+      window.removeEventListener('message', handleReplayMessage);
+      clearTimeout(timer);
+    };
+  }, [sealControls, data.phone_number]);
+
+  const handleFlip = (flipped) => {
+    setIsFlipped(flipped);
+    logInteraction('card_flip', { flipped });
   };
 
+  const handleCardClick = (cardId) => {
+    setExpandedCard(cardId);
+    logInteraction('card_expand', { card: cardId });
+    if (cardId === 'rsvp') {
+      setRsvpStep(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+    }
+  };
+
+  const handleCloseExpanded = () => {
+    setExpandedCard(null);
+    logInteraction('card_collapse');
+  };
+
+  const cards = {
+    'alloggio': { title: 'Alloggio', icon: homeIcon },
+    'viaggio': { title: 'Viaggio', icon: vanIcon },
+    'evento': { title: 'Evento', icon: archIcon },
+    'dresscode': { title: 'Dress Code', icon: dressIcon },
+    'bottino': { title: 'Bottino di nozze', icon: chestIcon },
+    'cosaltro': { title: "Cos'altro?", icon: questionsIcon },
+  };
+
+  const renderCardContent = (cardId) => {
+    switch (cardId) {
+      case 'alloggio':
+        return (
+          <div className="expanded-content">
+            <h2>Alloggio</h2>
+            {data.accommodation_offered ? (
+              <p>Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!</p>
+            ) : (
+              <p>Per suggerimenti sugli alloggi nella zona, contattateci!</p>
+            )}
+          </div>
+        );
+      case 'viaggio':
+        return (
+          <div className="expanded-content">
+            <h2>Viaggio</h2>
+            <p>Informazioni sui trasporti e come raggiungere la location.</p>
+          </div>
+        );
+      case 'evento':
+        return (
+          <div className="expanded-content">
+            <h2>L'Evento</h2>
+            <div className="letter-body">
+              {data.letter_content.split('\n').map((line, idx) => (
+                <p key={idx}>{line}</p>
+              ))}
+            </div>
+          </div>
+        );
+      case 'dresscode':
+        return (
+          <div className="expanded-content">
+            <h2>Dress Code</h2>
+            <p><strong>Beach Chic</strong></p>
+            <p>Eleganti ma comodi! Tacchi a spillo vietati sulla sabbia!</p>
+          </div>
+        );
+      case 'bottino':
+        return (
+          <div className="expanded-content">
+            <h2>Lista Nozze</h2>
+            <p>La vostra presenza è il regalo più grande!</p>
+            <p><em>Dettagli IBAN in arrivo!</em></p>
+          </div>
+        );
+      case 'cosaltro':
+        return (
+          <div className="expanded-content">
+            <h2>Hai domande?</h2>
+            <p>Contattaci via WhatsApp:</p>
+            {(waNumber) && (
+              <div className="whatsapp-section">
+                <div className="whatsapp-buttons">
+                  <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                      <FaWhatsapp size={20} /> {waName}
+                    </a>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      case 'rsvp':
+        return (
+          <div className="expanded-content rsvp-expanded">
+            <h2 className="rsvp-modal-title">{getStepTitle()}</h2>
+
+            {/* PAGINA RIEPILOGO (se già confermato) */}
+            {rsvpStep === 'summary' && (
+              <div className="rsvp-summary-page">
+                <div className="summary-status">
+                  <p className="summary-text">
+                    {rsvpStatus === 'confirmed'
+                      ? 'Hai già confermato la tua presenza!'
+                      : 'Hai declinato l\'invito.'}
+                  </p>
+                  <div className="final-summary">
+                    <h3>Riepilogo:</h3>
+                    <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>Telefono:</strong> {phoneNumber}</p>
+                    <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    {data.accommodation_offered && (
+                      <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                    )}
+                  </div>
+                </div>
+                <button className="rsvp-next-btn" onClick={handleStartModify}>
+                  Modifica Risposta
+                </button>
+              </div>
+            )}
+
+            {/* STEP 1: OSPITI */}
+            {rsvpStep === 'guests' && (
+              <>
+                <div className="guests-list-editable">
+                  <h3>Ospiti invitati:</h3>
+                  <ul>
+                    {data.guests.map((guest, idx) => {
+                      const displayGuest = getGuestDisplayName(idx);
+                      const isEditing = editingGuestIndex === idx;
+                      const isExcluded = excludedGuests.includes(idx);
+
+                      return (
+                        <li key={idx} className={isExcluded ? 'guest-excluded' : ''}>
+                          {isEditing ? (
+                            <>
+                              <div className="guest-edit-inputs">
+                                <input
+                                  type="text"
+                                  className="guest-input"
+                                  value={tempFirstName}
+                                  onChange={(e) => setTempFirstName(e.target.value)}
+                                  placeholder="Nome"
+                                  autoFocus
+                                />
+                                <input
+                                  type="text"
+                                  className="guest-input"
+                                  value={tempLastName}
+                                  onChange={(e) => setTempLastName(e.target.value)}
+                                  placeholder="Cognome"
+                                />
+                              </div>
+                              <div className="guest-actions">
+                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(idx)}>✓</button>
+                                <button className="guest-action-btn cancel" onClick={handleCancelEdit}>✕</button>
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span className="guest-name">
+                                {displayGuest.first_name} {displayGuest.last_name || ''}
+                                {displayGuest.is_child && <span className="badge">Bambino</span>}
+                              </span>
+                              <div className="guest-actions">
+                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
+                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(idx)}>✕</button>
+                              </div>
+                            </>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+
+                {/* Alert se già confermato e vuole escludere tutti */}
+                {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
+                  <div className="whatsapp-alert">
+                    <p>⚠️ Hai già confermato! Per modificare contatta gli sposi:</p>
+                      {(waNumber) && (
+                        <div className="whatsapp-section">
+                          <div className="whatsapp-buttons">
+                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                                <FaWhatsapp size={20} /> {waName}
+                              </a>
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 2: CONTATTO */}
+            {rsvpStep === 'contact' && (
+              <>
+                <div className="phone-field">
+                  <h3>Numero di contatto:</h3>
+                  {editingPhone ? (
+                    <>
+                      <div className="phone-edit-container">
+                        <input
+                          type="tel"
+                          className="phone-input"
+                          value={tempPhoneNumber}
+                          onChange={(e) => setTempPhoneNumber(e.target.value)}
+                          placeholder="+39 333 1234567"
+                          autoFocus
+                        />
+                        <div className="guest-actions">
+                          <button className="guest-action-btn save" onClick={handleSaveEditPhone}>✓</button>
+                          <button className="guest-action-btn cancel" onClick={handleCancelEditPhone}>✕</button>
+                        </div>
+                      </div>
+                      {phoneError && <div className="phone-error">{phoneError}</div>}
+                    </>
+                  ) : (
+                    <div className="phone-display">
+                      <span className="phone-number">{phoneNumber || 'Non specificato'}</span>
+                      <button className="guest-action-btn edit" onClick={handleStartEditPhone}>✏️</button>
+                    </div>
+                  )}
+                </div>
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 3: VIAGGIO */}
+            {rsvpStep === 'travel' && (
+              <>
+                <div className="travel-form">
+                  <h3>Tipo di trasporto:</h3>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="transport"
+                      value="traghetto"
+                      checked={travelInfo.transport_type === 'traghetto'}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
+                    />
+                    Traghetto
+                  </label>
+                  <label className="radio-label">
+                    <input
+                      type="radio"
+                      name="transport"
+                      value="aereo"
+                      checked={travelInfo.transport_type === 'aereo'}
+                      onChange={(e) => setTravelInfo({ ...travelInfo, transport_type: e.target.value, car_option: 'none' })}
+                    />
+                    Aereo
+                  </label>
+
+                  <h3>Orari:</h3>
+                  <input
+                    type="text"
+                    className="travel-input"
+                    value={travelInfo.schedule}
+                    onChange={(e) => setTravelInfo({ ...travelInfo, schedule: e.target.value })}
+                    placeholder="es: Partenza 10:00, Arrivo 14:00"
+                  />
+
+                  {travelInfo.transport_type === 'traghetto' && (
+                    <>
+                      <h3>Auto:</h3>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={travelInfo.car_option === 'proprio'}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'proprio' : 'none' })}
+                        />
+                        Auto al seguito
+                      </label>
+                    </>
+                  )}
+
+                  {travelInfo.transport_type === 'aereo' && (
+                    <>
+                      <h3>Noleggio Auto:</h3>
+                      <label className="checkbox-label">
+                        <input
+                          type="checkbox"
+                          checked={travelInfo.car_option === 'noleggio'}
+                          onChange={(e) => setTravelInfo({ ...travelInfo, car_option: e.target.checked ? 'noleggio' : 'none' })}
+                        />
+                        Noleggerò un'auto
+                      </label>
+                    </>
+                  )}
+
+                  {!travelInfo.car_option && travelInfo.transport_type && (
+                    <label className="checkbox-label">
+                      <input
+                        type="checkbox"
+                        checked={travelInfo.carpool_interest}
+                        onChange={(e) => setTravelInfo({ ...travelInfo, carpool_interest: e.target.checked })}
+                      />
+                      Sarebbe carino organizzarmi con qualcun altro
+                    </label>
+                  )}
+                </div>
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+
+            {/* STEP 4: ALLOGGIO */}
+            {rsvpStep === 'accommodation' && data.accommodation_offered && (
+              <>
+                <div className="accommodation-form">
+                  <h3>Vuoi richiedere l'alloggio per la notte tra il 19 e il 20 settembre?</h3>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={accommodationChoice}
+                      onChange={(e) => setAccommodationChoice(e.target.checked)}
+                    />
+                    Sì, richiedo l'alloggio
+                  </label>
+
+                  {/* Alert se modifica da accepted a rejected */}
+                  {accommodationRequested && !accommodationChoice && (
+                    <div className="whatsapp-alert">
+                      <p>⚠️ Avevi già accettato! Contatta gli sposi:</p>
+                      {(waNumber) && (
+                        <div className="whatsapp-section">
+                          <div className="whatsapp-buttons">
+                            <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                                <FaWhatsapp size={20} /> {waName}
+                              </a>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+              </>
+            )}
+
+            {/* STEP 5: CONFERMA FINALE */}
+            {rsvpStep === 'final' && (
+              <>
+                <div className="final-summary">
+                  <h3>Riepilogo:</h3>
+                  <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                  <p><strong>Telefono:</strong> {phoneNumber}</p>
+                  <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                  {data.accommodation_offered && (
+                    <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                  )}
+                </div>
+
+                {/* Alert se già confermato e declina */}
+                {rsvpStatus === 'declined' ? (
+                  <div className="whatsapp-alert">
+                    <p>⚠️ Se vuoi confermare dopo aver declinato, contatta gli sposi:</p>
+                    {(waNumber) && (
+                      <div className="whatsapp-section">
+                        <div className="whatsapp-buttons">
+                          <a href={getWaLink(waNumber)} target="_blank" rel="noreferrer" className="whatsapp-link">
+                              <FaWhatsapp size={20} /> {waName}
+                            </a>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+                :
+                (<div className="button-group">
+                  {rsvpStatus === 'pending' && (
+                    <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
+                    {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
+                  </button> )}
+                  {(rsvpStatus === 'confirmed' ||  rsvpStatus === 'declined') && (
+                  <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
+                    {submitting ? 'Invio...' : '💾 Salva Modifiche'}
+                  </button> )}
+                  {(rsvpStatus === 'pending' || rsvpStatus === 'confirmed') && (
+                  <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
+                    {submitting ? 'Invio...' : '❌ Declina'}
+                  </button> )}
+                </div>
+                )}
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                {message && <div className={`message ${message.type}`}>{message.text}</div>}
+              </>
+            )}
+          </div>
+        );
+      default:
+        return <p>Contenuto non disponibile</p>;
+    }
+  };
+
+  const rsvpCardStatus = getRSVPStatusMessageCompact();
+
   return (
-    <motion.div
-      className="letter-content"
-      initial={{ opacity: 0 }} // Opacity gestita dall'envelope transition
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.5 }}
-    >
-      <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
-        
-        <div className="flip-card-inner">
-            
+    <motion.div className="letter-content" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.5 }}>
+      <div className="letter-wrapper" style={{ position: 'relative', width: '100%', maxWidth: '620px', aspectRatio: '2/3' }}>
+        <div className={`flip-card ${isFlipped ? 'flipped' : ''}`}>
+          <div className="flip-card-inner">
             {/* FRONT FACE */}
             <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
-                <div className="front-content">
-                    <div className="spacer-top"></div>
-                    
-                    <h1 className="text-names">Domenico & Loredana</h1>
-                    
-                    <p className="text-wit">
-                        Abbiamo deciso di fare il grande passo...<br/>e di farlo a piedi nudi!
-                    </p>
-                    
-                    <p className="text-date">
-                        Ci sposiamo il 19 Settembre 2026<br/>
-                        sulla spiaggia di Golfo Aranci
-                    </p>
-                    
-                    <p className="text-details">
-                        (Sì! in Sardegna!!)<br/>
-                        Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:
-                    </p>
-                    
-                    <div className="text-details" style={{ fontWeight: 500 }}>
-                        Poca formalità • Molto spritz • Un tramonto indimenticabile
-                    </div>
-                    
-                    <p className="text-dress">
-                        Dress Code: Beach Chic<br/>
-                        <span style={{fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8}}>
-                            (I tacchi a spillo sono i nemici numero uno della sabbia, siete avvisati!)
-                        </span>
-                    </p>
-                </div>
-                
-                {/* Navigation to Back */}
-                <button 
-                    className="nav-button pulse-animation" 
-                    onClick={() => handleFlip(true)}
-                    aria-label="Vedi dettagli"
-                    title="Vedi dettagli e conferma"
-                >
-                    <img src={rightArrow} alt="Avanti" className="nav-arrow-img" />
-                </button>
-                <motion.div
-                    className="wax-seal"
-                    initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} // Parte fuori
-                    animate={sealControls}
-                    style={{ 
-                        position: 'absolute',
-                        bottom: '1rem',
-                        left: '1rem',
-                        width: '36%', // Dimensionamento dinamico relativo alla card
-                        maxWidth: '90px',
-                        zIndex: 30,
-                        pointerEvents: 'none'
-                    }}
-                >
-                    <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%', dropShadow: '0 4px 6px rgba(0,0,0,0.3)' }} />
-                </motion.div>
+              <div className="front-content">
+                <div className="spacer-top"></div>
+                <h1 className="text-names">Domenico & Loredana</h1>
+                <p className="text-wit">Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!</p>
+                <p className="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
+                <p className="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
+                <div className="text-details" style={{ fontWeight: 500 }}>Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
+                <p className="text-dress">Dress Code: Beach Chic<br /><span style={{ fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8 }}>(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
+              </div>
+              <motion.div className="wax-seal" initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} animate={sealControls} style={{ position: 'absolute', bottom: '1rem', left: '1rem', width: '36%', maxWidth: '90px', zIndex: 30, pointerEvents: 'none' }}>
+                <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
+              </motion.div>
             </div>
 
             {/* BACK FACE */}
             <div className="flip-card-back" style={{ backgroundImage: `url(${letterBg})` }}>
-                <div className="letter-paper">
-                    {/* Navigation to Front */}
-                    <button 
-                        className="nav-button" 
-                        style={{ left: 15, right: 'auto', bottom: 'auto', top: 15, transform: 'rotate(180deg)', width: 35, height: 35, fontSize: '1rem' }}
-                        onClick={() => handleFlip(false)}
-                        aria-label="Torna alla copertina"
-                        title="Torna alla copertina"
-                    >
-                        <span role="img" aria-label="arrow-left">➡️</span>
-                    </button>
-
-                    <h1 className="letter-title" style={{marginTop: '2rem'}}>Siete Invitati!</h1>
-                    
-                    <div className="letter-body">
-                    {data.letter_content.split('\n').map((line, idx) => (
-                        <p key={idx}>{line}</p>
-                    ))}
-                    </div>
-
-                    <div className="guests-list">
-                    <h3>Ospiti:</h3>
-                    <ul>
-                        {data.guests.map((guest, idx) => (
-                        <li key={idx}>
-                            {guest.first_name} {guest.last_name || ''}
-                            {guest.is_child && <span className="badge">Bambino</span>}
-                        </li>
-                        ))}
-                    </ul>
-                    </div>
-
-                    {data.accommodation_offered && (
-                    <div className="offer-badge">
-                        <span>🏨 Alloggio Offerto</span>
-                    </div>
-                    )}
-
-                    {data.transfer_offered && (
-                    <div className="offer-badge">
-                        <span>🚌 Transfer Offerto</span>
-                    </div>
-                    )}
-
-                    {/* RSVP FORM Section */}
-                    {isEditing && (
-                    <div className="rsvp-section">
-                        <h3>Conferma la tua partecipazione</h3>
-                        
-                        {data.accommodation_offered && (
-                        <label className="checkbox-label">
-                            <input 
-                            type="checkbox" 
-                            checked={accommodationRequested}
-                            onChange={(e) => setAccommodationRequested(e.target.checked)}
-                            />
-                            Richiedo l'alloggio
-                        </label>
-                        )}
-
-                        {data.transfer_offered && (
-                        <label className="checkbox-label">
-                            <input 
-                            type="checkbox" 
-                            checked={transferRequested}
-                            onChange={(e) => setTransferRequested(e.target.checked)}
-                            />
-                            Richiedo il transfer
-                        </label>
-                        )}
-
-                        <div className="button-group">
-                        <button 
-                            className={`rsvp-button confirm ${rsvpStatus === 'confirmed' ? 'active' : ''}`}
-                            onClick={() => handleRSVP('confirmed')}
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Invio...' : '✔️ Conferma'}
-                        </button>
-                        <button 
-                            className={`rsvp-button decline ${rsvpStatus === 'declined' ? 'active' : ''}`}
-                            onClick={() => handleRSVP('declined')}
-                            disabled={submitting}
-                        >
-                            {submitting ? 'Invio...' : '❌ Declina'}
-                        </button>
+              <div className="letter-paper">
+                <div className="card-grid">
+                  {Object.keys(cards).map(card => (
+                    <motion.div key={card} onClick={() => handleCardClick(card)} style={{ cursor: 'pointer' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                      <PaperModal>
+                        <div className="info-card">
+                          <img src={cards[card].icon} alt={cards[card].title} className="card-icon" />
+                          <h3 className="card-title">{cards[card].title}</h3>
                         </div>
-                        {data.status && data.status !== 'pending' && (
-                            <button className="text-gray-400 text-xs mt-2 underline block text-center w-full" onClick={() => setIsEditing(false)}>
-                                Annulla modifiche
-                            </button>
-                        )}
-                    </div>
-                    )}
-
-                    {/* CONFIRMED/DECLINED VIEW */}
-                    {!isEditing && rsvpStatus === 'confirmed' && (
-                    <div className="rsvp-confirmed animate-fadeIn">
-                        <h3>✅ Partecipazione Confermata!</h3>
-                        <p>Non vediamo l'ora di vedervi al nostro matrimonio!</p>
-                        <div className="mt-4">
-                            <button 
-                                onClick={handleReset}
-                                className="text-pink-600 font-semibold underline hover:text-pink-800 text-sm"
-                            >
-                                Modifica risposta
-                            </button>
+                      </PaperModal>
+                    </motion.div>
+                  ))}
+                  <motion.div onClick={() => handleCardClick('rsvp')} style={{ cursor: 'pointer', gridColumn: '1 / -1' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <PaperModal>
+                      <div className="info-card rsvp-card">
+                        <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        <div className={`rsvp-card-status ${rsvpCardStatus.className}`}>
+                          <span className="rsvp-card-emoji">{rsvpCardStatus.emoji}</span>
+                          <span className="rsvp-card-text">{rsvpCardStatus.text}</span>
                         </div>
-                    </div>
-                    )}
-
-                    {!isEditing && rsvpStatus === 'declined' && (
-                    <div className="rsvp-declined animate-fadeIn">
-                        <h3>😔 Ci dispiace</h3>
-                        <p>Grazie comunque per averci avvisato.</p>
-                        <div className="mt-4">
-                            <button 
-                                onClick={handleReset}
-                                className="text-gray-600 font-semibold underline hover:text-gray-800 text-sm"
-                            >
-                                Modifica risposta
-                            </button>
-                        </div>
-                    </div>
-                    )}
-
-                    {/* WHATSAPP CTA SECTION */}
-                    {(groomNumber || brideNumber) && (
-                    <div className="mt-6 pt-4 border-t border-gray-200 text-center">
-                        <p className="text-xs text-gray-500 mb-3 uppercase tracking-wide">Hai domande?</p>
-                        <div className="flex justify-center gap-4">
-                            {groomNumber && (
-                                <a href={getWaLink(groomNumber)} target="_blank" rel="noreferrer" 
-                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
-                                <FaWhatsapp size={18} /> {groomName}
-                                </a>
-                            )}
-                            {brideNumber && (
-                                <a href={getWaLink(brideNumber)} target="_blank" rel="noreferrer" 
-                                className="flex items-center gap-1.5 text-green-600 hover:text-green-700 font-medium text-sm transition-colors px-3 py-1.5 rounded-full hover:bg-green-50">
-                                <FaWhatsapp size={18} /> {brideName}
-                                </a>
-                            )}
-                        </div>
-                    </div>
-                    )}
-
-                    {message && (
-                    <div className={`message ${message.type}`}>
-                        {message.text}
-                    </div>
-                    )}
-                    
-                    {/* Spacer for bottom scrolling */}
-                    <div style={{height: '20px'}}></div>
+                      </div>
+                    </PaperModal>
+                  </motion.div>
                 </div>
+              </div>
             </div>
+          </div>
         </div>
+        <Fab onClick={() => handleFlip(!isFlipped)} isFlipped={isFlipped} visible={!expandedCard} />
       </div>
+
+      {/* MODAL */}
+      {ReactDOM.createPortal(
+        <AnimatePresence>
+          {expandedCard && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.2 }} className="card-modal-overlay" onClick={handleCloseExpanded}>
+              <motion.div initial={{ opacity: 0, scale: 0.8 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }} transition={{ type: "spring", stiffness: 300, damping: 25 }} className="card-modal-content" onClick={(e) => e.stopPropagation()}>
+                <PaperModal style={{ width: '100%' }}>
+                  <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
+                    <motion.button className="close-modal-btn" onClick={handleCloseExpanded}>✕</motion.button>
+                    <div style={{ marginBottom: '1rem' }}>
+                      <img src={cards[expandedCard]?.icon} alt={cards[expandedCard]?.title} className="card-icon" />
+                      <h3 className="card-title">{cards[expandedCard]?.title}</h3>
+                    </div>
+                    <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.15 }}>
+                      {renderCardContent(expandedCard)}
+                    </motion.div>
+                  </div>
+                </PaperModal>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>,
+        document.body
+      )}
     </motion.div>
   );
 };

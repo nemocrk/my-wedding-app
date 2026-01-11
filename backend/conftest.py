@@ -1,7 +1,7 @@
 import pytest
 import os
 from rest_framework.test import APIClient
-from core.models import Invitation, Person, GlobalConfig, Accommodation, Room, WhatsAppTemplate
+from core.models import Invitation, Person, GlobalConfig, Accommodation, Room, WhatsAppSessionStatus, WhatsAppTemplate
 
 @pytest.fixture(autouse=True)
 def set_test_env():
@@ -51,7 +51,8 @@ def accommodation_with_rooms(db):
 @pytest.fixture
 def invitation_factory(db):
     def create_invitation(code, name, guests_data):
-        inv = Invitation.objects.create(code=code, name=name, status=Invitation.Status.CREATED)
+        WhatsAppSessionStatus.objects.get_or_create(session_type='groom')
+        inv = Invitation.objects.create(code=code, name=name, status=Invitation.Status.CREATED, origin='groom')
         for g in guests_data:
             Person.objects.create(invitation=inv, **g)
         return inv
