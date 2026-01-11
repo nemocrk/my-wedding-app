@@ -18,7 +18,7 @@ import { FaWhatsapp } from 'react-icons/fa';
 import PaperModal from '../layout/PaperModal';
 
 const LetterContent = ({ data }) => {
-  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'pending');
+  const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
   const [accommodationRequested, setAccommodationRequested] = useState(data.accommodation_requested || false);
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +27,7 @@ const LetterContent = ({ data }) => {
   const [expandedCard, setExpandedCard] = useState(null);
   
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
-  const [rsvpStep, setRsvpStep] = useState(rsvpStatus !== 'pending' ? 'summary' : 'guests');
+  const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
   
   // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
@@ -67,6 +67,9 @@ const LetterContent = ({ data }) => {
   // RSVP Status Messages
   const getRSVPStatusMessageCompact = () => {
     switch(rsvpStatus) {
+      case 'created':
+      case 'sent':
+      case 'read':
       case 'pending':
         return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
       case 'confirmed':
@@ -377,7 +380,7 @@ const LetterContent = ({ data }) => {
       if (!event?.data?.type) return;
       if (event.data.type === 'REPLAY_RESET') {
         logInteraction('replay_reset_triggered');
-        setRsvpStatus('pending');
+        setRsvpStatus('read');
         setRsvpStep('guests');
         setExcludedGuests([]);
         setEditedGuests({});
@@ -395,7 +398,7 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('message', handleReplayMessage);
       clearTimeout(timer);
     };
-  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus]);
+  }, [sealControls, data.phone_number]);
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
@@ -406,7 +409,7 @@ const LetterContent = ({ data }) => {
     setExpandedCard(cardId);
     logInteraction('card_expand', { card: cardId });
     if (cardId === 'rsvp') {
-      const targetStep = rsvpStatus !== 'pending' ? 'summary' : 'guests';
+      const targetStep = !['created', 'sent', 'read'].includes(rsvpStatus) ? 'summary' : 'guests';
       setRsvpStep(targetStep);
       logInteraction('rsvp_card_opened', { starting_step: targetStep, current_status: rsvpStatus });
     }
@@ -808,18 +811,21 @@ const LetterContent = ({ data }) => {
                 )
                 :
                 (<div className="button-group">
-                  {rsvpStatus === 'pending' && (
+                  {!['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
-                    {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
-                  </button> )}
-                  {(rsvpStatus === 'confirmed' ||  rsvpStatus === 'declined') && (
-                  <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
-                    {submitting ? 'Invio...' : '💾 Salva Modifiche'}
-                  </button> )}
-                  {(rsvpStatus === 'pending' || rsvpStatus === 'confirmed') && (
-                  <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
-                    {submitting ? 'Invio...' : '❌ Declina'}
-                  </button> )}
+                      {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
+                    </button>
+                  )}
+                  {['confirmed','declined'].includes(rsvpStatus) && (
+                    <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
+                      {submitting ? 'Invio...' : '💾 Salva Modifiche'}
+                    </button>
+                  )}
+                  {rsvpStatus !== 'declined' && (
+                    <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
+                      {submitting ? 'Invio...' : '❌ Declina'}
+                    </button>
+                  )}
                 </div>
                 )}
                 <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
