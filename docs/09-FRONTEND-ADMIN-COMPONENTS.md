@@ -22,9 +22,9 @@ Il centro di controllo. Visualizza:
 
 ### InvitationList (`InvitationList.jsx`)
 Il cuore operativo.
-- **Visualizzazione Responsive**:
-    - **Desktop (`md:block`)**: Tabella densa con tutte le colonne (Nome, Contatto, Ospiti, Stato, Azioni).
-    - **Mobile (`md:hidden`)**: Layout a Card verticali ottimizzato per touch, mostrando solo dati critici e azioni principali.
+- **Visualizzazione Responsive (Switch a `lg` / 1024px)**:
+    - **Desktop (`lg:block`)**: Tabella densa con tutte le colonne.
+    - **Mobile/Tablet (`lg:hidden`)**: Layout a Card verticali ottimizzato per touch, mostrando solo dati critici e azioni principali.
 - **Tabella Dati**: Lista paginata e filtrabile di tutti gli inviti.
 - **Azioni Rapide**:
     - *Copia Link*: Genera URL pubblico con token.
@@ -69,28 +69,34 @@ Servizio specializzato per la logistica.
 ## 4. Componenti UI (`src/components/`)
 L'interfaccia è costruita su componenti modulari stylati con Tailwind.
 - **Common**: `Button`, `Input`, `Modal` (wrapper accessibili).
-- **Layout**: `Sidebar`, `TopBar` (struttura persistente).
+- **Layout**: 
+    - `Sidebar`: Navigazione fissa visibile solo da **XL (1280px)** in su.
+    - `Header`: Burger menu visibile fino a XL.
 - **Analytics**: Wrapper per i grafici Recharts per garantire consistenza di colori e font.
 - **WhatsApp**: 
     - `QueueTable`: Componente per la visualizzazione dei messaggi in coda.
-    - **Responsive Layout**: Dual view (Desktop Table / Mobile Cards) con anteprima testo su mobile.
+    - **Responsive Layout**: Dual view con switch a **LG (1024px)**.
 
 ## 5. Design Responsive & Pattern Dual View
 
 ### Strategia Implementativa
-Per garantire usabilità su tutti i dispositivi, i componenti con tabelle dense adottano il **pattern Dual View**:
-1. **Desktop View**: Tabella completa con tutte le colonne, ottimizzata per mouse e schermi larghi.
-2. **Mobile View**: Layout a Card verticali che espongono solo dati essenziali e azioni touch-friendly.
+Per garantire usabilità su tutti i dispositivi, i componenti con tabelle dense adottano il **pattern Dual View** con breakpoints asimmetrici:
+
+1. **Layout Generale (`xl` / 1280px)**:
+   - Sidebar fissa solo su schermi molto larghi per garantire spazio al contenuto principale.
+   - Sotto i 1280px, la sidebar collassa in un Burger Menu nell'header.
+
+2. **Tabelle Dati (`lg` / 1024px)**:
+   - **Desktop View**: Tabella completa visibile sopra i 1024px.
+   - **Mobile View**: Card verticali visibili sotto i 1024px (Tablet/Laptop piccoli).
 
 ### Componenti Responsive
 - **InvitationList**: Tabella desktop + Card mobile con selezione, info ospiti e azioni rapide.
 - **QueueTable (WhatsApp)**: Tabella messaggi desktop + Card mobile con anteprima testo inline (senza tooltip).
 
-### Breakpoint Tailwind
-- **`md:` (768px)**: Soglia per switch Desktop/Mobile.
-- **Classi Utility**:
-    - `hidden md:block`: Mostra solo su desktop.
-    - `md:hidden`: Mostra solo su mobile.
+### Breakpoint Tailwind Custom
+- **`lg:` (1024px)**: Soglia per switch Tabelle/Cards.
+- **`xl:` (1280px)**: Soglia per switch Sidebar/Menu.
 
 ## 6. Gestione Asset Grafici
 
