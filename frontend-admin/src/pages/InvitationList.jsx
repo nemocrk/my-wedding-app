@@ -327,8 +327,8 @@ const InvitationList = () => {
         </div>
       )}
 
-      {/* --- DESKTOP VIEW (Table) --- */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden md:block">
+      {/* --- DESKTOP VIEW (Table) - Switch a LG (1024px) --- */}
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden hidden lg:block">
         <div className="overflow-x-auto">
           <table className="min-w-full divide-y divide-gray-200">
             <thead className="bg-gray-50">
@@ -605,8 +605,8 @@ const InvitationList = () => {
         </div>
       </div>
 
-      {/* --- MOBILE VIEW (Cards) --- */}
-      <div className="md:hidden space-y-4">
+      {/* --- MOBILE VIEW (Cards) - Visible until LG --- */}
+      <div className="lg:hidden space-y-4">
         {loading ? (
           <div className="text-center py-8">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
