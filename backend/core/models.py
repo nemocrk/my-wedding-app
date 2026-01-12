@@ -140,6 +140,7 @@ class Room(models.Model):
 
 class Invitation(models.Model):
     class Status(models.TextChoices):
+        IMPORTED = 'imported', 'Importato'
         CREATED = 'created', 'Creato'
         SENT = 'sent', 'Inviato'
         READ = 'read', 'Letto'

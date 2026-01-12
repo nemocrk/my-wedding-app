@@ -34,6 +34,8 @@ class PublicInvitationAuthView(APIView):
             invitation = Invitation.objects.get(code=code)
             if not invitation.verify_token(token, config.invitation_link_secret):
                 return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
+            if not invitation.status in [Invitation.Status.SENT, Invitation.Status.READ, Invitation.Status.CONFIRMED, Invitation.Status.DECLINED ]:
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
             request.session['invitation_code'] = code
             request.session['invitation_token'] = token
             request.session['invitation_id'] = invitation.id
