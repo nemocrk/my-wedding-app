@@ -11,11 +11,17 @@
         "./backend/",
     ],
     "python.useEnvironmentsExtension": true,
+    "python.testing.pytestEnabled": true,
+    "python-envs.pythonProjects": [
+        {
+            "path": "backend",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
     "python.testing.pytestArgs": [
-        "backend"
+        "-c",
+        "./backend/pytest.ini"
     ],
     "python.testing.unittestEnabled": false,
-    "python.testing.pytestEnabled": true,
-    "python.testing.pytestPath": "backend/.venv/bin/pytest",
-    "python.defaultInterpreterPath": "backend/.venv/bin/python"
 }
