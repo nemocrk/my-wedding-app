@@ -152,7 +152,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
     setLoading(true);
     try {
       if (isEditMode) {
-        await api.updateInvitation(initialData.id, formData);
+        await api.updateInvitation(initialData.id, {...formData, status: formData.status==='imported'?'created':formData.status} );
       } else {
         await api.createInvitation(formData);
       }
