@@ -11,7 +11,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   const [error, setError] = useState(null);
   const [successCount, setSuccessCount] = useState(0);
 
-  const handleImport = async (contacts) => {
+  const handleImport = async (_, contacts) => {
     setLoading(true);
     setError(null);
     try {
@@ -24,7 +24,8 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
       const isIframe = window.self !== window.top;
 
-      if(isIframe){
+      if(isIframe && !contacts){
+        console.error("isIframe && !contacts.");
         const parentWin = window.parent;
         if (!parentWin._ha_contacts_bridge_installed) {
           parentWin.addEventListener('message', async (event) => {
@@ -78,7 +79,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                   // --- PUNTO DI INTEGRAZIONE ---
                   // Qui puoi chiamare la tua logica per usare i dati
                   if (typeof window.onContactsReceived === 'function') {
-                      handleImport(event.data.data);
+                      handleImport(_, event.data.data);
                   }
               }
           }
