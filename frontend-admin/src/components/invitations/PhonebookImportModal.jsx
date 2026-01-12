@@ -11,7 +11,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   const [error, setError] = useState(null);
   const [successCount, setSuccessCount] = useState(0);
 
-  const handleImport = async (_, contacts) => {
+  const handleImport = async () => {
     setLoading(true);
     setError(null);
     try {
@@ -21,75 +21,8 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
       const props = ['name', 'tel'];
       const opts = { multiple: true };
-
-      const isIframe = window.self !== window.top;
-
-      if(isIframe && !contacts){
-        console.error("isIframe && !contacts.");
-        const parentWin = window.parent;
-        if (!parentWin._ha_contacts_bridge_installed) {
-          parentWin.addEventListener('message', async (event) => {
-            // Intercetta solo il messaggio specifico
-            if (event.data?.type === 'apri-rubrica') {
-                const { props, opts } = event.data;
-                
-                // Controlla il supporto API nel contesto Top-Level
-                if (!('contacts' in parentWin.navigator && 'ContactsManager' in parentWin)) {
-                    console.error("API Contatti non supportata su questo dispositivo/browser.");
-                    replyToChild(event.source, { error: 'API non supportata' });
-                    return;
-                }
-
-                try {
-                    // Esegue l'API Contacts nel contesto del PADRE
-                    // Nota: Richiede che il messaggio sia stato scatenato da un gesto utente (click)
-                    const contacts = await parentWin.navigator.contacts.select(props, opts);
-                    
-                    // Invia i risultati al figlio
-                    replyToChild(event.source, { data: contacts });
-                    
-                } catch (err) {
-                    console.error("Errore selezione contatti:", err);
-                    replyToChild(event.source, { error: err.toString() });
-                }
-            }
-          });
-          // Helper per rispondere
-          function replyToChild(sourceWindow, payload) {
-              if (sourceWindow) {
-                  sourceWindow.postMessage({
-                      type: 'importa-contatti',
-                      ...payload
-                  }, '*');
-              }
-          }
-
-          // Marca come installato per evitare duplicazioni future
-          parentWin._ha_contacts_bridge_installed = true;
-          console.log("Bridge Rubrica: Listener installato con successo sul Padre.");
-        }
-        window.addEventListener('message', (event) => {
-          if (event.data?.type === 'importa-contatti') {
-              if (event.data.error) {
-                  console.error("Bridge Rubrica Error:", event.data.error);
-                  // Gestisci l'errore UI qui (es. alert o toast)
-              } else {
-                  console.log("Bridge Rubrica Success:", event.data.data);
-                  
-                  // --- PUNTO DI INTEGRAZIONE ---
-                  // Qui puoi chiamare la tua logica per usare i dati
-                  if (typeof window.handleImport === 'function') {
-                      handleImport(_, event.data.data);
-                  }
-              }
-          }
-        });
-        parentWin.postMessage({type: 'apri-rubrica',props: props,opts: opts}, '*');
-        return;
-      }
-
-      if(!contacts)
-        contacts = await navigator.contacts.select(props, opts);
+        
+      const contacts = await window.top.navigator.contacts.select(props, opts);
       
       if (contacts.length > 0) {
         // Filtro e normalizzazione preliminare
