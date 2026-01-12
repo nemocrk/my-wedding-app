@@ -45,14 +45,14 @@ jobs:
           version_format: ${{ steps.format.outputs.version_format }}
           search_commit_body: true
 
-      - name: Create Git Tag
+      - name: Create Git Tag ${{ steps.calc_version.outputs.version }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           git tag ${{ steps.calc_version.outputs.version }}
           git push origin ${{ steps.calc_version.outputs.version }}
 
-      - name: Create GitHub Release
+      - name: Create GitHub Release ${{ steps.calc_version.outputs.version }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.calc_version.outputs.version }}
@@ -66,7 +66,7 @@ jobs:
   # 2. BUILD & PUSH DOCKER IMAGES (Only if changed)
   # ==============================================================================
   build-and-publish:
-    name: 🐳 Build & Push Docker
+    name: 🐳 Build & Push Docker ${{ needs.create-release.outputs.version }}
     needs: create-release
     runs-on: ubuntu-latest
     strategy:
@@ -149,7 +149,7 @@ jobs:
             type=raw,value=latest
             type=raw,value=${{ needs.create-release.outputs.version }}
           labels: |
-            org.opencontainers.image.version=${{ inputs.version }}
+            org.opencontainers.image.version=${{ needs.create-release.outputs.version }}
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.revision=${{ github.sha }}
 
