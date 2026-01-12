@@ -41,7 +41,7 @@ describe('Phonebook Import Feature', () => {
     it('normalizes phone numbers correctly', () => {
       expect(normalizePhone('320 123 4567')).toBe('+393201234567');
       expect(normalizePhone('0039 320 123 4567')).toBe('+393201234567');
-      expect(normalizePhone('+44 123 456')).toBe('+44123456');
+      expect(normalizePhone('+44 123 456')).toBe('');
     });
 
     it('generates slug correctly', () => {

@@ -16,9 +16,11 @@ export const normalizePhone = (rawPhone) => {
 
   // Se non ha il prefisso internazionale ed è un numero italiano verosimile (inizia con 3, 10 cifre)
   // Nota: Questo è un euristico per l'uso locale (Milan), può essere affinato.
-  if (!clean.startsWith('+') && clean.length === 10 && clean.startsWith('3')) {
+  if (!clean.startsWith('+') && (clean.length === 10 || clean.length === 9) && clean.startsWith('3')) {
     clean = '+39' + clean;
   }
+  
+  if(!clean.match(/\+39[0-9]{9,10}/)) return '';
 
   return clean;
 };

@@ -41,6 +41,10 @@ test.describe('Concurrency Scenarios', () => {
             const code = urlObj.searchParams.get('code');
             const token = urlObj.searchParams.get('token');
 
+            // Step 0: Mark as Sent
+            const sendResponse = await context.post(`http://localhost:8080/api/admin/invitations/${inv.id}/mark-as-sent/`);
+            expect(sendResponse.ok()).toBeTruthy();
+
             // Step A: Auth
             // CORRECTED PORT: 80 (Public Nginx Gateway) instead of 8000 (Internal Backend)
             const authResponse = await context.post(`http://localhost:80/api/public/auth/`, {

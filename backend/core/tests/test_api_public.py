@@ -7,6 +7,9 @@ class TestPublicAPI:
         inv = invitation_factory("pub-test", "Public Test", [])
         token = inv.generate_verification_token(global_config.invitation_link_secret)
         
+        inv.status = Invitation.Status.SENT
+        inv.save()
+
         response = api_client.post('/api/public/auth/', {
             'code': inv.code,
             'token': token
@@ -29,6 +32,8 @@ class TestPublicAPI:
         # 1. Auth
         inv = invitation_factory("rsvp-test", "RSVP Test", [])
         token = inv.generate_verification_token(global_config.invitation_link_secret)
+        inv.status = Invitation.Status.SENT
+        inv.save()
         api_client.post('/api/public/auth/', {'code': inv.code, 'token': token})
         
         # 2. RSVP

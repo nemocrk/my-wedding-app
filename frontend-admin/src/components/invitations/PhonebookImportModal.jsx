@@ -78,6 +78,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
       }
 
       const payload = {
+        status: 'imported',
         name: contact.name,
         code: generateSlug(contact.name, contact.phone),
         origin: origin,

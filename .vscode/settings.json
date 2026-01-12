@@ -4,5 +4,18 @@
         "pub.name": [
             "ui"
         ]
-    }
+    },
+    "python-env.workspaceSearchPaths": [
+        "./backend",
+        "./backend/.venv",
+        "./backend/",
+    ],
+    "python.useEnvironmentsExtension": true,
+    "python.testing.pytestArgs": [
+        "backend"
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true,
+    "python.testing.pytestPath": "backend/.venv/bin/pytest",
+    "python.defaultInterpreterPath": "backend/.venv/bin/python"
 }
