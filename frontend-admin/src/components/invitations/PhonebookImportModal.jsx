@@ -78,7 +78,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                   
                   // --- PUNTO DI INTEGRAZIONE ---
                   // Qui puoi chiamare la tua logica per usare i dati
-                  if (typeof window.onContactsReceived === 'function') {
+                  if (typeof window.handleImport === 'function') {
                       handleImport(_, event.data.data);
                   }
               }
