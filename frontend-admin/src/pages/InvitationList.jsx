@@ -1,7 +1,8 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone } from 'lucide-react';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
+import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
@@ -16,6 +17,7 @@ const InvitationList = () => {
 
   // Modal States
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPhoneImportOpen, setIsPhoneImportOpen] = useState(false);
   const [editingInvitation, setEditingInvitation] = useState(null);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -38,6 +40,9 @@ const InvitationList = () => {
   // Double click prevent + loader for WhatsApp open
   const [openingWABulk, setOpeningWABulk] = useState(false);
   const [openingWASingleFor, setOpeningWASingleFor] = useState(null);
+
+  // Feature detection
+  const isContactPickerSupported = 'contacts' in navigator && 'ContactsManager' in window;
 
   const fetchInvitations = async () => {
     setLoading(true);
@@ -75,6 +80,8 @@ const InvitationList = () => {
   // --- HELPERS ---
   const getStatusBadge = (status) => {
     switch (status) {
+      case 'imported':
+        return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><FileText size={12} className="mr-1"/> Importato</span>;
       case 'created':
         return <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600"><FileText size={12} className="mr-1"/> Creato</span>;
       case 'sent':
@@ -285,13 +292,26 @@ const InvitationList = () => {
           <h1 className="text-2xl font-bold text-gray-800">Censimento Inviti</h1>
           <p className="text-sm text-gray-500 mt-1">Gestisci la lista degli invitati e i codici di accesso</p>
         </div>
-        <button
-          className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-pink-200 transform active:scale-95"
-          onClick={handleCreateNew}
-        >
-          <Plus size={20} className="mr-2" />
-          Nuovo Invito
-        </button>
+        <div className="flex gap-2">
+          {/* PHONEBOOK IMPORT BUTTON */}
+          {isContactPickerSupported && (
+            <button
+              onClick={() => setIsPhoneImportOpen(true)}
+              className="bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-indigo-200 transform active:scale-95"
+            >
+              <Smartphone size={20} className="mr-2" />
+              Importa Contatti
+            </button>
+          )}
+
+          <button
+            className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-pink-200 transform active:scale-95"
+            onClick={handleCreateNew}
+          >
+            <Plus size={20} className="mr-2" />
+            Nuovo Invito
+          </button>
+        </div>
       </div>
 
       {/* BULK ACTION BAR */}
@@ -504,7 +524,7 @@ const InvitationList = () => {
                                 ? 'bg-yellow-50 text-yellow-600 cursor-wait'
                                 : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
                             }`}
-                            title="Segna manualmente come Inviato"
+                            title="Invia"
                           >
                             {markingSentFor === invitation.id ? (
                               <Loader size={18} className="animate-spin" />
@@ -532,14 +552,17 @@ const InvitationList = () => {
                             )}
                           </button>
 
-                        <button
-                          onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                          title="Log Interazioni"
-                        >
-                          <Activity size={18} />
-                        </button>
+                        {!['imported','created','sent'].includes(invitation.status) && (
+                          <button
+                            onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                            title="Log Interazioni"
+                          >
+                            <Activity size={18} />
+                          </button>
+                        )}
 
+                        {!['imported','created'].includes(invitation.status) && (
                         <div className="relative">
                           <button
                             onClick={() => handleGenerateLink(invitation.id)}
@@ -562,8 +585,10 @@ const InvitationList = () => {
                             )}
                           </button>
                         </div>
+                        )}
 
                         {/* PREVIEW ACTION (always with token) */}
+                        {!['imported','created'].includes(invitation.status) && (
                         <button
                           onClick={() => handleOpenPreview(invitation.id)}
                           className={`p-1.5 rounded-md transition-colors ${
@@ -580,6 +605,7 @@ const InvitationList = () => {
                             <ExternalLink size={18} />
                           )}
                         </button>
+                        )}
 
                         <button
                           onClick={() => handleEdit(invitation.id)}
@@ -701,7 +727,21 @@ const InvitationList = () => {
 
                 {/* Footer Card: Azioni (Mobile Optimized) */}
                 <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  <div className="flex gap-2">
+                  <div className="flex gap-2">                        
+                    {invitation.status === 'created' && (
+                      <button
+                        onClick={() => handleMarkAsSent(invitation.id)}
+                        disabled={markingSentFor === invitation.id}
+                        className={`p-2 rounded-lg transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100`}
+                        title="Invia"
+                      >
+                        {markingSentFor === invitation.id ? (
+                          <Loader size={18} className="animate-spin" />
+                        ) : (
+                          <Send size={18} />
+                        )}
+                      </button>
+                    )}
                     <button
                       onClick={() => handleSingleSend(invitation)}
                       disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
@@ -717,25 +757,29 @@ const InvitationList = () => {
                         <MessageCircle size={18} />
                       )}
                     </button>
-                    <button
-                      onClick={() => handleGenerateLink(invitation.id)}
-                      disabled={generatingLinkFor === invitation.id}
-                      className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
-                    >
-                      {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
-                        <Loader size={18} className="animate-spin" />
-                      ) : generatedLink?.id === invitation.id ? (
-                        <CheckCircle size={18} />
-                      ) : (
-                        <Copy size={18} />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
-                      className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"
-                    >
-                      <Activity size={18} />
-                    </button>
+                    {!['imported','created'].includes(invitation.status) && (
+                      <button
+                        onClick={() => handleGenerateLink(invitation.id)}
+                        disabled={generatingLinkFor === invitation.id}
+                        className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
+                      >
+                        {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                          <Loader size={18} className="animate-spin" />
+                        ) : generatedLink?.id === invitation.id ? (
+                          <CheckCircle size={18} />
+                        ) : (
+                          <Copy size={18} />
+                        )}
+                      </button>
+                    )}
+                    {!['imported','created'].includes(invitation.status) && (
+                      <button
+                        onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
+                        className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"
+                      >
+                        <Activity size={18} />
+                      </button>
+                    )}
                   </div>
                   <div className="flex gap-2">
                     <button
@@ -763,6 +807,14 @@ const InvitationList = () => {
           onClose={() => setIsModalOpen(false)}
           onSuccess={fetchInvitations}
           initialData={editingInvitation}
+        />
+      )}
+
+      {/* PHONEBOOK IMPORT MODAL */}
+      {isPhoneImportOpen && (
+        <PhonebookImportModal
+          onClose={() => setIsPhoneImportOpen(false)}
+          onSuccess={fetchInvitations}
         />
       )}
 

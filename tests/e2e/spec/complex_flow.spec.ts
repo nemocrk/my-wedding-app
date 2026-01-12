@@ -94,6 +94,8 @@ test.describe('Complex Wedding Flow', () => {
         for (const [index, inv] of invitations.entries()) {
             // Get public link
             const linkData = await api.getInvitationLink(inv.id);
+
+            await api.markAsSent(inv.id);
             
             // Fix: ensure public port 80
             const publicUrl = linkData.url.replace(':8080', ':80'); 
