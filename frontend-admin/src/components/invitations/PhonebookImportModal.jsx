@@ -22,21 +22,28 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   }, []);
 
   const handleOpenExternal = () => {
-    // Nel repo HA Android NON esiste externalApp.openUrl(); l'interfaccia JS espone metodi come
-    // externalApp.getExternalAuth(), externalApp.revokeExternalAuth(), externalApp.externalBus(), etc.
-    // Per aprire nel browser esterno sfruttiamo la logica del WebViewActivity: quando si tenta
-    // di navigare verso un URL "diverso" da quello corrente, l'app lancia un Intent ACTION_VIEW.
-    // (vedi shouldOverrideUrlLoading in WebViewActivity.kt)
     try {
-      const current = window.top?.location?.href || window.location.href;
-      const u = new URL(current);
-      u.searchParams.set('openExternal', '1');
-      u.searchParams.set('_ts', String(Date.now()));
-      window.location.href = u.toString();
+      // Costruiamo un Intent URI per Android che forza l'apertura nel browser di sistema.
+      // Formato: intent://<host><path><query>#Intent;scheme=<scheme>;end
+      // Esempio: intent://miosito.com/pagina?a=1#Intent;scheme=https;end
+      
+      // Prendiamo l'URL corrente completo
+      const currentUrl = new URL(window.top?.location?.href || window.location.href);
+      
+      // Rimuoviamo il protocollo (es. 'https:') per metterlo dopo nell'Intent
+      // L'Intent URI inizia con "intent://" seguito da host+path+query
+      const urlWithoutScheme = currentUrl.toString().replace(`${currentUrl.protocol}//`, '');
+      
+      // Costruiamo la stringa finale
+      const intentUri = `intent://${urlWithoutScheme}#Intent;scheme=${currentUrl.protocol.replace(':', '')};end`;
+      
+      // Navigazione verso l'URI speciale
+      window.location.href = intentUri;
     } catch (e) {
-      // Fallback ultra-compatibile
-      const current = window.top?.location?.href || window.location.href;
-      window.location.href = `${current}${current.includes('?') ? '&' : '?'}openExternal=1&_ts=${Date.now()}`;
+      console.error("Errore apertura Intent esterno:", e);
+      // Fallback classico: window.open (spesso bloccato in WebView, ma meglio di nulla)
+      const url = window.top?.location?.href || window.location.href;
+      window.open(url, '_system');
     }
   };
 
