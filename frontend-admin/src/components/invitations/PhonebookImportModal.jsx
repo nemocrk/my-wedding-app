@@ -13,20 +13,30 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   const [isHA, setIsHA] = useState(false);
 
   useEffect(() => {
-    // Detect Home Assistant Companion App (Proxy for X-Requested-With: io.homeassistant.companion.android)
-    if (navigator.userAgent.includes('HomeAssistant')) {
+    // Client-side: non è possibile leggere l'header HTTP X-Requested-With.
+    // In Home Assistant Companion App (Android) l'User-Agent contiene tipicamente "Home Assistant".
+    const ua = navigator.userAgent || '';
+    if (ua.includes('Home Assistant') || ua.includes('io.homeassistant.companion.android')) {
       setIsHA(true);
     }
   }, []);
 
   const handleOpenExternal = () => {
-    const url = window.top.location.href;
-    // Use Home Assistant Companion App API to open in external browser
-    if (window.externalApp && typeof window.externalApp.openUrl === 'function') {
-      window.externalApp.openUrl(url);
-    } else {
-      // Fallback for standard behavior or other webviews
-      window.open(url, '_system');
+    // Nel repo HA Android NON esiste externalApp.openUrl(); l'interfaccia JS espone metodi come
+    // externalApp.getExternalAuth(), externalApp.revokeExternalAuth(), externalApp.externalBus(), etc.
+    // Per aprire nel browser esterno sfruttiamo la logica del WebViewActivity: quando si tenta
+    // di navigare verso un URL "diverso" da quello corrente, l'app lancia un Intent ACTION_VIEW.
+    // (vedi shouldOverrideUrlLoading in WebViewActivity.kt)
+    try {
+      const current = window.top?.location?.href || window.location.href;
+      const u = new URL(current);
+      u.searchParams.set('openExternal', '1');
+      u.searchParams.set('_ts', String(Date.now()));
+      window.location.href = u.toString();
+    } catch (e) {
+      // Fallback ultra-compatibile
+      const current = window.top?.location?.href || window.location.href;
+      window.location.href = `${current}${current.includes('?') ? '&' : '?'}openExternal=1&_ts=${Date.now()}`;
     }
   };
 
@@ -40,21 +50,23 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
       const props = ['name', 'tel'];
       const opts = { multiple: true };
-        
+
       const contacts = await window.top.navigator.contacts.select(props, opts);
-      
+
       if (contacts.length > 0) {
         // Filtro e normalizzazione preliminare
-        const validContacts = contacts.map(c => {
-          const name = c.name?.[0] || 'Sconosciuto';
-          const rawPhone = selectBestPhone(c.tel);
-          return {
-            original: c,
-            name,
-            phone: rawPhone,
-            isValid: !!rawPhone
-          };
-        }).filter(c => c.isValid);
+        const validContacts = contacts
+          .map(c => {
+            const name = c.name?.[0] || 'Sconosciuto';
+            const rawPhone = selectBestPhone(c.tel);
+            return {
+              original: c,
+              name,
+              phone: rawPhone,
+              isValid: !!rawPhone
+            };
+          })
+          .filter(c => c.isValid);
 
         setImportedContacts(validContacts);
         if (validContacts.length === 0) {
@@ -63,7 +75,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.message || 'Errore durante l\'accesso alla rubrica.');
+      setError(err.message || "Errore durante l'accesso alla rubrica.");
     } finally {
       setLoading(false);
     }
@@ -71,7 +83,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
   const handleConfirm = async () => {
     if (importedContacts.length === 0) return;
-    
+
     setProcessing(true);
     let count = 0;
     const errors = [];
@@ -80,13 +92,13 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
     // Nota: Il backend dovrebbe comunque gestire unique constraint su slug
     let existingPhones = new Set();
     try {
-       const existing = await api.fetchInvitations();
-       const list = existing.results || existing;
-       list.forEach(i => {
-         if (i.phone_number) existingPhones.add(i.phone_number);
-       });
+      const existing = await api.fetchInvitations();
+      const list = existing.results || existing;
+      list.forEach(i => {
+        if (i.phone_number) existingPhones.add(i.phone_number);
+      });
     } catch (e) {
-      console.warn("Impossibile scaricare lista esistente per check duplicati", e);
+      console.warn('Impossibile scaricare lista esistente per check duplicati', e);
     }
 
     for (const contact of importedContacts) {
@@ -121,7 +133,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
     setProcessing(false);
     setSuccessCount(count);
-    
+
     if (count > 0) {
       // Delay chiusura per mostrare successo
       setTimeout(() => {
@@ -138,7 +150,6 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fadeIn">
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
-        
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
           <h3 className="text-lg font-bold text-gray-800">Importa da Rubrica</h3>
@@ -149,7 +160,6 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
 
         {/* Body */}
         <div className="p-6 space-y-6">
-          
           {isHA ? (
             <div className="flex flex-col items-center space-y-4">
               <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-center w-full">
@@ -157,11 +167,9 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                   <AlertCircle size={32} className="text-amber-600" />
                 </div>
                 <h4 className="font-bold text-lg mb-1">Attenzione!</h4>
-                <p className="text-sm">
-                  All'interno dell'App HomeAssistant non si possono importare contatti
-                </p>
+                <p className="text-sm">All'interno dell'App HomeAssistant non si possono importare contatti</p>
               </div>
-              
+
               <button
                 onClick={handleOpenExternal}
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-blue-200 active:scale-95"
@@ -179,9 +187,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     type="button"
                     onClick={() => setOrigin('groom')}
                     className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
-                      origin === 'groom' 
-                        ? 'bg-white text-blue-600 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
+                      origin === 'groom' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <span className="mr-2">🤵</span> Lato Sposo
@@ -190,9 +196,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     type="button"
                     onClick={() => setOrigin('bride')}
                     className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
-                      origin === 'bride' 
-                        ? 'bg-white text-pink-600 shadow-sm' 
-                        : 'text-gray-500 hover:text-gray-700'
+                      origin === 'bride' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
                     <span className="mr-2">👰</span> Lato Sposa
@@ -237,7 +241,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     <span className="block text-2xl font-bold text-indigo-700 mb-1">{importedContacts.length}</span>
                     <span className="text-sm text-indigo-600">Contatti Selezionati</span>
                   </div>
-                  
+
                   <button
                     onClick={handleConfirm}
                     disabled={processing || successCount > 0}
@@ -254,7 +258,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                       'Conferma Importazione'
                     )}
                   </button>
-                  
+
                   <button
                     onClick={() => setImportedContacts([])}
                     disabled={processing}
