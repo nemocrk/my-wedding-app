@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Smartphone, Check, Loader, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Smartphone, Check, Loader, AlertCircle, ExternalLink } from 'lucide-react';
 import { api } from '../../services/api';
 import { normalizePhone, selectBestPhone, generateSlug } from '../../utils/phonebookUtils';
 
@@ -10,6 +10,25 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
   const [processing, setProcessing] = useState(false);
   const [error, setError] = useState(null);
   const [successCount, setSuccessCount] = useState(0);
+  const [isHA, setIsHA] = useState(false);
+
+  useEffect(() => {
+    // Detect Home Assistant Companion App (Proxy for X-Requested-With: io.homeassistant.companion.android)
+    if (navigator.userAgent.includes('HomeAssistant')) {
+      setIsHA(true);
+    }
+  }, []);
+
+  const handleOpenExternal = () => {
+    const url = window.top.location.href;
+    // Use Home Assistant Companion App API to open in external browser
+    if (window.externalApp && typeof window.externalApp.openUrl === 'function') {
+      window.externalApp.openUrl(url);
+    } else {
+      // Fallback for standard behavior or other webviews
+      window.open(url, '_system');
+    }
+  };
 
   const handleImport = async () => {
     setLoading(true);
@@ -131,97 +150,121 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
         {/* Body */}
         <div className="p-6 space-y-6">
           
-          {/* Origin Toggle */}
-          <div className="flex justify-center">
-            <div className="bg-gray-100 p-1 rounded-lg flex space-x-1 w-full max-w-xs">
-              <button
-                type="button"
-                onClick={() => setOrigin('groom')}
-                className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
-                  origin === 'groom' 
-                    ? 'bg-white text-blue-600 shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span className="mr-2">🤵</span> Lato Sposo
-              </button>
-              <button
-                type="button"
-                onClick={() => setOrigin('bride')}
-                className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
-                  origin === 'bride' 
-                    ? 'bg-white text-pink-600 shadow-sm' 
-                    : 'text-gray-500 hover:text-gray-700'
-                }`}
-              >
-                <span className="mr-2">👰</span> Lato Sposa
-              </button>
-            </div>
-          </div>
-
-          {/* Error Message */}
-          {error && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start">
-              <AlertCircle size={16} className="mt-0.5 mr-2 flex-shrink-0" />
-              {error}
-            </div>
-          )}
-
-          {/* Success Message */}
-          {successCount > 0 && (
-            <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center justify-center font-medium">
-              <Check size={18} className="mr-2" />
-              {successCount} contatti importati con successo!
-            </div>
-          )}
-
-          {/* Import Action */}
-          {importedContacts.length === 0 ? (
-            <div className="text-center py-4">
-              <p className="text-gray-500 text-sm mb-4">
-                Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.
-              </p>
-              <button
-                onClick={handleImport}
-                disabled={loading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-indigo-200 active:scale-95"
-              >
-                {loading ? <Loader size={20} className="animate-spin" /> : <Smartphone size={20} className="mr-2" />}
-                Apri Rubrica
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              <div className="bg-indigo-50 p-4 rounded-xl text-center">
-                <span className="block text-2xl font-bold text-indigo-700 mb-1">{importedContacts.length}</span>
-                <span className="text-sm text-indigo-600">Contatti Selezionati</span>
+          {isHA ? (
+            <div className="flex flex-col items-center space-y-4">
+              <div className="bg-amber-50 text-amber-800 p-4 rounded-xl text-center w-full">
+                <div className="flex justify-center mb-2">
+                  <AlertCircle size={32} className="text-amber-600" />
+                </div>
+                <h4 className="font-bold text-lg mb-1">Attenzione!</h4>
+                <p className="text-sm">
+                  All'interno dell'App HomeAssistant non si possono importare contatti
+                </p>
               </div>
               
               <button
-                onClick={handleConfirm}
-                disabled={processing || successCount > 0}
-                className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleOpenExternal}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-blue-200 active:scale-95"
               >
-                {processing ? (
-                  <>
-                    <Loader size={20} className="animate-spin mr-2" />
-                    Elaborazione...
-                  </>
-                ) : successCount > 0 ? (
-                  'Completato'
-                ) : (
-                  'Conferma Importazione'
-                )}
-              </button>
-              
-              <button
-                onClick={() => setImportedContacts([])}
-                disabled={processing}
-                className="w-full text-gray-500 hover:text-gray-700 text-sm font-medium"
-              >
-                Annulla selezione
+                <ExternalLink size={20} className="mr-2" />
+                Apri browser esterno
               </button>
             </div>
+          ) : (
+            <>
+              {/* Origin Toggle */}
+              <div className="flex justify-center">
+                <div className="bg-gray-100 p-1 rounded-lg flex space-x-1 w-full max-w-xs">
+                  <button
+                    type="button"
+                    onClick={() => setOrigin('groom')}
+                    className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
+                      origin === 'groom' 
+                        ? 'bg-white text-blue-600 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <span className="mr-2">🤵</span> Lato Sposo
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setOrigin('bride')}
+                    className={`flex-1 flex justify-center items-center py-2 rounded-md text-sm font-medium transition-all ${
+                      origin === 'bride' 
+                        ? 'bg-white text-pink-600 shadow-sm' 
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    <span className="mr-2">👰</span> Lato Sposa
+                  </button>
+                </div>
+              </div>
+
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm flex items-start">
+                  <AlertCircle size={16} className="mt-0.5 mr-2 flex-shrink-0" />
+                  {error}
+                </div>
+              )}
+
+              {/* Success Message */}
+              {successCount > 0 && (
+                <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center justify-center font-medium">
+                  <Check size={18} className="mr-2" />
+                  {successCount} contatti importati con successo!
+                </div>
+              )}
+
+              {/* Import Action */}
+              {importedContacts.length === 0 ? (
+                <div className="text-center py-4">
+                  <p className="text-gray-500 text-sm mb-4">
+                    Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.
+                  </p>
+                  <button
+                    onClick={handleImport}
+                    disabled={loading}
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-indigo-200 active:scale-95"
+                  >
+                    {loading ? <Loader size={20} className="animate-spin" /> : <Smartphone size={20} className="mr-2" />}
+                    Apri Rubrica
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="bg-indigo-50 p-4 rounded-xl text-center">
+                    <span className="block text-2xl font-bold text-indigo-700 mb-1">{importedContacts.length}</span>
+                    <span className="text-sm text-indigo-600">Contatti Selezionati</span>
+                  </div>
+                  
+                  <button
+                    onClick={handleConfirm}
+                    disabled={processing || successCount > 0}
+                    className="w-full bg-green-600 hover:bg-green-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-green-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {processing ? (
+                      <>
+                        <Loader size={20} className="animate-spin mr-2" />
+                        Elaborazione...
+                      </>
+                    ) : successCount > 0 ? (
+                      'Completato'
+                    ) : (
+                      'Conferma Importazione'
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={() => setImportedContacts([])}
+                    disabled={processing}
+                    className="w-full text-gray-500 hover:text-gray-700 text-sm font-medium"
+                  >
+                    Annulla selezione
+                  </button>
+                </div>
+              )}
+            </>
           )}
         </div>
       </div>
