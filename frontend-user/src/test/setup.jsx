@@ -127,6 +127,19 @@ vi.mock('../services/textConfig', () => ({
 }));
 
 // ========================================
+// MOCK: analytics
+// ========================================
+vi.mock('../services/analytics', () => ({
+  logInteraction: vi.fn().mockResolvedValue(undefined),
+  heatmapTracker: {
+    start: vi.fn(),
+    stop: vi.fn(),
+    flush: vi.fn(),
+    handleMouseMove: vi.fn(),
+  },
+}));
+
+// ========================================
 // GLOBAL TEST HELPERS
 // ========================================
 
