@@ -88,3 +88,7 @@ export const submitRSVP = async (status, accommodationRequested = false, transfe
     }),
   });
 };
+
+export const fetchLanguages = async () => {
+  return fetchWithCredentials(`${API_BASE}/languages/`);
+};

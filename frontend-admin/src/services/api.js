@@ -133,7 +133,7 @@ export const api = {
 
   // --- PUBLIC UTILS (i18n) ---
   fetchLanguages: async () => {
-    const response = await safeFetch('/api/public/languages/');
+    const response = await safeFetch(`${API_BASE_URL}/languages/`);
     return handleResponse(response);
   },
 

@@ -50,6 +50,8 @@ urlpatterns = [
     # ========================================
     path('api/admin/', include(admin_router.urls)),
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
+    # 6. Lingue Disponibili (pubblico)
+    path('api/admin/languages/', PublicLanguagesView.as_view(), name='public-languages'),
     
     # --- WHATSAPP INTEGRATION ROUTES (Admin Only) ---
     # Include urls specifici per actions (status, qr, refresh, logout)

@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import { api } from '../services/api';
+import { fetchLanguages } from '../services/api';
 
 const LanguageFab = () => {
   const { i18n } = useTranslation();
@@ -15,7 +15,7 @@ const LanguageFab = () => {
     const fetchLangs = async () => {
         try {
             // Assumiamo che api.js abbia fetchLanguages esposto, altrimenti fetch diretto
-            const res = await fetch('/api/public/languages/');
+            const res = fetchLanguages();
             if (res.ok) {
                 const data = await res.json();
                 setLanguages(data);
