@@ -86,8 +86,6 @@ describe('Envelope Animation E2E', () => {
 
     // Poiché ora usiamo fake timers, dobbiamo far avanzare il tempo affinché waitFor funzioni
     // O semplicemente aspettare la chiamata API (che è un microtask promise, non timer)
-    // Ma waitFor stesso usa timer per il polling.
-    // Usiamo un approccio misto: avanziamo i timer mentre aspettiamo
     
     // Auth call should happen immediately (promise)
     await act(async () => {
@@ -99,21 +97,18 @@ describe('Envelope Animation E2E', () => {
     expect(api.authenticateInvitation).toHaveBeenCalled();
 
     // Advance time to complete any initial loading animation or state updates
+    // Use advanceTimersByTime instead of runAllTimers to avoid infinite loops from external libs
     await act(async () => {
-      vi.runAllTimers();
+      vi.advanceTimersByTime(2000); // Initial load + fly-in
     });
 
     // Verify envelope is ready
     const envelopeContainer = document.querySelector('.envelope-container-3d');
     expect(envelopeContainer).toBeInTheDocument();
 
-    // Interaction would be simulating a click on the envelope (if implemented in E2E)
-    // But here we rely on the component's auto-sequence or user interaction logic.
-    // Assuming the test logic originally intended to simulate the sequence duration:
-    
     // Advance time to complete the FULL animation sequence (handleSequence ~5.4s)
     await act(async () => {
-      vi.advanceTimersByTime(7000);
+      vi.advanceTimersByTime(8000); // 2s flyin + 5.4s sequence
     });
 
     // Verify LetterContent is visible in the extracted letter
