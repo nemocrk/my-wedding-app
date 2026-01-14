@@ -269,12 +269,12 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ### **FASE 3: Frontend-User - Dynamic Text Rendering**
 
-#### **3.1 Service per Fetch Texts**
-- [ ] **Creare file**: `frontend-user/src/services/textConfig.js`
+#### **3.1 Service per Fetch Texts** ✅
+- [x] **Creare file**: `frontend-user/src/services/textConfig.js`
 
-#### **3.2 Context per Texts**
-- [ ] **Creare `frontend-user/src/contexts/TextContext.jsx`**
-- [ ] **Wrappare App in `frontend-user/src/main.jsx`**
+#### **3.2 Context per Texts** ✅
+- [x] **Creare `frontend-user/src/contexts/TextContext.jsx`**
+- [x] **Wrappare App in `frontend-user/src/main.jsx`**
 
 #### **3.3 Refactoring LetterContent.jsx**
 - [ ] **Leggere file attuale**: `frontend-user/src/components/invitation/LetterContent.jsx`
@@ -405,101 +405,40 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-14 11:31 CET  
-**Status**: 🟢 FASE 2 Completata - All Tasks Including Tests  
+**Last Updated**: 2026-01-14 13:02 CET  
+**Status**: 🟢 FASE 3 In Progress - Frontend-User Dynamic Rendering  
 **Current Phase**: FASE 3 - Frontend-User Dynamic Text Rendering  
-**Progress FASE 2**: 7/7 tasks completed (100%) ✅  
-**Progress Totale**: 36/146 tasks completed (25%)  
+**Progress FASE 3**: 2/4 tasks completed (50%)  
+**Progress Totale**: 38/146 tasks completed (26%)  
 **Blockers**: None  
-**Next Step**: FASE 3.1 - Creare textConfig.js service in frontend-user  
+**Next Step**: FASE 3.3 - Refactoring LetterContent.jsx  
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-14 13:02 - docs: update checklist - completed FASE 3.1 & 3.2
 2026-01-14 11:31 - docs: update checklist - FASE 2 fully completed with tests
 2026-01-14 11:27 - docs: update checklist - completed FASE 2 (frontend-admin text widget)
-2026-01-14 10:55 - docs: update checklist - fix test client content_type
-2026-01-14 10:48 - docs: update checklist - tests passed for FASE 1 (initially)
-2026-01-14 10:27 - docs: update checklist - completed FASE 1 (backend dynamic text management)
-2026-01-14 09:52 - docs: update checklist - completed FASE 0 (i18n infrastructure setup)
-2026-01-14 09:35 - docs: add golden rules and update instructions to checklist
-2026-01-14 09:33 - docs: add comprehensive checklist for text customization and i18n implementation
 ```
 
-### **FASE 0 - Commits & Files Created**:
+### **FASE 3 - Commits & Files Created**:
 ```
-Commit: be6c155 - feat(i18n): add Italian and English translation JSON files
+Commit: 59f3aa5 - refactor(frontend-user): export fetchWithCredentials and API_BASE
 Files:
-  - /i18n/it.json (100+ translation keys)
-  - /i18n/en.json (100+ translation keys)
+  - frontend-user/src/services/api.js (modified)
 
-Commit: 7da82a9 - feat(i18n): setup i18n infrastructure for frontend-user and frontend-admin
+Commit: 33bf31e - feat(frontend-user): add textConfig.js service
 Files:
-  - frontend-user/package.json (updated with i18n dependencies)
-  - frontend-admin/package.json (updated with i18n dependencies)
-  - frontend-user/src/i18n.js (NEW)
-  - frontend-admin/src/i18n.js (NEW)
-  - frontend-user/src/main.jsx (updated with i18n import)
-  - frontend-admin/src/main.jsx (updated with i18n import)
-  - frontend-user/src/components/LanguageSwitcher.jsx (NEW)
-  - frontend-admin/src/components/LanguageSwitcher.jsx (NEW)
-  - nginx/conf.d/default.conf (updated with /i18n/ location)
+  - frontend-user/src/services/textConfig.js (NEW)
 
-Commit: c7bb6f3 - feat(nginx): add i18n static files to Nginx image
+Commit: 11af7c5 - feat(frontend-user): add TextContext and provider
 Files:
-  - nginx/Dockerfile (updated to copy i18n files)
-```
+  - frontend-user/src/contexts/TextContext.jsx (NEW)
 
-### **FASE 1 - Commits & Files Created**:
-```
-Commit: d38acc6 - feat(backend): add ConfigurableText model for dynamic text management
+Commit: 154473a - feat(frontend-user): wrap App with TextProvider
 Files:
-  - backend/core/models.py (evolved: added ConfigurableText model)
-
-Commit: caa3784 - feat(backend): add ConfigurableTextSerializer
-Files:
-  - backend/core/serializers.py (evolved: added ConfigurableTextSerializer)
-
-Commit: 945bed9 - feat(backend): add ConfigurableTextViewSet and PublicConfigurableTextView
-Files:
-  - backend/core/views.py (evolved: added ConfigurableTextViewSet, PublicConfigurableTextView)
-
-Commit: 85c8509 - feat(backend): register ConfigurableText endpoints in routing
-Files:
-  - backend/wedding/urls.py (evolved: registered admin and public endpoints)
-
-Commit: 9e484e5 - feat(backend): register models in Django Admin Panel
-Files:
-  - backend/core/admin.py (NEW: complete admin registration)
-
-Commit: 090d5a1 - test(backend): add comprehensive tests for ConfigurableText
-Files:
-  - backend/core/tests/test_configurable_text.py (NEW: 20+ test cases)
-
-Commit: 304e429 - fix(backend): allow dots in ConfigurableText lookup URL
-Files:
-  - backend/core/views.py (updated ViewSet regex)
-
-Commit: de405ae - fix(test): use content_type='application/json' in admin API tests
-Files:
-  - backend/core/tests/test_configurable_text.py (fix 415/400 errors)
-```
-
-### **FASE 2 - Commits & Files Created**:
-```
-Commit: 26f1542 - feat(admin): integrate TextConfigWidget into Configuration page
-Files:
-  - frontend-admin/src/pages/Configuration.jsx (evolved: added TextConfigWidget integration)
-
-Commit: c1e8759 - test(admin): add unit tests for TextConfigWidget component
-Files:
-  - frontend-admin/src/components/config/__tests__/TextConfigWidget.test.jsx (NEW: 13 test cases)
-
-Previous commits (from earlier session):
-- TextConfigWidget.jsx component created
-- emoji-picker-react dependency added to package.json
-- API service methods added (fetchConfigurableTexts, getConfigurableText, updateConfigurableText)
+  - frontend-user/src/main.jsx (modified)
 ```
 
 ---
 
-**👉 FASE 2 completata al 100% inclusi test! Procedere con FASE 3: Frontend-User - Dynamic Text Rendering**
+**👉 FASE 3.1 & 3.2 completate! Procedere con FASE 3.3: Refactoring LetterContent.jsx**
