@@ -1,3 +1,4 @@
+import '../../../test/setup'; // Import i18n and TextContext mocks
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import EnvelopeAnimation from '../EnvelopeAnimation';
@@ -19,7 +20,7 @@ describe('EnvelopeAnimation Component', () => {
     const flapImage = screen.getByAltText('Flap');
     expect(flapImage).toBeInTheDocument();
 
-    // Verifichiamo che senza dati mostri lo stato di caricamento o placeholder
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    // Verifichiamo che senza dati mostri lo stato di caricamento (ora tradotto)
+    expect(screen.getByText('Caricamento...')).toBeInTheDocument();
   });
 });
