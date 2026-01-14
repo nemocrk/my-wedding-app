@@ -5,9 +5,23 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Configurazione
-const LOCALES_DIR = path.join(__dirname, '../');
-const SRC_DIR = path.join(__dirname, '../../frontend-user/src');
+// ==========================================
+// CONFIGURAZIONE
+// ==========================================
+
+// Cartella dove risiedono i file di traduzione (es. i18n/*.json)
+// Risaliamo di uno step da scripts/
+const LOCALES_DIR = path.join(__dirname, '..'); 
+
+// Root del repository (../../ da i18n/scripts/)
+const REPO_ROOT = path.join(__dirname, '../../');
+
+// Cartelle sorgenti React da scansionare per l'uso delle chiavi
+const SOURCE_DIRS = [
+    path.join(REPO_ROOT, 'frontend-user/src'),
+    path.join(REPO_ROOT, 'frontend-admin/src'),
+    // Aggiungi qui eventuali altre cartelle future
+];
 
 // Colori per output console
 const colors = {
@@ -17,12 +31,14 @@ const colors = {
     yellow: "\x1b[33m",
     blue: "\x1b[34m",
     magenta: "\x1b[35m",
-    cyan: "\x1b[36m"
+    cyan: "\x1b[36m",
+    bold: "\x1b[1m"
 };
 
 // ==========================================
-// 1. Verifica Allineamento Chiavi (IT vs EN)
+// UTILS
 // ==========================================
+
 function flattenObject(obj, prefix = '') {
     return Object.keys(obj).reduce((acc, k) => {
         const pre = prefix.length ? prefix + '.' : '';
@@ -35,63 +51,20 @@ function flattenObject(obj, prefix = '') {
     }, {});
 }
 
-async function checkKeyAlignment() {
-    console.log(`${colors.cyan}=== CONTROLLO ALLINEAMENTO CHIAVI (IT <-> EN) ===${colors.reset}\n`);
-
-    const itPath = path.join(LOCALES_DIR, 'it.json');
-    const enPath = path.join(LOCALES_DIR, 'en.json');
-
-    if (!fs.existsSync(itPath) || !fs.existsSync(enPath)) {
-        console.error(`${colors.red}ERRORE: File di traduzione non trovati in ${LOCALES_DIR}${colors.reset}`);
-        // Tenta di trovarli se path diverso
-        console.log(`Cerco in posizioni alternative...`);
-        return;
-    }
-
-    try {
-        const itJson = JSON.parse(fs.readFileSync(itPath, 'utf8'));
-        const enJson = JSON.parse(fs.readFileSync(enPath, 'utf8'));
-
-        const it = flattenObject(itJson);
-        const en = flattenObject(enJson);
-
-        const itKeys = Object.keys(it);
-        const enKeys = Object.keys(en);
-
-        const missingInEn = itKeys.filter(k => !enKeys.includes(k));
-        const missingInIt = enKeys.filter(k => !itKeys.includes(k));
-
-        if (missingInEn.length === 0 && missingInIt.length === 0) {
-            console.log(`${colors.green}✔ I file sono perfettamente allineati!${colors.reset}`);
-        } else {
-            if (missingInEn.length > 0) {
-                console.log(`${colors.yellow}⚠ Chiavi presenti in IT ma mancanti in EN (${missingInEn.length}):${colors.reset}`);
-                missingInEn.forEach(k => console.log(`  - ${k} ==> Valore IT: "${it[k]}"`));
-            }
-            if (missingInIt.length > 0) {
-                console.log(`${colors.yellow}⚠ Chiavi presenti in EN ma mancanti in IT (${missingInIt.length}):${colors.reset}`);
-                missingInIt.forEach(k => console.log(`  - ${k} ==> Valore EN: "${en[k]}"`));
-            }
-        }
-    } catch (err) {
-        console.error(`${colors.red}Errore durante il parsing dei JSON:${colors.reset}`, err.message);
-    }
-    console.log("\n");
-}
-
-// ==========================================
-// 2. Verifica Chiavi Mancanti nel Codice
-// ==========================================
 function getAllFiles(dirPath, arrayOfFiles) {
+    if (!fs.existsSync(dirPath)) return arrayOfFiles || [];
+    
     const files = fs.readdirSync(dirPath);
     arrayOfFiles = arrayOfFiles || [];
 
     files.forEach(file => {
-        if (fs.statSync(dirPath + "/" + file).isDirectory()) {
-            arrayOfFiles = getAllFiles(dirPath + "/" + file, arrayOfFiles);
+        const fullPath = path.join(dirPath, file);
+        if (fs.statSync(fullPath).isDirectory()) {
+            arrayOfFiles = getAllFiles(fullPath, arrayOfFiles);
         } else {
-            if (file.endsWith('.jsx') || file.endsWith('.js') || file.endsWith('.tsx') || file.endsWith('.ts')) {
-                arrayOfFiles.push(path.join(dirPath, "/", file));
+            // Cerca file sorgente JS/TS
+            if (file.match(/\.(js|jsx|ts|tsx)$/)) {
+                arrayOfFiles.push(fullPath);
             }
         }
     });
@@ -99,54 +72,145 @@ function getAllFiles(dirPath, arrayOfFiles) {
     return arrayOfFiles;
 }
 
-async function findMissingKeys() {
-    console.log(`${colors.cyan}=== RICERCA CHIAVI MANCANTI NEL CODICE ===${colors.reset}\n`);
+// ==========================================
+// 1. Verifica Allineamento Chiavi (Cross-File)
+// ==========================================
+async function checkKeyAlignment() {
+    console.log(`${colors.cyan}${colors.bold}=== 1. CONTROLLO ALLINEAMENTO FILE JSON ===${colors.reset}\n`);
 
-    const itPath = path.join(LOCALES_DIR, 'it.json');
-    if (!fs.existsSync(itPath)) {
-        console.error("File IT non trovato, impossibile verificare.");
+    // Trova tutti i file .json nella LOCALES_DIR (non ricorsivo, solo root i18n)
+    const localeFiles = fs.readdirSync(LOCALES_DIR)
+        .filter(file => file.endsWith('.json') && !file.startsWith('package')); // Escludi package.json se presente
+
+    if (localeFiles.length < 2) {
+        console.log(`${colors.yellow}Meno di 2 file di traduzione trovati (${localeFiles.join(', ')}). Impossibile confrontare.${colors.reset}`);
+        // Se c'è un solo file, restituiscilo comunque per il controllo codice
+        if (localeFiles.length === 1) {
+             const content = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, localeFiles[0]), 'utf8'));
+             return Object.keys(flattenObject(content));
+        }
+        return [];
+    }
+
+    console.log(`File di traduzione trovati: ${localeFiles.join(', ')}\n`);
+
+    const fileContentMap = {};
+    const fileKeysMap = {};
+    let allKeysSet = new Set();
+
+    // Carica tutti i file e appiattisci le chiavi
+    localeFiles.forEach(file => {
+        try {
+            const content = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, file), 'utf8'));
+            fileContentMap[file] = content;
+            const flat = flattenObject(content);
+            const keys = Object.keys(flat);
+            fileKeysMap[file] = keys;
+            keys.forEach(k => allKeysSet.add(k));
+        } catch (err) {
+            console.error(`${colors.red}Errore lettura ${file}:${colors.reset}`, err.message);
+        }
+    });
+
+    const allKeys = Array.from(allKeysSet).sort();
+    let hasErrors = false;
+
+    // Confronta ogni file contro l'insieme completo di tutte le chiavi trovate
+    localeFiles.forEach(file => {
+        const myKeys = fileKeysMap[file];
+        const missing = allKeys.filter(k => !myKeys.includes(k));
+
+        if (missing.length > 0) {
+            hasErrors = true;
+            console.log(`${colors.yellow}⚠ Nel file ${colors.bold}${file}${colors.reset}${colors.yellow} mancano ${missing.length} chiavi:${colors.reset}`);
+            missing.forEach(k => {
+                // Tenta di trovare il valore originale in un altro file per suggerimento
+                const otherFile = localeFiles.find(f => f !== file && fileContentMap[f] && flattenObject(fileContentMap[f])[k]);
+                const suggestion = otherFile ? flattenObject(fileContentMap[otherFile])[k] : '???';
+                console.log(`  - ${k} ${colors.blue}(es. in ${otherFile}: "${suggestion}")${colors.reset}`);
+            });
+            console.log('');
+        } else {
+            console.log(`${colors.green}✔ ${file} è completo (ha tutte le chiavi note).${colors.reset}`);
+        }
+    });
+
+    if (!hasErrors) {
+        console.log(`\n${colors.green}${colors.bold}Tutti i file di traduzione sono allineati!${colors.reset}\n`);
+    } else {
+        console.log(`\n${colors.red}${colors.bold}Ci sono disallineamenti tra i file di traduzione.${colors.reset}\n`);
+    }
+
+    return allKeys; // Restituisce tutte le chiavi valide conosciute per il controllo successivo
+}
+
+// ==========================================
+// 2. Verifica Chiavi Mancanti nel Codice
+// ==========================================
+async function findMissingKeys(validKeys) {
+    console.log(`${colors.cyan}${colors.bold}=== 2. RICERCA CHIAVI NEL CODICE SORGENTE ===${colors.reset}\n`);
+
+    if (!validKeys || validKeys.length === 0) {
+        console.error("Nessuna chiave valida caricata dai file JSON. Salto controllo codice.");
         return;
     }
 
-    const itJson = JSON.parse(fs.readFileSync(itPath, 'utf8'));
-    const definedKeys = Object.keys(flattenObject(itJson));
+    console.log(`Scansione directory sorgenti:`);
+    SOURCE_DIRS.forEach(d => console.log(`  - ${path.relative(REPO_ROOT, d)}`));
+    console.log('');
 
-    const files = getAllFiles(SRC_DIR);
+    let allSourceFiles = [];
+    SOURCE_DIRS.forEach(dir => {
+        allSourceFiles = allSourceFiles.concat(getAllFiles(dir));
+    });
+
+    console.log(`Analisi di ${allSourceFiles.length} file sorgente...\n`);
+
     const usedKeys = new Set();
     
-    // Regex per trovare t('chiave') o i18nKey="chiave"
-    // Cattura: t('key'), t("key"), i18nKey="key", i18nKey='key'
-    const regex = /[^a-zA-Z0-9](?:t\s*\(\s*['"]([a-zA-Z0-9_.-]+)['"]|i18nKey\s*=\s*['"]([a-zA-Z0-9_.-]+)['"])/g;
+    // Regex migliorata:
+    // Cattura t('key'), t("key"), i18nKey="key", i18nKey='key', getText('key'), getTranslation('key')
+    // Supporta anche spazi variabili
+    const regex = /[^a-zA-Z0-9](?:t|getText|getTranslation)\s*\(\s*['"]([a-zA-Z0-9_.-]+)['"]|i18nKey\s*=\s*['"]([a-zA-Z0-9_.-]+)['"]/g;
 
-    files.forEach(file => {
+    allSourceFiles.forEach(file => {
         const content = fs.readFileSync(file, 'utf8');
         let match;
         while ((match = regex.exec(content)) !== null) {
             const key = match[1] || match[2];
-            if (key) usedKeys.add(key);
+            // Filtra chiavi palesemente dinamiche o interpolate (se contengono ${ o +)
+            // La regex sopra cattura stringhe fisse, ma per sicurezza:
+            if (key && !key.includes('${') && !key.includes("' +") && !key.includes('" +')) {
+                usedKeys.add(key);
+            }
         }
     });
 
-    const missingKeys = [...usedKeys].filter(key => !definedKeys.includes(key));
+    const definedKeys = new Set(validKeys);
+    const missingKeys = [...usedKeys].filter(key => !definedKeys.has(key));
 
     if (missingKeys.length === 0) {
-        console.log(`${colors.green}✔ Tutte le chiavi usate nel codice sono definite nei file di traduzione!${colors.reset}`);
+        console.log(`${colors.green}${colors.bold}✔ Tutte le chiavi fisse trovate nel codice sono definite nei file di traduzione!${colors.reset}`);
     } else {
-        console.log(`${colors.red}✘ Trovate ${missingKeys.length} chiavi usate nel codice ma NON definite in it.json:${colors.reset}`);
+        console.log(`${colors.red}${colors.bold}✘ Trovate ${missingKeys.length} chiavi usate nel codice ma NON definite nei file JSON:${colors.reset}`);
         missingKeys.sort().forEach(k => console.log(`  - ${k}`));
     }
     
     // Optional: Check unused keys
-    const unusedKeys = definedKeys.filter(k => !usedKeys.has(k));
-    console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length})`);
+    // const unusedKeys = validKeys.filter(k => !usedKeys.has(k));
+    // console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length}) - Nota: potrebbero essere usate dinamicamente.`);
 }
 
 // ==========================================
 // Esecuzione
 // ==========================================
 async function run() {
-    await checkKeyAlignment();
-    await findMissingKeys();
+    try {
+        const validKeys = await checkKeyAlignment();
+        await findMissingKeys(validKeys);
+    } catch (e) {
+        console.error("Errore script:", e);
+    }
 }
 
 run();
