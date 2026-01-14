@@ -86,12 +86,23 @@ const Rotation = Mark.create({
   },
 });
 
+const FALLBACK_FONTS = [
+  { label: 'Default', value: '' },
+  { label: 'Sans Serif', value: 'Inter, sans-serif' },
+  { label: 'Serif', value: 'Merriweather, serif' },
+  { label: 'Great Vibes', value: '"Great Vibes", cursive' },
+  { label: 'Playfair Display', value: '"Playfair Display", serif' },
+  { label: 'Dancing Script', value: '"Dancing Script", cursive' },
+];
+
 const MenuBar = ({ editor }) => {
   const [activeFontFamily, setActiveFontFamily] = useState('Open Sans');
 
   if (!editor) {
     return null;
   }
+
+  const googleFontsApiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
 
   // Sync active font from editor state
   useEffect(() => {
@@ -174,21 +185,38 @@ const MenuBar = ({ editor }) => {
          </button>
       </div>
 
-      {/* Google Fonts Picker & Color */}
+      {/* Fonts & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
-          {/* Google Fonts Picker */}
           <div className="relative group" style={{ minWidth: '140px' }}>
-            <FontPicker
-              apiKey="AIzaSyBwEKVw4NvJhVGqNRvNRaVMC6L_FI5YqBw"
-              activeFontFamily={activeFontFamily}
-              onChange={(nextFont) => {
-                const fontFamily = `"${nextFont.family}", ${nextFont.category || 'sans-serif'}`;
-                editor.chain().focus().setFontFamily(fontFamily).run();
-                setActiveFontFamily(nextFont.family);
-              }}
-              limit={500}
-              sort="popularity"
-            />
+            {googleFontsApiKey ? (
+              <FontPicker
+                apiKey={googleFontsApiKey}
+                activeFontFamily={activeFontFamily}
+                onChange={(nextFont) => {
+                  const fontFamily = `"${nextFont.family}", ${nextFont.category || 'sans-serif'}`;
+                  editor.chain().focus().setFontFamily(fontFamily).run();
+                  setActiveFontFamily(nextFont.family);
+                }}
+                limit={500}
+                sort="popularity"
+              />
+            ) : (
+              <select
+                className="appearance-none bg-transparent hover:bg-gray-200 pl-2 pr-6 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none max-w-[140px]"
+                onChange={(e) => {
+                  const val = e.target.value;
+                  if (val) editor.chain().focus().setFontFamily(val).run();
+                  else editor.chain().focus().unsetFontFamily().run();
+                }}
+                value={editor.getAttributes('textStyle').fontFamily || ''}
+                title="Imposta VITE_GOOGLE_FONTS_API_KEY per usare la ricerca Google Fonts"
+              >
+                <option value="" disabled>Font</option>
+                {FALLBACK_FONTS.map((f) => (
+                  <option key={f.label} value={f.value}>{f.label}</option>
+                ))}
+              </select>
+            )}
           </div>
 
           {/* Color Picker */}
@@ -266,10 +294,10 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       Subscript,
       Superscript,
       Highlight,
-      TextStyle, 
+      TextStyle,
       Color,
       FontFamily,
-      Rotation, // Custom extension
+      Rotation,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -283,26 +311,27 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       attributes: {
         class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
       },
-      handlePaste: (view, event, slice) => {
-          const items = event.clipboardData?.items;
-          const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
-          if (hasHtml) return false;
-          const text = event.clipboardData?.getData('text/plain');
-          if (text && /<[a-z][\s\S]*>/i.test(text)) {
-            const doc = new DOMParser().parseFromString(text, 'text/html');
-            const errorNode = doc.querySelector('parsererror');
-            if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
-              event.preventDefault();
-              view.props.editor.commands.insertContent(text);
-              return true;
-            }
+      handlePaste: (view, event) => {
+        const items = event.clipboardData?.items;
+        const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
+        if (hasHtml) return false;
+
+        const text = event.clipboardData?.getData('text/plain');
+        if (text && /<[a-z][\s\S]*>/i.test(text)) {
+          const doc = new DOMParser().parseFromString(text, 'text/html');
+          const errorNode = doc.querySelector('parsererror');
+          if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
+            event.preventDefault();
+            view.props.editor.commands.insertContent(text);
+            return true;
           }
-          return false;
+        }
+        return false;
       }
     },
   });
 
-  // Auto-load fonts from initial content
+  // Auto-load fonts from initial content (for preview/editing)
   useEffect(() => {
     if (initialContent) {
       autoLoadFontsFromHTML(initialContent);

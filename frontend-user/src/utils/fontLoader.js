@@ -31,7 +31,6 @@ export function loadGoogleFont(fontFamily) {
   }
 
   // Build Google Fonts URL
-  // Format: https://fonts.googleapis.com/css2?family=Font+Name:wght@400;700&display=swap
   const formattedName = cleanFamily.replace(/\s+/g, '+');
   const fontUrl = `https://fonts.googleapis.com/css2?family=${formattedName}:ital,wght@0,400;0,700;1,400;1,700&display=swap`;
 
@@ -43,7 +42,6 @@ export function loadGoogleFont(fontFamily) {
   document.head.appendChild(link);
 
   loadedFonts.add(fontFamily);
-  console.log(`[FontLoader] Loaded Google Font: ${cleanFamily}`);
 }
 
 /**
@@ -61,7 +59,7 @@ export function extractFontFamiliesFromHTML(html) {
 
     // Find all elements with inline style="font-family: ..."
     const elementsWithStyle = doc.querySelectorAll('[style*="font-family"]');
-    elementsWithStyle.forEach(el => {
+    elementsWithStyle.forEach((el) => {
       const style = el.getAttribute('style') || '';
       const match = style.match(/font-family\s*:\s*([^;]+)/i);
       if (match) {
@@ -70,8 +68,7 @@ export function extractFontFamiliesFromHTML(html) {
     });
 
     return Array.from(families);
-  } catch (error) {
-    console.error('[FontLoader] Error parsing HTML:', error);
+  } catch {
     return [];
   }
 }
@@ -82,21 +79,65 @@ export function extractFontFamiliesFromHTML(html) {
  */
 export function autoLoadFontsFromHTML(html) {
   const families = extractFontFamiliesFromHTML(html);
-  families.forEach(family => loadGoogleFont(family));
+  families.forEach((family) => loadGoogleFont(family));
 }
 
 /**
- * Preload common wedding fonts (optional, for better UX).
+ * Install a global MutationObserver that scans the whole app for inline font-family styles
+ * and loads corresponding Google Fonts on-demand.
+ *
+ * Note: this intentionally only reads inline styles (the HTML saved from TipTap).
  */
-export function preloadCommonWeddingFonts() {
-  const commonFonts = [
-    'Great Vibes',
-    'Playfair Display',
-    'Parisienne',
-    'Dancing Script',
-    'Cinzel',
-    'Cormorant Garamond'
-  ];
-  
-  commonFonts.forEach(font => loadGoogleFont(font));
+export function initFontAutoLoader() {
+  if (typeof window === 'undefined' || typeof document === 'undefined') return () => {};
+
+  let rafId = null;
+
+  const scanElement = (el) => {
+    if (!el || el.nodeType !== 1) return;
+
+    // Direct inline style
+    const directFamily = el.style?.fontFamily;
+    if (directFamily) loadGoogleFont(directFamily);
+
+    // Descendants with inline font-family
+    const descendants = el.querySelectorAll?.('[style*="font-family"]');
+    descendants?.forEach((node) => {
+      const family = node.style?.fontFamily;
+      if (family) loadGoogleFont(family);
+    });
+  };
+
+  const scheduleFullScan = () => {
+    if (rafId) return;
+    rafId = window.requestAnimationFrame(() => {
+      rafId = null;
+      scanElement(document.body);
+    });
+  };
+
+  // Initial scan
+  scheduleFullScan();
+
+  const observer = new MutationObserver((mutations) => {
+    for (const m of mutations) {
+      if (m.type === 'attributes') {
+        scanElement(m.target);
+      } else if (m.type === 'childList') {
+        m.addedNodes.forEach((n) => scanElement(n));
+      }
+    }
+  });
+
+  observer.observe(document.body, {
+    subtree: true,
+    childList: true,
+    attributes: true,
+    attributeFilter: ['style'],
+  });
+
+  return () => {
+    observer.disconnect();
+    if (rafId) window.cancelAnimationFrame(rafId);
+  };
 }
