@@ -19,6 +19,14 @@ export const api = {
         if (!res.ok) throw new Error('Login failed');
         return res.json();
     },
+    
+    // Core Config
+    fetchLanguages: async () => {
+        // Endpoint pubblico, non richiede auth header necessariamente, ma non fa male
+        const res = await fetch(`${BASE_URL}/public/languages/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch languages');
+        return res.json();
+    },
 
     // Dashboard
     fetchStats: async () => {
