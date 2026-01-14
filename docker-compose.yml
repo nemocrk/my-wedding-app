@@ -206,6 +206,7 @@ services:
     volumes:
       - ./nginx/public.conf:/etc/nginx/nginx.conf:ro
       - ./nginx/certs:/etc/nginx/certs:ro
+      - ./i18n:/usr/share/nginx/html/i18n:ro
       - static_volume:/var/www/static:ro
       - media_volume:/var/www/media:ro
     depends_on:
@@ -232,6 +233,7 @@ services:
       - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
     volumes:
       - ./nginx/intranet.conf:/etc/nginx/nginx.conf:ro
+      - ./i18n:/usr/share/nginx/html/i18n:ro
     depends_on:
       frontend-admin:
         condition: service_healthy
