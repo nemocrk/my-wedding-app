@@ -117,6 +117,16 @@ vi.mock('../contexts/TextContext', () => ({
 }));
 
 // ========================================
+// MOCK: textConfigService
+// ========================================
+vi.mock('../services/textConfig', () => ({
+  textConfigService: {
+    getAllTexts: vi.fn().mockResolvedValue([]), // Empty array by default
+    getTextByKey: vi.fn().mockResolvedValue({ key: 'test', content: 'Test content' }),
+  },
+}));
+
+// ========================================
 // GLOBAL TEST HELPERS
 // ========================================
 
