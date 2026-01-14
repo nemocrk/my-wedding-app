@@ -2,13 +2,19 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { Loader2 } from 'lucide-react';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
+import languages from '../../config/languages.json';
 
 const TextConfigWidget = () => {
   const [texts, setTexts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
-
+  const [selectedLang, setSelectedLang] = useState('it');
+  
+  // Cache per stato lingue: { 'en': { 'key1': exists? } }
+  // Ottimizzazione: Al caricamento potremmo voler sapere quali lingue sono complete.
+  // Per ora semplifichiamo ricaricando quando cambia la lingua.
+  
   // Pre-defined known keys to ensure they are visible even if not yet in DB
   const KNOWN_KEYS = [
     { key: 'envelope.front.content', label: 'Busta: Fronte (HTML)' },
@@ -21,10 +27,10 @@ const TextConfigWidget = () => {
     { key: 'card.cosaltro.content', label: 'Card Cos\'altro' },
   ];
 
-  const fetchData = async () => {
+  const fetchData = async (lang) => {
     setLoading(true);
     try {
-      const data = await api.fetchConfigurableTexts();
+      const data = await api.fetchConfigurableTexts(lang);
       setTexts(data);
     } catch (err) {
       setError('Errore nel caricamento dei testi.');
@@ -35,45 +41,22 @@ const TextConfigWidget = () => {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    fetchData(selectedLang);
+  }, [selectedLang]);
 
   const handleUpdateText = async (key, newContent) => {
     try {
-      const existing = texts.find(t => t.key === key);
-      
-      if (existing) {
-        await api.updateConfigurableText(key, { 
-          key, 
-          content: newContent,
-          metadata: existing.metadata 
-        });
-      } else {
-        const isNew = !texts.find(t => t.key === key);
-        if (isNew) {
-           await fetch('/api/admin/texts/', {
-             method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
-             body: JSON.stringify({ key, content: newContent })
-           }).then(async res => {
-             if (!res.ok) throw new Error(await res.text());
-             return res.json();
-           });
-        } else {
-           await api.updateConfigurableText(key, { content: newContent });
-        }
-      }
-      
-      fetchData();
+      await api.updateConfigurableText(key, { content: newContent }, selectedLang);
+      fetchData(selectedLang);
     } catch (err) {
       console.error(err);
       alert('Errore durante il salvataggio: ' + err.message);
-      throw err;
     }
   };
 
   const getCombinedList = () => {
     const merged = [...KNOWN_KEYS];
+    // Aggiungiamo chiavi extra trovate a DB che non sono nella lista hardcoded
     texts.forEach(dbText => {
       if (!merged.find(k => k.key === dbText.key)) {
         merged.push({ key: dbText.key, label: dbText.key });
@@ -85,37 +68,76 @@ const TextConfigWidget = () => {
       item.key.toLowerCase().includes(filter.toLowerCase())
     );
   };
+  
+  // Helper per determinare lo stile del bottone lingua
+  // Nota: Questo richiederebbe di sapere se PER QUELLA LINGUA esistono testi.
+  // Attualmente l'API restituisce solo i testi della lingua selezionata.
+  // Per fare l'highlight "rosso" se mancano configurazioni, dovremmo avere un endpoint di "status" o caricare tutto.
+  // Implementazione base: Rosso se non è la lingua di default (segnalazione visiva che si sta editando traduzione).
+  const getLangButtonStyle = (lang) => {
+      const isSelected = selectedLang === lang;
+      const baseClass = "px-3 py-1 rounded-md text-sm font-medium transition-colors border";
+      
+      if (isSelected) {
+          return `${baseClass} bg-indigo-600 text-white border-indigo-600`;
+      }
+      return `${baseClass} bg-white text-gray-600 border-gray-300 hover:bg-gray-50`;
+  };
 
-  if (loading) return <div className="flex justify-center p-8" data-testid="loader2"><Loader2 className="animate-spin" /></div>;
+  if (loading && texts.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
   const list = getCombinedList();
 
   return (
     <div className="bg-gray-50 p-6 rounded-xl">
-      <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-bold text-gray-800">Testi Configurabili</h2>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
+        <div>
+            <h2 className="text-xl font-bold text-gray-800">Testi Configurabili</h2>
+            <p className="text-sm text-gray-500 mt-1">Personalizza i contenuti statici per lingua.</p>
+        </div>
+        
+        <div className="flex items-center gap-2 flex-wrap">
+            {languages.map(lang => (
+                <button
+                    key={lang}
+                    onClick={() => setSelectedLang(lang)}
+                    className={getLangButtonStyle(lang)}
+                >
+                    {lang.toUpperCase()}
+                </button>
+            ))}
+        </div>
+      </div>
+
+      <div className="mb-6">
         <input 
           type="text" 
           placeholder="Cerca testo..." 
-          className="border border-gray-300 rounded-md px-3 py-1 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+          className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none"
           value={filter}
           onChange={e => setFilter(e.target.value)}
-          data-testid="search-input"
         />
       </div>
 
       <div className="space-y-4">
         {list.map(item => {
           const dbText = texts.find(t => t.key === item.key);
+          const isConfigured = !!dbText;
+          
           return (
-            <ConfigurableTextEditor
-              key={item.key}
-              textKey={item.key}
-              label={item.label}
-              initialContent={dbText ? dbText.content : ''}
-              onSave={handleUpdateText}
-            />
+            <div key={item.key} className={`border rounded-lg p-4 bg-white ${!isConfigured ? 'border-l-4 border-l-orange-400' : ''}`}>
+                <div className="mb-2 flex justify-between">
+                    <span className="font-semibold text-gray-700">{item.label}</span>
+                    {!isConfigured && <span className="text-xs text-orange-500 font-bold px-2 py-0.5 bg-orange-50 rounded">Non configurato in {selectedLang.toUpperCase()}</span>}
+                </div>
+                <ConfigurableTextEditor
+                  textKey={item.key}
+                  label={null} // Label già renderizzata sopra
+                  initialContent={dbText ? dbText.content : ''}
+                  onSave={handleUpdateText}
+                />
+            </div>
           );
         })}
       </div>
