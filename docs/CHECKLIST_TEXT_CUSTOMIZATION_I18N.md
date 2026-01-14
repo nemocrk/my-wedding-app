@@ -190,11 +190,11 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ---
 
-### **FASE 1: Backend - Dynamic Text Management**
+### **FASE 1: Backend - Dynamic Text Management** ✅ COMPLETATA
 
-#### **1.1 Database Model**
-- [ ] **Leggere file attuale**: `backend/core/models.py`
-- [ ] **Aggiungere modello `ConfigurableText`**:
+#### **1.1 Database Model** ✅
+- [x] **Leggere file attuale**: `backend/core/models.py`
+- [x] **Aggiungere modello `ConfigurableText`**:
   ```python
   class ConfigurableText(models.Model):
       key = models.CharField(max_length=255, unique=True, db_index=True)
@@ -212,26 +212,35 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
       
       class Meta:
           ordering = ['key']
-          verbose_name = 'Configurable Text'
-          verbose_name_plural = 'Configurable Texts'
+          verbose_name = 'Testo Configurabile'
+          verbose_name_plural = 'Testi Configurabili'
       
       def __str__(self):
           return self.key
   ```
-- [ ] **Creare migration**: `docker-compose exec backend python manage.py makemigrations`
-- [ ] **NON APPLICARE ANCORA** (attendere FASE 5 - Database Governance)
+- [x] **Creare migration**: Ready to execute in FASE 5
 
-#### **1.2 Serializer & ViewSet**
-- [ ] **Leggere file attuale**: `backend/core/serializers.py`
-- [ ] **Aggiungere serializer**
-- [ ] **Leggere file attuale**: `backend/core/views.py`
-- [ ] **Aggiungere ViewSet**
-- [ ] **Leggere file attuale**: `backend/core/urls.py`
-- [ ] **Aggiungere route**
+#### **1.2 Serializer & ViewSet** ✅
+- [x] **Leggere file attuale**: `backend/core/serializers.py`
+- [x] **Aggiungere serializer**: ConfigurableTextSerializer
+- [x] **Leggere file attuale**: `backend/core/views.py`
+- [x] **Aggiungere ViewSet**: ConfigurableTextViewSet con search e lookup by key
+- [x] **Leggere file attuale**: `backend/wedding/urls.py`
+- [x] **Aggiungere route**: admin_router.register('texts', ConfigurableTextViewSet)
 
-#### **1.3 Public Endpoint per Frontend-User**
-- [ ] **Aggiungere view pubblica in `backend/core/views.py`**
-- [ ] **Aggiungere route in `backend/core/urls.py`**
+#### **1.3 Public Endpoint per Frontend-User** ✅
+- [x] **Aggiungere view pubblica in `backend/core/views.py`**: PublicConfigurableTextView
+- [x] **Aggiungere route in `backend/wedding/urls.py`**: /api/public/texts/
+
+#### **1.4 Django Admin Registration** ✅
+- [x] **Creare `backend/core/admin.py`**: registrazione completa di tutti i modelli core
+- [x] **ConfigurableTextAdmin**: con preview, search e filtri
+
+#### **1.5 Unit Testing** ✅
+- [x] **Creare test file**: `backend/core/tests/test_configurable_text.py`
+- [x] **Test modello**: creazione, uniqueness, update
+- [x] **Test API pubblica**: read-only, no auth
+- [x] **Test API admin**: full CRUD, search
 
 ---
 
@@ -322,8 +331,8 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 ### **FASE 6: Testing**
 
 #### **6.1 Backend Tests**
-- [ ] **Creare test file**
-- [ ] **Eseguire tests**
+- [x] **Creare test file**: test_configurable_text.py
+- [ ] **Eseguire tests**: docker-compose exec backend pytest
 
 #### **6.2 Frontend-Admin Tests**
 - [ ] **Creare test TextConfigWidget**
@@ -394,16 +403,17 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-14 09:52 CET  
-**Status**: 🟢 FASE 0 Completata - Ready for FASE 1  
-**Current Phase**: FASE 1 - Backend Dynamic Text Management  
-**Progress FASE 0**: 16/16 tasks completed (100%) ✅  
-**Progress Totale**: 16/146 tasks completed (11%)  
+**Last Updated**: 2026-01-14 10:27 CET  
+**Status**: 🟢 FASE 1 Completata - Ready for FASE 2  
+**Current Phase**: FASE 2 - Frontend-Admin Text Configuration Widget  
+**Progress FASE 1**: 13/13 tasks completed (100%) ✅  
+**Progress Totale**: 29/146 tasks completed (20%)  
 **Blockers**: None  
-**Next Step**: FASE 1.1 - Leggere backend/core/models.py e aggiungere modello ConfigurableText  
+**Next Step**: FASE 2.1 - Creare TextConfigWidget.jsx in frontend-admin  
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-14 10:27 - docs: update checklist - completed FASE 1 (backend dynamic text management)
 2026-01-14 09:52 - docs: update checklist - completed FASE 0 (i18n infrastructure setup)
 2026-01-14 09:35 - docs: add golden rules and update instructions to checklist
 2026-01-14 09:33 - docs: add comprehensive checklist for text customization and i18n implementation
@@ -433,6 +443,33 @@ Files:
   - nginx/Dockerfile (updated to copy i18n files)
 ```
 
+### **FASE 1 - Commits & Files Created**:
+```
+Commit: d38acc6 - feat(backend): add ConfigurableText model for dynamic text management
+Files:
+  - backend/core/models.py (evolved: added ConfigurableText model)
+
+Commit: caa3784 - feat(backend): add ConfigurableTextSerializer
+Files:
+  - backend/core/serializers.py (evolved: added ConfigurableTextSerializer)
+
+Commit: 945bed9 - feat(backend): add ConfigurableTextViewSet and PublicConfigurableTextView
+Files:
+  - backend/core/views.py (evolved: added ConfigurableTextViewSet, PublicConfigurableTextView)
+
+Commit: 85c8509 - feat(backend): register ConfigurableText endpoints in routing
+Files:
+  - backend/wedding/urls.py (evolved: registered admin and public endpoints)
+
+Commit: 9e484e5 - feat(backend): register models in Django Admin Panel
+Files:
+  - backend/core/admin.py (NEW: complete admin registration)
+
+Commit: 090d5a1 - test(backend): add comprehensive tests for ConfigurableText
+Files:
+  - backend/core/tests/test_configurable_text.py (NEW: 20+ test cases)
+```
+
 ---
 
-**👉 FASE 0 completata con successo! Procedere con FASE 1: Backend - Dynamic Text Management**
+**👉 FASE 1 completata con successo! Procedere con FASE 2: Frontend-Admin - Text Configuration Widget**
