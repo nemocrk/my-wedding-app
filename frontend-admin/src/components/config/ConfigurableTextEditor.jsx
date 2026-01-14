@@ -3,10 +3,18 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
+import TextAlign from '@tiptap/extension-text-align';
+import Image from '@tiptap/extension-image';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Highlight from '@tiptap/extension-highlight';
 import { 
   Loader2, Save, Bold, Italic, Underline as UnderlineIcon, 
   List, ListOrdered, Link as LinkIcon, Unlink, RotateCcw, RotateCw, 
-  X, Check, Maximize2
+  X, Check, Maximize2, Strikethrough, Code, Highlighter, 
+  AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon,
+  Quote, Subscript as SubIcon, Superscript as SupIcon, Eraser,
+  Heading1, Heading2, Type
 } from 'lucide-react';
 
 const MenuBar = ({ editor }) => {
@@ -28,90 +36,88 @@ const MenuBar = ({ editor }) => {
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
   };
 
+  const addImage = () => {
+    const url = window.prompt('URL Immagine');
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
   // Helper per classi bottone
   const btnClass = (isActive) => 
-    `p-1.5 sm:p-2 rounded hover:bg-gray-200 transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600'}`;
+    `p-1.5 sm:p-2 rounded hover:bg-gray-200 transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600'} disabled:opacity-30 disabled:cursor-not-allowed`;
+
+  const iconSize = "w-4 h-4 sm:w-[18px] sm:h-[18px]";
 
   return (
-    <div className="flex flex-wrap gap-0.5 sm:gap-1 p-2 border-b border-gray-200 bg-gray-50 sticky top-0 z-10 items-center justify-center sm:justify-start">
-      <button
-        onClick={() => editor.chain().focus().toggleBold().run()}
-        disabled={!editor.can().chain().focus().toggleBold().run()}
-        className={btnClass(editor.isActive('bold'))}
-        title="Grassetto"
-      >
-        <Bold size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleItalic().run()}
-        disabled={!editor.can().chain().focus().toggleItalic().run()}
-        className={btnClass(editor.isActive('italic'))}
-        title="Corsivo"
-      >
-        <Italic size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleUnderline().run()}
-        className={btnClass(editor.isActive('underline'))}
-        title="Sottolineato"
-      >
-        <UnderlineIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
-      
-      <div className="w-px h-6 sm:h-8 bg-gray-300 mx-1 self-center" />
+    <div className="flex flex-wrap gap-0.5 sm:gap-1 p-2 border-b border-gray-200 bg-gray-50 sticky top-0 z-10 items-center justify-start">
+      {/* History */}
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1">
+        <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().chain().focus().undo().run()} className={btnClass(false)} title="Annulla"><RotateCcw className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().chain().focus().redo().run()} className={btnClass(false)} title="Ripeti"><RotateCw className={iconSize} /></button>
+      </div>
 
-      <button
-        onClick={() => editor.chain().focus().toggleBulletList().run()}
-        className={btnClass(editor.isActive('bulletList'))}
-        title="Lista Puntata"
-      >
-        <List size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().toggleOrderedList().run()}
-        className={btnClass(editor.isActive('orderedList'))}
-        title="Lista Numerata"
-      >
-        <ListOrdered size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
+      {/* Headings Dropdown (Simplified as buttons for now or we could build a custom dropdown) */}
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 items-center">
+         <button 
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
+            className={btnClass(editor.isActive('heading', { level: 1 }))}
+            title="Heading 1"
+         >
+           <Heading1 className={iconSize} />
+         </button>
+         <button 
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} 
+            className={btnClass(editor.isActive('heading', { level: 2 }))}
+            title="Heading 2"
+         >
+           <Heading2 className={iconSize} />
+         </button>
+         <button 
+            onClick={() => editor.chain().focus().setParagraph().run()} 
+            className={btnClass(editor.isActive('paragraph'))}
+            title="Paragrafo"
+         >
+           <Type className={iconSize} />
+         </button>
+      </div>
 
-      <div className="w-px h-6 sm:h-8 bg-gray-300 mx-1 self-center" />
+      {/* Basic Formatting */}
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
+        <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="Grassetto"><Bold className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="Corsivo"><Italic className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleStrike().run()} disabled={!editor.can().chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="Barrato"><Strikethrough className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleCode().run()} disabled={!editor.can().chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="Codice Inline"><Code className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="Sottolineato"><UnderlineIcon className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="Evidenzia"><Highlighter className={iconSize} /></button>
+      </div>
 
-      <button
-        onClick={setLink}
-        className={btnClass(editor.isActive('link'))}
-        title="Inserisci Link"
-      >
-        <LinkIcon size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
-      <button
-        onClick={() => editor.chain().focus().unsetLink().run()}
-        disabled={!editor.isActive('link')}
-        className="p-1.5 sm:p-2 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
-        title="Rimuovi Link"
-      >
-        <Unlink size={16} className="sm:w-[18px] sm:h-[18px]" />
-      </button>
+      {/* Sub/Sup/Clear */}
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1">
+        <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="Pedice"><SubIcon className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="Apice"><SupIcon className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().unsetAllMarks().run()} className={btnClass(false)} title="Rimuovi Formattazione"><Eraser className={iconSize} /></button>
+      </div>
 
-      <div className="hidden sm:block w-px h-8 bg-gray-300 mx-1 self-center" />
+      {/* Lists & Alignment */}
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
+        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btnClass(editor.isActive('bulletList'))} title="Lista Puntata"><List className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))} title="Lista Numerata"><ListOrdered className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btnClass(editor.isActive('blockquote'))} title="Citazione"><Quote className={iconSize} /></button>
+      </div>
 
-      <div className="flex ml-auto sm:ml-0 gap-0.5 sm:gap-1">
-        <button
-          onClick={() => editor.chain().focus().undo().run()}
-          disabled={!editor.can().chain().focus().undo().run()}
-          className="p-1.5 sm:p-2 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
-          title="Annulla"
-        >
-          <RotateCcw size={16} className="sm:w-[18px] sm:h-[18px]" />
-        </button>
-        <button
-          onClick={() => editor.chain().focus().redo().run()}
-          disabled={!editor.can().chain().focus().redo().run()}
-          className="p-1.5 sm:p-2 rounded text-gray-600 hover:bg-gray-200 disabled:opacity-30 transition-colors"
-          title="Ripeti"
-        >
-          <RotateCw size={16} className="sm:w-[18px] sm:h-[18px]" />
-        </button>
+      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
+        <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="Allinea Sx"><AlignLeft className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="Allinea Centro"><AlignCenter className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().setTextAlign('right').run()} className={btnClass(editor.isActive({ textAlign: 'right' }))} title="Allinea Dx"><AlignRight className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().setTextAlign('justify').run()} className={btnClass(editor.isActive({ textAlign: 'justify' }))} title="Giustifica"><AlignJustify className={iconSize} /></button>
+      </div>
+
+      {/* Insert */}
+      <div className="flex gap-0.5">
+        <button onClick={setLink} className={btnClass(editor.isActive('link'))} title="Link"><LinkIcon className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().unsetLink().run()} disabled={!editor.isActive('link')} className={btnClass(false)} title="Rimuovi Link"><Unlink className={iconSize} /></button>
+        <button onClick={addImage} className={btnClass(false)} title="Inserisci Immagine"><ImageIcon className={iconSize} /></button>
       </div>
     </div>
   );
@@ -124,8 +130,15 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
   // TipTap configuration
   const editor = useEditor({
     extensions: [
-      StarterKit,
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+      }),
       Underline,
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Image.configure({ inline: true }),
+      Subscript,
+      Superscript,
+      Highlight,
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -137,7 +150,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
     editable: true,
     editorProps: {
       attributes: {
-        class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh]',
+        class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
       },
     },
   });
@@ -207,7 +220,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
 
         <div className="p-3 sm:p-4 bg-gray-50/50 min-h-[60px] overflow-hidden">
            <div 
-             className="prose prose-sm max-w-none text-gray-600 break-words"
+             className="prose prose-sm max-w-none text-gray-600 break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
              dangerouslySetInnerHTML={{ __html: initialContent || '<em class="text-gray-400">Nessun contenuto.</em>' }}
            />
         </div>
