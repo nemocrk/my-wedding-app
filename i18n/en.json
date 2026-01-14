@@ -2,26 +2,39 @@
   "common": {
     "loading": "Loading...",
     "yes": "Yes",
-    "no": "No"
+    "no": "No",
+    "error_modal": {
+      "title": "Oops! Something went wrong",
+      "button": "Got it, close",
+      "default_user_message": "We couldn't complete the requested operation.",
+      "hide_technical_data": "Hide technical details",
+      "show_technical_data": "Show error details"
+    }
   },
   "cards": {
     "alloggio": {
-      "title": "Accommodation"
+      "title": "Accommodation",
+      "content_offered_default": "We have reserved accommodation for you. More details coming soon!",
+      "content_general_default": "For accommodation suggestions in the area, contact us!"
     },
     "viaggio": {
-      "title": "Travel"
+      "title": "Travel",
+      "content_default": "Information about transportation and how to reach the venue."
     },
     "evento": {
       "title": "The Event"
     },
     "dresscode": {
-      "title": "Dress Code"
+      "title": "Dress Code",
+      "content_default": "Elegant but comfortable! High heels forbidden on the sand!"
     },
     "bottino": {
-      "title": "Wedding Gift Registry"
+      "title": "Wedding Gift Registry",
+      "content_default": "IBAN details coming soon!"
     },
     "cosaltro": {
-      "title": "What else?"
+      "title": "What else?",
+      "content_default": "Contact us via WhatsApp:"
     },
     "not_available": {
       "title": "Not Available"
@@ -61,6 +74,10 @@
       "declined": {
         "emoji": "😢",
         "text": "We'll toast to you!"
+      },
+      "unknown": {
+        "emoji": "❓",
+        "text": "What's happening?"
       }
     },
     "labels": {
@@ -68,13 +85,16 @@
       "contact_number": "Contact number:",
       "transport_type": "Transport type:",
       "schedule": "Schedule:",
+      "schedule_placeholder": "e.g., Departure 10:00, Arrival 14:00",
       "car": "Car:",
       "summary": "Summary:",
       "guests": "Guests:",
       "phone": "Phone:",
       "transport": "Transport:",
       "accommodation": "Accommodation:",
-      "loading": "Loading..."
+      "loading": "Loading...",
+      "name_placeholder": "First Name",
+      "lastname_placeholder": "Last Name"
     },
     "buttons": {
       "next": "Next →",
@@ -107,6 +127,9 @@
       "declined": "You have declined the invitation.",
       "submitting": "Submitting...",
       "not_specified": "Not specified"
+    },
+    "guests": {
+      "exclude_all_alert": "If you're not attending, please contact us."
     }
   },
   "whatsapp": {
@@ -117,6 +140,18 @@
   },
   "badges": {
     "child": "Child"
+  },
+  "invitation": {
+    "errors": {
+      "missing_params": "Invalid link. Authentication parameters are missing.",
+      "invalid": "Invalid invitation",
+      "connection": "Connection error",
+      "loading_failed": "Error loading invitation"
+    }
+  },
+  "fab": {
+    "aria_label_front": "Flip invitation",
+    "aria_label_back": "Back to cover"
   },
   "admin": {
     "config": {
