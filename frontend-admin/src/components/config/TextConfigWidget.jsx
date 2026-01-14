@@ -9,9 +9,10 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
-  // Parse HTML content to extract style and text if possible, 
-  // but for now we keep it simple as a text area that accepts HTML/Text
-  // In a future iteration, this could be a full Rich Text Editor
+  // Sync state with prop when initialContent changes (e.g. after fetch)
+  useEffect(() => {
+    setContent(initialContent || '');
+  }, [initialContent]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -32,13 +33,14 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
   };
 
   return (
-    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4">
+    <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 mb-4" data-testid={`editor-${textKey}`}>
       <div className="flex justify-between items-center mb-2">
         <label className="text-sm font-medium text-gray-700">{label || textKey}</label>
         {!isEditing ? (
           <button
             onClick={() => setIsEditing(true)}
             className="text-indigo-600 hover:text-indigo-800 text-sm font-medium"
+            data-testid={`edit-${textKey}`}
           >
             Modifica
           </button>
@@ -51,6 +53,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
               }}
               className="text-gray-500 hover:text-gray-700 p-1"
               title="Annulla"
+              data-testid={`cancel-${textKey}`}
             >
               <Undo size={18} />
             </button>
@@ -59,6 +62,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
               disabled={isSaving}
               className="text-green-600 hover:text-green-800 p-1"
               title="Salva"
+              data-testid={`save-${textKey}`}
             >
               {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
             </button>
@@ -72,6 +76,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
              <button 
                onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                className="text-xs bg-gray-100 hover:bg-gray-200 px-2 py-1 rounded border border-gray-300"
+               data-testid={`emoji-btn-${textKey}`}
              >
                😊 Emoji
              </button>
@@ -95,6 +100,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
             value={content}
             onChange={(e) => setContent(e.target.value)}
             className="w-full p-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500 min-h-[100px] font-mono text-sm"
+            data-testid={`textarea-${textKey}`}
           />
         </div>
       ) : (
@@ -114,7 +120,6 @@ const TextConfigWidget = () => {
   const [filter, setFilter] = useState('');
 
   // Pre-defined known keys to ensure they are visible even if not yet in DB
-  // This helps the admin know what can be configured
   const KNOWN_KEYS = [
     { key: 'envelope.front.content', label: 'Busta: Fronte (HTML)' },
     { key: 'card.alloggio.content_offered', label: 'Card Alloggio: Offerto' },
@@ -130,7 +135,6 @@ const TextConfigWidget = () => {
     setLoading(true);
     try {
       const data = await api.fetchConfigurableTexts();
-      // Data is an array of objects { key, content, metadata, ... }
       setTexts(data);
     } catch (err) {
       setError('Errore nel caricamento dei testi.');
@@ -146,57 +150,17 @@ const TextConfigWidget = () => {
 
   const handleUpdateText = async (key, newContent) => {
     try {
-      // Check if text exists
       const existing = texts.find(t => t.key === key);
       
       if (existing) {
-        // Update
         await api.updateConfigurableText(key, { 
           key, 
           content: newContent,
           metadata: existing.metadata 
         });
       } else {
-        // Create (using update endpoint logic usually implies existence, but for robust handling we might need create)
-        // Since our API service `updateConfigurableText` maps to PUT /texts/:key/, 
-        // and our backend ViewSet supports update_or_create logic via PUT if configured, 
-        // OR we should check if we need to call create.
-        
-        // Let's assume standard REST: PUT requires existence usually, but we can try generic update
-        // If 404, we might need to POST.
-        // However, DRF ModelViewSet update usually 404s if not found.
-        
-        // Strategy: Try PUT, if 404, then try create logic via specific API call if we had one.
-        // But `api.createConfigurableText` is not defined in our service yet (only update).
-        // Let's add creation support implicitly or handle it.
-        
-        // Actually, looking at `api.js` we added `updateConfigurableText` (PUT).
-        // If the resource doesn't exist, PUT to a specific ID/Key is technically valid for creation if the server supports it,
-        // but DRF ViewSets by default expect the object to exist for details routes.
-        
-        // Wait, ConfigurableTextViewSet uses `lookup_field = 'key'`.
-        // If I PUT to `/api/admin/texts/new.key/`, DRF tries to `get_object()`. If fail -> 404.
-        // So we need a CREATE method if it doesn't exist.
-        
-        // Let's check `api.js` again... we didn't add `createConfigurableText` explicitly in previous step!
-        // We only added `updateConfigurableText`.
-        // Let's rely on the fact that we should probably verify existence.
-        
-        // WORKAROUND: For now, if it's a known key but not in DB, we need to POST to list endpoint.
-        // But `api.js` needs `createConfigurableText`.
-        
-        // Let's assume for this widget we only edit existing OR we use a special "save" that handles both.
-        // Since I cannot change api.js in this transaction (already passed), I'll implement a try/catch strategy
-        // or assumes the keys are pre-seeded. 
-        // But the requirement says "Database Driven".
-        
-        // Let's assume we will implement `create` logic inside `handleUpdateText` by calling a raw fetch if needed
-        // or assuming the backend handles it. 
-        // Actually, the best way is to check `texts` state.
-        
         const isNew = !texts.find(t => t.key === key);
         if (isNew) {
-           // We need to POST to /texts/
            await fetch('/api/admin/texts/', {
              method: 'POST',
              headers: { 'Content-Type': 'application/json' },
@@ -210,7 +174,6 @@ const TextConfigWidget = () => {
         }
       }
       
-      // Reload
       fetchData();
     } catch (err) {
       console.error(err);
@@ -220,10 +183,7 @@ const TextConfigWidget = () => {
   };
 
   const getCombinedList = () => {
-    // Merge known keys with fetched texts
     const merged = [...KNOWN_KEYS];
-    
-    // Add any text from DB that is NOT in known keys
     texts.forEach(dbText => {
       if (!merged.find(k => k.key === dbText.key)) {
         merged.push({ key: dbText.key, label: dbText.key });
@@ -236,7 +196,7 @@ const TextConfigWidget = () => {
     );
   };
 
-  if (loading) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  if (loading) return <div className="flex justify-center p-8" data-testid="loader2"><Loader2 className="animate-spin" /></div>;
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
   const list = getCombinedList();
@@ -251,6 +211,7 @@ const TextConfigWidget = () => {
           className="border border-gray-300 rounded-md px-3 py-1 text-sm"
           value={filter}
           onChange={e => setFilter(e.target.value)}
+          data-testid="search-input"
         />
       </div>
 
