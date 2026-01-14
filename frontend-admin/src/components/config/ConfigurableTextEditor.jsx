@@ -11,6 +11,8 @@ import Highlight from '@tiptap/extension-highlight';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
+import FontPicker from 'font-picker-react';
+import { autoLoadFontsFromHTML } from '../../utils/fontLoader';
 
 import { 
   Loader2, Save, Bold, Italic, Underline as UnderlineIcon, 
@@ -85,9 +87,20 @@ const Rotation = Mark.create({
 });
 
 const MenuBar = ({ editor }) => {
+  const [activeFontFamily, setActiveFontFamily] = useState('Open Sans');
+
   if (!editor) {
     return null;
   }
+
+  // Sync active font from editor state
+  useEffect(() => {
+    const currentFont = editor.getAttributes('textStyle').fontFamily;
+    if (currentFont) {
+      const cleanFont = currentFont.split(',')[0].replace(/['"`]/g, '').trim();
+      setActiveFontFamily(cleanFont);
+    }
+  }, [editor.getAttributes('textStyle').fontFamily]);
 
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href;
@@ -115,16 +128,6 @@ const MenuBar = ({ editor }) => {
     `p-1.5 sm:p-2 rounded hover:bg-gray-200 transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600'} disabled:opacity-30 disabled:cursor-not-allowed`;
 
   const iconSize = "w-4 h-4 sm:w-[18px] sm:h-[18px]";
-
-  const FONT_FAMILIES = [
-      { label: 'Default', value: '' },
-      { label: 'Sans Serif', value: 'Inter, sans-serif' },
-      { label: 'Serif', value: 'Merriweather, serif' },
-      { label: 'Monospace', value: 'monospace' },
-      { label: 'Cursive', value: 'cursive' },
-      { label: 'Fantasy', value: 'fantasy' },
-      { label: 'Comic Sans', value: '"Comic Sans MS", "Comic Sans", cursive' },
-  ];
 
   const ROTATIONS = [
       { label: '0°', value: 0 },
@@ -171,24 +174,21 @@ const MenuBar = ({ editor }) => {
          </button>
       </div>
 
-      {/* Fonts & Color (New) */}
+      {/* Google Fonts Picker & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
-          {/* Font Family Selector */}
-          <div className="relative group">
-            <select 
-                className="appearance-none bg-transparent hover:bg-gray-200 pl-2 pr-6 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none max-w-[80px] sm:max-w-[100px]"
-                onChange={(e) => {
-                    const val = e.target.value;
-                    if (val) editor.chain().focus().setFontFamily(val).run();
-                    else editor.chain().focus().unsetFontFamily().run();
-                }}
-                value={editor.getAttributes('textStyle').fontFamily || ''}
-            >
-                <option value="" disabled>Font</option>
-                {FONT_FAMILIES.map(font => (
-                    <option key={font.label} value={font.value}>{font.label}</option>
-                ))}
-            </select>
+          {/* Google Fonts Picker */}
+          <div className="relative group" style={{ minWidth: '140px' }}>
+            <FontPicker
+              apiKey="AIzaSyBwEKVw4NvJhVGqNRvNRaVMC6L_FI5YqBw"
+              activeFontFamily={activeFontFamily}
+              onChange={(nextFont) => {
+                const fontFamily = `"${nextFont.family}", ${nextFont.category || 'sans-serif'}`;
+                editor.chain().focus().setFontFamily(fontFamily).run();
+                setActiveFontFamily(nextFont.family);
+              }}
+              limit={500}
+              sort="popularity"
+            />
           </div>
 
           {/* Color Picker */}
@@ -203,10 +203,10 @@ const MenuBar = ({ editor }) => {
           </div>
       </div>
 
-       {/* Rotation (New) */}
+       {/* Rotation */}
        <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
           <div className="relative group flex items-center gap-1">
-             <RefreshCw className={iconSize} className="text-gray-500" />
+             <RefreshCw className="w-4 h-4 text-gray-500" />
              <select 
                 className="appearance-none bg-transparent hover:bg-gray-200 pl-1 pr-4 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none"
                 onChange={(e) => {
@@ -293,7 +293,6 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
             const errorNode = doc.querySelector('parsererror');
             if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
               event.preventDefault();
-              // Insert via command instead of low-level view transaction to ensure history works
               view.props.editor.commands.insertContent(text);
               return true;
             }
@@ -302,6 +301,13 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       }
     },
   });
+
+  // Auto-load fonts from initial content
+  useEffect(() => {
+    if (initialContent) {
+      autoLoadFontsFromHTML(initialContent);
+    }
+  }, [initialContent]);
 
   // Sync content when initialContent changes (and not editing)
   useEffect(() => {
