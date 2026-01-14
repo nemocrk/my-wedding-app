@@ -42,8 +42,7 @@ describe('TextConfigWidget', () => {
 
   it('renders loading state initially', () => {
     render(<TextConfigWidget />);
-    // Should show loader during initial fetch
-    expect(screen.getByTestId('loader2') || screen.getByText(/caricamento/i)).toBeDefined();
+    expect(screen.getByTestId('loader2')).toBeDefined();
   });
 
   it('renders list of configurable texts after loading', async () => {
@@ -53,7 +52,6 @@ describe('TextConfigWidget', () => {
       expect(api.fetchConfigurableTexts).toHaveBeenCalledTimes(1);
     });
 
-    // Should display known keys (predefined) and fetched texts
     expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     expect(screen.getByText(/Card Alloggio: Offerto/i)).toBeInTheDocument();
   });
@@ -76,16 +74,13 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    // Click "Modifica" button
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    // Should show textarea in edit mode
-    const textarea = screen.getAllByRole('textbox')[0];
+    const textarea = screen.getByTestId('textarea-envelope.front.content');
     expect(textarea).toBeInTheDocument();
     expect(textarea.value).toContain('Benvenuti al nostro matrimonio');
 
-    // Edit content
     await user.clear(textarea);
     await user.type(textarea, '<p>Nuovo contenuto</p>');
 
@@ -102,17 +97,14 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    // Enter edit mode
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    // Modify content
-    const textarea = screen.getAllByRole('textbox')[0];
+    const textarea = screen.getByTestId('textarea-envelope.front.content');
     await user.clear(textarea);
     await user.type(textarea, '<p>Testo modificato</p>');
 
-    // Save
-    const saveButton = screen.getAllByTitle(/Salva/i)[0];
+    const saveButton = screen.getByTestId('save-envelope.front.content');
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -124,18 +116,15 @@ describe('TextConfigWidget', () => {
       );
     });
 
-    // Should refetch data after save
     await waitFor(() => {
-      expect(api.fetchConfigurableTexts).toHaveBeenCalledTimes(2); // Initial + after save
+      expect(api.fetchConfigurableTexts).toHaveBeenCalledTimes(2); 
     });
   });
 
   it('handles create for non-existing text', async () => {
     const user = userEvent.setup();
-    // Mock fetch returning empty for a new key
     api.fetchConfigurableTexts.mockResolvedValue([]);
     
-    // Mock global fetch for POST request
     global.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({ key: 'card.evento.content', content: 'New content' }),
@@ -147,14 +136,13 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Card Evento/i)).toBeInTheDocument();
     });
 
-    // Enter edit mode for a key that doesn't exist in DB
-    const editButton = screen.getAllByText(/Modifica/i)[2]; // Card Evento
+    const editButton = screen.getByTestId('edit-card.evento.content');
     await user.click(editButton);
 
-    const textarea = screen.getAllByRole('textbox')[2];
+    const textarea = screen.getByTestId('textarea-card.evento.content');
     await user.type(textarea, '<p>New event content</p>');
 
-    const saveButton = screen.getAllByTitle(/Salva/i)[2];
+    const saveButton = screen.getByTestId('save-card.evento.content');
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -173,7 +161,6 @@ describe('TextConfigWidget', () => {
 
   it('displays error message on fetch failure', async () => {
     api.fetchConfigurableTexts.mockRejectedValue(new Error('Network error'));
-
     render(<TextConfigWidget />);
 
     await waitFor(() => {
@@ -192,10 +179,10 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    const saveButton = screen.getAllByTitle(/Salva/i)[0];
+    const saveButton = screen.getByTestId('save-envelope.front.content');
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -213,15 +200,9 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    // Initially all items visible
-    expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
-    expect(screen.getByText(/Card Alloggio: Offerto/i)).toBeInTheDocument();
-
-    // Type in search box
-    const searchInput = screen.getByPlaceholderText(/Cerca testo/i);
+    const searchInput = screen.getByTestId('search-input');
     await user.type(searchInput, 'alloggio');
 
-    // Only alloggio items should be visible
     expect(screen.queryByText(/Busta: Fronte/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Card Alloggio: Offerto/i)).toBeInTheDocument();
   });
@@ -234,15 +215,12 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    // Enter edit mode
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    // Click emoji button
-    const emojiButton = screen.getAllByText(/😊 Emoji/i)[0];
+    const emojiButton = screen.getByTestId('emoji-btn-envelope.front.content');
     await user.click(emojiButton);
 
-    // Emoji picker should appear
     expect(screen.getByTestId('emoji-picker')).toBeInTheDocument();
   });
 
@@ -254,21 +232,18 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    const textarea = screen.getAllByRole('textbox')[0];
+    const textarea = screen.getByTestId('textarea-envelope.front.content');
     const originalContent = textarea.value;
 
-    // Open emoji picker
-    const emojiButton = screen.getAllByText(/😊 Emoji/i)[0];
+    const emojiButton = screen.getByTestId('emoji-btn-envelope.front.content');
     await user.click(emojiButton);
 
-    // Click mock emoji
     const mockEmojiButton = screen.getByText('Mock Emoji');
     await user.click(mockEmojiButton);
 
-    // Emoji should be added to content
     expect(textarea.value).toBe(originalContent + '😊');
   });
 
@@ -280,26 +255,20 @@ describe('TextConfigWidget', () => {
       expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
     });
 
-    const editButton = screen.getAllByText(/Modifica/i)[0];
+    const editButton = screen.getByTestId('edit-envelope.front.content');
     await user.click(editButton);
 
-    const textarea = screen.getAllByRole('textbox')[0];
-    const originalContent = textarea.value;
-
-    // Modify content
+    const textarea = screen.getByTestId('textarea-envelope.front.content');
     await user.clear(textarea);
     await user.type(textarea, 'Modified but will cancel');
 
-    // Click cancel (Undo button)
-    const cancelButton = screen.getAllByTitle(/Annulla/i)[0];
+    const cancelButton = screen.getByTestId('cancel-envelope.front.content');
     await user.click(cancelButton);
 
-    // Should exit edit mode and restore original
     await waitFor(() => {
-      expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('textarea-envelope.front.content')).not.toBeInTheDocument();
     });
 
-    // Original content should be visible in preview
     expect(screen.getByText(/Benvenuti al nostro matrimonio/i)).toBeInTheDocument();
   });
 });
