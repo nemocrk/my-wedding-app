@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -7,11 +7,13 @@ from django.contrib.sessions.models import Session
 from django.db import transaction
 from .models import (
     Invitation, GlobalConfig, Person, Accommodation, Room, 
-    GuestInteraction, GuestHeatmap, WhatsAppTemplate
+    GuestInteraction, GuestHeatmap, WhatsAppTemplate,
+    ConfigurableText
 )
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
-    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer
+    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer,
+    ConfigurableTextSerializer
 )
 import logging
 import os
@@ -22,6 +24,25 @@ logger = logging.getLogger(__name__)
 # ========================================
 # PUBLIC API (Internet - Session Based)
 # ========================================
+
+class PublicConfigurableTextView(APIView):
+    """
+    Endpoint pubblico per recuperare i testi configurati.
+    Non richiede autenticazione stretta (o può usare la sessione ospite) 
+    per permettere il rendering della Home/Landing page anche prima del login codice.
+    Tuttavia, per sicurezza, restituisce solo una lista filtrata o tutti se non sensibili.
+    Nel nostro caso sono testi UI, quindi pubblici.
+    """
+    def get(self, request):
+        # Cache potential optimization here
+        texts = ConfigurableText.objects.all()
+        # Convertiamo in un dizionario {key: content} per facile uso frontend
+        data = {t.key: t.content for t in texts}
+        
+        # Aggiungiamo anche i metadati se servono per il rendering (es. font custom)
+        # data_full = {t.key: {'content': t.content, 'metadata': t.metadata} for t in texts}
+        
+        return Response(data)
 
 class PublicInvitationAuthView(APIView):
     def post(self, request):
@@ -272,6 +293,17 @@ class PublicLogHeatmapView(APIView):
 # ========================================
 # ADMIN API (Intranet Only)
 # ========================================
+
+class ConfigurableTextViewSet(viewsets.ModelViewSet):
+    """
+    CRUD completo per i testi configurabili.
+    Supporta ricerca per key.
+    """
+    queryset = ConfigurableText.objects.all().order_by('key')
+    serializer_class = ConfigurableTextSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['key', 'content']
+    lookup_field = 'key' # Usa la chiave come identificativo nell'URL (più leggibile di ID)
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
