@@ -1,4 +1,4 @@
-import '../../../test/setup'; // Import i18n mock
+import '../../../test/setup.jsx'; // Import i18n mock (corrected extension)
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Fab from '../Fab';
