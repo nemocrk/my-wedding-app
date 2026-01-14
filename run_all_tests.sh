@@ -28,6 +28,19 @@ fi
 echo "========================================================"
 echo ""
 
+# 0. Static Checks
+echo "--------------------------------------------------------"
+echo "🔍 [0/4] Esecuzione Static Checks (i18n)..."
+echo "--------------------------------------------------------"
+echo "🌐 Verifica allineamento e completezza traduzioni..."
+if [ -f "i18n/scripts/i18n-check.js" ]; then
+    node i18n/scripts/i18n-check.js
+else
+    echo "⚠️  Script i18n-check.js non trovato. Skipping."
+fi
+echo "✅ Static Checks Completati con successo."
+echo ""
+
 # 1. Backend Tests
 echo "--------------------------------------------------------"
 echo "🐍 [1/4] Esecuzione Backend Tests (Pytest)..."
@@ -57,9 +70,9 @@ echo "🧪 Esecuzione Pytest..."
 if [ "$COVERAGE" = true ]; then
     # Installa pytest-cov se manca
     pip install pytest-cov > /dev/null 2>&1
-    pytest -v --cov=core --cov-report=html --cov-report=term
+    pytest -v --color=no --cov=core --cov-report=html --cov-report=term
 else
-    pytest -v
+    pytest -v --color=no
 fi
 
 cd ..
