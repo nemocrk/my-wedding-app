@@ -15,61 +15,104 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => {
     return {
       t: (key) => {
-        // Mock translations (italiano)
+        // Mock translations (italiano) - Aligned with production keys
         const translations = {
           // Common
           'common.loading': 'Caricamento...',
           
           // Cards
           'cards.alloggio.title': 'Alloggio',
+          'cards.alloggio.content_offered_default': '<p>Abbiamo riservato per voi...</p>',
+          'cards.alloggio.content_general_default': '<p>Informazioni sull\'alloggio...</p>',
           'cards.viaggio.title': 'Viaggio',
+          'cards.viaggio.content_default': '<p>Informazioni sul viaggio...</p>',
           'cards.evento.title': 'Evento',
-          'cards.dress_code.title': 'Dress Code',
+          'cards.dresscode.title': 'Dress Code',
+          'cards.dresscode.content_default': '<p>Beach Chic!</p>',
           'cards.bottino.title': 'Bottino',
+          'cards.bottino.content_default': '<p>Lista nozze...</p>',
           'cards.cosaltro.title': "Cos'altro?",
-          'cards.rsvp.title': 'RSVP - Conferma Presenza',
+          'cards.cosaltro.content_default': '<p>Altre informazioni...</p>',
+          'cards.not_available.title': 'Contenuto non disponibile',
           
-          // RSVP Wizard Steps
-          'rsvp.step1.title': 'Conferma Ospiti',
-          'rsvp.step2.title': 'Numero di Contatto',
-          'rsvp.step3.title': 'Come Viaggerai?',
-          'rsvp.step4.title': 'Alloggio',
-          'rsvp.step5.title': 'Conferma Finale',
-          'rsvp.summary.title': 'Il tuo RSVP',
-          'rsvp.summary.already_confirmed': 'Hai già confermato la tua presenza!',
-          'rsvp.summary.modify_button': 'Modifica Risposta',
+          // RSVP Card Status
+          'rsvp.title': 'Conferma Presenza',
+          'rsvp.status.pending.emoji': '⏳',
+          'rsvp.status.pending.text': 'In Attesa',
+          'rsvp.status.confirmed.emoji': '✅',
+          'rsvp.status.confirmed.text': 'Confermato',
+          'rsvp.status.declined.emoji': '❌',
+          'rsvp.status.declined.text': 'Declinato',
+          'rsvp.status.unknown.emoji': '❓',
+          'rsvp.status.unknown.text': 'Sconosciuto',
           
-          // RSVP Step 1 (Guests)
-          'rsvp.step1.child_label': 'Bambino',
-          'rsvp.step1.name_placeholder': 'Nome',
-          'rsvp.step1.surname_placeholder': 'Cognome',
-          'rsvp.step1.error_no_guests': 'Devi confermare almeno un ospite per procedere.',
+          // RSVP Steps
+          'rsvp.steps.summary.title': 'Il tuo RSVP',
+          'rsvp.steps.guests.title': 'Conferma Ospiti',
+          'rsvp.steps.contact.title': 'Numero di Contatto',
+          'rsvp.steps.travel.title': 'Come Viaggerai?',
+          'rsvp.steps.accommodation.title': 'Alloggio',
+          'rsvp.steps.final.title': 'Conferma Finale',
           
-          // RSVP Step 2 (Contact)
-          'rsvp.step2.phone_placeholder': '+39 333 1234567',
-          'rsvp.step2.phone_error': 'Formato non valido. Inserisci un numero italiano valido.',
+          // RSVP Messages
+          'rsvp.messages.already_confirmed': 'Hai già confermato la tua presenza!',
+          'rsvp.messages.declined': 'Hai declinato l\'invito.',
+          'rsvp.messages.not_specified': 'Non specificato',
           
-          // RSVP Step 3 (Travel)
-          'rsvp.step3.transport.traghetto': 'Traghetto',
-          'rsvp.step3.transport.aereo': 'Aereo',
-          'rsvp.step3.car_option': 'Auto al seguito',
-          'rsvp.step3.carpool_option': 'Sarebbe carino organizzarmi un passaggio',
-          'rsvp.step3.schedule_placeholder': 'Partenza/Arrivo',
-          'rsvp.step3.error_incomplete': 'Compila tutti i campi del viaggio per procedere.',
+          // RSVP Labels
+          'rsvp.labels.summary': 'Riepilogo',
+          'rsvp.labels.guests': 'Ospiti',
+          'rsvp.labels.phone': 'Telefono',
+          'rsvp.labels.transport': 'Trasporto',
+          'rsvp.labels.accommodation': 'Alloggio',
+          'rsvp.labels.schedule': 'Orari Viaggio',
+          'rsvp.labels.schedule_placeholder': 'Partenza/Arrivo',
+          'rsvp.labels.car': 'Auto',
+          'rsvp.labels.name_placeholder': 'Nome',
+          'rsvp.labels.lastname_placeholder': 'Cognome',
+          'rsvp.labels.loading': 'Caricamento...',
           
-          // RSVP Step 4 (Accommodation)
-          'rsvp.step4.yes': 'Sì, richiedo l\'alloggio',
-          'rsvp.step4.no': 'No, ho già sistemazione',
+          // RSVP Buttons
+          'rsvp.buttons.next': 'Avanti →',
+          'rsvp.buttons.back': '← Indietro',
+          'rsvp.buttons.modify_answer': 'Modifica Risposta',
+          'rsvp.buttons.confirm_presence': '✔️ Conferma Presenza',
+          'rsvp.buttons.save_changes': 'Salva Modifiche',
+          'rsvp.buttons.decline': 'Declina',
           
-          // RSVP Step 5 (Summary)
-          'rsvp.step5.transport_label': 'Trasporto:',
-          'rsvp.step5.transport.traghetto': 'traghetto',
-          'rsvp.step5.transport.aereo': 'aereo',
-          'rsvp.step5.confirm_button': '✔️ Conferma Presenza',
+          // RSVP Options
+          'rsvp.options.yes': 'Sì',
+          'rsvp.options.no': 'No',
+          'rsvp.options.ferry': 'Traghetto',
+          'rsvp.options.plane': 'Aereo',
+          'rsvp.options.car_with': 'Auto al seguito',
+          'rsvp.options.car_rental': 'Noleggio Auto',
+          'rsvp.options.carpool_interest': 'Sarebbe carino organizzarmi un passaggio',
+          'rsvp.options.accommodation_question': 'Hai bisogno di alloggio?',
+          'rsvp.options.accommodation_yes': 'Sì, richiedo l\'alloggio',
           
-          // Navigation
-          'rsvp.nav.next': 'Avanti →',
-          'rsvp.nav.back': '← Indietro',
+          // RSVP Validation
+          'rsvp.validation.no_guests': 'Devi confermare almeno un ospite per procedere.',
+          'rsvp.validation.phone_required': 'Il numero di telefono è obbligatorio.',
+          'rsvp.validation.phone_invalid': 'Formato non valido. Inserisci un numero italiano valido.',
+          'rsvp.validation.phone_empty': 'Inserisci un numero di telefono.',
+          'rsvp.validation.travel_incomplete': 'Compila tutti i campi del viaggio per procedere.',
+          
+          // RSVP Guests
+          'rsvp.guests.exclude_all_alert': 'Se non partecipi, ti preghiamo di contattarci.',
+          
+          // RSVP Success/Error
+          'rsvp.success_message': 'RSVP inviato con successo!',
+          'rsvp.error_message': 'Errore durante l\'invio del RSVP.',
+          'rsvp.connection_error': 'Errore di connessione. Riprova più tardi.',
+          
+          // Badges
+          'badges.child': 'Bambino',
+          
+          // WhatsApp
+          'whatsapp.default_message': 'Ciao! Sono {guest_name}, ho una domanda per voi...',
+          'whatsapp.alert_modify_confirmed': 'Se hai già confermato e vuoi modificare, contattaci.',
+          'whatsapp.alert_confirm_after_decline': 'Hai declinato. Se vuoi confermare ora, contattaci.',
           
           // FAB
           'fab.aria_label_front': 'Gira invito',
