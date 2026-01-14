@@ -152,8 +152,46 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       attributes: {
         class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
       },
+      // Note: handlePaste is injected via useEffect to access 'editor' instance
     },
   });
+
+  // Inject handlePaste logic to support raw HTML pasting
+  useEffect(() => {
+    if (!editor) return;
+
+    editor.setOptions({
+      editorProps: {
+        attributes: {
+          class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
+        },
+        handlePaste: (view, event, slice) => {
+          const items = event.clipboardData?.items;
+          const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
+
+          // If clipboard ALREADY has text/html (e.g. copied from a browser), let Tiptap handle it normally (it parses HTML).
+          if (hasHtml) return false;
+
+          // If clipboard ONLY has text/plain (e.g. copied from VS Code or Notepad), check if it looks like raw HTML code.
+          const text = event.clipboardData?.getData('text/plain');
+          if (text && /<[a-z][\s\S]*>/i.test(text)) {
+            // Check if it's valid HTML structure
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            const errorNode = doc.querySelector('parsererror');
+            
+            // Only intercept if it looks like meaningful HTML (has tags)
+            if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
+              // Programmatically insert as content (parsing the string as HTML)
+              event.preventDefault();
+              editor.commands.insertContent(text);
+              return true; // We handled the paste
+            }
+          }
+          return false; // Default behavior
+        }
+      }
+    });
+  }, [editor]);
 
   // Sync content when initialContent changes (and not editing)
   useEffect(() => {
