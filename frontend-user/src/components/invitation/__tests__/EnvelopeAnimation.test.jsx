@@ -1,4 +1,4 @@
-import '../../../test/setup'; // Import i18n and TextContext mocks
+import '../../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import EnvelopeAnimation from '../EnvelopeAnimation';
