@@ -116,7 +116,7 @@ export const api = {
     return handleResponse(response);
   },
 
-  // --- CONFIG ---
+  // --- CONFIG (System) ---
   getConfig: async () => {
     const response = await safeFetch(`${API_BASE_URL}/config/`);
     return handleResponse(response);
@@ -125,6 +125,27 @@ export const api = {
   updateConfig: async (data) => {
     const response = await safeFetch(`${API_BASE_URL}/config/`, {
       method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  // --- CONFIGURABLE TEXTS (Dynamic Content) ---
+  fetchConfigurableTexts: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/`);
+    return handleResponse(response);
+  },
+
+  getConfigurableText: async (key) => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/`);
+    return handleResponse(response);
+  },
+
+  updateConfigurableText: async (key, data) => {
+    // Note: 'key' in URL must be handled correctly if it contains dots (backend is configured)
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/`, {
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
