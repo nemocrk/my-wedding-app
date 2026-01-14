@@ -1,278 +1,240 @@
-const API_BASE_URL = 'api/admin';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
-const triggerGlobalError = (error) => {
-  const event = new CustomEvent('api-error', { detail: error });
-  window.dispatchEvent(event);
-};
-
-const handleResponse = async (response) => {
-  let data;
-  const contentType = response.headers.get("content-type");
-  if (contentType && contentType.includes("application/json")) {
-    data = await response.json();
-  } else {
-    data = { detail: await response.text() }; 
-  }
-
-  if (!response.ok) {
-    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
-    const error = new Error(errorMessage);
-    error.status = response.status;
-    triggerGlobalError(error);
-    throw error;
-  }
-  
-  return data;
-};
-
-// Wrapper per fetch
-const safeFetch = async (url, options) => {
-  try {
-    const response = await fetch(url, options);
-    return response;
-  } catch (err) {
-    const error = new Error("Impossibile contattare il server. Controlla la tua connessione.");
-    triggerGlobalError(error);
-    throw error;
-  }
+const getHeaders = () => {
+    const token = localStorage.getItem('authToken');
+    return {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Token ${token}` } : {})
+    };
 };
 
 export const api = {
-  // --- INVITATIONS ---
-  fetchInvitations: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/`);
-    return handleResponse(response);
-  },
+    // Auth
+    login: async (username, password) => {
+        const res = await fetch(`${BASE_URL}/token-auth/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username, password })
+        });
+        if (!res.ok) throw new Error('Login failed');
+        return res.json();
+    },
 
-  getInvitation: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`);
-    return handleResponse(response);
-  },
+    // Dashboard
+    fetchStats: async () => {
+        const res = await fetch(`${BASE_URL}/admin/dashboard/stats/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch stats');
+        return res.json();
+    },
 
-  createInvitation: async (data) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
+    // Global Config
+    fetchGlobalConfig: async () => {
+        const res = await fetch(`${BASE_URL}/admin/config/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch config');
+        return res.json();
+    },
+    updateGlobalConfig: async (data) => {
+        const res = await fetch(`${BASE_URL}/admin/config/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to update config');
+        return res.json();
+    },
 
-  updateInvitation: async (id, data) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
+    // Texts Config
+    fetchConfigurableTexts: async (lang = 'it') => {
+        const url = lang ? `${BASE_URL}/admin/texts/?lang=${lang}` : `${BASE_URL}/admin/texts/`;
+        const res = await fetch(url, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch texts');
+        return res.json();
+    },
+    updateConfigurableText: async (key, data, lang = 'it') => {
+        // Usa PUT con chiave + lang nell'URL non è standard REST se la chiave è nell'URL
+        // Ma il backend ViewSet usa 'key' come lookup.
+        // Passiamo ?lang=xx anche in update per indicare quale variante aggiornare/creare
+        const res = await fetch(`${BASE_URL}/admin/texts/${key}/?lang=${lang}`, {
+            method: 'PUT',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to update text');
+        return res.json();
+    },
 
-  markInvitationAsSent: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/mark-as-sent/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}) // Empty body for action
-    });
-    return handleResponse(response);
-  },
+    // Accommodations
+    fetchAccommodations: async () => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch accommodations');
+        return res.json();
+    },
+    createAccommodation: async (data) => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to create accommodation');
+        return res.json();
+    },
+    updateAccommodation: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/${id}/`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to update accommodation');
+        return res.json();
+    },
+    deleteAccommodation: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/${id}/`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete accommodation');
+        return true;
+    },
+    
+    // Rooms
+    createRoom: async (data) => {
+        const res = await fetch(`${BASE_URL}/admin/rooms/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to create room');
+        return res.json();
+    },
+    deleteRoom: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/rooms/${id}/`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete room');
+        return true;
+    },
 
-  verifyContact: async (id) => {
-    // Uses fallback option (PATCH to set state to not_valid which triggers backend task)
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact_verified: 'not_valid' }),
-    });
-    return handleResponse(response);
-  },
+    // Invitations
+    fetchInvitations: async () => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch invitations');
+        return res.json();
+    },
+    fetchInvitation: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch invitation');
+        return res.json();
+    },
+    createInvitation: async (data) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to create invitation');
+        return res.json();
+    },
+    updateInvitation: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to update invitation');
+        return res.json();
+    },
+    deleteInvitation: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete invitation');
+        return true;
+    },
+    
+    // Actions
+    generateLink: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/generate_link/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to generate link');
+        return res.json();
+    },
+    markAsSent: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/mark-as-sent/`, {
+            method: 'POST',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to mark as sent');
+        return res.json();
+    },
+    
+    // Assignment
+    fetchUnassignedInvitations: async () => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/unassigned-invitations/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch unassigned invitations');
+        return res.json();
+    },
+    assignGuest: async (guestId, roomId) => {
+        // Implementazione specifica se esiste endpoint dedicato, 
+        // altrimenti si usa updateInvitation o updateGuest (se esistesse)
+        // Per ora simuliamo logica complessa via custom action o patch
+        throw new Error("Not implemented directly - use drag&drop specific endpoint");
+    },
+    unassignGuest: async (guestId) => {
+        throw new Error("Not implemented");
+    },
+    autoAssign: async (strategy, resetPrevious = false) => {
+        const res = await fetch(`${BASE_URL}/admin/accommodations/auto-assign/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify({ strategy, reset_previous: resetPrevious })
+        });
+        if (!res.ok) throw new Error('Auto-assign failed');
+        return res.json();
+    },
 
-  deleteInvitation: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/`, {
-      method: 'DELETE',
-    });
-    if (response.status === 204) return true;
-    return handleResponse(response);
-  },
-  
-  generateInvitationLink: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/generate_link/`);
-    return handleResponse(response);
-  },
-
-  // --- ANALYTICS ---
-  getInvitationHeatmaps: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/heatmaps/`);
-    return handleResponse(response);
-  },
-
-  getInvitationInteractions: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/${id}/interactions/`);
-    return handleResponse(response);
-  },
-
-  // --- DASHBOARD ---
-  getDashboardStats: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/dashboard/stats/`);
-    return handleResponse(response);
-  },
-
-  // --- CONFIG (System) ---
-  getConfig: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/config/`);
-    return handleResponse(response);
-  },
-
-  updateConfig: async (data) => {
-    const response = await safeFetch(`${API_BASE_URL}/config/`, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  // --- CONFIGURABLE TEXTS (Dynamic Content) ---
-  fetchConfigurableTexts: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/texts/`);
-    return handleResponse(response);
-  },
-
-  getConfigurableText: async (key) => {
-    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/`);
-    return handleResponse(response);
-  },
-
-  updateConfigurableText: async (key, data) => {
-    // Note: 'key' in URL must be handled correctly if it contains dots (backend is configured)
-    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  // --- ACCOMMODATIONS ---
-  fetchAccommodations: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/accommodations/`);
-    return handleResponse(response);
-  },
-
-  createAccommodation: async (data) => {
-    const response = await safeFetch(`${API_BASE_URL}/accommodations/`, {
-      method: 'POST', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-
-  updateAccommodation: async (id, data) => {
-    const response = await safeFetch(`${API_BASE_URL}/accommodations/${id}/`, {
-      method: 'PUT', 
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data),
-    });
-    return handleResponse(response);
-  },
-  
-  deleteAccommodation: async (id) => {
-    const response = await safeFetch(`${API_BASE_URL}/accommodations/${id}/`, { method: 'DELETE' });
-    if (response.status === 204) return true;
-    return handleResponse(response);
-  },
-
-  triggerAutoAssign: async (resetPrevious = false, strategy = 'SIMULATION') => {
-    const response = await safeFetch(`${API_BASE_URL}/accommodations/auto-assign/`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        reset_previous: resetPrevious,
-        strategy: strategy 
-      })
-    });
-    return handleResponse(response);
-  },
-
-  fetchUnassignedInvitations: async () => {
-      const response = await safeFetch(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
-      return handleResponse(response);
-  },
-
-  // --- WHATSAPP INTEGRATION ---
-  getWhatsAppStatus: async (type) => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/status/`);
-    return handleResponse(response);
-  },
-
-  refreshWhatsAppSession: async (type) => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/refresh/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    });
-    return handleResponse(response);
-  },
-
-  logoutWhatsAppSession: async (type) => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/logout/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    });
-    return handleResponse(response);
-  },
-
-  sendWhatsAppTest: async (type) => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${type}/test/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-    });
-    return handleResponse(response);
-  },
-
-  // --- WHATSAPP QUEUE ---
-  fetchWhatsAppQueue: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`);
-    return handleResponse(response);
-  },
-
-  enqueueWhatsAppMessage: async (data) => {
-    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    });
-    return handleResponse(response);
-  },
-
-  // --- WHATSAPP TEMPLATES ---
-  fetchWhatsAppTemplates: async () => {
-      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`);
-      return handleResponse(response);
-  },
-
-  createWhatsAppTemplate: async (data) => {
-      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-      });
-      return handleResponse(response);
-  },
-
-  updateWhatsAppTemplate: async (id, data) => {
-      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-      });
-      return handleResponse(response);
-  },
-
-  deleteWhatsAppTemplate: async (id) => {
-      const response = await safeFetch(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
-          method: 'DELETE'
-      });
-      if (response.status === 204) return true;
-      return handleResponse(response);
-  }
+    // Analytics
+    fetchInvitationHeatmaps: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/heatmaps/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch heatmaps');
+        return res.json();
+    },
+    fetchInvitationInteractions: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/invitations/${id}/interactions/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch interactions');
+        return res.json();
+    },
+    
+    // WhatsApp
+    fetchWhatsAppTemplates: async () => {
+        const res = await fetch(`${BASE_URL}/admin/whatsapp/templates/`, { headers: getHeaders() });
+        if (!res.ok) throw new Error('Failed to fetch templates');
+        return res.json();
+    },
+    createWhatsAppTemplate: async (data) => {
+        const res = await fetch(`${BASE_URL}/admin/whatsapp/templates/`, {
+            method: 'POST',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to create template');
+        return res.json();
+    },
+    updateWhatsAppTemplate: async (id, data) => {
+        const res = await fetch(`${BASE_URL}/admin/whatsapp/templates/${id}/`, {
+            method: 'PATCH',
+            headers: getHeaders(),
+            body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('Failed to update template');
+        return res.json();
+    },
+    deleteWhatsAppTemplate: async (id) => {
+        const res = await fetch(`${BASE_URL}/admin/whatsapp/templates/${id}/`, {
+            method: 'DELETE',
+            headers: getHeaders()
+        });
+        if (!res.ok) throw new Error('Failed to delete template');
+        return true;
+    }
 };
