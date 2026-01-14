@@ -13,11 +13,26 @@ export const TextProvider = ({ children }) => {
       try {
         setLoading(true);
         const data = await textConfigService.getAllTexts();
+        
+        // Handle both array response and DRF paginated response { results: [...] }
+        let textArray = [];
+        if (Array.isArray(data)) {
+          textArray = data;
+        } else if (data && Array.isArray(data.results)) {
+          // DRF pagination response
+          textArray = data.results;
+        } else {
+          console.warn('Unexpected response format from textConfigService.getAllTexts():', data);
+          // If it's an empty object or unexpected format, use empty array
+          textArray = [];
+        }
+        
         // Convert array to object map for O(1) access: { 'key': 'content', ... }
-        const textMap = data.reduce((acc, item) => {
+        const textMap = textArray.reduce((acc, item) => {
           acc[item.key] = item.content;
           return acc;
         }, {});
+        
         setTexts(textMap);
       } catch (err) {
         console.error('Failed to load configurable texts', err);
