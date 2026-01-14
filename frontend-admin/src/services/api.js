@@ -133,28 +133,33 @@ export const api = {
 
   // --- PUBLIC UTILS (i18n) ---
   fetchLanguages: async () => {
-    // New helper: calls public endpoint to get available languages
     const response = await safeFetch('/api/public/languages/');
     return handleResponse(response);
   },
 
   // --- CONFIGURABLE TEXTS (Dynamic Content) ---
   fetchConfigurableTexts: async (lang = null) => {
-    // Updated: supports lang filter
     const url = lang ? `${API_BASE_URL}/texts/?lang=${lang}` : `${API_BASE_URL}/texts/`;
     const response = await safeFetch(url);
     return handleResponse(response);
   },
 
   getConfigurableText: async (key, lang = 'it') => {
-    // Updated: specific text by key+lang
     const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`);
+    return handleResponse(response);
+  },
+  
+  createConfigurableText: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
     return handleResponse(response);
   },
 
   updateConfigurableText: async (key, data, lang = 'it') => {
-    // Updated: PUT with query param to target specific language variant
-    // Note: 'key' in URL must be handled correctly if it contains dots (backend is configured)
+    // Note: 'key' in URL must be handled correctly if it contains dots
     const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
