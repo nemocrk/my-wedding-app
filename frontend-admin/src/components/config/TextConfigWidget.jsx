@@ -68,7 +68,21 @@ const TextConfigWidget = () => {
 
   const handleUpdateText = async (key, newContent) => {
     try {
-      await api.updateConfigurableText(key, { content: newContent }, selectedLang);
+      // Logic restoration: Check if exists to decide PUT vs POST
+      const existing = texts.find(t => t.key === key);
+      
+      if (existing) {
+        await api.updateConfigurableText(key, { content: newContent }, selectedLang);
+      } else {
+        // Create new entry explicitly using POST
+        await api.createConfigurableText({
+            key: key,
+            language: selectedLang,
+            content: newContent
+        });
+      }
+      
+      // Refresh list
       fetchData(selectedLang);
     } catch (err) {
       console.error(err);
