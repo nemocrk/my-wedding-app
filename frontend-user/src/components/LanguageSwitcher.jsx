@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Globe, Check } from 'lucide-react';
+import { Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 
-const LanguageSwitcher = () => {
+const LanguageFab = () => {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
@@ -28,57 +28,112 @@ const LanguageSwitcher = () => {
   }, []);
 
   const languages = [
-    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-    { code: 'en', label: 'English', flag: '🇬🇧' }
+    { code: 'it', label: 'IT', flag: '🇮🇹' },
+    { code: 'en', label: 'EN', flag: '🇬🇧' }
   ];
 
+  // Animation variants for the speed dial list
+  const containerVariants = {
+    closed: { 
+      transition: { staggerChildren: 0.05, staggerDirection: -1 }
+    },
+    open: { 
+      transition: { staggerChildren: 0.07, delayChildren: 0.1 }
+    }
+  };
+
+  const itemVariants = {
+    closed: { y: -10, opacity: 0, scale: 0.5 },
+    open: { y: 0, opacity: 1, scale: 1 }
+  };
+
   return (
-    <div className="fixed top-4 right-4 z-50" ref={containerRef}>
+    <div 
+      ref={containerRef}
+      style={{
+        position: 'fixed',
+        top: '20px',
+        right: '20px',
+        zIndex: 2000,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '10px'
+      }}
+    >
+      {/* MAIN FAB BUTTON */}
       <motion.button
+        onClick={() => setIsOpen(!isOpen)}
+        className="lang-main-fab"
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={() => setIsOpen(!isOpen)}
-        className={`w-12 h-12 rounded-full shadow-lg flex items-center justify-center backdrop-blur-sm transition-colors ${
-            isOpen ? 'bg-white text-pink-600' : 'bg-white/80 text-gray-600 hover:bg-white'
-        }`}
+        style={{
+          width: '50px',
+          height: '50px',
+          borderRadius: '50%',
+          backgroundColor: isOpen ? '#fce7f3' : 'rgba(255, 255, 255, 0.85)', // pink-100 or glass
+          backdropFilter: 'blur(8px)',
+          border: '1px solid rgba(255, 255, 255, 0.5)',
+          boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'pointer',
+          color: isOpen ? '#db2777' : '#4b5563', // pink-600 or gray-600
+          zIndex: 2002,
+          position: 'relative'
+        }}
         aria-label="Change Language"
       >
         <Globe size={24} strokeWidth={1.5} />
       </motion.button>
 
-      <AnimatePresence>
-        {isOpen && (
-          <motion.div
-            initial={{ opacity: 0, y: -10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2 }}
-            className="absolute top-14 right-0 bg-white rounded-xl shadow-xl overflow-hidden min-w-[160px] border border-gray-100"
+      {/* DROPDOWN ITEMS (SPEED DIAL) */}
+      <motion.div
+        initial="closed"
+        animate={isOpen ? "open" : "closed"}
+        variants={containerVariants}
+        style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '10px',
+          alignItems: 'center',
+          position: 'absolute',
+          top: '60px', // Below the main button
+          pointerEvents: isOpen ? 'auto' : 'none'
+        }}
+      >
+        {languages.map((lang) => (
+          <motion.button
+            key={lang.code}
+            variants={itemVariants}
+            onClick={() => changeLanguage(lang.code)}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              backgroundColor: currentLang === lang.code ? '#db2777' : 'rgba(255, 255, 255, 0.95)',
+              color: currentLang === lang.code ? 'white' : '#1f2937',
+              border: 'none',
+              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1.2rem',
+              cursor: 'pointer',
+              fontWeight: 'bold'
+            }}
           >
-            <div className="py-1">
-              {languages.map((lang) => (
-                <button
-                  key={lang.code}
-                  onClick={() => changeLanguage(lang.code)}
-                  className={`w-full px-4 py-3 flex items-center justify-between text-left transition-colors ${
-                    currentLang === lang.code
-                      ? 'bg-pink-50 text-pink-700 font-medium'
-                      : 'text-gray-700 hover:bg-gray-50'
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xl leading-none">{lang.flag}</span>
-                    <span className="text-sm">{lang.label}</span>
-                  </div>
-                  {currentLang === lang.code && <Check size={16} className="text-pink-600" />}
-                </button>
-              ))}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+             <span style={{ fontSize: '1.2rem' }}>{lang.flag}</span>
+          </motion.button>
+        ))}
+      </motion.div>
     </div>
   );
 };
 
-export default LanguageSwitcher;
+export default LanguageFab;
