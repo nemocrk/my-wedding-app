@@ -67,22 +67,26 @@ class ConfigurableText(models.Model):
     """
     Gestisce contenuti lunghi e specifici del matrimonio configurabili da frontend-admin.
     Supporta HTML con inline styles per personalizzazione font/size/color.
+    Supporta multi-lingua (i18n).
     
     Esempi chiavi:
     - envelope.front.content: Front della busta
     - card.alloggio.content_offered: Contenuto card Alloggio (offerto)
-    - card.alloggio.content_not_offered: Contenuto card Alloggio (non offerto)
-    - card.viaggio.content: Contenuto card Viaggio
-    - card.dresscode.content: Contenuto card Dress Code
-    - card.bottino.content: Contenuto card Bottino di Nozze
-    - card.cosaltro.content: Contenuto card Cos'altro?
+    ...
     """
     key = models.CharField(
         max_length=255, 
-        unique=True, 
         db_index=True,
-        help_text="Chiave univoca per identificare il testo (es. 'envelope.front.content')",
+        help_text="Chiave per identificare il testo (es. 'envelope.front.content')",
         verbose_name="Chiave"
+    )
+    
+    language = models.CharField(
+        max_length=5,
+        default='it',
+        db_index=True,
+        help_text="Codice lingua ISO (it, en, es...)",
+        verbose_name="Lingua"
     )
     
     content = models.TextField(
@@ -102,12 +106,13 @@ class ConfigurableText(models.Model):
     updated_at = models.DateTimeField(auto_now=True, verbose_name="Aggiornato il")
     
     class Meta:
-        ordering = ['key']
+        ordering = ['key', 'language']
         verbose_name = 'Testo Configurabile'
         verbose_name_plural = 'Testi Configurabili'
+        unique_together = ['key', 'language']
     
     def __str__(self):
-        return self.key
+        return f"{self.key} ({self.language})"
 
 
 class Accommodation(models.Model):
