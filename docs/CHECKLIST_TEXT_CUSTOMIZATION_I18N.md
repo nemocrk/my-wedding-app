@@ -1,5 +1,133 @@
 # 📋 CHECKLIST: Text Customization & i18n Implementation
 
+---
+
+## 📜 **COME UTILIZZARE QUESTA CHECKLIST**
+
+### **🔴 REGOLE AUREE (Inviolabili)**
+
+#### **1. NON ESEGUIRE MAI COMMIT SU BRANCH MAIN**
+Tutti i commit devono essere fatti sul branch `feat/text-customization-i18n`. Il merge su `main` avverrà solo dopo il completamento della FASE 8 e approval della Pull Request.
+
+#### **2. PRIMA DI OGNI `create_or_update_file`, ESEGUIRE `get_file_contents`**
+Per garantire che le modifiche partano dall'ultima versione committata ed evitare sovrascritture accidentali, **SEMPRE**:
+1. Leggere il file esistente con `get_file_contents`
+2. Analizzare il contenuto attuale
+3. Applicare le modifiche evolutive (non riscrivere da zero)
+4. Eseguire `create_or_update_file` con il SHA ottenuto dal `get_file_contents`
+
+**Esempio**:
+```bash
+# 1. PRIMA: Leggi il file
+get_file_contents(path="backend/core/models.py", ref="feat/text-customization-i18n")
+
+# 2. Analizza il contenuto e prepara le modifiche
+
+# 3. POI: Aggiorna il file con il SHA ottenuto
+create_or_update_file(
+  path="backend/core/models.py", 
+  sha="<SHA_FROM_GET_FILE_CONTENTS>",
+  content="<EVOLVED_CONTENT>"
+)
+```
+
+#### **3. ASSESSMENT TOTALE DEL REPOSITORY**
+Prima di proporre qualsiasi soluzione, eseguire una scansione completa dei file interessati. Devi analizzare:
+- File visibili (es. `models.py`, `views.py`, `LetterContent.jsx`)
+- File nascosti (es. `.env.example`, `.gitignore`, file in `.github`)
+- Dockerfile e configurazioni Nginx se la modifica tocca il deployment
+
+#### **4. EVOLUZIONE INCREMENTALE (Strictly No-Rewriting)**
+È **VIETATO** riscrivere moduli esistenti da zero. Devi:
+1. Leggere la versione attuale committata nel repository
+2. Evolvere quel codice specifico mantenendo lo stile e la coerenza del progetto
+3. Applicare solo le modifiche necessarie (approccio evolutivo, non rivoluzionario)
+
+**Esempio CORRETTO**:
+```python
+# File esistente: backend/core/models.py
+class Invitation(models.Model):
+    # ... codice esistente ...
+
+# AGGIUNGERE alla fine del file:
+class ConfigurableText(models.Model):
+    # ... nuovo modello ...
+```
+
+**Esempio SBAGLIATO** (❌):
+```python
+# Riscrivere TUTTO il file da zero
+from django.db import models
+
+# Reinventare tutti i modelli esistenti
+class Invitation(models.Model):
+    # ... riscrittura completa ...
+```
+
+#### **5. ALLINEAMENTO DOCUMENTALE & MARKDOWN**
+Ogni modifica al codice **DEVE** aggiornare simultaneamente:
+- I file Markdown nella cartella `/docs` (es. `docs/02-DATABASE.md`, `docs/06-BACKEND-CORE.md`)
+- Il `README.md` principale o `AI_RULES.md` se cambiano i protocolli
+- La documentazione delle API (es. `docs/API_DOCUMENTATION.md`) se modifichi gli endpoint
+- **QUESTA CHECKLIST** (vedi sezione "Aggiornamento Checklist" sotto)
+
+---
+
+### **🔄 AGGIORNAMENTO DELLA CHECKLIST**
+
+#### **Quando Aggiornare Questa Checklist**
+Questa checklist **DEVE** essere aggiornata ad ogni completamento di attività:
+
+**✅ Ad ogni task completato**:
+1. Spuntare il checkbox corrispondente: `- [ ]` → `- [x]`
+2. Aggiornare la sezione "Status" in fondo al documento
+3. Aggiornare la data "Last Updated"
+4. Committare l'aggiornamento con messaggio descrittivo:
+   ```bash
+   git commit -m "docs: update checklist - completed FASE X.Y <task_description>"
+   ```
+
+**📅 Formato del commit per aggiornamento checklist**:
+```
+docs: update checklist - completed FASE <N>.<M> <breve_descrizione>
+
+Examples:
+- docs: update checklist - completed FASE 0.1 i18n JSON structure
+- docs: update checklist - completed FASE 1.1 ConfigurableText model
+- docs: update checklist - completed FASE 3.3 LetterContent refactoring
+```
+
+**🔍 Tracking Progress**:
+Utilizza la sezione "Status" in fondo al documento per tracciare:
+- Fase corrente
+- Task completati / Totali
+- Blocchi o issues
+- Prossimo step
+
+**Esempio di Status Update**:
+```markdown
+**Last Updated**: 2026-01-14 15:30 CET
+**Status**: 🟢 In Progress - FASE 0
+**Progress**: 4/4 tasks completed in FASE 0.1
+**Current Task**: FASE 0.2 - Setup i18n in Frontend-User
+**Blockers**: None
+**Next Step**: Install react-i18next dependencies
+```
+
+---
+
+### **🧑‍💻 CHI LAVORA SU QUESTA FEATURE**
+
+Questa checklist è la **guida operativa condivisa** per chiunque lavori su questa feature:
+- **Sviluppatori**: seguire l'ordine delle fasi e spuntare i task completati
+- **Reviewer**: verificare che ogni task completato sia effettivamente implementato e testato
+- **PM/Lead**: monitorare il progress e identificare blocchi
+
+**Principio chiave**: 
+> "La checklist è sempre sincronizzata con lo stato reale del codice. Se un task è spuntato, il codice corrispondente è committato e funzionante."
+
+---
+
 ## 🎯 **STRATEGIA ARCHITETTURALE**
 
 ### **Divisione delle Responsabilità**
@@ -1193,6 +1321,21 @@ La feature è considerata completa quando:
 
 ---
 
-**Last Updated**: 2026-01-14  
-**Status**: 🟡 In Progress (Branch created)  
-**Next Step**: FASE 0 - i18n Infrastructure Setup
+## 📊 **STATUS TRACKING**
+
+**Last Updated**: 2026-01-14 09:35 CET  
+**Status**: 🟡 Ready to Start  
+**Current Phase**: FASE 0 - i18n Infrastructure Setup  
+**Progress**: 0/146 tasks completed (0%)  
+**Blockers**: None  
+**Next Step**: FASE 0.1 - Creare struttura file i18n (/i18n/it.json, /i18n/en.json)  
+
+### **Commit History per Checklist Updates**:
+```
+2026-01-14 09:35 - docs: add golden rules and update instructions to checklist
+2026-01-14 09:33 - docs: add comprehensive checklist for text customization and i18n implementation
+```
+
+---
+
+**👉 Per iniziare l'implementazione, partire dalla FASE 0.1 e seguire rigorosamente le Regole Auree.**
