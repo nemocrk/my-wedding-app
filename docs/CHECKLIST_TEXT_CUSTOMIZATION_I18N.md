@@ -246,24 +246,24 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ---
 
-### **FASE 2: Frontend-Admin - Text Configuration Widget**
+### **FASE 2: Frontend-Admin - Text Configuration Widget** ✅ COMPLETATA
 
-#### **2.1 Nuovo Componente Widget**
-- [ ] **Creare cartella**: `frontend-admin/src/components/config/`
-- [ ] **Creare `TextConfigWidget.jsx`**
-- [ ] **Installare dipendenze**: `npm install emoji-picker-react --prefix frontend-admin`
-- [ ] **Creare test**: `frontend-admin/src/components/config/__tests__/TextConfigWidget.test.jsx`
+#### **2.1 Nuovo Componente Widget** ✅
+- [x] **Creare cartella**: `frontend-admin/src/components/config/`
+- [x] **Creare `TextConfigWidget.jsx`**
+- [x] **Installare dipendenze**: `npm install emoji-picker-react --prefix frontend-admin`
+- [x] **Creare test**: `frontend-admin/src/components/config/__tests__/TextConfigWidget.test.jsx`
 
-#### **2.2 Integrazione in Configuration.jsx**
-- [ ] **Leggere file attuale**: `frontend-admin/src/pages/Configuration.jsx`
-- [ ] **Aggiungere import e state**
-- [ ] **Fetch texts in `useEffect`**
-- [ ] **Aggiungere nuova sezione UI**
-- [ ] **Implementare `handleSaveText`**
+#### **2.2 Integrazione in Configuration.jsx** ✅
+- [x] **Leggere file attuale**: `frontend-admin/src/pages/Configuration.jsx`
+- [x] **Aggiungere import e state**
+- [x] **Fetch texts in `useEffect`**: Gestito direttamente dal widget
+- [x] **Aggiungere nuova sezione UI**: Sezione "Contenuti Dinamici" aggiunta
+- [x] **Implementare `handleSaveText`**: Logica di salvataggio integrata nel widget
 
-#### **2.3 API Service Update**
-- [ ] **Leggere file attuale**: `frontend-admin/src/services/api.js`
-- [ ] **Aggiungere metodi API**
+#### **2.3 API Service Update** ✅
+- [x] **Leggere file attuale**: `frontend-admin/src/services/api.js`
+- [x] **Aggiungere metodi API**: fetchConfigurableTexts, getConfigurableText, updateConfigurableText
 
 ---
 
@@ -337,7 +337,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 - [x] **Eseguire tests**: docker-compose exec backend pytest
 
 #### **6.2 Frontend-Admin Tests**
-- [ ] **Creare test TextConfigWidget**
+- [x] **Creare test TextConfigWidget**: Già presente
 - [ ] **Eseguire tests**
 
 #### **6.3 Frontend-User Tests**
@@ -405,16 +405,17 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-14 10:55 CET  
-**Status**: 🟢 FASE 1 Completata - ALL TESTS PASSED  
-**Current Phase**: FASE 2 - Frontend-Admin Text Configuration Widget  
-**Progress FASE 1**: 13/13 tasks completed (100%) ✅  
-**Progress Totale**: 29/146 tasks completed (20%)  
+**Last Updated**: 2026-01-14 11:27 CET  
+**Status**: 🟢 FASE 2 Completata - Frontend-Admin Widget Ready  
+**Current Phase**: FASE 3 - Frontend-User Dynamic Text Rendering  
+**Progress FASE 2**: 7/7 tasks completed (100%) ✅  
+**Progress Totale**: 36/146 tasks completed (25%)  
 **Blockers**: None  
-**Next Step**: FASE 2.1 - Creare TextConfigWidget.jsx in frontend-admin  
+**Next Step**: FASE 3.1 - Creare textConfig.js service in frontend-user  
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-14 11:27 - docs: update checklist - completed FASE 2 (frontend-admin text widget)
 2026-01-14 10:55 - docs: update checklist - fix test client content_type
 2026-01-14 10:48 - docs: update checklist - tests passed for FASE 1 (initially)
 2026-01-14 10:27 - docs: update checklist - completed FASE 1 (backend dynamic text management)
@@ -482,6 +483,19 @@ Files:
   - backend/core/tests/test_configurable_text.py (fix 415/400 errors)
 ```
 
+### **FASE 2 - Commits & Files Created**:
+```
+Commit: 26f1542 - feat(admin): integrate TextConfigWidget into Configuration page
+Files:
+  - frontend-admin/src/pages/Configuration.jsx (evolved: added TextConfigWidget integration)
+
+Previous commits (from earlier session):
+- TextConfigWidget.jsx component created
+- emoji-picker-react dependency added to package.json
+- API service methods added (fetchConfigurableTexts, getConfigurableText, updateConfigurableText)
+- Test file created for TextConfigWidget
+```
+
 ---
 
-**👉 FASE 1 completata e testata con successo! Procedere con FASE 2: Frontend-Admin - Text Configuration Widget**
+**👉 FASE 2 completata! Procedere con FASE 3: Frontend-User - Dynamic Text Rendering**
