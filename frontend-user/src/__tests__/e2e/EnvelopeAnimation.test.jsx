@@ -1,4 +1,4 @@
-import '../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
+import '../../test/setup.jsx'; // Import i18n and TextContext mocks
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -21,7 +21,8 @@ vi.mock('../../services/api', () => ({
 describe('Envelope Animation E2E', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    // Nota: Rimosso vi.useFakeTimers() globale perché blocca waitFor() nel primo test
+    // Lo attiviamo solo dove serve specificamente
 
     // Setup default successful auth
     api.authenticateInvitation.mockResolvedValue({
@@ -32,20 +33,19 @@ describe('Envelope Animation E2E', () => {
         status: 'created',
         guests: [],
         letter_content: "Caro Ospite,\nSiamo lieti di invitarti.",
-        // Required by LetterContent (avoid crash)
         whatsapp: {
           whatsapp_number: '+39 333 1111111',
           whatsapp_name: 'Sposi'
         },
-        // Needed by LetterContent default flow
         accommodation_offered: false,
         accommodation_requested: false,
         phone_number: ''
       }
     });
 
-    // Simulate URL params
-    window.history.pushState({}, 'Test Page', '/?code=test&token=test');
+    // Simulate URL params robustly
+    const url = new URL('http://localhost/?code=test&token=test');
+    window.history.replaceState({}, 'Test Page', url.toString());
   });
 
   afterEach(() => {
@@ -60,23 +60,20 @@ describe('Envelope Animation E2E', () => {
     );
 
     // Wait for authentication to complete (loading state)
+    // Senza fake timers, waitFor usa i timer reali e funziona correttamente
     await waitFor(() => {
       expect(api.authenticateInvitation).toHaveBeenCalledWith('test', 'test');
     });
 
-    // Let InvitationPage authenticate and start animation sequence
-    await act(async () => {
-      // Flush all pending promises
-      await vi.runAllTimersAsync();
-    });
-
     // We verify the app rendered successfully by checking the envelope is present
-    // The envelope wrapper should be in the document
     const envelopeContainer = document.querySelector('.envelope-container-3d');
     expect(envelopeContainer).toBeInTheDocument();
   });
 
   it('should reveal invitation content after interaction', async () => {
+    // Enable fake timers ONLY for this test to control long animations
+    vi.useFakeTimers();
+
     // Setup userEvent with fake timers
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
@@ -86,26 +83,40 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // Wait for authentication to complete
-    await waitFor(() => {
-      expect(api.authenticateInvitation).toHaveBeenCalled();
-    });
-
-    // Let all promises resolve
+    // Poiché ora usiamo fake timers, dobbiamo far avanzare il tempo affinché waitFor funzioni
+    // O semplicemente aspettare la chiamata API (che è un microtask promise, non timer)
+    // Ma waitFor stesso usa timer per il polling.
+    // Usiamo un approccio misto: avanziamo i timer mentre aspettiamo
+    
+    // Auth call should happen immediately (promise)
     await act(async () => {
-      await vi.runAllTimersAsync();
+        // Run pending promises
+        await Promise.resolve(); 
+    });
+    
+    // Verifichiamo che l'auth sia partita
+    expect(api.authenticateInvitation).toHaveBeenCalled();
+
+    // Advance time to complete any initial loading animation or state updates
+    await act(async () => {
+      vi.runAllTimers();
     });
 
+    // Verify envelope is ready
+    const envelopeContainer = document.querySelector('.envelope-container-3d');
+    expect(envelopeContainer).toBeInTheDocument();
+
+    // Interaction would be simulating a click on the envelope (if implemented in E2E)
+    // But here we rely on the component's auto-sequence or user interaction logic.
+    // Assuming the test logic originally intended to simulate the sequence duration:
+    
     // Advance time to complete the FULL animation sequence (handleSequence ~5.4s)
     await act(async () => {
       vi.advanceTimersByTime(7000);
     });
 
     // Verify LetterContent is visible in the extracted letter
+    // Se l'animazione ha completato, il contenuto dovrebbe essere renderizzato
     expect(screen.getByText(/Domenico & Loredana/i)).toBeInTheDocument();
-    // "Caro Ospite" is inside the "Evento" card, so it's not visible initially
-    
-    // Use user var to avoid lint/unused warnings in some setups
-    expect(user).toBeDefined();
   }, 15_000);
 });
