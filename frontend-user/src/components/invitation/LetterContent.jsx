@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom';
 import { motion, useAnimation, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import { useConfigurableText } from '../../contexts/TextContext';
 import { submitRSVP } from '../../services/api';
 import { logInteraction, heatmapTracker } from '../../services/analytics';
 import Fab from '../common/Fab';
@@ -17,6 +19,8 @@ import { FaWhatsapp } from 'react-icons/fa';
 import PaperModal from '../layout/PaperModal';
 
 const LetterContent = ({ data }) => {
+  const { t } = useTranslation();
+  const { getText } = useConfigurableText();
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
   const [accommodationRequested, setAccommodationRequested] = useState(data.accommodation_requested || false);
   const [transferRequested, setTransferRequested] = useState(data.transfer_requested || false);
@@ -66,7 +70,7 @@ const LetterContent = ({ data }) => {
   };
 
   const getWaLink = (number, customMessage) => {
-    const msg = customMessage || `Ciao, sono ${data.name}, avrei una domanda!`;
+    const msg = customMessage || t('whatsapp.default_message', { name: data.name });
     safeLogInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
@@ -78,25 +82,25 @@ const LetterContent = ({ data }) => {
       case 'sent':
       case 'read':
       case 'pending':
-        return { emoji: '⏳', text: 'Cosa aspetti? Conferma subito!', className: 'rsvp-card-status-pending' };
+        return { emoji: '⏳', text: t('rsvp.status.pending'), className: 'rsvp-card-status-pending' };
       case 'confirmed':
-        return { emoji: '🎉', text: 'Magnifico! Ti aspettiamo!!!', className: 'rsvp-card-status-confirmed' };
+        return { emoji: '🎉', text: t('rsvp.status.confirmed'), className: 'rsvp-card-status-confirmed' };
       case 'declined':
-        return { emoji: '😢', text: 'Faremo un brindisi per te!', className: 'rsvp-card-status-declined' };
+        return { emoji: '😢', text: t('rsvp.status.declined'), className: 'rsvp-card-status-declined' };
       default:
-        return { emoji: '❓', text: 'Conferma o declina', className: 'rsvp-card-status-pending' };
+        return { emoji: '❓', text: t('rsvp.status.unknown'), className: 'rsvp-card-status-pending' };
     }
   };
 
   // Wizard Step Titles
   const getStepTitle = () => {
     switch(rsvpStep) {
-      case 'summary': return 'Il tuo RSVP';
-      case 'guests': return 'Conferma Ospiti';
-      case 'contact': return 'Numero di Contatto';
-      case 'travel': return 'Come Viaggerai?';
-      case 'accommodation': return 'Alloggio';
-      case 'final': return 'Conferma Finale';
+      case 'summary': return t('rsvp.steps.summary');
+      case 'guests': return t('rsvp.steps.guests');
+      case 'contact': return t('rsvp.steps.contact');
+      case 'travel': return t('rsvp.steps.travel');
+      case 'accommodation': return t('rsvp.steps.accommodation');
+      case 'final': return t('rsvp.steps.final');
       default: return 'RSVP';
     }
   };
@@ -167,12 +171,12 @@ const LetterContent = ({ data }) => {
   const handleSaveEditPhone = () => {
     const trimmed = tempPhoneNumber.trim();
     if (!trimmed) {
-      setPhoneError('Il numero di telefono è obbligatorio');
+      setPhoneError(t('validation.phone_required'));
       safeLogInteraction('phone_validation_error', { error: 'empty' });
       return;
     }
     if (!validatePhoneNumber(trimmed)) {
-      setPhoneError('Formato non valido (es: +39 333 1234567)');
+      setPhoneError(t('validation.phone_invalid'));
       safeLogInteraction('phone_validation_error', { error: 'invalid_format' });
       return;
     }
@@ -199,7 +203,7 @@ const LetterContent = ({ data }) => {
     if (rsvpStep === 'guests') {
       editingGuestIndex !== null && handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
-        setMessage({ type: 'error', text: 'Devi confermare almeno un ospite!' });
+        setMessage({ type: 'error', text: t('validation.at_least_one_guest') });
         safeLogInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
         return;
       }
@@ -213,12 +217,12 @@ const LetterContent = ({ data }) => {
         if(editingPhone){
           const trimmed = tempPhoneNumber.trim();
           if (!trimmed) {
-            setMessage({ type: 'error', text: 'Il numero di telefono è obbligatorio'});
+            setMessage({ type: 'error', text: t('validation.phone_required')});
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
             return;
           }
           if (!validatePhoneNumber(trimmed)) {
-            setMessage({ type: 'error', text: 'Formato non valido (es: +39 333 1234567)'});
+            setMessage({ type: 'error', text: t('validation.phone_invalid')});
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
             return;
           }
@@ -226,7 +230,7 @@ const LetterContent = ({ data }) => {
           setEditingPhone(false);
           setPhoneError('');
         } else {
-          setMessage({ type: 'error', text: 'Inserisci un numero di telefono valido!' });
+          setMessage({ type: 'error', text: t('validation.phone_missing') });
           safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_missing' });
           return;
         }
@@ -238,7 +242,7 @@ const LetterContent = ({ data }) => {
     // Validazione Step Travel
     else if (rsvpStep === 'travel') {
       if (!travelInfo.transport_type || !travelInfo.schedule) {
-        setMessage({ type: 'error', text: 'Compila tutti i campi del viaggio!' });
+        setMessage({ type: 'error', text: t('validation.travel_fields_required') });
         safeLogInteraction('rsvp_validation_error', { 
           step: 'travel', 
           error: 'incomplete_fields',
@@ -326,15 +330,15 @@ const LetterContent = ({ data }) => {
         });
         setRsvpStatus(status);
         setRsvpStep('summary');
-        setMessage({ type: 'success', text: result.message });
+        setMessage({ type: 'success', text: result.message || t('rsvp.success_message') });
       } else {
         safeLogInteraction('rsvp_submit_error', { status, error: result.message });
-        setMessage({ type: 'error', text: result.message });
+        setMessage({ type: 'error', text: result.message || t('rsvp.error_message') });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
       safeLogInteraction('rsvp_submit_exception', { status, error: err.message });
-      setMessage({ type: 'error', text: err.message || 'Errore di connessione.' });
+      setMessage({ type: 'error', text: err.message || t('rsvp.connection_error') });
     } finally {
       setSubmitting(false);
     }
@@ -580,12 +584,12 @@ const LetterContent = ({ data }) => {
   };
 
   const cards = {
-    'alloggio': { title: 'Alloggio', icon: homeIcon },
-    'viaggio': { title: 'Viaggio', icon: vanIcon },
-    'evento': { title: 'Evento', icon: archIcon },
-    'dresscode': { title: 'Dress Code', icon: dressIcon },
-    'bottino': { title: 'Bottino di nozze', icon: chestIcon },
-    'cosaltro': { title: "Cos'altro?", icon: questionsIcon },
+    'alloggio': { title: t('cards.alloggio.title'), icon: homeIcon },
+    'viaggio': { title: t('cards.viaggio.title'), icon: vanIcon },
+    'evento': { title: t('cards.evento.title'), icon: archIcon },
+    'dresscode': { title: t('cards.dresscode.title'), icon: dressIcon },
+    'bottino': { title: t('cards.bottino.title'), icon: chestIcon },
+    'cosaltro': { title: t('cards.cosaltro.title'), icon: questionsIcon },
   };
 
   const renderCardContent = (cardId) => {
@@ -593,53 +597,56 @@ const LetterContent = ({ data }) => {
       case 'alloggio':
         return (
           <div className="expanded-content">
-            <h2>Alloggio</h2>
+            <h2>{t('cards.alloggio.title')}</h2>
             {data.accommodation_offered ? (
-              <p>Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!</p>
+               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_offered', t('cards.alloggio.content_offered_default')) }} />
             ) : (
-              <p>Per suggerimenti sugli alloggi nella zona, contattateci!</p>
+               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_general', t('cards.alloggio.content_general_default')) }} />
             )}
           </div>
         );
       case 'viaggio':
         return (
           <div className="expanded-content">
-            <h2>Viaggio</h2>
-            <p>Informazioni sui trasporti e come raggiungere la location.</p>
+            <h2>{t('cards.viaggio.title')}</h2>
+             <div dangerouslySetInnerHTML={{ __html: getText('card.viaggio.content', t('cards.viaggio.content_default')) }} />
           </div>
         );
       case 'evento':
         return (
           <div className="expanded-content">
-            <h2>L'Evento</h2>
+            <h2>{t('cards.evento.title')}</h2>
+            {/* Se esiste un testo configurabile 'card.evento.content', usalo, altrimenti usa data.letter_content come fallback */}
             <div className="letter-body">
-              {data.letter_content.split('\n').map((line, idx) => (
-                <p key={idx}>{line}</p>
-              ))}
+              {getText('card.evento.content') ? (
+                 <div dangerouslySetInnerHTML={{ __html: getText('card.evento.content') }} />
+              ) : (
+                data.letter_content.split('\n').map((line, idx) => (
+                  <p key={idx}>{line}</p>
+                ))
+              )}
             </div>
           </div>
         );
       case 'dresscode':
         return (
           <div className="expanded-content">
-            <h2>Dress Code</h2>
-            <p><strong>Beach Chic</strong></p>
-            <p>Eleganti ma comodi! Tacchi a spillo vietati sulla sabbia!</p>
+            <h2>{t('cards.dresscode.title')}</h2>
+            <div dangerouslySetInnerHTML={{ __html: getText('card.dresscode.content', t('cards.dresscode.content_default')) }} />
           </div>
         );
       case 'bottino':
         return (
           <div className="expanded-content">
-            <h2>Lista Nozze</h2>
-            <p>La vostra presenza è il regalo più grande!</p>
-            <p><em>Dettagli IBAN in arrivo!</em></p>
+            <h2>{t('cards.bottino.title')}</h2>
+            <div dangerouslySetInnerHTML={{ __html: getText('card.bottino.content', t('cards.bottino.content_default')) }} />
           </div>
         );
       case 'cosaltro':
         return (
           <div className="expanded-content">
-            <h2>Hai domande?</h2>
-            <p>Contattaci via WhatsApp:</p>
+            <h2>{t('cards.cosaltro.title')}</h2>
+            <div dangerouslySetInnerHTML={{ __html: getText('card.cosaltro.content', t('cards.cosaltro.content_default')) }} />
             {(waNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
@@ -668,21 +675,21 @@ const LetterContent = ({ data }) => {
                 <div className="summary-status">
                   <p className="summary-text">
                     {rsvpStatus === 'confirmed'
-                      ? 'Hai già confermato la tua presenza!'
-                      : 'Hai declinato l\'invito.'}
+                      ? t('rsvp.summary.confirmed_text')
+                      : t('rsvp.summary.declined_text')}
                   </p>
                   <div className="final-summary">
-                    <h3>Riepilogo:</h3>
-                    <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                    <p><strong>Telefono:</strong> {phoneNumber}</p>
-                    <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    <h3>{t('rsvp.summary.title')}</h3>
+                    <p><strong>{t('rsvp.summary.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>{t('rsvp.summary.phone')}:</strong> {phoneNumber}</p>
+                    <p><strong>{t('rsvp.summary.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                     {data.accommodation_offered && (
-                      <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                      <p><strong>{t('rsvp.summary.accommodation')}:</strong> {accommodationChoice ? t('common.yes') : t('common.no')}</p>
                     )}
                   </div>
                 </div>
                 <button className="rsvp-next-btn" onClick={handleStartModify}>
-                  Modifica Risposta
+                  {t('rsvp.buttons.modify')}
                 </button>
               </div>
             )}
@@ -691,7 +698,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'guests' && (
               <>
                 <div className="guests-list-editable">
-                  <h3>Ospiti invitati:</h3>
+                  <h3>{t('rsvp.guests.title')}</h3>
                   <ul>
                     {data.guests.map((guest, idx) => {
                       const displayGuest = getGuestDisplayName(idx);
@@ -708,7 +715,7 @@ const LetterContent = ({ data }) => {
                                   className="guest-input"
                                   value={tempFirstName}
                                   onChange={(e) => setTempFirstName(e.target.value)}
-                                  placeholder="Nome"
+                                  placeholder={t('rsvp.guests.name_placeholder')}
                                   autoFocus
                                 />
                                 <input
@@ -716,7 +723,7 @@ const LetterContent = ({ data }) => {
                                   className="guest-input"
                                   value={tempLastName}
                                   onChange={(e) => setTempLastName(e.target.value)}
-                                  placeholder="Cognome"
+                                  placeholder={t('rsvp.guests.lastname_placeholder')}
                                 />
                               </div>
                               <div className="guest-actions">
@@ -728,7 +735,7 @@ const LetterContent = ({ data }) => {
                             <>
                               <span className="guest-name">
                                 {displayGuest.first_name} {displayGuest.last_name || ''}
-                                {displayGuest.is_child && <span className="badge">Bambino</span>}
+                                {displayGuest.is_child && <span className="badge">{t('rsvp.guests.child_badge')}</span>}
                               </span>
                               <div className="guest-actions">
                                 <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
@@ -745,7 +752,7 @@ const LetterContent = ({ data }) => {
                 {/* Alert se già confermato e vuole escludere tutti */}
                 {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
                   <div className="whatsapp-alert">
-                    <p>⚠️ Hai già confermato! Per modificare contatta gli sposi:</p>
+                    <p>{t('rsvp.guests.exclude_all_alert')}</p>
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
@@ -764,7 +771,7 @@ const LetterContent = ({ data }) => {
                   </div>
                 )}
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -773,7 +780,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'contact' && (
               <>
                 <div className="phone-field">
-                  <h3>Numero di contatto:</h3>
+                  <h3>{t('rsvp.contact.title')}</h3>
                   {editingPhone ? (
                     <>
                       <div className="phone-edit-container">
@@ -794,14 +801,14 @@ const LetterContent = ({ data }) => {
                     </>
                   ) : (
                     <div className="phone-display">
-                      <span className="phone-number">{phoneNumber || 'Non specificato'}</span>
+                      <span className="phone-number">{phoneNumber || t('rsvp.contact.not_specified')}</span>
                       <button className="guest-action-btn edit" onClick={handleStartEditPhone}>✏️</button>
                     </div>
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -810,7 +817,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'travel' && (
               <>
                 <div className="travel-form">
-                  <h3>Tipo di trasporto:</h3>
+                  <h3>{t('rsvp.travel.transport_title')}</h3>
                   <label className="radio-label">
                     <input
                       type="radio"
@@ -819,7 +826,7 @@ const LetterContent = ({ data }) => {
                       checked={travelInfo.transport_type === 'traghetto'}
                       onChange={(e) => handleTransportChange(e.target.value)}
                     />
-                    Traghetto
+                    {t('rsvp.travel.ferry')}
                   </label>
                   <label className="radio-label">
                     <input
@@ -829,43 +836,43 @@ const LetterContent = ({ data }) => {
                       checked={travelInfo.transport_type === 'aereo'}
                       onChange={(e) => handleTransportChange(e.target.value)}
                     />
-                    Aereo
+                    {t('rsvp.travel.plane')}
                   </label>
 
-                  <h3>Orari:</h3>
+                  <h3>{t('rsvp.travel.schedule_title')}</h3>
                   <input
                     type="text"
                     className="travel-input"
                     value={travelInfo.schedule}
                     onChange={(e) => handleScheduleChange(e.target.value)}
                     onBlur={handleScheduleBlur}
-                    placeholder="es: Partenza 10:00, Arrivo 14:00"
+                    placeholder={t('rsvp.travel.schedule_placeholder')}
                   />
 
                   {travelInfo.transport_type === 'traghetto' && (
                     <>
-                      <h3>Auto:</h3>
+                      <h3>{t('rsvp.travel.car_title')}</h3>
                       <label className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'proprio'}
                           onChange={(e) => handleCarOptionChange(e.target.checked ? 'proprio' : 'none')}
                         />
-                        Auto al seguito
+                        {t('rsvp.travel.car_own')}
                       </label>
                     </>
                   )}
 
                   {travelInfo.transport_type === 'aereo' && (
                     <>
-                      <h3>Noleggio Auto:</h3>
+                      <h3>{t('rsvp.travel.rental_title')}</h3>
                       <label className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'noleggio'}
                           onChange={(e) => handleCarOptionChange(e.target.checked ? 'noleggio' : 'none')}
                         />
-                        Noleggerò un'auto
+                        {t('rsvp.travel.car_rental')}
                       </label>
                     </>
                   )}
@@ -877,13 +884,13 @@ const LetterContent = ({ data }) => {
                         checked={travelInfo.carpool_interest}
                         onChange={(e) => handleCarpoolChange(e.target.checked)}
                       />
-                      Sarebbe carino organizzarmi con qualcun altro
+                      {t('rsvp.travel.carpool_interest')}
                     </label>
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -892,20 +899,20 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'accommodation' && data.accommodation_offered && (
               <>
                 <div className="accommodation-form">
-                  <h3>Vuoi richiedere l'alloggio per la notte tra il 19 e il 20 settembre?</h3>
+                  <h3>{t('rsvp.accommodation.question')}</h3>
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={accommodationChoice}
                       onChange={(e) => handleAccommodationChange(e.target.checked)}
                     />
-                    Sì, richiedo l'alloggio
+                    {t('rsvp.accommodation.yes_option')}
                   </label>
 
                   {/* Alert se modifica da accepted a rejected */}
                   {accommodationRequested && !accommodationChoice && (
                     <div className="whatsapp-alert">
-                      <p>⚠️ Avevi già accettato! Contatta gli sposi:</p>
+                      <p>{t('rsvp.accommodation.changed_mind_alert')}</p>
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
@@ -925,8 +932,8 @@ const LetterContent = ({ data }) => {
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>Avanti →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
               </>
             )}
 
@@ -934,19 +941,19 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'final' && (
               <>
                 <div className="final-summary">
-                  <h3>Riepilogo:</h3>
-                  <p><strong>Ospiti:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                  <p><strong>Telefono:</strong> {phoneNumber}</p>
-                  <p><strong>Trasporto:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                  <h3>{t('rsvp.summary.title')}</h3>
+                  <p><strong>{t('rsvp.summary.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                  <p><strong>{t('rsvp.summary.phone')}:</strong> {phoneNumber}</p>
+                  <p><strong>{t('rsvp.summary.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                   {data.accommodation_offered && (
-                    <p><strong>Alloggio:</strong> {accommodationChoice ? 'Sì' : 'No'}</p>
+                    <p><strong>{t('rsvp.summary.accommodation')}:</strong> {accommodationChoice ? t('common.yes') : t('common.no')}</p>
                   )}
                 </div>
 
                 {/* Alert se già confermato e declina */}
                 {rsvpStatus === 'declined' ? (
                   <div className="whatsapp-alert">
-                    <p>⚠️ Se vuoi confermare dopo aver declinato, contatta gli sposi:</p>
+                    <p>{t('rsvp.final.decline_alert')}</p>
                     {(waNumber) && (
                       <div className="whatsapp-section">
                         <div className="whatsapp-buttons">
@@ -968,29 +975,29 @@ const LetterContent = ({ data }) => {
                 (<div className="button-group">
                   {!['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
-                      {submitting ? 'Invio...' : '✔️ Conferma Presenza'}
+                      {submitting ? t('common.loading') : `✔️ ${t('rsvp.buttons.confirm')}`}
                     </button>
                   )}
                   {['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
-                      {submitting ? 'Invio...' : '💾 Salva Modifiche'}
+                      {submitting ? t('common.loading') : `💾 ${t('rsvp.buttons.save')}`}
                     </button>
                   )}
                   {rsvpStatus !== 'declined' && (
                     <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
-                      {submitting ? 'Invio...' : '❌ Declina'}
+                      {submitting ? t('common.loading') : `❌ ${t('rsvp.buttons.decline')}`}
                     </button>
                   )}
                 </div>
                 )}
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← Indietro</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
           </div>
         );
       default:
-        return <p>Contenuto non disponibile</p>;
+        return <p>{t('common.not_available')}</p>;
     }
   };
 
@@ -1005,12 +1012,15 @@ const LetterContent = ({ data }) => {
             <div className="flip-card-front" style={{ backgroundImage: `url(${letterBg})` }}>
               <div className="front-content">
                 <div className="spacer-top"></div>
-                <h1 className="text-names">Domenico & Loredana</h1>
-                <p className="text-wit">Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!</p>
-                <p className="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
-                <p className="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
-                <div className="text-details" style={{ fontWeight: 500 }}>Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
-                <p className="text-dress">Dress Code: Beach Chic<br /><span style={{ fontSize: '0.7em', display: 'block', marginTop: '5px', opacity: 0.8 }}>(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
+                {/* Dynamically render Front Face content from configurable text */}
+                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content', `
+                    <h1 class="text-names">Domenico & Loredana</h1>
+                    <p class="text-wit">Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!</p>
+                    <p class="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
+                    <p class="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
+                    <div class="text-details" style="font-weight: 500">Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
+                    <p class="text-dress">Dress Code: Beach Chic<br /><span style="font-size: 0.7em; display: block; margin-top: 5px; opacity: 0.8">(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
+                `) }} />
               </div>
               <motion.div className="wax-seal" initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} animate={sealControls} style={{ position: 'absolute', bottom: '1rem', left: '1rem', width: '36%', maxWidth: '90px', zIndex: 30, pointerEvents: 'none' }}>
                 <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
@@ -1034,7 +1044,7 @@ const LetterContent = ({ data }) => {
                   <motion.div onClick={() => handleCardClick('rsvp')} style={{ cursor: 'pointer', gridColumn: '1 / -1' }} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <PaperModal>
                       <div className="info-card rsvp-card">
-                        <h3 className="card-title">RSVP - Conferma Presenza</h3>
+                        <h3 className="card-title">RSVP - {t('rsvp.title')}</h3>
                         <div className={`rsvp-card-status ${rsvpCardStatus.className}`}>
                           <span className="rsvp-card-emoji">{rsvpCardStatus.emoji}</span>
                           <span className="rsvp-card-text">{rsvpCardStatus.text}</span>
