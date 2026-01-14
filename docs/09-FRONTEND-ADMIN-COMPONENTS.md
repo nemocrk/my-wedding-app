@@ -45,6 +45,14 @@ Pannello "Live Settings" per il Singleton `GlobalConfig`.
 - **Form Gestione**: Permette di modificare prezzi e testi senza redeploy.
 - **Anteprima Lettera**: Renderizza in tempo reale il template della lettera di benvenuto.
 
+#### Configurazione Testi (TextConfigWidget)
+Permette la modifica dei testi statici mostrati agli utenti (buste, card, messaggi).
+- **Rich Text Editor**: Integrato tramite **TipTap**.
+  - Componente: `ConfigurableTextEditor.jsx`.
+  - Funzionalità WYSIWYG: Grassetto, Corsivo, Liste, Link.
+  - Output: HTML sanitizzato e pulito, compatibile con il rendering backend/frontend esistente.
+- **Fallback**: Pre-carica chiavi note (es. `envelope.front.content`) anche se non presenti nel DB.
+
 #### Sezioni Disponibili
 1. **Gestione Costi Unitari**: Prezzi per pasti, alloggi e transfer.
 2. **Testi e Comunicazioni**: Template personalizzabile per la lettera di invito.
@@ -73,6 +81,8 @@ L'interfaccia è costruita su componenti modulari stylati con Tailwind.
     - `Sidebar`: Navigazione fissa visibile solo da **XL (1280px)** in su.
     - `Header`: Burger menu visibile fino a XL.
 - **Analytics**: Wrapper per i grafici Recharts per garantire consistenza di colori e font.
+- **Config**: 
+    - `ConfigurableTextEditor`: Editor WYSIWYG basato su TipTap per la modifica dei testi configurabili.
 - **WhatsApp**: 
     - `QueueTable`: Componente per la visualizzazione dei messaggi in coda.
     - **Responsive Layout**: Dual view con switch a **LG (1024px)**.
