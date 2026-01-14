@@ -23,8 +23,8 @@
   "cards": {
     "alloggio": {
       "title": "Alloggio",
-      "content_offered": "Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!",
-      "content_general": "Per suggerimenti sugli alloggi nella zona, contattateci!"
+      "content_offered_default": "Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!",
+      "content_general_default": "Per suggerimenti sugli alloggi nella zona, contattateci!"
     },
     "viaggio": {
       "title": "Viaggio",

@@ -6,8 +6,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configurazione
-const LOCALES_DIR = path.join(__dirname, '../public/locales');
-const SRC_DIR = path.join(__dirname, '../src');
+const LOCALES_DIR = path.join(__dirname, '../');
+const SRC_DIR = path.join(__dirname, '../../frontend-user/src');
 
 // Colori per output console
 const colors = {
@@ -38,8 +38,8 @@ function flattenObject(obj, prefix = '') {
 async function checkKeyAlignment() {
     console.log(`${colors.cyan}=== CONTROLLO ALLINEAMENTO CHIAVI (IT <-> EN) ===${colors.reset}\n`);
 
-    const itPath = path.join(LOCALES_DIR, 'it/translation.json');
-    const enPath = path.join(LOCALES_DIR, 'en/translation.json');
+    const itPath = path.join(LOCALES_DIR, 'it.json');
+    const enPath = path.join(LOCALES_DIR, 'en.json');
 
     if (!fs.existsSync(itPath) || !fs.existsSync(enPath)) {
         console.error(`${colors.red}ERRORE: File di traduzione non trovati in ${LOCALES_DIR}${colors.reset}`);
@@ -52,8 +52,11 @@ async function checkKeyAlignment() {
         const itJson = JSON.parse(fs.readFileSync(itPath, 'utf8'));
         const enJson = JSON.parse(fs.readFileSync(enPath, 'utf8'));
 
-        const itKeys = Object.keys(flattenObject(itJson));
-        const enKeys = Object.keys(flattenObject(enJson));
+        const it = flattenObject(itJson);
+        const en = flattenObject(enJson);
+
+        const itKeys = Object.keys(it);
+        const enKeys = Object.keys(en);
 
         const missingInEn = itKeys.filter(k => !enKeys.includes(k));
         const missingInIt = enKeys.filter(k => !itKeys.includes(k));
@@ -63,11 +66,11 @@ async function checkKeyAlignment() {
         } else {
             if (missingInEn.length > 0) {
                 console.log(`${colors.yellow}⚠ Chiavi presenti in IT ma mancanti in EN (${missingInEn.length}):${colors.reset}`);
-                missingInEn.forEach(k => console.log(`  - ${k}`));
+                missingInEn.forEach(k => console.log(`  - ${k} ==> Valore IT: "${it[k]}"`));
             }
             if (missingInIt.length > 0) {
                 console.log(`${colors.yellow}⚠ Chiavi presenti in EN ma mancanti in IT (${missingInIt.length}):${colors.reset}`);
-                missingInIt.forEach(k => console.log(`  - ${k}`));
+                missingInIt.forEach(k => console.log(`  - ${k} ==> Valore EN: "${en[k]}"`));
             }
         }
     } catch (err) {
@@ -99,7 +102,7 @@ function getAllFiles(dirPath, arrayOfFiles) {
 async function findMissingKeys() {
     console.log(`${colors.cyan}=== RICERCA CHIAVI MANCANTI NEL CODICE ===${colors.reset}\n`);
 
-    const itPath = path.join(LOCALES_DIR, 'it/translation.json');
+    const itPath = path.join(LOCALES_DIR, 'it.json');
     if (!fs.existsSync(itPath)) {
         console.error("File IT non trovato, impossibile verificare.");
         return;
@@ -134,8 +137,8 @@ async function findMissingKeys() {
     }
     
     // Optional: Check unused keys
-    // const unusedKeys = definedKeys.filter(k => !usedKeys.has(k));
-    // console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length})`);
+    const unusedKeys = definedKeys.filter(k => !usedKeys.has(k));
+    console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length})`);
 }
 
 // ==========================================

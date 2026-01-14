@@ -330,15 +330,15 @@ const LetterContent = ({ data }) => {
         });
         setRsvpStatus(status);
         setRsvpStep('summary');
-        setMessage({ type: 'success', text: result.message || t('rsvp.success_message') });
+        setMessage({ type: 'success', text: result.message });
       } else {
         safeLogInteraction('rsvp_submit_error', { status, error: result.message });
-        setMessage({ type: 'error', text: result.message || t('rsvp.error_message') });
+        setMessage({ type: 'error', text: result.message });
       }
     } catch (err) {
       console.error('Errore RSVP:', err);
       safeLogInteraction('rsvp_submit_exception', { status, error: err.message });
-      setMessage({ type: 'error', text: err.message || t('rsvp.connection_error') });
+      setMessage({ type: 'error', text: err.message || t('invitation.errors.connection') });
     } finally {
       setSubmitting(false);
     }
@@ -752,7 +752,7 @@ const LetterContent = ({ data }) => {
                 {/* Alert se già confermato e vuole escludere tutti */}
                 {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
                   <div className="whatsapp-alert">
-                    <p>{t('rsvp.guests.exclude_all_alert')}</p>
+                    <p>{t('whatsapp.alert_modify_confirmed')}</p>
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">

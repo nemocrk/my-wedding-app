@@ -48,6 +48,7 @@ describe('WhatsAppQueueDashboard', () => {
     render(<WhatsAppQueueDashboard />);
 
     await waitFor(() => expect(whatsappService.getQueue).toHaveBeenCalled());
+    await waitFor(() => expect(screen.queryByText(/Caricamento coda.../i)).not.toBeInTheDocument());
     expect(screen.getAllByText('39333111222').length).toBeGreaterThanOrEqual(1);;
   });
 
