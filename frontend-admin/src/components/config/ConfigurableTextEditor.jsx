@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import { useEditor, EditorContent, Mark, mergeAttributes } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
@@ -8,14 +8,81 @@ import Image from '@tiptap/extension-image';
 import Subscript from '@tiptap/extension-subscript';
 import Superscript from '@tiptap/extension-superscript';
 import Highlight from '@tiptap/extension-highlight';
+import TextStyle from '@tiptap/extension-text-style';
+import Color from '@tiptap/extension-color';
+import FontFamily from '@tiptap/extension-font-family';
+
 import { 
   Loader2, Save, Bold, Italic, Underline as UnderlineIcon, 
   List, ListOrdered, Link as LinkIcon, Unlink, RotateCcw, RotateCw, 
   X, Check, Maximize2, Strikethrough, Code, Highlighter, 
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon,
   Quote, Subscript as SubIcon, Superscript as SupIcon, Eraser,
-  Heading1, Heading2, Type
+  Heading1, Heading2, Type, Palette, Type as TypeIcon, RefreshCw
 } from 'lucide-react';
+
+// --- CUSTOM EXTENSION: ROTATION ---
+const Rotation = Mark.create({
+  name: 'rotation',
+
+  addOptions() {
+    return {
+      HTMLAttributes: {},
+    }
+  },
+
+  addAttributes() {
+    return {
+      angle: {
+        default: 0,
+        parseHTML: element => {
+           const transform = element.style.transform || '';
+           const match = transform.match(/rotate\(([-\d.]+)deg\)/);
+           return match ? parseInt(match[1], 10) : 0;
+        },
+        renderHTML: attributes => {
+          if (!attributes.angle || attributes.angle === 0) {
+            return {}
+          }
+          return {
+            style: `display: inline-block; transform: rotate(${attributes.angle}deg); transform-origin: center;`,
+            'data-angle': attributes.angle,
+          }
+        },
+      },
+    }
+  },
+
+  parseHTML() {
+    return [
+      {
+        tag: 'span',
+        getAttrs: element => {
+          const hasRotate = element.style.transform?.includes('rotate');
+          return hasRotate ? null : false;
+        },
+      },
+    ]
+  },
+
+  renderHTML({ HTMLAttributes }) {
+    return ['span', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes), 0]
+  },
+
+  addCommands() {
+    return {
+      setRotation: angle => ({ commands }) => {
+        if (angle === 0) {
+            return commands.unsetMark(this.name);
+        }
+        return commands.setMark(this.name, { angle: angle });
+      },
+      unsetRotation: () => ({ commands }) => {
+        return commands.unsetMark(this.name)
+      },
+    }
+  },
+});
 
 const MenuBar = ({ editor }) => {
   if (!editor) {
@@ -49,6 +116,28 @@ const MenuBar = ({ editor }) => {
 
   const iconSize = "w-4 h-4 sm:w-[18px] sm:h-[18px]";
 
+  const FONT_FAMILIES = [
+      { label: 'Default', value: '' },
+      { label: 'Sans Serif', value: 'Inter, sans-serif' },
+      { label: 'Serif', value: 'Merriweather, serif' },
+      { label: 'Monospace', value: 'monospace' },
+      { label: 'Cursive', value: 'cursive' },
+      { label: 'Fantasy', value: 'fantasy' },
+      { label: 'Comic Sans', value: '"Comic Sans MS", "Comic Sans", cursive' },
+  ];
+
+  const ROTATIONS = [
+      { label: '0°', value: 0 },
+      { label: '-1°', value: -1 },
+      { label: '1°', value: 1 },
+      { label: '-2°', value: -2 },
+      { label: '2°', value: 2 },
+      { label: '-3°', value: -3 },
+      { label: '3°', value: 3 },
+      { label: '-5°', value: -5 },
+      { label: '5°', value: 5 },
+  ];
+
   return (
     <div className="flex flex-wrap gap-0.5 sm:gap-1 p-2 border-b border-gray-200 bg-gray-50 sticky top-0 z-10 items-center justify-start">
       {/* History */}
@@ -57,7 +146,7 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().chain().focus().redo().run()} className={btnClass(false)} title="Ripeti"><RotateCw className={iconSize} /></button>
       </div>
 
-      {/* Headings Dropdown (Simplified as buttons for now or we could build a custom dropdown) */}
+      {/* Headings */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 items-center">
          <button 
             onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
@@ -82,6 +171,57 @@ const MenuBar = ({ editor }) => {
          </button>
       </div>
 
+      {/* Fonts & Color (New) */}
+      <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
+          {/* Font Family Selector */}
+          <div className="relative group">
+            <select 
+                className="appearance-none bg-transparent hover:bg-gray-200 pl-2 pr-6 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none max-w-[80px] sm:max-w-[100px]"
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) editor.chain().focus().setFontFamily(val).run();
+                    else editor.chain().focus().unsetFontFamily().run();
+                }}
+                value={editor.getAttributes('textStyle').fontFamily || ''}
+            >
+                <option value="" disabled>Font</option>
+                {FONT_FAMILIES.map(font => (
+                    <option key={font.label} value={font.value}>{font.label}</option>
+                ))}
+            </select>
+          </div>
+
+          {/* Color Picker */}
+          <div className="relative flex items-center">
+             <input
+                type="color"
+                onInput={event => editor.chain().focus().setColor(event.target.value).run()}
+                value={editor.getAttributes('textStyle').color || '#000000'}
+                className="w-6 h-6 p-0 border-0 rounded overflow-hidden cursor-pointer"
+                title="Colore Testo"
+             />
+          </div>
+      </div>
+
+       {/* Rotation (New) */}
+       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
+          <div className="relative group flex items-center gap-1">
+             <RefreshCw className={iconSize} className="text-gray-500" />
+             <select 
+                className="appearance-none bg-transparent hover:bg-gray-200 pl-1 pr-4 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none"
+                onChange={(e) => {
+                    const val = parseInt(e.target.value, 10);
+                    editor.chain().focus().setRotation(val).run();
+                }}
+                value={editor.getAttributes('rotation').angle || 0}
+            >
+                {ROTATIONS.map(rot => (
+                    <option key={rot.label} value={rot.value}>{rot.label}</option>
+                ))}
+            </select>
+          </div>
+       </div>
+
       {/* Basic Formatting */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
         <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="Grassetto"><Bold className={iconSize} /></button>
@@ -92,20 +232,7 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="Evidenzia"><Highlighter className={iconSize} /></button>
       </div>
 
-      {/* Sub/Sup/Clear */}
-      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1">
-        <button onClick={() => editor.chain().focus().toggleSubscript().run()} className={btnClass(editor.isActive('subscript'))} title="Pedice"><SubIcon className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleSuperscript().run()} className={btnClass(editor.isActive('superscript'))} title="Apice"><SupIcon className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().unsetAllMarks().run()} className={btnClass(false)} title="Rimuovi Formattazione"><Eraser className={iconSize} /></button>
-      </div>
-
       {/* Lists & Alignment */}
-      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
-        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={btnClass(editor.isActive('bulletList'))} title="Lista Puntata"><List className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={btnClass(editor.isActive('orderedList'))} title="Lista Numerata"><ListOrdered className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={btnClass(editor.isActive('blockquote'))} title="Citazione"><Quote className={iconSize} /></button>
-      </div>
-
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
         <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="Allinea Sx"><AlignLeft className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="Allinea Centro"><AlignCenter className={iconSize} /></button>
@@ -139,6 +266,10 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       Subscript,
       Superscript,
       Highlight,
+      TextStyle, 
+      Color,
+      FontFamily,
+      Rotation, // Custom extension
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
@@ -152,46 +283,25 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       attributes: {
         class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
       },
-      // Note: handlePaste is injected via useEffect to access 'editor' instance
-    },
-  });
-
-  // Inject handlePaste logic to support raw HTML pasting
-  useEffect(() => {
-    if (!editor) return;
-
-    editor.setOptions({
-      editorProps: {
-        attributes: {
-          class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
-        },
-        handlePaste: (view, event, slice) => {
+      handlePaste: (view, event, slice) => {
           const items = event.clipboardData?.items;
           const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
-
-          // If clipboard ALREADY has text/html (e.g. copied from a browser), let Tiptap handle it normally (it parses HTML).
           if (hasHtml) return false;
-
-          // If clipboard ONLY has text/plain (e.g. copied from VS Code or Notepad), check if it looks like raw HTML code.
           const text = event.clipboardData?.getData('text/plain');
           if (text && /<[a-z][\s\S]*>/i.test(text)) {
-            // Check if it's valid HTML structure
             const doc = new DOMParser().parseFromString(text, 'text/html');
             const errorNode = doc.querySelector('parsererror');
-            
-            // Only intercept if it looks like meaningful HTML (has tags)
             if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
-              // Programmatically insert as content (parsing the string as HTML)
               event.preventDefault();
-              editor.commands.insertContent(text);
-              return true; // We handled the paste
+              // Insert via command instead of low-level view transaction to ensure history works
+              view.props.editor.commands.insertContent(text);
+              return true;
             }
           }
-          return false; // Default behavior
-        }
+          return false;
       }
-    });
-  }, [editor]);
+    },
+  });
 
   // Sync content when initialContent changes (and not editing)
   useEffect(() => {
