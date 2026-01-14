@@ -5,6 +5,7 @@ from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
 from django.db import transaction
+from django.conf import settings
 from .models import (
     Invitation, GlobalConfig, Person, Accommodation, Room, 
     GuestInteraction, GuestHeatmap, WhatsAppTemplate,
@@ -18,12 +19,35 @@ from .serializers import (
 import logging
 import os
 import copy
+import json
 
 logger = logging.getLogger(__name__)
 
 # ========================================
 # PUBLIC API (Internet - Session Based)
 # ========================================
+
+class PublicLanguagesView(APIView):
+    """
+    Endpoint pubblico per recuperare le lingue disponibili.
+    Legge dal file generato automaticamente 'core/fixtures/languages.json'.
+    """
+    def get(self, request):
+        fixture_path = os.path.join(settings.BASE_DIR, 'core/fixtures/languages.json')
+        try:
+            if os.path.exists(fixture_path):
+                with open(fixture_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                return Response(data)
+            else:
+                # Fallback se il file non è stato generato
+                return Response([
+                    {"code": "it", "label": "Italiano", "flag": "🇮🇹"},
+                    {"code": "en", "label": "English", "flag": "🇬🇧"}
+                ])
+        except Exception as e:
+            logger.error(f"Error reading languages fixture: {e}")
+            return Response([{"code": "it", "label": "Italiano", "flag": "🇮🇹"}])
 
 class PublicConfigurableTextView(APIView):
     """
@@ -327,11 +351,6 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
     def retrieve(self, request, key=None, *args, **kwargs):
         """
         Custom retrieve that tries to find the text by key AND language.
-        If not found for specific language but found for key (in other langs), it returns 404 cleanly
-        or could arguably return the default one.
-        But for Admin editing, we want to create specific instances.
-        
-        Usage: GET /api/admin/texts/my.key/?lang=en
         """
         lang = request.query_params.get('lang', 'it')
         try:
@@ -344,7 +363,6 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
     def update(self, request, *args, **kwargs):
         """
         Create or Update logic hidden behind PUT/PATCH on the 'key'.
-        If the record for key+lang doesn't exist, we create it.
         """
         key = kwargs.get('key')
         lang = request.query_params.get('lang', 'it')
@@ -362,7 +380,6 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
             self.perform_update(serializer)
             return Response(serializer.data)
         else:
-            # If created, we might need to update it if the content passed was different from default empty
             if 'content' in request.data:
                 serializer = self.get_serializer(instance, data=request.data, partial=partial)
                 serializer.is_valid(raise_exception=True)
@@ -860,3 +877,22 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
+
+class GlobalConfigViewSet(viewsets.ViewSet):
+    def list(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config)
+        return Response(serializer.data)
+
+    def create(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for WhatsApp Templates"""
+    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
+    serializer_class = WhatsAppTemplateSerializer
