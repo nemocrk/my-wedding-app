@@ -304,6 +304,7 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter]
     search_fields = ['key', 'content']
     lookup_field = 'key' # Usa la chiave come identificativo nell'URL (più leggibile di ID)
+    lookup_value_regex = '[^/]+' # Permetti punti nella chiave (default è [^/.]+)
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
@@ -793,3 +794,22 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
+
+class GlobalConfigViewSet(viewsets.ViewSet):
+    def list(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config)
+        return Response(serializer.data)
+
+    def create(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for WhatsApp Templates"""
+    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
+    serializer_class = WhatsAppTemplateSerializer
