@@ -20,6 +20,7 @@
     }
   },
   "rsvp": {
+    "title": "Conferma Presenza",
     "steps": {
       "summary": {
         "title": "Il tuo RSVP"

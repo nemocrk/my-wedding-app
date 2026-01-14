@@ -150,7 +150,7 @@ const Configuration = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Template Lettera di Benvenuto
               <span className="ml-2 text-xs text-gray-500 font-normal">
-                Disponibili: {{'{guest_names}, {family_name}, {code}'}}
+                Disponibili: {'{guest_names}, {family_name}, {code}'}
               </span>
             </label>
             <textarea
