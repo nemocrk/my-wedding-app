@@ -3,7 +3,7 @@
  * Gestisce tutte le chiamate al backend con session-based auth
  */
 
-const API_BASE = 'api/public';
+export const API_BASE = 'api/public';
 
 /**
  * Helper to get session ID from storage (same logic as analytics.js)
@@ -20,7 +20,7 @@ const triggerGlobalError = (error) => {
 /**
  * Configurazione fetch con credenziali (cookie sessione)
  */
-const fetchWithCredentials = async (url, options = {}) => {
+export const fetchWithCredentials = async (url, options = {}) => {
   try {
     const response = await fetch(url, {
       ...options,
