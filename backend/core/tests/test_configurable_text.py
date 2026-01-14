@@ -142,7 +142,8 @@ class TestConfigurableTextAdminAPI:
             'metadata': {'notes': 'Created via API'}
         }
         
-        response = admin_client.post(url, payload, format='json')
+        # Use content_type='application/json' for standard Client, not format='json'
+        response = admin_client.post(url, payload, content_type='application/json')
         
         assert response.status_code == status.HTTP_201_CREATED
         assert ConfigurableText.objects.filter(key='card.cosaltro.content').exists()
@@ -161,7 +162,7 @@ class TestConfigurableTextAdminAPI:
             'metadata': {'updated': True}
         }
         
-        response = admin_client.put(url, payload, format='json')
+        response = admin_client.put(url, payload, content_type='application/json')
         
         assert response.status_code == status.HTTP_200_OK
         text.refresh_from_db()
@@ -179,7 +180,7 @@ class TestConfigurableTextAdminAPI:
         url = reverse('admin-texts-detail', kwargs={'key': text.key})
         payload = {'content': 'Patched content only'}
         
-        response = admin_client.patch(url, payload, format='json')
+        response = admin_client.patch(url, payload, content_type='application/json')
         
         assert response.status_code == status.HTTP_200_OK
         text.refresh_from_db()
