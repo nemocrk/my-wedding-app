@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Save, RefreshCw, DollarSign, FileText, Lock, Phone } from 'lucide-react';
 import { api } from '../services/api';
+import TextConfigWidget from '../components/config/TextConfigWidget';
 
 const Configuration = () => {
   const [config, setConfig] = useState({
@@ -149,7 +150,7 @@ const Configuration = () => {
             <label className="block text-sm font-medium text-gray-700 mb-1">
               Template Lettera di Benvenuto
               <span className="ml-2 text-xs text-gray-500 font-normal">
-                Disponibili: {'{guest_names}, {family_name}, {code}'}
+                Disponibili: {{'{guest_names}, {family_name}, {code}'}}
               </span>
             </label>
             <textarea
@@ -253,6 +254,17 @@ const Configuration = () => {
         </div>
 
       </form>
+
+      {/* SECTION 5: DYNAMIC TEXTS (CONFIGURABLE TEXT WIDGET) */}
+      <div className="mt-8">
+        <div className="mb-4">
+          <h2 className="text-xl font-bold text-gray-800">Contenuti Dinamici</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Gestisci i testi configurabili visualizzati nelle card dell'invito utente
+          </p>
+        </div>
+        <TextConfigWidget />
+      </div>
     </div>
   );
 };
