@@ -171,7 +171,7 @@ async function findMissingKeys(validKeys) {
     // Regex migliorata:
     // Cattura t('key'), t("key"), i18nKey="key", i18nKey='key', getText('key'), getTranslation('key')
     // Supporta anche spazi variabili
-    const regex = /[^a-zA-Z0-9](?:t|getText|getTranslation)\s*\(\s*['"]([a-zA-Z0-9_.-]+)['"]|i18nKey\s*=\s*['"]([a-zA-Z0-9_.-]+)['"]/g;
+    const regex = /[^a-zA-Z0-9](?:t|getTranslation)\s*\(\s*['"]([a-zA-Z0-9_.-]+)['"]|i18nKey\s*=\s*['"]([a-zA-Z0-9_.-]+)['"]/g;
 
     allSourceFiles.forEach(file => {
         const content = fs.readFileSync(file, 'utf8');
