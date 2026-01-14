@@ -28,19 +28,30 @@ logger = logging.getLogger(__name__)
 class PublicConfigurableTextView(APIView):
     """
     Endpoint pubblico per recuperare i testi configurati.
-    Non richiede autenticazione stretta (o può usare la sessione ospite) 
-    per permettere il rendering della Home/Landing page anche prima del login codice.
-    Tuttavia, per sicurezza, restituisce solo una lista filtrata o tutti se non sensibili.
-    Nel nostro caso sono testi UI, quindi pubblici.
+    Supporta filtro lingua (?lang=en). Fallback a 'it' se non trovato.
     """
     def get(self, request):
-        # Cache potential optimization here
-        texts = ConfigurableText.objects.all()
-        # Convertiamo in un dizionario {key: content} per facile uso frontend
-        data = {t.key: t.content for t in texts}
+        lang = request.query_params.get('lang', 'it')
         
-        # Aggiungiamo anche i metadati se servono per il rendering (es. font custom)
-        # data_full = {t.key: {'content': t.content, 'metadata': t.metadata} for t in texts}
+        # Recupera tutti i testi
+        texts = ConfigurableText.objects.all()
+        
+        # Costruisce dizionario con fallback logic:
+        # Prima carica 'it' (default), poi sovrascrive con la lingua richiesta
+        # Questo assicura che se manca una chiave in 'en', si veda quella 'it'
+        
+        data = {}
+        
+        # 1. Base Layer (Italiano/Default)
+        base_texts = texts.filter(language='it')
+        for t in base_texts:
+            data[t.key] = t.content
+            
+        # 2. Override Layer (Requested Language)
+        if lang != 'it':
+            lang_texts = texts.filter(language=lang)
+            for t in lang_texts:
+                data[t.key] = t.content # Override
         
         return Response(data)
 
@@ -297,14 +308,69 @@ class PublicLogHeatmapView(APIView):
 class ConfigurableTextViewSet(viewsets.ModelViewSet):
     """
     CRUD completo per i testi configurabili.
-    Supporta ricerca per key.
+    Supporta ricerca per key e filtro per language.
     """
     queryset = ConfigurableText.objects.all().order_by('key')
     serializer_class = ConfigurableTextSerializer
     filter_backends = [filters.SearchFilter]
     search_fields = ['key', 'content']
-    lookup_field = 'key' # Usa la chiave come identificativo nell'URL (più leggibile di ID)
-    lookup_value_regex = '[^/]+' # Permetti punti nella chiave (default è [^/.]+)
+    lookup_field = 'key' 
+    lookup_value_regex = '[^/]+' 
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
+        return qs
+
+    def retrieve(self, request, key=None, *args, **kwargs):
+        """
+        Custom retrieve that tries to find the text by key AND language.
+        If not found for specific language but found for key (in other langs), it returns 404 cleanly
+        or could arguably return the default one.
+        But for Admin editing, we want to create specific instances.
+        
+        Usage: GET /api/admin/texts/my.key/?lang=en
+        """
+        lang = request.query_params.get('lang', 'it')
+        try:
+            instance = ConfigurableText.objects.get(key=key, language=lang)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        except ConfigurableText.DoesNotExist:
+            return Response({'error': 'Not Found', 'key': key, 'language': lang}, status=status.HTTP_404_NOT_FOUND)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Create or Update logic hidden behind PUT/PATCH on the 'key'.
+        If the record for key+lang doesn't exist, we create it.
+        """
+        key = kwargs.get('key')
+        lang = request.query_params.get('lang', 'it')
+        partial = kwargs.pop('partial', False)
+        
+        instance, created = ConfigurableText.objects.get_or_create(
+            key=key, 
+            language=lang,
+            defaults={'content': request.data.get('content', '')}
+        )
+        
+        if not created:
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        else:
+            # If created, we might need to update it if the content passed was different from default empty
+            if 'content' in request.data:
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+            else:
+                serializer = self.get_serializer(instance)
+            
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
@@ -794,22 +860,3 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
-
-class GlobalConfigViewSet(viewsets.ViewSet):
-    def list(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config)
-        return Response(serializer.data)
-
-    def create(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
-    """CRUD for WhatsApp Templates"""
-    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
-    serializer_class = WhatsAppTemplateSerializer
