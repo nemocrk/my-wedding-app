@@ -7,7 +7,8 @@ from core.views import (
     WhatsAppTemplateViewSet, ConfigurableTextViewSet,
     # Public Views
     PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
-    PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView
+    PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
+    PublicLanguagesView
 )
 # Importa WhatsApp ViewSet dal modulo corretto
 from whatsapp.views import WhatsAppMessageQueueViewSet, WhatsAppMessageEventViewSet
@@ -76,4 +77,7 @@ urlpatterns = [
     
     # 5. Testi Configurabili (pubblico read-only per Home/Landing)
     path('api/public/texts/', PublicConfigurableTextView.as_view(), name='public-texts'),
+
+    # 6. Lingue Disponibili (pubblico)
+    path('api/public/languages/', PublicLanguagesView.as_view(), name='public-languages'),
 ]
