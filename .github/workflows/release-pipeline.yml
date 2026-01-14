@@ -75,31 +75,37 @@ jobs:
         include:
           - service: backend
             context: ./backend
+            dockerfile: ./backend/Dockerfile
             image_name: my-wedding-app-backend
             target: production
             build_args: ""
           - service: frontend-user
             context: ./frontend-user
+            dockerfile: ./frontend-user/Dockerfile
             image_name: my-wedding-app-frontend-user
             target: production
             build_args: "REACT_APP_API_URL=/api"
           - service: frontend-admin
             context: ./frontend-admin
+            dockerfile: ./frontend-admin/Dockerfile
             image_name: my-wedding-app-frontend-admin
             target: production
             build_args: "REACT_APP_API_URL=/api"
           - service: whatsapp-integration
             context: ./whatsapp-integration
+            dockerfile: ./whatsapp-integration/Dockerfile
             image_name: my-wedding-app-whatsapp-integration
             target: production
             build_args: ""
           - service: nginx-public
-            context: ./nginx
+            context: .
+            dockerfile: ./nginx/Dockerfile
             image_name: my-wedding-app-nginx-public
             target: public
             build_args: ""
           - service: nginx-intranet
-            context: ./nginx
+            context: .
+            dockerfile: ./nginx/Dockerfile
             image_name: my-wedding-app-nginx-intranet
             target: intranet
             build_args: ""
@@ -159,7 +165,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
-          file: ${{ matrix.context }}/Dockerfile
+          file: ${{ matrix.dockerfile }}
           target: ${{ matrix.target }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
