@@ -1,9 +1,12 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import './Fab.css';
 import rightArrow from '../../assets/illustrations/right-arrow.png';
 
 const Fab = ({ onClick, isFlipped, visible = true }) => {
+  const { t } = useTranslation();
+  
   return (
     <AnimatePresence>
       {visible && (
@@ -32,7 +35,7 @@ const Fab = ({ onClick, isFlipped, visible = true }) => {
           exit={{ scale: 0, opacity: 0 }}
           whileHover={{ scale: 1.2, transition: { duration: 0.2 } }}
           whileTap={{ scale: 0.95 }}
-          aria-label={isFlipped ? "Torna alla copertina" : "Gira invito"}
+          aria-label={isFlipped ? t('fab.aria_label_back') : t('fab.aria_label_front')}
         >
           <motion.img 
             src={rightArrow} 
