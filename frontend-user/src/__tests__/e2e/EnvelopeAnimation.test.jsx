@@ -1,6 +1,6 @@
 import '../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act } from '@testing-library/react';
+import { render, screen, act, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import App from '../../App';
 import { BrowserRouter } from 'react-router';
@@ -59,14 +59,21 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // Let InvitationPage authenticate (microtask) and start animation sequence timers
-    await act(async () => {
-      await Promise.resolve();
+    // Wait for authentication to complete (loading state)
+    await waitFor(() => {
+      expect(api.authenticateInvitation).toHaveBeenCalledWith('test', 'test');
     });
 
-    // We don't assert UI specifics here: this is a smoke test that app renders without crashing
-    // use queryByText for negative assertion
-    expect(screen.queryByText(/Errore caricamento invito/i)).not.toBeInTheDocument();
+    // Let InvitationPage authenticate and start animation sequence
+    await act(async () => {
+      // Flush all pending promises
+      await vi.runAllTimersAsync();
+    });
+
+    // We verify the app rendered successfully by checking the envelope is present
+    // The envelope wrapper should be in the document
+    const envelopeContainer = document.querySelector('.envelope-container-3d');
+    expect(envelopeContainer).toBeInTheDocument();
   });
 
   it('should reveal invitation content after interaction', async () => {
@@ -79,9 +86,14 @@ describe('Envelope Animation E2E', () => {
       </BrowserRouter>
     );
 
-    // Let InvitationPage authenticate
+    // Wait for authentication to complete
+    await waitFor(() => {
+      expect(api.authenticateInvitation).toHaveBeenCalled();
+    });
+
+    // Let all promises resolve
     await act(async () => {
-      await Promise.resolve();
+      await vi.runAllTimersAsync();
     });
 
     // Advance time to complete the FULL animation sequence (handleSequence ~5.4s)
