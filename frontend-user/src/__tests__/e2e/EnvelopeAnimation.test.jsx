@@ -1,4 +1,4 @@
-import '../../../test/setup'; // Import i18n and TextContext mocks
+import '../../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
