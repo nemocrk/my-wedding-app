@@ -241,6 +241,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 - [x] **Test modello**: creazione, uniqueness, update
 - [x] **Test API pubblica**: read-only, no auth
 - [x] **Test API admin**: full CRUD, search
+- [x] **BugFix**: Risolto `NoReverseMatch` per chiavi con punti in URL (`lookup_value_regex = '[^/]+'`)
 
 ---
 
@@ -332,7 +333,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 #### **6.1 Backend Tests**
 - [x] **Creare test file**: test_configurable_text.py
-- [ ] **Eseguire tests**: docker-compose exec backend pytest
+- [x] **Eseguire tests**: docker-compose exec backend pytest
 
 #### **6.2 Frontend-Admin Tests**
 - [ ] **Creare test TextConfigWidget**
@@ -403,8 +404,8 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-14 10:27 CET  
-**Status**: 🟢 FASE 1 Completata - Ready for FASE 2  
+**Last Updated**: 2026-01-14 10:48 CET  
+**Status**: 🟢 FASE 1 Completata - TEST PASSED  
 **Current Phase**: FASE 2 - Frontend-Admin Text Configuration Widget  
 **Progress FASE 1**: 13/13 tasks completed (100%) ✅  
 **Progress Totale**: 29/146 tasks completed (20%)  
@@ -413,6 +414,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-14 10:48 - docs: update checklist - tests passed for FASE 1
 2026-01-14 10:27 - docs: update checklist - completed FASE 1 (backend dynamic text management)
 2026-01-14 09:52 - docs: update checklist - completed FASE 0 (i18n infrastructure setup)
 2026-01-14 09:35 - docs: add golden rules and update instructions to checklist
@@ -468,8 +470,12 @@ Files:
 Commit: 090d5a1 - test(backend): add comprehensive tests for ConfigurableText
 Files:
   - backend/core/tests/test_configurable_text.py (NEW: 20+ test cases)
+
+Commit: 304e429 - fix(backend): allow dots in ConfigurableText lookup URL
+Files:
+  - backend/core/views.py (updated ViewSet regex)
 ```
 
 ---
 
-**👉 FASE 1 completata con successo! Procedere con FASE 2: Frontend-Admin - Text Configuration Widget**
+**👉 FASE 1 completata e testata con successo! Procedere con FASE 2: Frontend-Admin - Text Configuration Widget**
