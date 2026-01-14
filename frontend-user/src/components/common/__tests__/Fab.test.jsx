@@ -1,3 +1,4 @@
+import '../../../test/setup'; // Import i18n mock
 import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import Fab from '../Fab';
@@ -29,12 +30,14 @@ describe('Fab Component', () => {
   it('renders ArrowRight icon when isFlipped is false', () => {
     render(<Fab onClick={() => {}} isFlipped={false} visible={true} />);
     const button = screen.getByRole('button');
+    // Updated: i18n now returns translated text
     expect(button).toHaveAttribute('aria-label', 'Gira invito');
   });
 
   it('renders RotateCcw icon when isFlipped is true', () => {
     render(<Fab onClick={() => {}} isFlipped={true} visible={true} />);
     const button = screen.getByRole('button');
+    // Updated: i18n now returns translated text
     expect(button).toHaveAttribute('aria-label', 'Torna alla copertina');
   });
 });
