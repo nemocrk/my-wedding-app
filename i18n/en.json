@@ -1,0 +1,165 @@
+{
+  "cards": {
+    "alloggio": {
+      "title": "Accommodation"
+    },
+    "viaggio": {
+      "title": "Travel"
+    },
+    "evento": {
+      "title": "The Event"
+    },
+    "dresscode": {
+      "title": "Dress Code"
+    },
+    "bottino": {
+      "title": "Wedding Gift Registry"
+    },
+    "cosaltro": {
+      "title": "What else?"
+    }
+  },
+  "rsvp": {
+    "steps": {
+      "summary": {
+        "title": "Your RSVP"
+      },
+      "guests": {
+        "title": "Confirm Guests"
+      },
+      "contact": {
+        "title": "Contact Number"
+      },
+      "travel": {
+        "title": "How Will You Travel?"
+      },
+      "accommodation": {
+        "title": "Accommodation"
+      },
+      "final": {
+        "title": "Final Confirmation"
+      }
+    },
+    "status": {
+      "pending": {
+        "emoji": "⏳",
+        "text": "What are you waiting for? Confirm now!"
+      },
+      "confirmed": {
+        "emoji": "🎉",
+        "text": "Wonderful! We're waiting for you!!!"
+      },
+      "declined": {
+        "emoji": "😢",
+        "text": "We'll toast to you!"
+      }
+    },
+    "labels": {
+      "invited_guests": "Invited guests:",
+      "contact_number": "Contact number:",
+      "transport_type": "Transport type:",
+      "schedule": "Schedule:",
+      "car": "Car:",
+      "summary": "Summary:",
+      "guests": "Guests:",
+      "phone": "Phone:",
+      "transport": "Transport:",
+      "accommodation": "Accommodation:"
+    },
+    "buttons": {
+      "next": "Next →",
+      "back": "← Back",
+      "confirm_presence": "✔️ Confirm Attendance",
+      "decline": "❌ Decline",
+      "save_changes": "💾 Save Changes",
+      "modify_answer": "Modify Answer"
+    },
+    "options": {
+      "ferry": "Ferry",
+      "plane": "Plane",
+      "car_with": "Car on board",
+      "car_rental": "I'll rent a car",
+      "carpool_interest": "It would be nice to coordinate with someone else",
+      "accommodation_question": "Do you want to request accommodation for the night between September 19 and 20?",
+      "accommodation_yes": "Yes, I request accommodation",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "validation": {
+      "no_guests": "You must confirm at least one guest!",
+      "phone_required": "Phone number is required",
+      "phone_invalid": "Invalid format (e.g., +39 333 1234567)",
+      "travel_incomplete": "Fill in all travel fields!",
+      "phone_empty": "Phone number is required"
+    },
+    "messages": {
+      "already_confirmed": "You have already confirmed your attendance!",
+      "declined": "You have declined the invitation.",
+      "submitting": "Submitting...",
+      "not_specified": "Not specified"
+    }
+  },
+  "whatsapp": {
+    "default_message": "Hi, I'm {guest_name}, I have a question!",
+    "alert_modify_confirmed": "⚠️ You have already confirmed! To modify, contact the couple:",
+    "alert_confirm_after_decline": "⚠️ If you want to confirm after declining, contact the couple:",
+    "alert_accommodation_change": "⚠️ You had already accepted! Contact the couple:"
+  },
+  "badges": {
+    "child": "Child"
+  },
+  "admin": {
+    "config": {
+      "page_title": "Configuration",
+      "page_subtitle": "Manage prices, texts and application security",
+      "loading": "Loading configuration...",
+      "save_button": "Save Changes",
+      "saving": "Saving...",
+      "success_message": "Configuration saved successfully!",
+      "error_message": "Error during save.",
+      "error_load": "Error loading configuration."
+    },
+    "sections": {
+      "prices": {
+        "title": "Unit Cost Management",
+        "adult_meal": "Adult Meal (€)",
+        "child_meal": "Child Meal (€)",
+        "accommodation_adult": "Adult Accommodation (€)",
+        "accommodation_child": "Child Accommodation (€)",
+        "transfer": "Transfer per person (€)"
+      },
+      "texts": {
+        "title": "Texts and Communications",
+        "letter_template": "Welcome Letter Template",
+        "available_vars": "Available: {guest_names}, {family_name}, {code}",
+        "placeholder": "Enter text here..."
+      },
+      "security": {
+        "title": "Public Link Security",
+        "secret_key": "Secret Key for Links",
+        "secret_warning": "(WARNING: Changing this value will make all previously sent links stop working)",
+        "unauthorized_message": "Error Message (Expired/Invalid Link)"
+      },
+      "whatsapp": {
+        "title": "WhatsApp Configuration",
+        "rate_limit": "Rate Limit (messages/hour)",
+        "rate_limit_hint": "Safety limit per session (Anti-Ban)",
+        "rate_limit_note": "Recommended value: 10 msg/hour. Do not exceed 20 to avoid WhatsApp ban.",
+        "placeholder_rate": "10"
+      },
+      "text_customization": {
+        "title": "Text Customization",
+        "subtitle": "Configure long contents of the invitation letter",
+        "envelope_front": "Envelope Front",
+        "card_contents": "Card Contents",
+        "preview": "Preview",
+        "edit": "Edit",
+        "font": "Font",
+        "size": "Size",
+        "color": "Color",
+        "emoji": "Emoji",
+        "add_emoji": "Add Emoji"
+      }
+    }
+  }
+}
