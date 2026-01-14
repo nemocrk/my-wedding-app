@@ -11,16 +11,15 @@ import Highlight from '@tiptap/extension-highlight';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
-import FontPicker from 'font-picker-react';
+import GoogleFontPicker from '../ui/GoogleFontPicker';
 import { autoLoadFontsFromHTML } from '../../utils/fontLoader';
 
-import { 
-  Loader2, Save, Bold, Italic, Underline as UnderlineIcon, 
-  List, ListOrdered, Link as LinkIcon, Unlink, RotateCcw, RotateCw, 
-  X, Check, Maximize2, Strikethrough, Code, Highlighter, 
+import {
+  Loader2, Bold, Italic, Underline as UnderlineIcon,
+  Link as LinkIcon, Unlink, RotateCcw, RotateCw,
+  X, Check, Maximize2, Strikethrough, Code, Highlighter,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon,
-  Quote, Subscript as SubIcon, Superscript as SupIcon, Eraser,
-  Heading1, Heading2, Type, Palette, Type as TypeIcon, RefreshCw
+  Heading1, Heading2, Type, RefreshCw
 } from 'lucide-react';
 
 // --- CUSTOM EXTENSION: ROTATION ---
@@ -86,15 +85,6 @@ const Rotation = Mark.create({
   },
 });
 
-const FALLBACK_FONTS = [
-  { label: 'Default', value: '' },
-  { label: 'Sans Serif', value: 'Inter, sans-serif' },
-  { label: 'Serif', value: 'Merriweather, serif' },
-  { label: 'Great Vibes', value: '"Great Vibes", cursive' },
-  { label: 'Playfair Display', value: '"Playfair Display", serif' },
-  { label: 'Dancing Script', value: '"Dancing Script", cursive' },
-];
-
 const MenuBar = ({ editor }) => {
   const [activeFontFamily, setActiveFontFamily] = useState('Open Sans');
 
@@ -135,7 +125,7 @@ const MenuBar = ({ editor }) => {
   };
 
   // Helper per classi bottone
-  const btnClass = (isActive) => 
+  const btnClass = (isActive) =>
     `p-1.5 sm:p-2 rounded hover:bg-gray-200 transition-colors ${isActive ? 'bg-indigo-100 text-indigo-700' : 'text-gray-600'} disabled:opacity-30 disabled:cursor-not-allowed`;
 
   const iconSize = "w-4 h-4 sm:w-[18px] sm:h-[18px]";
@@ -162,22 +152,22 @@ const MenuBar = ({ editor }) => {
 
       {/* Headings */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 items-center">
-         <button 
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} 
+         <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
             className={btnClass(editor.isActive('heading', { level: 1 }))}
             title="Heading 1"
          >
            <Heading1 className={iconSize} />
          </button>
-         <button 
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} 
+         <button
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
             className={btnClass(editor.isActive('heading', { level: 2 }))}
             title="Heading 2"
          >
            <Heading2 className={iconSize} />
          </button>
-         <button 
-            onClick={() => editor.chain().focus().setParagraph().run()} 
+         <button
+            onClick={() => editor.chain().focus().setParagraph().run()}
             className={btnClass(editor.isActive('paragraph'))}
             title="Paragrafo"
          >
@@ -187,37 +177,15 @@ const MenuBar = ({ editor }) => {
 
       {/* Fonts & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
-          <div className="relative group" style={{ minWidth: '140px' }}>
-            {googleFontsApiKey ? (
-              <FontPicker
-                apiKey={googleFontsApiKey}
-                activeFontFamily={activeFontFamily}
-                onChange={(nextFont) => {
-                  const fontFamily = `"${nextFont.family}", ${nextFont.category || 'sans-serif'}`;
-                  editor.chain().focus().setFontFamily(fontFamily).run();
-                  setActiveFontFamily(nextFont.family);
-                }}
-                limit={500}
-                sort="popularity"
-              />
-            ) : (
-              <select
-                className="appearance-none bg-transparent hover:bg-gray-200 pl-2 pr-6 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none max-w-[140px]"
-                onChange={(e) => {
-                  const val = e.target.value;
-                  if (val) editor.chain().focus().setFontFamily(val).run();
-                  else editor.chain().focus().unsetFontFamily().run();
-                }}
-                value={editor.getAttributes('textStyle').fontFamily || ''}
-                title="Imposta VITE_GOOGLE_FONTS_API_KEY per usare la ricerca Google Fonts"
-              >
-                <option value="" disabled>Font</option>
-                {FALLBACK_FONTS.map((f) => (
-                  <option key={f.label} value={f.value}>{f.label}</option>
-                ))}
-              </select>
-            )}
-          </div>
+          <GoogleFontPicker
+            apiKey={googleFontsApiKey}
+            activeFamily={activeFontFamily}
+            onSelect={(font) => {
+              const fontFamily = `"${font.family}", ${font.category || 'sans-serif'}`;
+              editor.chain().focus().setFontFamily(fontFamily).run();
+              setActiveFontFamily(font.family);
+            }}
+          />
 
           {/* Color Picker */}
           <div className="relative flex items-center">
@@ -235,7 +203,7 @@ const MenuBar = ({ editor }) => {
        <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
           <div className="relative group flex items-center gap-1">
              <RefreshCw className="w-4 h-4 text-gray-500" />
-             <select 
+             <select
                 className="appearance-none bg-transparent hover:bg-gray-200 pl-1 pr-4 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none"
                 onChange={(e) => {
                     const val = parseInt(e.target.value, 10);
@@ -260,7 +228,7 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="Evidenzia"><Highlighter className={iconSize} /></button>
       </div>
 
-      {/* Lists & Alignment */}
+      {/* Alignment */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
         <button onClick={() => editor.chain().focus().setTextAlign('left').run()} className={btnClass(editor.isActive({ textAlign: 'left' }))} title="Allinea Sx"><AlignLeft className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().setTextAlign('center').run()} className={btnClass(editor.isActive({ textAlign: 'center' }))} title="Allinea Centro"><AlignCenter className={iconSize} /></button>
@@ -350,10 +318,10 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
 
   const handleSave = async () => {
     if (!editor) return;
-    
+
     setIsSaving(true);
     const htmlContent = editor.getHTML();
-    
+
     try {
       await onSave(textKey, htmlContent);
       setIsEditing(false);
@@ -391,7 +359,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
           <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 break-all">
             {label || textKey}
           </label>
-          
+
           <button
             onClick={() => setIsEditing(true)}
             className="w-full sm:w-auto text-center justify-center text-indigo-600 hover:text-indigo-800 text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:bg-indigo-50 px-3 py-1.5 rounded-lg sm:rounded-full transition-colors border sm:border-transparent border-indigo-100"
@@ -402,7 +370,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
         </div>
 
         <div className="p-3 sm:p-4 bg-gray-50/50 min-h-[60px] overflow-hidden">
-           <div 
+           <div
              className="prose prose-sm max-w-none text-gray-600 break-words [&_img]:max-w-full [&_img]:h-auto [&_img]:rounded"
              dangerouslySetInnerHTML={{ __html: initialContent || '<em class="text-gray-400">Nessun contenuto.</em>' }}
            />
@@ -420,7 +388,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
                 {label || textKey}
               </h2>
             </div>
-            
+
             <div className="flex gap-2 w-full sm:w-auto">
               <button
                 onClick={handleCancel}
