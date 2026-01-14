@@ -1,3 +1,4 @@
+import '../../../test/setup'; // Import i18n and TextContext mocks
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LetterContent from '../LetterContent';
