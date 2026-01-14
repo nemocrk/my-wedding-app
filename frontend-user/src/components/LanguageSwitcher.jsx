@@ -2,11 +2,40 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Globe } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { api } from '../services/api';
 
 const LanguageFab = () => {
   const { i18n } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef(null);
+  const [languages, setLanguages] = useState([]);
+
+  useEffect(() => {
+    // Carica lingue dall'API backend
+    const fetchLangs = async () => {
+        try {
+            // Assumiamo che api.js abbia fetchLanguages esposto, altrimenti fetch diretto
+            const res = await fetch('/api/public/languages/');
+            if (res.ok) {
+                const data = await res.json();
+                setLanguages(data);
+            } else {
+                // Fallback locale in caso di errore
+                setLanguages([
+                    { code: 'it', label: 'IT', flag: '🇮🇹' },
+                    { code: 'en', label: 'EN', flag: '🇬🇧' }
+                ]);
+            }
+        } catch (e) {
+            console.error("Failed to load languages", e);
+             setLanguages([
+                { code: 'it', label: 'IT', flag: '🇮🇹' },
+                { code: 'en', label: 'EN', flag: '🇬🇧' }
+            ]);
+        }
+    };
+    fetchLangs();
+  }, []);
 
   const changeLanguage = (lng) => {
     i18n.changeLanguage(lng);
@@ -27,11 +56,6 @@ const LanguageFab = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const languages = [
-    { code: 'it', label: 'IT', flag: '🇮🇹' },
-    { code: 'en', label: 'EN', flag: '🇬🇧' }
-  ];
-
   // Animation variants for the speed dial list
   const containerVariants = {
     closed: { 
@@ -46,6 +70,8 @@ const LanguageFab = () => {
     closed: { y: -10, opacity: 0, scale: 0.5 },
     open: { y: 0, opacity: 1, scale: 1 }
   };
+  
+  if (languages.length <= 1) return null; // Nascondi se c'è solo una lingua
 
   return (
     <div 
