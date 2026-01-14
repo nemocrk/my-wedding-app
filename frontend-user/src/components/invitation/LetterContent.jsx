@@ -70,7 +70,7 @@ const LetterContent = ({ data }) => {
   };
 
   const getWaLink = (number, customMessage) => {
-    const msg = customMessage || t('whatsapp.default_message', { name: data.name });
+    const msg = customMessage || t('whatsapp.default_message').replaceAll("{guest_name}", data.name);
     safeLogInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
@@ -82,25 +82,25 @@ const LetterContent = ({ data }) => {
       case 'sent':
       case 'read':
       case 'pending':
-        return { emoji: '⏳', text: t('rsvp.status.pending'), className: 'rsvp-card-status-pending' };
+        return { emoji: t('rsvp.status.pending.emoji'), text: t('rsvp.status.pending.text'), className: 'rsvp-card-status-pending' };
       case 'confirmed':
-        return { emoji: '🎉', text: t('rsvp.status.confirmed'), className: 'rsvp-card-status-confirmed' };
+        return { emoji: t('rsvp.status.confirmed.emoji'), text: t('rsvp.status.confirmed.text'), className: 'rsvp-card-status-confirmed' };
       case 'declined':
-        return { emoji: '😢', text: t('rsvp.status.declined'), className: 'rsvp-card-status-declined' };
+        return { emoji: t('rsvp.status.declined.emoji'), text: t('rsvp.status.declined.text'), className: 'rsvp-card-status-declined' };
       default:
-        return { emoji: '❓', text: t('rsvp.status.unknown'), className: 'rsvp-card-status-pending' };
+        return { emoji: t('rsvp.status.unknown.emoji'), text: t('rsvp.status.unknown.text'), className: 'rsvp-card-status-pending' };
     }
   };
 
   // Wizard Step Titles
   const getStepTitle = () => {
     switch(rsvpStep) {
-      case 'summary': return t('rsvp.steps.summary');
-      case 'guests': return t('rsvp.steps.guests');
-      case 'contact': return t('rsvp.steps.contact');
-      case 'travel': return t('rsvp.steps.travel');
-      case 'accommodation': return t('rsvp.steps.accommodation');
-      case 'final': return t('rsvp.steps.final');
+      case 'summary': return t('rsvp.steps.summary.title');
+      case 'guests': return t('rsvp.steps.guests.title');
+      case 'contact': return t('rsvp.steps.contact.title');
+      case 'travel': return t('rsvp.steps.travel.title');
+      case 'accommodation': return t('rsvp.steps.accommodation.title');
+      case 'final': return t('rsvp.steps.final.title');
       default: return 'RSVP';
     }
   };
@@ -171,12 +171,12 @@ const LetterContent = ({ data }) => {
   const handleSaveEditPhone = () => {
     const trimmed = tempPhoneNumber.trim();
     if (!trimmed) {
-      setPhoneError(t('validation.phone_required'));
+      setPhoneError(t('rsvp.validation.phone_required'));
       safeLogInteraction('phone_validation_error', { error: 'empty' });
       return;
     }
     if (!validatePhoneNumber(trimmed)) {
-      setPhoneError(t('validation.phone_invalid'));
+      setPhoneError(t('rsvp.validation.phone_invalid'));
       safeLogInteraction('phone_validation_error', { error: 'invalid_format' });
       return;
     }
@@ -203,7 +203,7 @@ const LetterContent = ({ data }) => {
     if (rsvpStep === 'guests') {
       editingGuestIndex !== null && handleSaveEdit(editingGuestIndex);
       if (getActiveGuests().length === 0) {
-        setMessage({ type: 'error', text: t('validation.at_least_one_guest') });
+        setMessage({ type: 'error', text: t('rsvp.validation.no_guests') });
         safeLogInteraction('rsvp_validation_error', { step: 'guests', error: 'no_active_guests' });
         return;
       }
@@ -217,12 +217,12 @@ const LetterContent = ({ data }) => {
         if(editingPhone){
           const trimmed = tempPhoneNumber.trim();
           if (!trimmed) {
-            setMessage({ type: 'error', text: t('validation.phone_required')});
+            setMessage({ type: 'error', text: t('rsvp.validation.phone_required')});
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
             return;
           }
           if (!validatePhoneNumber(trimmed)) {
-            setMessage({ type: 'error', text: t('validation.phone_invalid')});
+            setMessage({ type: 'error', text: t('rsvp.validation.phone_invalid')});
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
             return;
           }
@@ -230,7 +230,7 @@ const LetterContent = ({ data }) => {
           setEditingPhone(false);
           setPhoneError('');
         } else {
-          setMessage({ type: 'error', text: t('validation.phone_missing') });
+          setMessage({ type: 'error', text: t('rsvp.validation.phone_empty') });
           safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_missing' });
           return;
         }
@@ -242,7 +242,7 @@ const LetterContent = ({ data }) => {
     // Validazione Step Travel
     else if (rsvpStep === 'travel') {
       if (!travelInfo.transport_type || !travelInfo.schedule) {
-        setMessage({ type: 'error', text: t('validation.travel_fields_required') });
+        setMessage({ type: 'error', text: t('rsvp.validation.travel_incomplete') });
         safeLogInteraction('rsvp_validation_error', { 
           step: 'travel', 
           error: 'incomplete_fields',
@@ -675,21 +675,21 @@ const LetterContent = ({ data }) => {
                 <div className="summary-status">
                   <p className="summary-text">
                     {rsvpStatus === 'confirmed'
-                      ? t('rsvp.summary.confirmed_text')
-                      : t('rsvp.summary.declined_text')}
+                      ? t('rsvp.messages.already_confirmed')
+                      : t('rsvp.messages.declined')}
                   </p>
                   <div className="final-summary">
-                    <h3>{t('rsvp.summary.title')}</h3>
-                    <p><strong>{t('rsvp.summary.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                    <p><strong>{t('rsvp.summary.phone')}:</strong> {phoneNumber}</p>
-                    <p><strong>{t('rsvp.summary.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    <h3>{t('rsvp.labels.summary')}</h3>
+                    <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
+                    <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                     {data.accommodation_offered && (
-                      <p><strong>{t('rsvp.summary.accommodation')}:</strong> {accommodationChoice ? t('common.yes') : t('common.no')}</p>
+                      <p><strong>{t('rsvp.labels.accommodation')}:</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
                     )}
                   </div>
                 </div>
                 <button className="rsvp-next-btn" onClick={handleStartModify}>
-                  {t('rsvp.buttons.modify')}
+                  {t('rsvp.buttons.modify_answer')}
                 </button>
               </div>
             )}
@@ -698,7 +698,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'guests' && (
               <>
                 <div className="guests-list-editable">
-                  <h3>{t('rsvp.guests.title')}</h3>
+                  <h3>{t('rsvp.labels.guests')}</h3>
                   <ul>
                     {data.guests.map((guest, idx) => {
                       const displayGuest = getGuestDisplayName(idx);
@@ -715,7 +715,7 @@ const LetterContent = ({ data }) => {
                                   className="guest-input"
                                   value={tempFirstName}
                                   onChange={(e) => setTempFirstName(e.target.value)}
-                                  placeholder={t('rsvp.guests.name_placeholder')}
+                                  placeholder={t('rsvp.labels.name_placeholder')}
                                   autoFocus
                                 />
                                 <input
@@ -723,7 +723,7 @@ const LetterContent = ({ data }) => {
                                   className="guest-input"
                                   value={tempLastName}
                                   onChange={(e) => setTempLastName(e.target.value)}
-                                  placeholder={t('rsvp.guests.lastname_placeholder')}
+                                  placeholder={t('rsvp.labels.lastname_placeholder')}
                                 />
                               </div>
                               <div className="guest-actions">
@@ -735,7 +735,7 @@ const LetterContent = ({ data }) => {
                             <>
                               <span className="guest-name">
                                 {displayGuest.first_name} {displayGuest.last_name || ''}
-                                {displayGuest.is_child && <span className="badge">{t('rsvp.guests.child_badge')}</span>}
+                                {displayGuest.is_child && <span className="badge">{t('badges.child')}</span>}
                               </span>
                               <div className="guest-actions">
                                 <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
@@ -771,7 +771,7 @@ const LetterContent = ({ data }) => {
                   </div>
                 )}
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -780,7 +780,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'contact' && (
               <>
                 <div className="phone-field">
-                  <h3>{t('rsvp.contact.title')}</h3>
+                  <h3>{t('rsvp.labels.phone')}</h3>
                   {editingPhone ? (
                     <>
                       <div className="phone-edit-container">
@@ -801,14 +801,14 @@ const LetterContent = ({ data }) => {
                     </>
                   ) : (
                     <div className="phone-display">
-                      <span className="phone-number">{phoneNumber || t('rsvp.contact.not_specified')}</span>
+                      <span className="phone-number">{phoneNumber || t('rsvp.messages.not_specified')}</span>
                       <button className="guest-action-btn edit" onClick={handleStartEditPhone}>✏️</button>
                     </div>
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -817,7 +817,7 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'travel' && (
               <>
                 <div className="travel-form">
-                  <h3>{t('rsvp.travel.transport_title')}</h3>
+                  <h3>{t('rsvp.labels.transport')}</h3>
                   <label className="radio-label">
                     <input
                       type="radio"
@@ -826,7 +826,7 @@ const LetterContent = ({ data }) => {
                       checked={travelInfo.transport_type === 'traghetto'}
                       onChange={(e) => handleTransportChange(e.target.value)}
                     />
-                    {t('rsvp.travel.ferry')}
+                    {t('rsvp.options.ferry')}
                   </label>
                   <label className="radio-label">
                     <input
@@ -836,61 +836,61 @@ const LetterContent = ({ data }) => {
                       checked={travelInfo.transport_type === 'aereo'}
                       onChange={(e) => handleTransportChange(e.target.value)}
                     />
-                    {t('rsvp.travel.plane')}
+                    {t('rsvp.options.plane')}
                   </label>
 
-                  <h3>{t('rsvp.travel.schedule_title')}</h3>
+                  <h3>{t('rsvp.labels.schedule')}</h3>
                   <input
                     type="text"
                     className="travel-input"
                     value={travelInfo.schedule}
                     onChange={(e) => handleScheduleChange(e.target.value)}
                     onBlur={handleScheduleBlur}
-                    placeholder={t('rsvp.travel.schedule_placeholder')}
+                    placeholder={t('rsvp.labels.schedule_placeholder')}
                   />
 
                   {travelInfo.transport_type === 'traghetto' && (
                     <>
-                      <h3>{t('rsvp.travel.car_title')}</h3>
+                      <h3>{t('rsvp.labels.car')}</h3>
                       <label className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'proprio'}
                           onChange={(e) => handleCarOptionChange(e.target.checked ? 'proprio' : 'none')}
                         />
-                        {t('rsvp.travel.car_own')}
+                        {t('rsvp.options.car_with')}
                       </label>
                     </>
                   )}
 
                   {travelInfo.transport_type === 'aereo' && (
                     <>
-                      <h3>{t('rsvp.travel.rental_title')}</h3>
+                      <h3>{t('rsvp.options.car_rental')}</h3>
                       <label className="checkbox-label">
                         <input
                           type="checkbox"
                           checked={travelInfo.car_option === 'noleggio'}
                           onChange={(e) => handleCarOptionChange(e.target.checked ? 'noleggio' : 'none')}
                         />
-                        {t('rsvp.travel.car_rental')}
+                        {t('rsvp.options.car_rental')}
                       </label>
                     </>
                   )}
 
-                  {!travelInfo.car_option && travelInfo.transport_type && (
+                  {(!travelInfo.car_option || travelInfo.car_option === 'none') && travelInfo.transport_type && (
                     <label className="checkbox-label">
                       <input
                         type="checkbox"
                         checked={travelInfo.carpool_interest}
                         onChange={(e) => handleCarpoolChange(e.target.checked)}
                       />
-                      {t('rsvp.travel.carpool_interest')}
+                      {t('rsvp.options.carpool_interest')}
                     </label>
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -899,20 +899,20 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'accommodation' && data.accommodation_offered && (
               <>
                 <div className="accommodation-form">
-                  <h3>{t('rsvp.accommodation.question')}</h3>
+                  <h3>{t('rsvp.options.accommodation_question')}</h3>
                   <label className="checkbox-label">
                     <input
                       type="checkbox"
                       checked={accommodationChoice}
                       onChange={(e) => handleAccommodationChange(e.target.checked)}
                     />
-                    {t('rsvp.accommodation.yes_option')}
+                    {t('rsvp.options.accommodation_yes')}
                   </label>
 
                   {/* Alert se modifica da accepted a rejected */}
                   {accommodationRequested && !accommodationChoice && (
                     <div className="whatsapp-alert">
-                      <p>{t('rsvp.accommodation.changed_mind_alert')}</p>
+                      <p>{t('whatsapp.alert_modify_confirmed')}</p>
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
@@ -932,8 +932,8 @@ const LetterContent = ({ data }) => {
                   )}
                 </div>
 
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')} →</button>
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
+                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
               </>
             )}
 
@@ -941,19 +941,19 @@ const LetterContent = ({ data }) => {
             {rsvpStep === 'final' && (
               <>
                 <div className="final-summary">
-                  <h3>{t('rsvp.summary.title')}</h3>
-                  <p><strong>{t('rsvp.summary.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                  <p><strong>{t('rsvp.summary.phone')}:</strong> {phoneNumber}</p>
-                  <p><strong>{t('rsvp.summary.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                  <h3>{t('rsvp.labels.summary')}</h3>
+                  <p><strong>{t('rsvp.labels.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                  <p><strong>{t('rsvp.labels.phone')}:</strong> {phoneNumber}</p>
+                  <p><strong>{t('rsvp.labels.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                   {data.accommodation_offered && (
-                    <p><strong>{t('rsvp.summary.accommodation')}:</strong> {accommodationChoice ? t('common.yes') : t('common.no')}</p>
+                    <p><strong>{t('rsvp.labels.accommodation')}:</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
                   )}
                 </div>
 
                 {/* Alert se già confermato e declina */}
                 {rsvpStatus === 'declined' ? (
                   <div className="whatsapp-alert">
-                    <p>{t('rsvp.final.decline_alert')}</p>
+                    <p>{t('whatsapp.alert_confirm_after_decline')}</p>
                     {(waNumber) && (
                       <div className="whatsapp-section">
                         <div className="whatsapp-buttons">
@@ -975,29 +975,29 @@ const LetterContent = ({ data }) => {
                 (<div className="button-group">
                   {!['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
-                      {submitting ? t('common.loading') : `✔️ ${t('rsvp.buttons.confirm')}`}
+                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
                     </button>
                   )}
                   {['confirmed','declined'].includes(rsvpStatus) && (
                     <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
-                      {submitting ? t('common.loading') : `💾 ${t('rsvp.buttons.save')}`}
+                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.save_changes')}`}
                     </button>
                   )}
                   {rsvpStatus !== 'declined' && (
                     <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
-                      {submitting ? t('common.loading') : `❌ ${t('rsvp.buttons.decline')}`}
+                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.decline')}`}
                     </button>
                   )}
                 </div>
                 )}
-                <button className="rsvp-back-btn" onClick={handleBackStep}>← {t('rsvp.buttons.back')}</button>
+                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
           </div>
         );
       default:
-        return <p>{t('common.not_available')}</p>;
+        return <p>{t('cards.not_available.title')}</p>;
     }
   };
 

@@ -1,4 +1,9 @@
 {
+  "common": {
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No"
+  },
   "cards": {
     "alloggio": {
       "title": "Accommodation"
@@ -17,6 +22,9 @@
     },
     "cosaltro": {
       "title": "What else?"
+    },
+    "not_available": {
+      "title": "Not Available"
     }
   },
   "rsvp": {
@@ -65,7 +73,8 @@
       "guests": "Guests:",
       "phone": "Phone:",
       "transport": "Transport:",
-      "accommodation": "Accommodation:"
+      "accommodation": "Accommodation:",
+      "loading": "Loading..."
     },
     "buttons": {
       "next": "Next →",

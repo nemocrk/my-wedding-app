@@ -1,22 +1,52 @@
 {
+  "common": {
+    "loading": "Caricamento...",
+    "yes": "Sì",
+    "no": "No",
+    "error_modal": {
+      "title": "Ops! Qualcosa non va",
+      "button": "Ho capito, chiudi",
+      "default_user_message": "Non siamo riusciti a completare l'operazione richiesta.",
+      "hide_technical_data": "Nascondi dettagli tecnici",
+      "show_technical_data": "Mostra dettagli errore"
+
+    }
+  },
+  "invitation": {
+    "errors": {
+      "missing_params": "Link non valido. Mancano i parametri di autenticazione.",
+      "invalid": "Invito non valido",
+      "connection": "Errore di connessione",
+      "loading_failed": "Errore caricamento invito"
+    }
+  },
   "cards": {
     "alloggio": {
-      "title": "Alloggio"
+      "title": "Alloggio",
+      "content_offered": "Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!",
+      "content_general": "Per suggerimenti sugli alloggi nella zona, contattateci!"
     },
     "viaggio": {
-      "title": "Viaggio"
+      "title": "Viaggio",
+      "content_default": "Informazioni sui trasporti e come raggiungere la location."
     },
     "evento": {
       "title": "L'Evento"
     },
     "dresscode": {
-      "title": "Dress Code"
+      "title": "Dress Code",
+      "content_default": "Eleganti ma comodi! Tacchi a spillo vietati sulla sabbia!"
     },
     "bottino": {
-      "title": "Bottino di nozze"
+      "title": "Bottino di nozze",
+      "content_default": "Dettagli IBAN in arrivo!"
     },
     "cosaltro": {
-      "title": "Cos'altro?"
+      "title": "Cos'altro?",
+      "content_default": "Contattaci via WhatsApp:"
+    },
+    "not_available": {
+      "title": "Non Disponibile"
     }
   },
   "rsvp": {
@@ -53,6 +83,10 @@
       "declined": {
         "emoji": "😢",
         "text": "Faremo un brindisi per te!"
+      },
+      "unknown": {
+        "emoji": "❓",
+        "text": "Che succede?s"
       }
     },
     "labels": {
@@ -65,7 +99,11 @@
       "guests": "Ospiti:",
       "phone": "Telefono:",
       "transport": "Trasporto:",
-      "accommodation": "Alloggio:"
+      "accommodation": "Alloggio:",
+      "schedule_placeholder": "es: Partenza 10:00, Arrivo 14:00",
+      "name_placeholder": "Nome",
+      "lastname_placeholder": "Cognome",
+      "loading": "Caricamento..."
     },
     "buttons": {
       "next": "Avanti →",
@@ -99,6 +137,10 @@
       "submitting": "Invio...",
       "not_specified": "Non specificato"
     }
+  },
+  "fab": {
+    "aria_label_back": "Torna alla copertina",
+    "aria_label_front": "Gira invito"
   },
   "whatsapp": {
     "default_message": "Ciao, sono {guest_name}, avrei una domanda!",
