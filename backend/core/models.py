@@ -268,12 +268,6 @@ class Invitation(models.Model):
         help_text="Orari partenza/arrivo (free-text)",
         verbose_name="Orari Viaggio"
     )
-    travel_car_with = models.BooleanField(
-        null=True,
-        blank=True,
-        help_text="True se auto disponibile",
-        verbose_name="Auto disponibile"
-    )
     travel_car_with = models.CharField(
         max_length=10,
         choices=TravelCarInfo.choices,
