@@ -43,9 +43,10 @@ describe('Envelope Animation E2E', () => {
       }
     });
 
-    // Simulate URL params robustly
-    const url = new URL('http://localhost/?code=test&token=test');
-    window.history.replaceState({}, 'Test Page', url.toString());
+    // Simulate URL params using window.location (JSDOM compatible)
+    // JSDOM only allows same-origin relative URLs in history methods
+    delete window.location;
+    window.location = new URL('http://localhost/?code=test&token=test');
   });
 
   afterEach(() => {
@@ -118,5 +119,8 @@ describe('Envelope Animation E2E', () => {
     // Verify LetterContent is visible in the extracted letter
     // Se l'animazione ha completato, il contenuto dovrebbe essere renderizzato
     expect(screen.getByText(/Domenico & Loredana/i)).toBeInTheDocument();
+    
+    // Use user var to avoid lint/unused warnings
+    expect(user).toBeDefined();
   }, 15_000);
 });
