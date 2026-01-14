@@ -3,6 +3,7 @@ import { AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import { authenticateInvitation } from '../services/api';
 import EnvelopeAnimation from '../components/invitation/EnvelopeAnimation';
+// LetterContent is commented out in original file but we keep imports
 import LetterContent from '../components/invitation/LetterContent';
 import LoadingScreen from '../components/common/LoadingScreen';
 import './InvitationPage.css';
@@ -16,6 +17,14 @@ const InvitationPage = () => {
 
   useEffect(() => {
     const initializeInvitation = async () => {
+      // STOPPER: Se abbiamo già i dati, non ri-autentichiamo.
+      // Questo previene che il cambio lingua (che aggiorna 't' e ri-triggera l'effect)
+      // causi un fallimento perché i parametri URL sono stati rimossi.
+      if (invitationData) {
+        setLoading(false);
+        return;
+      }
+
       // Estrai parametri URL
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
@@ -57,7 +66,7 @@ const InvitationPage = () => {
     };
 
     initializeInvitation();
-  }, [t]);
+  }, [t, invitationData]); // Added invitationData to deps to be safe/compliant
 
   if (loading) {
     return <LoadingScreen />;
