@@ -127,9 +127,6 @@
       "declined": "You have declined the invitation.",
       "submitting": "Submitting...",
       "not_specified": "Not specified"
-    },
-    "guests": {
-      "exclude_all_alert": "If you're not attending, please contact us."
     }
   },
   "whatsapp": {
