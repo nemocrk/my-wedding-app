@@ -365,7 +365,10 @@
             "phone_hint": "Utilizzato per l'invio automatizzato WhatsApp (includere prefisso internazionale)",
             "offered_options": "Opzioni Offerte",
             "accommodation_offered": "Alloggio incluso",
-            "transfer_offered": "Transfer incluso"
+            "transfer_offered": "Transfer incluso",
+            "validation": {
+              "name_code_required": "Nome visualizzato e codice univoco sono obbligatori"
+            }
           },
           "guests": {
             "title": "Aggiungi Ospiti",
@@ -389,13 +392,17 @@
             "phone": "Telefono",
             "services": "Servizi Offerti",
             "none": "Nessuno",
-            "guests": "Ospiti ({count})"
+            "guests": "Ospiti ({count})",
+            "affinity_title": "Relazioni di Affinità",
+            "non_affinity_title": "Altri Inviti da Considerare",
+            "no_other_invites": "Nessun altro invito nel database"
           }
         },
         "buttons": {
           "next": "Avanti",
           "back": "Indietro",
-          "create": "Crea Invito"
+          "create": "Crea Invito",
+          "saving": "Creazione in corso..."
         }
       },
       "import_modal": {
@@ -600,22 +607,34 @@
           "wasted_beds": "Letti Sprecati",
           "wasted_beds_info": "L'algoritmo \"Letti Sprecati\" indica i posti letto liberi in stanze parzialmente occupate. Un valore più basso significa un incastro più efficiente (stile Tetris).",
           "apply_button": "Applica Questa Strategia",
-          "cancel_button": "Annulla"
+          "cancel_button": "Annulla",
+          "confirm_apply": "Applicare la strategia {strategy}? Le modifiche saranno salvate nel DB."
         }
-      },
+      }
+    },
+    "analytics": {
       "interactions_modal": {
         "title": "Analisi Interazioni: {name}",
         "sessions_count": "{count} sessioni registrate",
-        "sessions_tab": "Sessioni",
-        "no_interactions": "Nessuna interazione",
-        "events_count": "{count} eventi",
-        "replay_available": "Replay disponibile",
-        "timeline_title": "Timeline Eventi",
-        "select_session": "Seleziona una sessione",
-        "replay_title": "Replay Sessione",
-        "viewport": "Viewport originale",
-        "no_heatmap": "Nessun dato heatmap",
-        "select_for_replay": "Seleziona una sessione con dati heatmap per vedere il replay"
+        "sessions_list": {
+          "title": "Sessioni",
+          "no_sessions": "Nessuna interazione",
+          "events_count": "{count} eventi",
+          "replay_available": "Replay disponibile ({width}x{height})"
+        },
+        "timeline": {
+          "title": "Timeline Eventi",
+          "select_session": "Seleziona una sessione"
+        },
+        "replay": {
+          "title": "Replay Sessione",
+          "viewport_original": "Viewport originale: {width}x{height}",
+          "no_heatmap": "Nessun dato heatmap",
+          "select_session_prompt": "Seleziona una sessione per vedere il replay",
+          "controls": {
+            "restart": "Riavvia"
+          }
+        }
       }
     }
   }
