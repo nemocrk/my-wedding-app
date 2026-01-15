@@ -48,12 +48,19 @@ describe('TextConfigWidget', () => {
     api.deleteConfigurableText.mockResolvedValue({ success: true });
   });
 
-  it('renders loading state initially', () => {
+  // FIX: Async test + waitFor disappearance to satisfy act() warning
+  it('renders loading state initially', async () => {
     render(<TextConfigWidget />);
     
     // Loader2 icon has 'animate-spin' class
     const loader = document.querySelector('.animate-spin');
     expect(loader).toBeInTheDocument();
+
+    // Must wait for loading to finish to avoid "update not wrapped in act" warning
+    await waitFor(() => {
+        const loaderNow = document.querySelector('.animate-spin');
+        expect(loaderNow).not.toBeInTheDocument();
+    });
   });
 
   it('renders list of configurable texts after loading', async () => {
