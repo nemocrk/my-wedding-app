@@ -3,6 +3,9 @@
     "loading": "Caricamento...",
     "yes": "Sì",
     "no": "No",
+    "cancel": "Annulla",
+    "save": "Salva",
+    "close": "Chiudi",
     "error_modal": {
       "title": "Ops! Qualcosa non va",
       "button": "Ho capito, chiudi",
@@ -310,6 +313,113 @@
         "confirm": "Sì, elimina",
         "cancel": "Annulla"
       }
+    },
+    "whatsapp_config": {
+      "page_title": "Integrazione WhatsApp",
+      "tabs": {
+        "connection": "Connessione & Stato",
+        "templates": "Template Messaggi"
+      },
+      "connection": {
+        "groom_account": "Account Sposo",
+        "bride_account": "Account Sposa",
+        "status": {
+          "loading": "Caricamento...",
+          "connected": "Connesso",
+          "disconnected": "Disconnesso",
+          "error": "Errore"
+        },
+        "profile_name": "Utente WhatsApp",
+        "last_check": "Ultimo controllo:",
+        "never": "Mai",
+        "buttons": {
+          "verify_status": "Verifica Stato",
+          "connect_account": "Collega Account",
+          "disconnect": "Disconnetti Sessione",
+          "send_test": "Invia Messaggio di Test"
+        },
+        "alerts": {
+          "disconnect_confirm": "Sei sicuro di voler disconnettere questa sessione?",
+          "test_success": "Messaggio inviato con successo a {recipient}! Controlla il telefono.",
+          "test_error": "Errore invio messaggio test:"
+        },
+        "notes": {
+          "title": "Note Importanti Anti-Ban",
+          "rule_1": "Non inviare mai messaggi a contatti che non hanno scritto per primi.",
+          "rule_2": "Il sistema simula la digitazione umana (typing...) prima di ogni invio.",
+          "rule_3": "È attivo un limite di sicurezza di 10 messaggi/ora per sessione."
+        }
+      },
+      "qr_modal": {
+        "title": "Scansiona QR Code ({session})",
+        "generating": "Generazione QR Code in corso...",
+        "instructions": "Apri WhatsApp sul telefono > Impostazioni > Dispositivi collegati > Collega un dispositivo",
+        "close": "Chiudi"
+      },
+      "templates": {
+        "title": "Gestione Template Messaggi",
+        "new_template": "Nuovo Template",
+        "no_templates": "Nessun template configurato.",
+        "create_now": "Creane uno ora",
+        "types": {
+          "automatic": "Automatico",
+          "manual": "Manuale (Spot)"
+        },
+        "status": {
+          "inactive": "Inattivo"
+        },
+        "trigger": "Trigger: Cambio stato in",
+        "modal": {
+          "title_create": "Nuovo Template",
+          "title_edit": "Modifica Template",
+          "fields": {
+            "name": "Nome Template",
+            "name_placeholder": "es. Conferma Ricezione",
+            "type": "Tipo",
+            "type_manual": "Manuale (Spot)",
+            "type_auto": "Automatico (Cambio Stato)",
+            "trigger_status": "Attiva quando lo stato diventa:",
+            "trigger_select": "-- Seleziona Stato --",
+            "trigger_sent": "Inviato (Sent)",
+            "trigger_read": "Letto (Read)",
+            "trigger_confirmed": "Accettato (Confirmed)",
+            "trigger_declined": "Declinato (Declined)",
+            "content": "Contenuto Messaggio",
+            "content_placeholder": "Ciao {name}, ecco il tuo invito...",
+            "is_active": "Template Attivo"
+          },
+          "placeholders": {
+            "name": "Nome",
+            "link": "Link",
+            "code": "Codice"
+          },
+          "buttons": {
+            "cancel": "Annulla",
+            "save": "Salva Template"
+          }
+        },
+        "delete_confirm": "Sei sicuro di voler eliminare questo template?"
+      }
+    },
+    "accommodations": {
+      "page_title": "Gestione Alloggi",
+      "page_subtitle": "Configura le strutture ricettive e assegna gli ospiti.",
+      "buttons": {
+        "auto_assign": "Auto Assign (Arena)",
+        "new_accommodation": "Nuovo Alloggio"
+      },
+      "success": {
+        "created": "Alloggio creato con successo!",
+        "deleted": "Alloggio eliminato.",
+        "assigned": "Assegnazione completata! {count} invitati assegnati con la strategia scelta."
+      },
+      "alerts": {
+        "delete_confirm": "Sei sicuro di voler eliminare questo alloggio?",
+        "unassigned_warning": "Attenzione: {count} gruppi/inviti non assegnati",
+        "adults": "Adulti",
+        "children": "Bambini"
+      },
+      "close_success": "Chiudi"
     }
   }
 }
