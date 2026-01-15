@@ -3,12 +3,23 @@
     "loading": "Loading...",
     "yes": "Yes",
     "no": "No",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
     "error_modal": {
       "title": "Oops! Something went wrong",
       "button": "Got it, close",
       "default_user_message": "We couldn't complete the requested operation.",
       "hide_technical_data": "Hide technical details",
       "show_technical_data": "Show error details"
+    }
+  },
+  "invitation": {
+    "errors": {
+      "missing_params": "Invalid link. Authentication parameters are missing.",
+      "invalid": "Invalid invitation",
+      "connection": "Connection error",
+      "loading_failed": "Error loading invitation"
     }
   },
   "cards": {
@@ -85,16 +96,16 @@
       "contact_number": "Contact number:",
       "transport_type": "Transport type:",
       "schedule": "Schedule:",
-      "schedule_placeholder": "e.g., Departure 10:00, Arrival 14:00",
       "car": "Car:",
       "summary": "Summary:",
       "guests": "Guests:",
       "phone": "Phone:",
       "transport": "Transport:",
       "accommodation": "Accommodation:",
-      "loading": "Loading...",
+      "schedule_placeholder": "e.g., Departure 10:00, Arrival 14:00",
       "name_placeholder": "First Name",
-      "lastname_placeholder": "Last Name"
+      "lastname_placeholder": "Last Name",
+      "loading": "Loading..."
     },
     "buttons": {
       "next": "Next →",
@@ -129,6 +140,10 @@
       "not_specified": "Not specified"
     }
   },
+  "fab": {
+    "aria_label_back": "Back to cover",
+    "aria_label_front": "Flip invitation"
+  },
   "whatsapp": {
     "default_message": "Hi, I'm {guest_name}, I have a question!",
     "alert_modify_confirmed": "⚠️ You have already confirmed! To modify, contact the couple:",
@@ -137,18 +152,6 @@
   },
   "badges": {
     "child": "Child"
-  },
-  "invitation": {
-    "errors": {
-      "missing_params": "Invalid link. Authentication parameters are missing.",
-      "invalid": "Invalid invitation",
-      "connection": "Connection error",
-      "loading_failed": "Error loading invitation"
-    }
-  },
-  "fab": {
-    "aria_label_front": "Flip invitation",
-    "aria_label_back": "Back to cover"
   },
   "admin": {
     "config": {
@@ -310,6 +313,113 @@
         "confirm": "Yes, delete",
         "cancel": "Cancel"
       }
+    },
+    "whatsapp_config": {
+      "page_title": "WhatsApp Integration",
+      "tabs": {
+        "connection": "Connection & Status",
+        "templates": "Message Templates"
+      },
+      "connection": {
+        "groom_account": "Groom Account",
+        "bride_account": "Bride Account",
+        "status": {
+          "loading": "Loading...",
+          "connected": "Connected",
+          "disconnected": "Disconnected",
+          "error": "Error"
+        },
+        "profile_name": "WhatsApp User",
+        "last_check": "Last check:",
+        "never": "Never",
+        "buttons": {
+          "verify_status": "Verify Status",
+          "connect_account": "Connect Account",
+          "disconnect": "Disconnect Session",
+          "send_test": "Send Test Message"
+        },
+        "alerts": {
+          "disconnect_confirm": "Are you sure you want to disconnect this session?",
+          "test_success": "Message sent successfully to {recipient}! Check your phone.",
+          "test_error": "Error sending test message:"
+        },
+        "notes": {
+          "title": "Important Anti-Ban Notes",
+          "rule_1": "Never send messages to contacts who haven't written first.",
+          "rule_2": "The system simulates human typing (typing...) before each send.",
+          "rule_3": "A safety limit of 10 messages/hour per session is active."
+        }
+      },
+      "qr_modal": {
+        "title": "Scan QR Code ({session})",
+        "generating": "Generating QR Code...",
+        "instructions": "Open WhatsApp on your phone > Settings > Linked devices > Link a device",
+        "close": "Close"
+      },
+      "templates": {
+        "title": "Message Template Management",
+        "new_template": "New Template",
+        "no_templates": "No templates configured.",
+        "create_now": "Create one now",
+        "types": {
+          "automatic": "Automatic",
+          "manual": "Manual (Spot)"
+        },
+        "status": {
+          "inactive": "Inactive"
+        },
+        "trigger": "Trigger: Status change to",
+        "modal": {
+          "title_create": "New Template",
+          "title_edit": "Edit Template",
+          "fields": {
+            "name": "Template Name",
+            "name_placeholder": "e.g., Receipt Confirmation",
+            "type": "Type",
+            "type_manual": "Manual (Spot)",
+            "type_auto": "Automatic (Status Change)",
+            "trigger_status": "Activate when status becomes:",
+            "trigger_select": "-- Select Status --",
+            "trigger_sent": "Sent",
+            "trigger_read": "Read",
+            "trigger_confirmed": "Accepted (Confirmed)",
+            "trigger_declined": "Declined",
+            "content": "Message Content",
+            "content_placeholder": "Hi {name}, here's your invitation...",
+            "is_active": "Template Active"
+          },
+          "placeholders": {
+            "name": "Name",
+            "link": "Link",
+            "code": "Code"
+          },
+          "buttons": {
+            "cancel": "Cancel",
+            "save": "Save Template"
+          }
+        },
+        "delete_confirm": "Are you sure you want to delete this template?"
+      }
+    },
+    "accommodations": {
+      "page_title": "Accommodation Management",
+      "page_subtitle": "Configure lodging facilities and assign guests.",
+      "buttons": {
+        "auto_assign": "Auto Assign (Arena)",
+        "new_accommodation": "New Accommodation"
+      },
+      "success": {
+        "created": "Accommodation created successfully!",
+        "deleted": "Accommodation deleted.",
+        "assigned": "Assignment completed! {count} invitations assigned with the chosen strategy."
+      },
+      "alerts": {
+        "delete_confirm": "Are you sure you want to delete this accommodation?",
+        "unassigned_warning": "Warning: {count} unassigned groups/invitations",
+        "adults": "Adults",
+        "children": "Children"
+      },
+      "close_success": "Close"
     }
   }
 }
