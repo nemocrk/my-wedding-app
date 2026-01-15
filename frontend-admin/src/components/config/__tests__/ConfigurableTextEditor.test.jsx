@@ -1,9 +1,9 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import ConfigurableTextEditor from '../ConfigurableTextEditor';
 
-// NOTA: TipTap e Lucide icons sono mockati globalmente in setupTests.ts
+// NOTA: TipTap e Lucide icons sono mockati globalmente in setupTests.tsx
 
 describe('ConfigurableTextEditor', () => {
   const mockOnSave = vi.fn();
@@ -58,10 +58,11 @@ describe('ConfigurableTextEditor', () => {
     const editButton = screen.getByRole('button', { name: /modifica/i });
     await user.click(editButton);
 
-    // Modal should open with Salva and Annulla buttons
+    // Modal should open - use dialog role to scope queries
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      expect(within(dialog).getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: /annulla/i })).toBeInTheDocument();
     });
     
     // Modal header should show label
@@ -84,12 +85,15 @@ describe('ConfigurableTextEditor', () => {
     // Open modal
     await user.click(screen.getByRole('button', { name: /modifica/i }));
 
+    // Wait for modal and get Save button within dialog
+    let saveButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      expect(saveButton).toBeInTheDocument();
     });
 
     // Click save
-    const saveButton = screen.getByRole('button', { name: /salva/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -112,17 +116,20 @@ describe('ConfigurableTextEditor', () => {
     // Open modal
     await user.click(screen.getByRole('button', { name: /modifica/i }));
 
+    // Wait for modal and get Cancel button within dialog scope
+    let cancelButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      cancelButton = within(dialog).getByRole('button', { name: /annulla/i });
+      expect(cancelButton).toBeInTheDocument();
     });
 
     // Click cancel
-    const cancelButton = screen.getByRole('button', { name: /annulla/i });
     await user.click(cancelButton);
 
     // Modal should close
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /salva/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     // Should be back to preview mode
@@ -159,15 +166,18 @@ describe('ConfigurableTextEditor', () => {
     // Open and save
     await user.click(screen.getByRole('button', { name: /modifica/i }));
     
+    let saveButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      expect(saveButton).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /salva/i }));
+    await user.click(saveButton);
 
     // Modal should close after save
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /salva/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 });
