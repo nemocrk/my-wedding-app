@@ -13,27 +13,42 @@ class TestConfigurableTextModel:
         """Test creating a ConfigurableText instance."""
         text = ConfigurableText.objects.create(
             key='envelope.front.content',
+            language='it',
             content='<span style="font-family: serif;">Benvenuti al nostro matrimonio</span>',
             metadata={'font': 'serif', 'size': '24px'}
         )
         assert text.key == 'envelope.front.content'
+        assert text.language == 'it'
         assert 'Benvenuti' in text.content
         assert text.metadata['font'] == 'serif'
         assert text.created_at is not None
         assert text.updated_at is not None
     
-    def test_unique_key_constraint(self):
-        """Test that key field enforces uniqueness."""
+    def test_unique_key_language_constraint(self):
+        """Test that (key, language) enforces uniqueness (i18n support)."""
+        # Prima entry: key + language IT
         ConfigurableText.objects.create(
             key='card.alloggio.content',
-            content='Test content'
+            language='it',
+            content='Contenuto italiano'
         )
         
+        # DEVE FALLIRE: stessa key + stessa language
         with pytest.raises(Exception):  # Django IntegrityError
             ConfigurableText.objects.create(
                 key='card.alloggio.content',
-                content='Duplicate key content'
+                language='it',
+                content='Altro contenuto italiano (duplicato)'
             )
+        
+        # DEVE PASSARE: stessa key ma language diversa (EN)
+        text_en = ConfigurableText.objects.create(
+            key='card.alloggio.content',
+            language='en',
+            content='English content'
+        )
+        assert text_en.language == 'en'
+        assert ConfigurableText.objects.filter(key='card.alloggio.content').count() == 2
     
     def test_update_configurable_text(self):
         """Test updating ConfigurableText updates timestamp."""
@@ -59,10 +74,12 @@ class TestConfigurableTextPublicAPI:
         """Test GET /api/public/texts/ returns all texts as dict."""
         ConfigurableText.objects.create(
             key='envelope.front.content',
+            language='it',
             content='Front envelope HTML'
         )
         ConfigurableText.objects.create(
             key='card.alloggio.content_offered',
+            language='it',
             content='Accommodation offered text'
         )
         
@@ -104,10 +121,12 @@ class TestConfigurableTextAdminAPI:
         """Test GET /api/admin/texts/ lists all texts."""
         ConfigurableText.objects.create(
             key='envelope.front.content',
+            language='it',
             content='Front content'
         )
         ConfigurableText.objects.create(
             key='card.dresscode.content',
+            language='it',
             content='Dress code content'
         )
         
@@ -121,6 +140,7 @@ class TestConfigurableTextAdminAPI:
         """Test GET /api/admin/texts/<key>/ retrieves specific text."""
         text = ConfigurableText.objects.create(
             key='card.bottino.content',
+            language='it',
             content='Wedding list content',
             metadata={'section': 'gifts'}
         )
@@ -138,26 +158,27 @@ class TestConfigurableTextAdminAPI:
         url = reverse('admin-texts-list')
         payload = {
             'key': 'card.cosaltro.content',
+            'language': 'it',
             'content': '<p>What else content</p>',
             'metadata': {'notes': 'Created via API'}
         }
         
-        # Use content_type='application/json' for standard Client, not format='json'
         response = admin_client.post(url, payload, content_type='application/json')
         
         assert response.status_code == status.HTTP_201_CREATED
-        assert ConfigurableText.objects.filter(key='card.cosaltro.content').exists()
+        assert ConfigurableText.objects.filter(key='card.cosaltro.content', language='it').exists()
     
     def test_update_configurable_text_via_api(self, admin_client):
         """Test PUT /api/admin/texts/<key>/ updates existing text."""
         text = ConfigurableText.objects.create(
             key='envelope.front.content',
+            language='it',
             content='Original content'
         )
         
         url = reverse('admin-texts-detail', kwargs={'key': text.key})
+        # NOTA: 'key' e 'language' NON vanno nel payload PUT, sono nell'URL
         payload = {
-            'key': 'envelope.front.content',
             'content': 'Updated HTML content',
             'metadata': {'updated': True}
         }
@@ -173,11 +194,13 @@ class TestConfigurableTextAdminAPI:
         """Test PATCH /api/admin/texts/<key>/ partially updates text."""
         text = ConfigurableText.objects.create(
             key='card.alloggio.content_not_offered',
+            language='it',
             content='Original content',
             metadata={'old': 'value'}
         )
         
         url = reverse('admin-texts-detail', kwargs={'key': text.key})
+        # NOTA: Solo il campo da modificare (senza 'key' o 'language')
         payload = {'content': 'Patched content only'}
         
         response = admin_client.patch(url, payload, content_type='application/json')
@@ -191,6 +214,7 @@ class TestConfigurableTextAdminAPI:
         """Test DELETE /api/admin/texts/<key>/ deletes text."""
         text = ConfigurableText.objects.create(
             key='temp.test.key',
+            language='it',
             content='To be deleted'
         )
         
@@ -198,20 +222,23 @@ class TestConfigurableTextAdminAPI:
         response = admin_client.delete(url)
         
         assert response.status_code == status.HTTP_204_NO_CONTENT
-        assert not ConfigurableText.objects.filter(key='temp.test.key').exists()
+        assert not ConfigurableText.objects.filter(key='temp.test.key', language='it').exists()
     
     def test_search_configurable_texts(self, admin_client):
         """Test search functionality on key and content fields."""
         ConfigurableText.objects.create(
             key='card.alloggio.content_offered',
+            language='it',
             content='Accommodation text'
         )
         ConfigurableText.objects.create(
             key='card.viaggio.content',
+            language='it',
             content='Travel information'
         )
         ConfigurableText.objects.create(
             key='envelope.back.content',
+            language='it',
             content='Back envelope text'
         )
         
