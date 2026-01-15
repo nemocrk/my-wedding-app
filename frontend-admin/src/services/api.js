@@ -174,6 +174,14 @@ export const api = {
     return handleResponse(response);
   },
 
+  deleteConfigurableText: async (key, lang = 'it') => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
+      method: 'DELETE',
+    });
+    if (response.status === 204) return true;
+    return handleResponse(response);
+  },
+
   // --- ACCOMMODATIONS ---
   fetchAccommodations: async () => {
     const response = await safeFetch(`${API_BASE_URL}/accommodations/`);
