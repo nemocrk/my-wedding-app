@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 const Header = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,13 +39,19 @@ const Header = () => {
           ))}
         </nav>
 
-        {/* Mobile Burger Menu - Visible until XL */}
-        <button
-          className="xl:hidden text-gray-600 focus:outline-none"
-          onClick={toggleMenu}
-        >
-          {isOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
+        {/* Right Section: Language Switcher + Mobile Burger */}
+        <div className="flex items-center gap-4">
+          {/* Language Switcher - Always visible */}
+          <LanguageSwitcher />
+
+          {/* Mobile Burger Menu - Visible until XL */}
+          <button
+            className="xl:hidden text-gray-600 focus:outline-none"
+            onClick={toggleMenu}
+          >
+            {isOpen ? <X size={24} /> : <Menu size={24} />}
+          </button>
+        </div>
       </div>
 
       {/* Mobile Drawer */}
