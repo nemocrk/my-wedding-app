@@ -110,6 +110,8 @@ services:
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
       DEBUG: ${DEBUG:-False}
       FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
+      # NEW: Secure Server-Side Key for Google Fonts Proxy
+      GOOGLE_FONTS_API_KEY: ${GOOGLE_FONTS_API_KEY}
     networks:
       - db_network
       - backend_network
@@ -145,6 +147,8 @@ services:
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
       WAHA_WORKER_INTERVAL: ${WAHA_WORKER_INTERVAL:-60}
       WA_INTEGRATION_URL: http://whatsapp-integration:3000
+      # Worker might need it too if it ever renders PDFs etc.
+      GOOGLE_FONTS_API_KEY: ${GOOGLE_FONTS_API_KEY}
     networks:
       - db_network
       - whatsapp_intranet_network
@@ -182,13 +186,10 @@ services:
       target: ${BUILD_TARGET:-production}
       args:
         REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://localhost:8080/api}
-        VITE_GOOGLE_FONTS_API_KEY: ${VITE_GOOGLE_FONTS_API_KEY}
+        # CLEANUP: Rimosso VITE_GOOGLE_FONTS_API_KEY (non pi necessaria lato client)
     volumes:
       - ./frontend-admin/nginx.conf:/etc/nginx/nginx.conf:ro
-    # PATCH CRITICA: Espone la variabile al runtime environment del container
-    # Essenziale quando si usa BUILD_TARGET=development (dev server)
-    environment:
-      - VITE_GOOGLE_FONTS_API_KEY=${VITE_GOOGLE_FONTS_API_KEY}
+    # CLEANUP: Rimossa environment VITE_... (non pi necessaria lato client)
     networks:
       - frontend_intranet_network
     healthcheck:
