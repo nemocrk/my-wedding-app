@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Loader2, Globe, AlertTriangle } from 'lucide-react';
+import { Loader2, Globe } from 'lucide-react';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
 
 const TextConfigWidget = () => {
-  const [texts, setTexts] = useState([]);
+  const [allTexts, setAllTexts] = useState([]); // Store ALL texts for ALL languages
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [filter, setFilter] = useState('');
@@ -23,50 +23,52 @@ const TextConfigWidget = () => {
     { key: 'card.cosaltro.content', label: 'Card Cos\'altro' },
   ];
 
+  // 1. Initial Load: Languages AND All Texts
   useEffect(() => {
-    // 1. Carica le lingue disponibili
-    const loadLanguages = async () => {
+    const initData = async () => {
+        setLoading(true);
         try {
-            const langs = await api.fetchLanguages();
-            setAvailableLanguages(langs);
+            // Parallel fetch
+            const [langs, textsData] = await Promise.all([
+                api.fetchLanguages(),
+                api.fetchConfigurableTexts(null) // Fetch ALL texts (no lang filter)
+            ]);
             
-            // Se la lingua selezionata non è nella lista (salvo default 'it'), resetta
+            setAvailableLanguages(langs);
+            setAllTexts(textsData);
+
+            // Set default lang if not set or invalid
             if (langs.length > 0 && !langs.find(l => l.code === selectedLang)) {
-                // Mantieni 'it' se esiste, altrimenti il primo
                 if (langs.find(l => l.code === 'it')) setSelectedLang('it');
                 else setSelectedLang(langs[0].code);
             }
+
         } catch (err) {
-            console.error("Errore caricamento lingue", err);
-            // Fallback minimo
+            console.error("Errore caricamento iniziale", err);
+            setError('Impossibile caricare le configurazioni.');
+            // Fallback langs
             setAvailableLanguages([
                 { code: 'it', label: 'Italiano', flag: '🇮🇹' },
                 { code: 'en', label: 'English', flag: '🇬🇧' }
             ]);
+        } finally {
+            setLoading(false);
         }
     };
-    loadLanguages();
-  }, []); // Run only once on mount
+    initData();
+  }, []);
 
-  const fetchData = async (lang) => {
-    setLoading(true);
-    try {
-      const data = await api.fetchConfigurableTexts(lang);
-      setTexts(data);
-    } catch (err) {
-      setError('Errore nel caricamento dei testi.');
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
+  // Refresh only texts
+  const refreshTexts = async () => {
+      try {
+          const data = await api.fetchConfigurableTexts(null);
+          setAllTexts(data);
+      } catch (err) {
+          console.error("Failed to refresh texts", err);
+      }
   };
 
-  // 2. Ricarica testi quando cambia la lingua selezionata
-  useEffect(() => {
-    fetchData(selectedLang);
-  }, [selectedLang]);
-
-  // Helper per controllare se l'HTML è "vuoto" (es. "<p></p>" o "<br>")
+  // Helper per controllare se l'HTML è "vuoto"
   const isContentEmpty = (html) => {
       if (!html) return true;
       const doc = new DOMParser().parseFromString(html, 'text/html');
@@ -76,46 +78,31 @@ const TextConfigWidget = () => {
   const handleUpdateText = async (key, newContent) => {
     try {
       if (isContentEmpty(newContent)) {
-          // SE VUOTO -> CANCELLA (DELETE)
-          // Se esiste già nel DB, lo rimuoviamo. Se non esiste, non facciamo nulla.
-          const existing = texts.find(t => t.key === key);
+          // SE VUOTO -> CANCELLA
+          const existing = allTexts.find(t => t.key === key && t.language === selectedLang);
           if (existing) {
               await api.deleteConfigurableText(key, selectedLang);
           }
       } else {
-          // SE PIENO -> AGGIORNA (PUT UPSERT)
+          // SE PIENO -> AGGIORNA
           await api.updateConfigurableText(key, { content: newContent }, selectedLang);
       }
       
-      // Refresh list
-      fetchData(selectedLang);
+      // Refresh local state immediately for responsiveness
+      await refreshTexts();
+      
     } catch (err) {
       console.error(err);
       alert('Errore durante il salvataggio: ' + err.message);
     }
   };
 
-  const handleLanguageChange = (newLang) => {
-      if (newLang === selectedLang) return;
-
-      // Check se ci sono testi non configurati nella lingua corrente
-      const missingKeys = KNOWN_KEYS.filter(k => !texts.find(t => t.key === k.key));
-      
-      if (missingKeys.length > 0) {
-          const confirmSwitch = window.confirm(
-              `ATTENZIONE: Ci sono ${missingKeys.length} testi NON configurati in ${selectedLang.toUpperCase()}.\n\n` +
-              `Testi mancanti:\n- ${missingKeys.map(k => k.label).join('\n- ')}\n\n` +
-              `Vuoi cambiare lingua comunque?`
-          );
-          if (!confirmSwitch) return;
-      }
-      
-      setSelectedLang(newLang);
-  };
-
   const getCombinedList = () => {
     const merged = [...KNOWN_KEYS];
-    texts.forEach(dbText => {
+    // Add dynamic keys found in DB (for current lang) but not in KNOWN_KEYS
+    const currentLangTexts = allTexts.filter(t => t.language === selectedLang);
+    
+    currentLangTexts.forEach(dbText => {
       if (!merged.find(k => k.key === dbText.key)) {
         merged.push({ key: dbText.key, label: dbText.key });
       }
@@ -127,9 +114,15 @@ const TextConfigWidget = () => {
     );
   };
   
+  // Calculate missing count for a specific language
+  const getMissingCount = (langCode) => {
+      const langTexts = allTexts.filter(t => t.language === langCode);
+      return KNOWN_KEYS.filter(k => !langTexts.find(t => t.key === k.key)).length;
+  };
+
   const getLangButtonStyle = (langCode) => {
       const isSelected = selectedLang === langCode;
-      const baseClass = "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border shadow-sm";
+      const baseClass = "relative flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all border shadow-sm group";
       
       if (isSelected) {
           return `${baseClass} bg-indigo-600 text-white border-indigo-600 ring-2 ring-indigo-200`;
@@ -137,10 +130,13 @@ const TextConfigWidget = () => {
       return `${baseClass} bg-white text-gray-700 border-gray-200 hover:bg-gray-50 hover:border-gray-300`;
   };
 
-  if (loading && texts.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
+  if (loading && allTexts.length === 0) return <div className="flex justify-center p-8"><Loader2 className="animate-spin" /></div>;
   if (error) return <div className="text-red-500 p-4">{error}</div>;
 
   const list = getCombinedList();
+  
+  // Current texts for editor
+  const currentLangTexts = allTexts.filter(t => t.language === selectedLang);
 
   return (
     <div className="bg-gray-50 p-6 rounded-xl">
@@ -154,16 +150,27 @@ const TextConfigWidget = () => {
         </div>
         
         <div className="flex items-center gap-2 flex-wrap bg-gray-100 p-1.5 rounded-full">
-            {availableLanguages.map(lang => (
-                <button
-                    key={lang.code}
-                    onClick={() => handleLanguageChange(lang.code)}
-                    className={getLangButtonStyle(lang.code)}
-                >
-                    <span className="text-lg leading-none">{lang.flag}</span>
-                    <span className="uppercase">{lang.code}</span>
-                </button>
-            ))}
+            {availableLanguages.map(lang => {
+                const missingCount = getMissingCount(lang.code);
+                return (
+                    <button
+                        key={lang.code}
+                        onClick={() => setSelectedLang(lang.code)}
+                        className={getLangButtonStyle(lang.code)}
+                        title={missingCount > 0 ? `${missingCount} testi mancanti` : 'Completo'}
+                    >
+                        <span className="text-lg leading-none">{lang.flag}</span>
+                        <span className="uppercase">{lang.code}</span>
+                        
+                        {/* BADGE GIALLO PER TESTI MANCANTI */}
+                        {missingCount > 0 && (
+                            <span className="ml-1 px-1.5 py-0.5 text-[10px] font-bold bg-amber-100 text-amber-700 rounded-md border border-amber-200 flex items-center gap-0.5 animate-pulse">
+                                ⚠️ {missingCount}
+                            </span>
+                        )}
+                    </button>
+                );
+            })}
         </div>
       </div>
 
@@ -179,22 +186,22 @@ const TextConfigWidget = () => {
 
       <div className="space-y-4">
         {list.map(item => {
-          const dbText = texts.find(t => t.key === item.key);
+          const dbText = currentLangTexts.find(t => t.key === item.key);
           const isConfigured = !!dbText;
           
           return (
-            <div key={item.key} className={`border rounded-lg p-4 bg-white shadow-sm transition-all hover:shadow-md ${!isConfigured ? 'border-l-4 border-l-orange-400' : 'border-l-4 border-l-green-400'}`}>
+            <div key={item.key} className={`border rounded-lg p-4 bg-white shadow-sm transition-all hover:shadow-md ${!isConfigured ? 'border-l-4 border-l-amber-400' : 'border-l-4 border-l-emerald-500'}`}>
                 <div className="mb-3 flex justify-between items-center">
                     <span className="font-semibold text-gray-700 flex items-center gap-2">
                         {item.label}
                         <code className="text-xs font-normal bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{item.key}</code>
                     </span>
                     {!isConfigured ? (
-                        <span className="text-xs text-orange-600 font-bold px-2 py-1 bg-orange-50 rounded border border-orange-100 flex items-center gap-1">
+                        <span className="text-xs text-amber-700 font-bold px-2 py-1 bg-amber-50 rounded border border-amber-200 flex items-center gap-1">
                              ⚠️ Manca in {selectedLang.toUpperCase()}
                         </span>
                     ) : (
-                        <span className="text-xs text-green-600 font-bold px-2 py-1 bg-green-50 rounded border border-green-100 flex items-center gap-1">
+                        <span className="text-xs text-emerald-700 font-bold px-2 py-1 bg-emerald-50 rounded border border-emerald-200 flex items-center gap-1">
                              ✅ Configurato
                         </span>
                     )}
