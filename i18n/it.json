@@ -160,7 +160,9 @@
       "saving": "Salvataggio...",
       "success_message": "Configurazione salvata con successo!",
       "error_message": "Errore durante il salvataggio.",
-      "error_load": "Errore caricamento configurazione."
+      "error_load": "Errore caricamento configurazione.",
+      "dynamic_texts_title": "Contenuti Dinamici",
+      "dynamic_texts_subtitle": "Gestisci i testi configurabili visualizzati nelle card dell'invito utente"
     },
     "sections": {
       "prices": {
@@ -189,19 +191,6 @@
         "rate_limit_hint": "Limite di sicurezza per sessione (Anti-Ban)",
         "rate_limit_note": "Valore consigliato: 10 msg/ora. Non superare 20 per evitare ban da WhatsApp.",
         "placeholder_rate": "10"
-      },
-      "text_customization": {
-        "title": "Personalizzazione Testi",
-        "subtitle": "Configura i contenuti lunghi della lettera di invito",
-        "envelope_front": "Front della Busta",
-        "card_contents": "Contenuti delle Card",
-        "preview": "Anteprima",
-        "edit": "Modifica",
-        "font": "Font",
-        "size": "Dimensione",
-        "color": "Colore",
-        "emoji": "Emoji",
-        "add_emoji": "Aggiungi Emoji"
       }
     }
   }
