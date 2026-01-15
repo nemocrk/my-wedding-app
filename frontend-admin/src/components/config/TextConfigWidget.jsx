@@ -28,38 +28,15 @@ const TextConfigWidget = () => {
     const initData = async () => {
         setLoading(true);
         try {
-            // First: Load languages - SAFETY CHECK ADDED
-            let langs = [];
-            if (typeof api.fetchLanguages === 'function') {
-                try {
-                    langs = await api.fetchLanguages();
-                } catch (e) {
-                    console.warn("API fetchLanguages failed, using fallback", e);
-                }
-            } else {
-                console.warn("api.fetchLanguages is not a function!");
-            }
-
-            // Fallback if API fails or returns empty
-            if (!Array.isArray(langs) || langs.length === 0) {
-                 langs = [
-                    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
-                    { code: 'en', label: 'English', flag: '🇬🇧' }
-                ];
-            }
-            
+            // First: Load languages
+            const langs = await api.fetchLanguages();
             setAvailableLanguages(langs);
 
             // Then: Load texts for EACH language and ADD language attribute manually
             const textsPromises = langs.map(async (lang) => {
-                try {
-                    const texts = await api.fetchConfigurableTexts(lang.code);
-                    // IMPORTANT: API doesn't return 'language' field, so we add it manually
-                    return texts.map(t => ({ ...t, language: lang.code }));
-                } catch (e) {
-                    console.error(`Failed to fetch texts for ${lang.code}`, e);
-                    return [];
-                }
+                const texts = await api.fetchConfigurableTexts(lang.code);
+                // IMPORTANT: API doesn't return 'language' field, so we add it manually
+                return texts.map(t => ({ ...t, language: lang.code }));
             });
             const textsArrays = await Promise.all(textsPromises);
             
