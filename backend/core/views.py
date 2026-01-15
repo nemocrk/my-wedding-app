@@ -18,9 +18,7 @@ from .serializers import (
 )
 import logging
 import os
-import copy
 import json
-import requests  # Required for Proxy View
 
 logger = logging.getLogger(__name__)
 
@@ -332,36 +330,41 @@ class PublicLogHeatmapView(APIView):
 
 class AdminGoogleFontsProxyView(APIView):
     """
-    Proxy sicuro per l'API di Google Fonts.
-    Permette al frontend di ottenere la lista dei font senza esporre l'API Key.
+    Proxy sicuro per Google Fonts → OFFLINE MODE.
+    Legge dal file statico backend/assets/fontInfo.json invece di chiamare l'API.
     """
     def get(self, request):
-        api_key = getattr(settings, 'GOOGLE_FONTS_API_KEY', None)
+        font_file_path = os.path.join(settings.BASE_DIR, 'assets', 'fontInfo.json')
         
-        if not api_key:
-            logger.error("GOOGLE_FONTS_API_KEY not configured in settings")
+        if not os.path.exists(font_file_path):
+            logger.error(f"Font info file not found at {font_file_path}")
             return Response(
-                {'error': 'Server configuration error: missing API key'}, 
+                {'error': 'Font database not available'}, 
                 status=status.HTTP_503_SERVICE_UNAVAILABLE
             )
-            
-        google_url = f"https://www.googleapis.com/webfonts/v1/webfonts?key={api_key}&sort=popularity"
         
         try:
-            # Opzionale: implementare caching qui se necessario
-            response = requests.get(google_url, timeout=5)
-            response.raise_for_status()
+            with open(font_file_path, 'r', encoding='utf-8') as f:
+                fonts_data = json.load(f)
             
-            data = response.json()
-            # Restituiamo solo i campi essenziali per ridurre il payload se serve,
-            # ma per ora il frontend si aspetta la struttura Google standard
-            return Response(data)
+            # Trasforma la struttura locale nel formato che il frontend si aspetta (Google API format)
+            items = []
+            for font in fonts_data:
+                items.append({
+                    'family': font.get('name'),
+                    'category': font.get('category', 'sans-serif'),
+                    'variants': font.get('variants', []),
+                    'subsets': font.get('subsets', [])
+                })
             
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Google Fonts API Proxy Error: {e}")
+            # Restituisce nel formato Google API standard per compatibilità
+            return Response({'items': items})
+            
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Error reading font info file: {e}")
             return Response(
-                {'error': 'Failed to fetch fonts from Google'}, 
-                status=status.HTTP_502_BAD_GATEWAY
+                {'error': 'Failed to load font database'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
 class ConfigurableTextViewSet(viewsets.ModelViewSet):
