@@ -185,6 +185,10 @@ services:
         VITE_GOOGLE_FONTS_API_KEY: ${VITE_GOOGLE_FONTS_API_KEY}
     volumes:
       - ./frontend-admin/nginx.conf:/etc/nginx/nginx.conf:ro
+    # PATCH CRITICA: Espone la variabile al runtime environment del container
+    # Essenziale quando si usa BUILD_TARGET=development (dev server)
+    environment:
+      - VITE_GOOGLE_FONTS_API_KEY=${VITE_GOOGLE_FONTS_API_KEY}
     networks:
       - frontend_intranet_network
     healthcheck:
