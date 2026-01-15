@@ -549,12 +549,26 @@ const LetterContent = ({ data }) => {
       }
     };
 
+    const onSealReturn = () => {
+        sealControls.start({
+            rotate: 0,
+            transition: { 
+                duration: 0.6, 
+                ease: "easeOut",
+                type: "spring",
+                bounce: 0.3
+            }
+        });
+    };
+
     window.addEventListener('message', handleReplayMessage);
-    const timer = setTimeout(() => sealControls.start({ opacity: 1, scale: 1, x: 0, y: 0 }), 500);
+    window.addEventListener('wax-seal:return', onSealReturn);
+    const timer = setTimeout(() => sealControls.start({ opacity: 1}), 500);
 
     return () => {
       heatmapTracker.stop();
       window.removeEventListener('message', handleReplayMessage);
+      window.removeEventListener('wax-seal:return', onSealReturn);
       clearTimeout(timer);
     };
   }, [sealControls, data.phone_number, data.guests.length, rsvpStatus, editingGuestIndex, tempFirstName, tempLastName, tempPhoneNumber, phoneNumber, editingPhone, travelInfo, accommodationChoice, editedGuests, excludedGuests]);
@@ -1022,7 +1036,7 @@ const LetterContent = ({ data }) => {
                     <p class="text-dress">Dress Code: Beach Chic<br /><span style="font-size: 0.7em; display: block; margin-top: 5px; opacity: 0.8">(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
                 `) }} />
               </div>
-              <motion.div className="wax-seal" initial={{ x: -100, y: 100, scale: 1.5, opacity: 0, rotate: -30 }} animate={sealControls} style={{ position: 'absolute', bottom: '1rem', left: '1rem', width: '36%', maxWidth: '90px', zIndex: 30, pointerEvents: 'none' }}>
+              <motion.div className="wax-seal" initial={{ rotate: -30 }} animate={sealControls}>
                 <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
               </motion.div>
             </div>

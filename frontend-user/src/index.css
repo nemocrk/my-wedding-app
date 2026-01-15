@@ -13,7 +13,7 @@
   Questo rende automaticamente responsive tutti i testi configurati nell'admin con unità 'rem'.
 */
 html {
-  font-size: clamp(12px, 0.6rem + 1vw, 20px);
+  font-size: clamp(10px, 0.4rem + 1vw, 17px);
 }
 
 * {

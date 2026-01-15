@@ -1109,7 +1109,7 @@
 
     /* Wax Seal Mobile Adjustment */
     .wax-seal {
-        max-width: 50px;
+        max-width: 48px;
         bottom: -6px;
         left: 20px;
     }
@@ -1372,9 +1372,11 @@
     .text-names { font-size: 1.6rem; }
     .text-wit { font-size: 0.75rem; }
     .text-date { font-size: 1rem; }
+    .spacer-top {
+        height: 5%;
+    }
     
     .wax-seal {
-        max-width: 40px;
         left: 10px;
         bottom: -11px;
     }
