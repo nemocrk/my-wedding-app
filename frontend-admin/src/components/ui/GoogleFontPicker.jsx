@@ -127,8 +127,8 @@ export default function GoogleFontPicker({
     if (!font) return null;
 
     const cssFamily = toCssFontFamily(font);
-    // Ensure preview font is available (idempotent)
-    loadGoogleFont(cssFamily);
+    // OPTIMIZATION: Removed eager loadGoogleFont(cssFamily)
+    // Fonts will only load when hovering to prevent massive network spam on scroll
 
     const isActive = (selected?.family || '') === font.family;
 
