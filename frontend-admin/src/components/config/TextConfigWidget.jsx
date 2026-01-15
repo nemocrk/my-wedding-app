@@ -68,19 +68,10 @@ const TextConfigWidget = () => {
 
   const handleUpdateText = async (key, newContent) => {
     try {
-      // Logic restoration: Check if exists to decide PUT vs POST
-      const existing = texts.find(t => t.key === key);
-      
-      if (existing) {
-        await api.updateConfigurableText(key, { content: newContent }, selectedLang);
-      } else {
-        // Create new entry explicitly using POST
-        await api.createConfigurableText({
-            key: key,
-            language: selectedLang,
-            content: newContent
-        });
-      }
+      // Logic Simplified: Always use UPDATE (PUT).
+      // The backend view (ConfigurableTextViewSet.update) handles "get_or_create" logic internally.
+      // This avoids issues with POST creation where 'key' might be read-only in serializer.
+      await api.updateConfigurableText(key, { content: newContent }, selectedLang);
       
       // Refresh list
       fetchData(selectedLang);
