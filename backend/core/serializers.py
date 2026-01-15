@@ -15,8 +15,8 @@ class ConfigurableTextSerializer(serializers.ModelSerializer):
     """Serializer per testi configurabili (Front Busta + Card Content)"""
     class Meta:
         model = ConfigurableText
-        fields = ['key', 'language', 'content', 'metadata', 'created_at', 'updated_at']
-        read_only_fields = ['created_at', 'updated_at']  # key e language editabili in creazione, ma non in update
+        fields = ['key', 'content', 'metadata', 'updated_at']
+        read_only_fields = ['key', 'updated_at']  # 'key' read-only per impedire cambio in update
 
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
