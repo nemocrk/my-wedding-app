@@ -58,11 +58,11 @@ describe('ConfigurableTextEditor', () => {
     const editButton = screen.getByRole('button', { name: /modifica/i });
     await user.click(editButton);
 
-    // Modal should open - use dialog role to scope queries
+    // Modal should open - use specific title to distinguish from TipTap Undo button
     await waitFor(() => {
-      const dialog = screen.getByRole('dialog');
-      expect(within(dialog).getByRole('button', { name: /salva/i })).toBeInTheDocument();
-      expect(within(dialog).getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+      expect(screen.getByRole('dialog')).toBeInTheDocument();
+      expect(screen.getByTitle('Salva modifiche')).toBeInTheDocument();
+      expect(screen.getByTitle('Annulla modifiche')).toBeInTheDocument();
     });
     
     // Modal header should show label
@@ -85,11 +85,10 @@ describe('ConfigurableTextEditor', () => {
     // Open modal
     await user.click(screen.getByRole('button', { name: /modifica/i }));
 
-    // Wait for modal and get Save button within dialog
+    // Wait for modal and get Save button by title (more specific)
     let saveButton;
     await waitFor(() => {
-      const dialog = screen.getByRole('dialog');
-      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      saveButton = screen.getByTitle('Salva modifiche');
       expect(saveButton).toBeInTheDocument();
     });
 
@@ -116,11 +115,10 @@ describe('ConfigurableTextEditor', () => {
     // Open modal
     await user.click(screen.getByRole('button', { name: /modifica/i }));
 
-    // Wait for modal and get Cancel button within dialog scope
+    // Wait for modal and get Cancel button by title (distinguishes from TipTap Undo)
     let cancelButton;
     await waitFor(() => {
-      const dialog = screen.getByRole('dialog');
-      cancelButton = within(dialog).getByRole('button', { name: /annulla/i });
+      cancelButton = screen.getByTitle('Annulla modifiche');
       expect(cancelButton).toBeInTheDocument();
     });
 
@@ -168,8 +166,7 @@ describe('ConfigurableTextEditor', () => {
     
     let saveButton;
     await waitFor(() => {
-      const dialog = screen.getByRole('dialog');
-      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      saveButton = screen.getByTitle('Salva modifiche');
       expect(saveButton).toBeInTheDocument();
     });
 
