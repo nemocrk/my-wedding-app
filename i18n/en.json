@@ -191,6 +191,125 @@
         "rate_limit_note": "Recommended value: 10 msg/hour. Do not exceed 20 to avoid WhatsApp ban.",
         "placeholder_rate": "10"
       }
+    },
+    "dashboard": {
+      "page_title": "Dashboard",
+      "page_subtitle": "Wedding status overview",
+      "loading": "Loading dashboard...",
+      "error": "Unable to load statistics.",
+      "kpi": {
+        "confirmed_guests": "Confirmed Guests",
+        "confirmed_guests_subtitle": "of which {count} children",
+        "estimated_budget": "Estimated Budget (Max)",
+        "estimated_budget_subtitle": "If all pending accept",
+        "current_cost": "Current Cost (Actual)",
+        "current_cost_subtitle": "Confirmed only",
+        "pending": "Pending",
+        "pending_subtitle": "Missing responses"
+      },
+      "charts": {
+        "guests_status": "Guest Status",
+        "logistics_costs": "Logistics & Costs Detail",
+        "cost_breakdown": "Cost Breakdown (Confirmed)",
+        "current_total": "Current Total"
+      },
+      "guest_categories": {
+        "adults_confirmed": "Confirmed Adults",
+        "children_confirmed": "Confirmed Children",
+        "adults_pending": "Pending Adults",
+        "children_pending": "Pending Children",
+        "declined": "Declined"
+      },
+      "logistics": {
+        "accommodation": "Accommodation",
+        "accommodation_subtitle": "Beds requested",
+        "transfer": "Transfer",
+        "transfer_subtitle": "Bus seats requested"
+      },
+      "costs": {
+        "adult_meals": "Adult Meals ({count})",
+        "child_meals": "Child Meals ({count})"
+      }
+    },
+    "invitations": {
+      "page_title": "Invitations Census",
+      "page_subtitle": "Manage guest list and access codes",
+      "loading": "Loading invitations...",
+      "no_invitations": "No invitations yet",
+      "no_invitations_subtitle": "Create your first invitation",
+      "buttons": {
+        "import_contacts": "Import Contacts",
+        "new_invitation": "New Invitation",
+        "deselect_all": "Deselect",
+        "verify_contacts": "Verify Contacts",
+        "send_whatsapp": "Send WhatsApp"
+      },
+      "bulk_action": {
+        "selected": "{count} Selected"
+      },
+      "table": {
+        "headers": {
+          "name_origin": "Name & Origin",
+          "contact": "Contact",
+          "guests": "Guests",
+          "status": "Status",
+          "actions": "Actions"
+        }
+      },
+      "status": {
+        "imported": "Imported",
+        "created": "Created",
+        "sent": "Sent",
+        "read": "Read",
+        "confirmed": "Accepted",
+        "declined": "Declined",
+        "unknown": "Unknown"
+      },
+      "verification": {
+        "ok": "Verified (OK)",
+        "not_present": "Not in contacts",
+        "not_exist": "Doesn't exist on WhatsApp",
+        "not_valid": "To verify / Invalid format",
+        "verifying": "Verifying...",
+        "click_to_verify": "Click to verify"
+      },
+      "contact": {
+        "no_contact": "No Contact"
+      },
+      "origin": {
+        "bride": "Bride's Side",
+        "groom": "Groom's Side"
+      },
+      "actions": {
+        "send": "Send",
+        "send_whatsapp": "Send WhatsApp",
+        "contact_missing": "Contact missing or invalid",
+        "interaction_log": "Interaction Log",
+        "copy_link": "Copy Public Link",
+        "link_copied": "Link Copied!",
+        "preview": "Open Secure Preview",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "services": {
+        "accommodation": "Accommodation",
+        "transfer": "Transfer"
+      },
+      "alerts": {
+        "no_valid_contacts": "None of the selected invitations have a valid number.",
+        "some_invalid": "{count} out of {total} invitations don't have a valid number and will be skipped. Proceed?",
+        "invalid_contact": "Invalid number for this contact.",
+        "verify_failed": "Error verifying contact.",
+        "bulk_verify_complete": "Verification completed for {count} invitations.",
+        "bulk_verify_failed": "Some verifications failed. Check the console.",
+        "delete_failed": "Unable to delete invitation"
+      },
+      "delete_modal": {
+        "title": "Delete Invitation",
+        "message": "Are you sure you want to delete this invitation? This action will remove all associated guests.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      }
     }
   }
 }
