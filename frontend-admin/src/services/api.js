@@ -137,6 +137,12 @@ export const api = {
     return handleResponse(response);
   },
 
+  // --- GOOGLE FONTS PROXY (New) ---
+  fetchGoogleFonts: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/google-fonts/`);
+    return handleResponse(response);
+  },
+
   // --- CONFIGURABLE TEXTS (Dynamic Content) ---
   fetchConfigurableTexts: async (lang = null) => {
     const url = lang ? `${API_BASE_URL}/texts/?lang=${lang}` : `${API_BASE_URL}/texts/`;
