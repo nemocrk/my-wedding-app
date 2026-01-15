@@ -16,10 +16,10 @@ import { autoLoadFontsFromHTML } from '../../utils/fontLoader';
 
 import {
   Loader2, Bold, Italic, Underline as UnderlineIcon,
-  Link as LinkIcon, Unlink, RotateCcw, RotateCw,
-  X, Check, Maximize2, Strikethrough, Code, Highlighter,
+  RotateCcw, RotateCw,
+  X, Check, Maximize2, Strikethrough, Code,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon,
-  Heading1, Heading2, Type, RefreshCw, Type as FontSizeIcon
+  RefreshCw, Type as FontSizeIcon
 } from 'lucide-react';
 
 // --- CUSTOM EXTENSION: FONT SIZE ---
@@ -188,20 +188,6 @@ const MenuBar = ({ editor }) => {
     };
   }, [editor]);
 
-  const setLink = () => {
-    const previousUrl = editor.getAttributes('link').href;
-    const url = window.prompt('URL', previousUrl);
-
-    if (url === null) return;
-
-    if (url === '') {
-      editor.chain().focus().extendMarkRange('link').unsetLink().run();
-      return;
-    }
-
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-  };
-
   const addImage = () => {
     const url = window.prompt('URL Immagine');
     if (url) {
@@ -234,8 +220,6 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().undo().run()} disabled={!editor.can().chain().focus().undo().run()} className={btnClass(false)} title="Annulla"><RotateCcw className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().chain().focus().redo().run()} className={btnClass(false)} title="Ripeti"><RotateCw className={iconSize} /></button>
       </div>
-
-      {/* Headings REMOVED per user request */}
 
       {/* Fonts & Size & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
@@ -304,7 +288,7 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="Barrato"><Strikethrough className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="Codice Inline"><Code className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="Sottolineato"><UnderlineIcon className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="Evidenzia"><Highlighter className={iconSize} /></button>
+        {/* Highlight Removed */}
       </div>
 
       {/* Alignment */}
@@ -317,8 +301,7 @@ const MenuBar = ({ editor }) => {
 
       {/* Insert */}
       <div className="flex gap-0.5">
-        <button onClick={setLink} className={btnClass(editor.isActive('link'))} title="Link"><LinkIcon className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().unsetLink().run()} disabled={!editor.isActive('link')} className={btnClass(false)} title="Rimuovi Link"><Unlink className={iconSize} /></button>
+        {/* Link buttons removed */}
         <button onClick={addImage} className={btnClass(false)} title="Inserisci Immagine"><ImageIcon className={iconSize} /></button>
       </div>
     </div>
