@@ -20,6 +20,7 @@ import logging
 import os
 import copy
 import json
+import requests  # Required for Proxy View
 
 logger = logging.getLogger(__name__)
 
@@ -328,6 +329,40 @@ class PublicLogHeatmapView(APIView):
 # ========================================
 # ADMIN API (Intranet Only)
 # ========================================
+
+class AdminGoogleFontsProxyView(APIView):
+    """
+    Proxy sicuro per l'API di Google Fonts.
+    Permette al frontend di ottenere la lista dei font senza esporre l'API Key.
+    """
+    def get(self, request):
+        api_key = getattr(settings, 'GOOGLE_FONTS_API_KEY', None)
+        
+        if not api_key:
+            logger.error("GOOGLE_FONTS_API_KEY not configured in settings")
+            return Response(
+                {'error': 'Server configuration error: missing API key'}, 
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+            
+        google_url = f"https://www.googleapis.com/webfonts/v1/webfonts?key={api_key}&sort=popularity"
+        
+        try:
+            # Opzionale: implementare caching qui se necessario
+            response = requests.get(google_url, timeout=5)
+            response.raise_for_status()
+            
+            data = response.json()
+            # Restituiamo solo i campi essenziali per ridurre il payload se serve,
+            # ma per ora il frontend si aspetta la struttura Google standard
+            return Response(data)
+            
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Google Fonts API Proxy Error: {e}")
+            return Response(
+                {'error': 'Failed to fetch fonts from Google'}, 
+                status=status.HTTP_502_BAD_GATEWAY
+            )
 
 class ConfigurableTextViewSet(viewsets.ModelViewSet):
     """
