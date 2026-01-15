@@ -154,11 +154,6 @@ CSRF_COOKIE_HTTPONLY = False  # JavaScript deve poter leggere per axios
 CSRF_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# ========================================
-# Third Party APIs
-# ========================================
-GOOGLE_FONTS_API_KEY = os.environ.get('GOOGLE_FONTS_API_KEY', '')
-
 # Logging Configuration (Parlante)
 LOGGING = {
     'version': 1,
