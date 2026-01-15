@@ -154,6 +154,18 @@
     "child": "Child"
   },
   "admin": {
+    "sidebar": {
+      "app_title": "Wedding",
+      "app_title_accent": "Admin",
+      "nav": {
+        "dashboard": "Dashboard",
+        "invitations": "Invitations",
+        "accommodations": "Accommodations",
+        "whatsapp": "WhatsApp",
+        "configuration": "Configuration"
+      },
+      "logout": "Logout"
+    },
     "config": {
       "page_title": "Configuration",
       "page_subtitle": "Manage prices, texts and application security",
