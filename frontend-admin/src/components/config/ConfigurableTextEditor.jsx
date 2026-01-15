@@ -256,7 +256,6 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       StarterKit.configure({
         heading: { levels: [1, 2, 3] },
       }),
-      Underline,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       Image.configure({ inline: true }),
       Subscript,
@@ -266,12 +265,6 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
       Color,
       FontFamily,
       Rotation,
-      Link.configure({
-        openOnClick: false,
-        HTMLAttributes: {
-          class: 'text-indigo-600 hover:underline',
-        },
-      }),
     ],
     content: initialContent || '',
     editable: true,

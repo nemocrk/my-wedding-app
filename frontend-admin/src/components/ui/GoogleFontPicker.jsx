@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import * as Popover from '@radix-ui/react-popover';
-import { FixedSizeList as VirtualList } from 'react-window';
+import { List  as VirtualList } from 'react-window';
 import { Check, ChevronDown, Loader2, Search, AlertTriangle } from 'lucide-react';
 import { loadGoogleFont } from '../../utils/fontLoader';
 import { api } from '../../services/api';
@@ -202,13 +202,12 @@ export default function GoogleFontPicker({
               <div className="p-4 text-sm text-gray-500">Nessun font trovato.</div>
             ) : (
               <VirtualList
-                height={280}
                 width="100%"
-                itemCount={filtered.length}
-                itemSize={36}
-              >
-                {Row}
-              </VirtualList>
+                rowCount={filtered.length}
+                rowHeight={36}
+                rowComponent={Row}
+                rowProps={filtered}
+              />
             )}
           </div>
 
