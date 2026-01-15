@@ -92,14 +92,57 @@ const MenuBar = ({ editor }) => {
     return null;
   }
 
+  // Helper to extract clean font name
+  const cleanFontName = (fontFamily) => {
+      if (!fontFamily) return null;
+      return fontFamily.split(',')[0].replace(/['"`]/g, '').trim();
+  };
+
   // Sync active font from editor state
   useEffect(() => {
-    const currentFont = editor.getAttributes('textStyle').fontFamily;
-    if (currentFont) {
-      const cleanFont = currentFont.split(',')[0].replace(/['"`]/g, '').trim();
-      setActiveFontFamily(cleanFont);
-    }
-  }, [editor.getAttributes('textStyle').fontFamily]);
+    const updateFont = () => {
+        // 1. Try to get font from current selection
+        const selectionFont = editor.getAttributes('textStyle').fontFamily;
+        if (selectionFont) {
+            setActiveFontFamily(cleanFontName(selectionFont));
+            return;
+        }
+
+        // 2. Fallback: If no selection font, try to find the first font in the document
+        // This runs only if we are currently showing default 'Open Sans' to avoid jumping
+        // or if we want to be smart about initial state
+        const json = editor.getJSON();
+        let foundFont = null;
+
+        const findFont = (node) => {
+            if (foundFont) return;
+            if (node.marks) {
+                const fontMark = node.marks.find(m => m.type === 'textStyle' && m.attrs?.fontFamily);
+                if (fontMark) {
+                    foundFont = fontMark.attrs.fontFamily;
+                    return;
+                }
+            }
+            if (node.content) {
+                node.content.forEach(findFont);
+            }
+        };
+
+        findFont(json);
+        
+        if (foundFont) {
+            setActiveFontFamily(cleanFontName(foundFont));
+        }
+    };
+
+    // Update initially and on selection change
+    updateFont();
+    editor.on('selectionUpdate', updateFont);
+    
+    return () => {
+        editor.off('selectionUpdate', updateFont);
+    };
+  }, [editor]);
 
   const setLink = () => {
     const previousUrl = editor.getAttributes('link').href;
@@ -216,11 +259,12 @@ const MenuBar = ({ editor }) => {
        </div>
 
       {/* Basic Formatting */}
+      {/* NOTE: Removed disabled={!editor.can()...} checks for basic formatting to improve UX/Confusion */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
-        <button onClick={() => editor.chain().focus().toggleBold().run()} disabled={!editor.can().chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="Grassetto"><Bold className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleItalic().run()} disabled={!editor.can().chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="Corsivo"><Italic className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleStrike().run()} disabled={!editor.can().chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="Barrato"><Strikethrough className={iconSize} /></button>
-        <button onClick={() => editor.chain().focus().toggleCode().run()} disabled={!editor.can().chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="Codice Inline"><Code className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="Grassetto"><Bold className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="Corsivo"><Italic className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={btnClass(editor.isActive('strike'))} title="Barrato"><Strikethrough className={iconSize} /></button>
+        <button onClick={() => editor.chain().focus().toggleCode().run()} className={btnClass(editor.isActive('code'))} title="Codice Inline"><Code className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().toggleUnderline().run()} className={btnClass(editor.isActive('underline'))} title="Sottolineato"><UnderlineIcon className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().toggleHighlight().run()} className={btnClass(editor.isActive('highlight'))} title="Evidenzia"><Highlighter className={iconSize} /></button>
       </div>
