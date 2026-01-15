@@ -32,10 +32,12 @@ const TextConfigWidget = () => {
             const langs = await api.fetchLanguages();
             setAvailableLanguages(langs);
 
-            // Then: Load texts for EACH language (because API requires lang param)
-            const textsPromises = langs.map(lang => 
-                api.fetchConfigurableTexts(lang.code)
-            );
+            // Then: Load texts for EACH language and ADD language attribute manually
+            const textsPromises = langs.map(async (lang) => {
+                const texts = await api.fetchConfigurableTexts(lang.code);
+                // IMPORTANT: API doesn't return 'language' field, so we add it manually
+                return texts.map(t => ({ ...t, language: lang.code }));
+            });
             const textsArrays = await Promise.all(textsPromises);
             
             // Flatten and merge all texts into a single array
@@ -68,9 +70,10 @@ const TextConfigWidget = () => {
       try {
           if (availableLanguages.length === 0) return;
           
-          const textsPromises = availableLanguages.map(lang => 
-              api.fetchConfigurableTexts(lang.code)
-          );
+          const textsPromises = availableLanguages.map(async (lang) => {
+              const texts = await api.fetchConfigurableTexts(lang.code);
+              return texts.map(t => ({ ...t, language: lang.code }));
+          });
           const textsArrays = await Promise.all(textsPromises);
           const mergedTexts = textsArrays.flat();
           setAllTexts(mergedTexts);
