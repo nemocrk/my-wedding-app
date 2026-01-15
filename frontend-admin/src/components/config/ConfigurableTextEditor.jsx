@@ -12,6 +12,7 @@ import { Color } from '@tiptap/extension-color';
 import FontFamily from '@tiptap/extension-font-family';
 import GoogleFontPicker from '../ui/GoogleFontPicker';
 import { autoLoadFontsFromHTML } from '../../utils/fontLoader';
+import { useTranslation } from 'react-i18next';
 
 import {
   Loader2, Bold, Italic, Underline as UnderlineIcon,
@@ -343,6 +344,7 @@ const MenuBar = ({ editor }) => {
 // --- LAZY LOADED EDITOR WRAPPER ---
 // This component initializes the heavy TipTap editor only when rendered
 const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
+    const { t } = useTranslation();
     const [isSaving, setIsSaving] = useState(false);
     const dialogTitleId = `editor-title-${textKey}`;
 
@@ -420,7 +422,7 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-3">
                 <div className="flex flex-col w-full sm:w-auto">
-                    <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Modifica</span>
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">{t('common.edit')}</span>
                     <h2 
                         id={dialogTitleId}
                         className="text-sm sm:text-xl font-bold text-gray-800 truncate max-w-[280px] sm:max-w-md" 
@@ -434,17 +436,17 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
                     <button
                         onClick={onCancel}
                         className="flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-                        title="Annulla modifiche"
+                        title={t('admin.config.text_editor.buttons.cancel') + " modifiche"} // Assuming we want some context or just "Annulla"
                     >
-                        <X size={16} /> <span className="sm:inline">Annulla</span>
+                        <X size={16} /> <span className="sm:inline">{t('admin.config.text_editor.buttons.cancel')}</span>
                     </button>
                     <button
                         onClick={handleSave}
                         disabled={isSaving}
                         className="flex-1 sm:flex-none justify-center items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all transform active:scale-95"
-                        title="Salva modifiche"
+                        title={t('admin.config.text_editor.buttons.save') + " modifiche"}
                     >
-                        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> <span className="sm:inline">Salva</span></>}
+                        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> <span className="sm:inline">{t('admin.config.text_editor.buttons.save')}</span></>}
                     </button>
                 </div>
             </div>
@@ -473,6 +475,7 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
 // --- MAIN COMPONENT ---
 // Now lightweight, just renders a preview
 const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
 
   // Auto-load fonts for preview (still needed but lighter than editor instance)
@@ -512,7 +515,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
             onClick={() => setIsEditing(true)}
             className="w-full sm:w-auto text-center justify-center text-indigo-600 hover:text-indigo-800 text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:bg-indigo-50 px-3 py-1.5 rounded-lg sm:rounded-full transition-colors border sm:border-transparent border-indigo-100"
           >
-            <Maximize2 size={14} /> Modifica
+            <Maximize2 size={14} /> {t('admin.config.text_editor.buttons.edit')}
           </button>
         </div>
 
