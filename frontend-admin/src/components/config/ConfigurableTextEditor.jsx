@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useEditor, EditorContent, Mark, mergeAttributes } from '@tiptap/react';
+import { useEditor, EditorContent, Mark, mergeAttributes, Extension } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
 import Underline from '@tiptap/extension-underline';
@@ -19,8 +19,54 @@ import {
   Link as LinkIcon, Unlink, RotateCcw, RotateCw,
   X, Check, Maximize2, Strikethrough, Code, Highlighter,
   AlignLeft, AlignCenter, AlignRight, AlignJustify, Image as ImageIcon,
-  Heading1, Heading2, Type, RefreshCw
+  Heading1, Heading2, Type, RefreshCw, Type as FontSizeIcon
 } from 'lucide-react';
+
+// --- CUSTOM EXTENSION: FONT SIZE ---
+const FontSize = Extension.create({
+  name: 'fontSize',
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    };
+  },
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {};
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              };
+            },
+          },
+        },
+      },
+    ];
+  },
+  addCommands() {
+    return {
+      setFontSize: fontSize => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run();
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run();
+      },
+    };
+  },
+});
 
 // --- CUSTOM EXTENSION: ROTATION ---
 const Rotation = Mark.create({
@@ -85,8 +131,25 @@ const Rotation = Mark.create({
   },
 });
 
+const FONT_SIZES = [
+    { label: 'Default', value: '' },
+    { label: '10px', value: '10px' },
+    { label: '12px', value: '12px' },
+    { label: '14px', value: '14px' },
+    { label: '16px', value: '16px' },
+    { label: '18px', value: '18px' },
+    { label: '20px', value: '20px' },
+    { label: '24px', value: '24px' },
+    { label: '30px', value: '30px' },
+    { label: '36px', value: '36px' },
+    { label: '48px', value: '48px' },
+    { label: '60px', value: '60px' },
+    { label: '72px', value: '72px' },
+];
+
 const MenuBar = ({ editor }) => {
   const [activeFontFamily, setActiveFontFamily] = useState('Open Sans');
+  const [activeFontSize, setActiveFontSize] = useState('');
 
   if (!editor) {
     return null;
@@ -98,49 +161,30 @@ const MenuBar = ({ editor }) => {
       return fontFamily.split(',')[0].replace(/['"`]/g, '').trim();
   };
 
-  // Sync active font from editor state
+  // Sync active font/size from editor state
   useEffect(() => {
-    const updateFont = () => {
-        // 1. Try to get font from current selection
+    const updateState = () => {
+        // Font Family
         const selectionFont = editor.getAttributes('textStyle').fontFamily;
         if (selectionFont) {
             setActiveFontFamily(cleanFontName(selectionFont));
-            return;
+        } else {
+             // Fallback detection (simplified)
+            setActiveFontFamily('Open Sans');
         }
 
-        // 2. Fallback: If no selection font, try to find the first font in the document
-        // This runs only if we are currently showing default 'Open Sans' to avoid jumping
-        // or if we want to be smart about initial state
-        const json = editor.getJSON();
-        let foundFont = null;
-
-        const findFont = (node) => {
-            if (foundFont) return;
-            if (node.marks) {
-                const fontMark = node.marks.find(m => m.type === 'textStyle' && m.attrs?.fontFamily);
-                if (fontMark) {
-                    foundFont = fontMark.attrs.fontFamily;
-                    return;
-                }
-            }
-            if (node.content) {
-                node.content.forEach(findFont);
-            }
-        };
-
-        findFont(json);
-        
-        if (foundFont) {
-            setActiveFontFamily(cleanFontName(foundFont));
-        }
+        // Font Size
+        const selectionSize = editor.getAttributes('textStyle').fontSize;
+        setActiveFontSize(selectionSize || '');
     };
 
-    // Update initially and on selection change
-    updateFont();
-    editor.on('selectionUpdate', updateFont);
+    updateState();
+    editor.on('selectionUpdate', updateState);
+    editor.on('transaction', updateState);
     
     return () => {
-        editor.off('selectionUpdate', updateFont);
+        editor.off('selectionUpdate', updateState);
+        editor.off('transaction', updateState);
     };
   }, [editor]);
 
@@ -216,7 +260,7 @@ const MenuBar = ({ editor }) => {
          </button>
       </div>
 
-      {/* Fonts & Color */}
+      {/* Fonts & Size & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
           <GoogleFontPicker
             activeFamily={activeFontFamily}
@@ -227,8 +271,26 @@ const MenuBar = ({ editor }) => {
             }}
           />
 
+          {/* Font Size Picker */}
+          <div className="relative flex items-center gap-1 group">
+             <FontSizeIcon className="w-4 h-4 text-gray-500" />
+             <select
+                className="appearance-none bg-transparent hover:bg-gray-200 pl-1 pr-6 py-1 rounded text-xs font-medium text-gray-700 cursor-pointer focus:outline-none max-w-[60px]"
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val) editor.chain().focus().setFontSize(val).run();
+                    else editor.chain().focus().unsetFontSize().run();
+                }}
+                value={activeFontSize}
+             >
+                {FONT_SIZES.map(s => (
+                    <option key={s.label} value={s.value}>{s.label}</option>
+                ))}
+            </select>
+          </div>
+
           {/* Color Picker */}
-          <div className="relative flex items-center">
+          <div className="relative flex items-center ml-1">
              <input
                 type="color"
                 onInput={event => editor.chain().focus().setColor(event.target.value).run()}
@@ -259,7 +321,6 @@ const MenuBar = ({ editor }) => {
        </div>
 
       {/* Basic Formatting */}
-      {/* NOTE: Removed disabled={!editor.can()...} checks for basic formatting to improve UX/Confusion */}
       <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 flex-wrap">
         <button onClick={() => editor.chain().focus().toggleBold().run()} className={btnClass(editor.isActive('bold'))} title="Grassetto"><Bold className={iconSize} /></button>
         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={btnClass(editor.isActive('italic'))} title="Corsivo"><Italic className={iconSize} /></button>
@@ -306,6 +367,7 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
             Color,
             FontFamily,
             Rotation,
+            FontSize,
         ],
         content: content || '',
         editable: true,
@@ -390,7 +452,17 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
             {/* Editor Area */}
             <div className="flex-1 overflow-hidden flex flex-col max-w-5xl mx-auto w-full border-x border-gray-100 shadow-xl sm:my-4 bg-white sm:rounded-lg">
                 <MenuBar editor={editor} />
-                <div className="flex-1 overflow-y-auto cursor-text" onClick={() => editor?.commands.focus()}>
+                <div className="flex-1 overflow-y-auto cursor-text relative" onClick={() => editor?.commands.focus()}>
+                    {/* INJECT MANUAL STYLES FOR HEADINGS (because @tailwindcss/typography is missing) */}
+                    <style>{`
+                      .ProseMirror h1 { font-size: 2.25em; font-weight: 800; line-height: 1.1; margin-bottom: 0.5em; margin-top: 1em; }
+                      .ProseMirror h2 { font-size: 1.5em; font-weight: 700; line-height: 1.3; margin-bottom: 0.5em; margin-top: 1em; }
+                      .ProseMirror h3 { font-size: 1.25em; font-weight: 600; line-height: 1.4; margin-bottom: 0.5em; margin-top: 1em; }
+                      .ProseMirror ul { list-style-type: disc; padding-left: 1.6em; margin: 1em 0; }
+                      .ProseMirror ol { list-style-type: decimal; padding-left: 1.6em; margin: 1em 0; }
+                      .ProseMirror blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; font-style: italic; }
+                      .ProseMirror code { background-color: #f3f4f6; padding: 0.25em; rounded: 0.25em; font-family: monospace; }
+                    `}</style>
                     <EditorContent editor={editor} data-testid={`tiptap-content-${textKey}`} className="h-full" />
                 </div>
             </div>
