@@ -344,6 +344,7 @@ const MenuBar = ({ editor }) => {
 // This component initializes the heavy TipTap editor only when rendered
 const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
     const [isSaving, setIsSaving] = useState(false);
+    const dialogTitleId = `editor-title-${textKey}`;
 
     const editor = useEditor({
         extensions: [
@@ -410,12 +411,21 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
     };
 
     return (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fadeIn">
+        <div 
+            className="fixed inset-0 z-50 flex flex-col bg-white animate-fadeIn" 
+            role="dialog" 
+            aria-modal="true"
+            aria-labelledby={dialogTitleId}
+        >
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-3">
                 <div className="flex flex-col w-full sm:w-auto">
                     <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Modifica</span>
-                    <h2 className="text-sm sm:text-xl font-bold text-gray-800 truncate max-w-[280px] sm:max-w-md" title={label || textKey}>
+                    <h2 
+                        id={dialogTitleId}
+                        className="text-sm sm:text-xl font-bold text-gray-800 truncate max-w-[280px] sm:max-w-md" 
+                        title={label || textKey}
+                    >
                         {label || textKey}
                     </h2>
                 </div>
@@ -425,7 +435,6 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
                         onClick={onCancel}
                         className="flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
                         title="Annulla modifiche"
-                        data-testid={`cancel-${textKey}`}
                     >
                         <X size={16} /> <span className="sm:inline">Annulla</span>
                     </button>
@@ -434,7 +443,6 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
                         disabled={isSaving}
                         className="flex-1 sm:flex-none justify-center items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all transform active:scale-95"
                         title="Salva modifiche"
-                        data-testid={`save-${textKey}`}
                     >
                         {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> <span className="sm:inline">Salva</span></>}
                     </button>
@@ -455,7 +463,7 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
                       .ProseMirror blockquote { border-left: 4px solid #e5e7eb; padding-left: 1em; font-style: italic; }
                       .ProseMirror code { background-color: #f3f4f6; padding: 0.25em; rounded: 0.25em; font-family: monospace; }
                     `}</style>
-                    <EditorContent editor={editor} data-testid={`tiptap-content-${textKey}`} className="h-full" />
+                    <EditorContent editor={editor} className="h-full" />
                 </div>
             </div>
         </div>
@@ -494,7 +502,7 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
   return (
     <>
       {/* Preview Card */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 transition-all duration-200 hover:shadow-md" data-testid={`editor-${textKey}`}>
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-4 transition-all duration-200 hover:shadow-md">
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center p-3 sm:p-4 border-b border-gray-100 gap-2">
           <label className="text-sm font-semibold text-gray-700 flex items-center gap-2 break-all">
             {label || textKey}
@@ -503,7 +511,6 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
           <button
             onClick={() => setIsEditing(true)}
             className="w-full sm:w-auto text-center justify-center text-indigo-600 hover:text-indigo-800 text-xs font-medium uppercase tracking-wider flex items-center gap-1 hover:bg-indigo-50 px-3 py-1.5 rounded-lg sm:rounded-full transition-colors border sm:border-transparent border-indigo-100"
-            data-testid={`edit-${textKey}`}
           >
             <Maximize2 size={14} /> Modifica
           </button>
