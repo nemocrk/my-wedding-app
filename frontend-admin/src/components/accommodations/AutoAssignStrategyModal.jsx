@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Sparkles, BarChart2, CheckCircle, AlertTriangle, X, Loader } from 'lucide-react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const STRATEGIES = [
     { code: 'STANDARD', label: 'Standard (Default)' },
@@ -12,6 +13,7 @@ const STRATEGIES = [
 ];
 
 const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
+    const { t } = useTranslation();
     const [step, setStep] = useState('SIMULATE'); // SIMULATE | RESULTS
     const [isLoading, setIsLoading] = useState(false);
     const [simResults, setSimResults] = useState([]);
@@ -33,7 +35,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
     };
 
     const applyStrategy = async (strategyCode) => {
-        if (!window.confirm(`Applicare la strategia ${strategyCode}? Le modifiche saranno salvate nel DB.`)) return;
+        if (!window.confirm(t('admin.accommodations.auto_assign_modal.results.confirm_apply', { strategy: strategyCode }) || `Applicare la strategia ${strategyCode}? Le modifiche saranno salvate nel DB.`)) return;
         setIsLoading(true);
         try {
             const response = await api.triggerAutoAssign(true, strategyCode);
@@ -56,8 +58,8 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                             <Sparkles size={24} />
                         </div>
                         <div>
-                            <h2 className="text-xl font-bold text-gray-800">Arena delle Strategie</h2>
-                            <p className="text-sm text-gray-500">Ottimizza l'assegnazione automatica</p>
+                            <h2 className="text-xl font-bold text-gray-800">{t('admin.accommodations.auto_assign_modal.title')}</h2>
+                            <p className="text-sm text-gray-500">{t('admin.accommodations.auto_assign_modal.subtitle')}</p>
                         </div>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
@@ -71,10 +73,9 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                         <div className="text-center py-10 space-y-6">
                             <div className="max-w-md mx-auto">
                                 <BarChart2 size={64} className="mx-auto text-purple-200 mb-4" />
-                                <h3 className="text-2xl font-bold text-gray-800 mb-2">Simulazione Scenari</h3>
+                                <h3 className="text-2xl font-bold text-gray-800 mb-2">{t('admin.accommodations.auto_assign_modal.simulation.title')}</h3>
                                 <p className="text-gray-600 mb-8">
-                                    Il sistema eseguirà 6 algoritmi diversi in parallelo per trovare l'incastro migliore. 
-                                    Nessuna modifica verrà salvata finché non sceglierai una strategia.
+                                    {t('admin.accommodations.auto_assign_modal.simulation.description')}
                                 </p>
                                 <button
                                     onClick={runSimulation}
@@ -84,12 +85,12 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                                     {isLoading ? (
                                         <>
                                             <Loader className="animate-spin h-5 w-5 text-white" />
-                                            Calcolo in corso...
+                                            {t('common.loading')}
                                         </>
                                     ) : (
                                         <>
                                             <Sparkles size={20} />
-                                            Avvia Simulazione (6 Strategie)
+                                            {t('admin.accommodations.auto_assign_modal.simulation.start_button')}
                                         </>
                                     )}
                                 </button>
@@ -98,12 +99,12 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                     ) : (
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
-                                <h3 className="font-bold text-lg text-gray-700">Risultati Simulazione</h3>
+                                <h3 className="font-bold text-lg text-gray-700">{t('admin.accommodations.auto_assign_modal.results.title')}</h3>
                                 <button 
                                     onClick={() => setStep('SIMULATE')} 
                                     className="text-sm text-purple-600 hover:text-purple-800 font-medium"
                                 >
-                                    Ricomincia
+                                    {t('admin.accommodations.auto_assign_modal.simulation.restart')}
                                 </button>
                             </div>
                             
@@ -120,7 +121,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                                             {isBest && (
                                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm flex items-center gap-1">
                                                     <Sparkles size={12} />
-                                                    BEST FIT
+                                                    {t('admin.accommodations.auto_assign_modal.results.best_fit')}
                                                 </div>
                                             )}
                                             
@@ -130,17 +131,17 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
 
                                             <div className="space-y-2 mb-4 text-sm">
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500">Assegnati:</span>
-                                                    <span className="font-semibold text-gray-900">{res.assigned_guests} Ospiti</span>
+                                                    <span className="text-gray-500">{t('admin.accommodations.auto_assign_modal.results.assigned')}:</span>
+                                                    <span className="font-semibold text-gray-900">{res.assigned_guests} {t('admin.accommodations.auto_assign_modal.results.guests')}</span>
                                                 </div>
                                                 <div className="flex justify-between">
-                                                    <span className="text-gray-500">Non Assegnati:</span>
+                                                    <span className="text-gray-500">{t('admin.accommodations.auto_assign_modal.results.unassigned')}:</span>
                                                     <span className={`font-semibold ${res.unassigned_guests > 0 ? 'text-red-600' : 'text-green-600'}`}>
                                                         {res.unassigned_guests}
                                                     </span>
                                                 </div>
                                                 <div className="flex justify-between border-t pt-2 mt-2">
-                                                    <span className="text-gray-500">Letti Sprecati:</span>
+                                                    <span className="text-gray-500">{t('admin.accommodations.auto_assign_modal.results.wasted_beds')}:</span>
                                                     <span className="font-bold text-orange-600">{res.wasted_beds}</span>
                                                 </div>
                                             </div>
@@ -154,7 +155,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                                                         : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                                 }`}
                                             >
-                                                {isLoading ? 'Applicando...' : 'Applica Strategia'}
+                                                {isLoading ? t('common.loading') : t('admin.accommodations.auto_assign_modal.results.apply_button')}
                                             </button>
                                         </div>
                                     );
@@ -165,8 +166,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                             <div className="bg-blue-50 p-4 rounded-lg flex items-start gap-3 text-sm text-blue-800">
                                 <AlertTriangle size={18} className="mt-0.5 flex-shrink-0" />
                                 <p>
-                                    L'algoritmo "Letti Sprecati" indica i posti letto liberi in stanze parzialmente occupate. 
-                                    Un valore più basso significa un incastro più efficiente (stile Tetris).
+                                    {t('admin.accommodations.auto_assign_modal.results.wasted_beds_info')}
                                 </p>
                             </div>
                         </div>
