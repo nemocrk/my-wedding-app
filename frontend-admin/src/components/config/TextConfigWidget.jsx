@@ -28,14 +28,19 @@ const TextConfigWidget = () => {
     const initData = async () => {
         setLoading(true);
         try {
-            // Parallel fetch
-            const [langs, textsData] = await Promise.all([
-                api.fetchLanguages(),
-                api.fetchConfigurableTexts(null) // Fetch ALL texts (no lang filter)
-            ]);
-            
+            // First: Load languages
+            const langs = await api.fetchLanguages();
             setAvailableLanguages(langs);
-            setAllTexts(textsData);
+
+            // Then: Load texts for EACH language (because API requires lang param)
+            const textsPromises = langs.map(lang => 
+                api.fetchConfigurableTexts(lang.code)
+            );
+            const textsArrays = await Promise.all(textsPromises);
+            
+            // Flatten and merge all texts into a single array
+            const mergedTexts = textsArrays.flat();
+            setAllTexts(mergedTexts);
 
             // Set default lang if not set or invalid
             if (langs.length > 0 && !langs.find(l => l.code === selectedLang)) {
@@ -58,11 +63,17 @@ const TextConfigWidget = () => {
     initData();
   }, []);
 
-  // Refresh only texts
+  // Refresh all texts for all languages
   const refreshTexts = async () => {
       try {
-          const data = await api.fetchConfigurableTexts(null);
-          setAllTexts(data);
+          if (availableLanguages.length === 0) return;
+          
+          const textsPromises = availableLanguages.map(lang => 
+              api.fetchConfigurableTexts(lang.code)
+          );
+          const textsArrays = await Promise.all(textsPromises);
+          const mergedTexts = textsArrays.flat();
+          setAllTexts(mergedTexts);
       } catch (err) {
           console.error("Failed to refresh texts", err);
       }
