@@ -1,18 +1,21 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import TextConfigWidget from '../TextConfigWidget';
-import { api } from '../../../services/api';
 
-// Mock API service (specifico per questo test)
+// CRITICAL: Mock API BEFORE importing component (hoisting)
 vi.mock('../../../services/api', () => ({
   api: {
     fetchLanguages: vi.fn(),
     fetchConfigurableTexts: vi.fn(),
     updateConfigurableText: vi.fn(),
     deleteConfigurableText: vi.fn(),
+    getConfigurableText: vi.fn(),
+    createConfigurableText: vi.fn(),
   },
 }));
+
+import TextConfigWidget from '../TextConfigWidget';
+import { api } from '../../../services/api';
 
 // NOTA: TipTap, GoogleFontPicker e fontLoader sono mockati globalmente in setupTests.tsx
 
@@ -37,8 +40,12 @@ describe('TextConfigWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    
+    // Setup default mock implementations
     api.fetchLanguages.mockResolvedValue(mockLanguages);
     api.fetchConfigurableTexts.mockResolvedValue(mockTexts);
+    api.updateConfigurableText.mockResolvedValue({ success: true });
+    api.deleteConfigurableText.mockResolvedValue({ success: true });
   });
 
   it('renders loading state initially', () => {
