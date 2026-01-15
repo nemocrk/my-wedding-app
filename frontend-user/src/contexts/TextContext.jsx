@@ -14,24 +14,28 @@ export const TextProvider = ({ children }) => {
         setLoading(true);
         const data = await textConfigService.getAllTexts();
         
-        // Handle both array response and DRF paginated response { results: [...] }
-        let textArray = [];
-        if (Array.isArray(data)) {
-          textArray = data;
-        } else if (data && Array.isArray(data.results)) {
-          // DRF pagination response
-          textArray = data.results;
+        let textMap = {};
+
+        // Case 1: Direct Dictionary { "key": "content" } (Current Public API format)
+        if (data && typeof data === 'object' && !Array.isArray(data) && !data.results) {
+            textMap = data;
+        } 
+        // Case 2: Array of objects [{ key, content }] (Legacy/Admin format)
+        else if (Array.isArray(data)) {
+            textMap = data.reduce((acc, item) => {
+                if (item.key) acc[item.key] = item.content;
+                return acc;
+            }, {});
+        } 
+        // Case 3: DRF Pagination { results: [...] }
+        else if (data && Array.isArray(data.results)) {
+            textMap = data.results.reduce((acc, item) => {
+                if (item.key) acc[item.key] = item.content;
+                return acc;
+            }, {});
         } else {
-          console.warn('Unexpected response format from textConfigService.getAllTexts():', data);
-          // If it's an empty object or unexpected format, use empty array
-          textArray = [];
+            console.warn('Unexpected response format from textConfigService.getAllTexts():', data);
         }
-        
-        // Convert array to object map for O(1) access: { 'key': 'content', ... }
-        const textMap = textArray.reduce((acc, item) => {
-          acc[item.key] = item.content;
-          return acc;
-        }, {});
         
         setTexts(textMap);
       } catch (err) {
