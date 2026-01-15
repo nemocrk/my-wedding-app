@@ -154,6 +154,18 @@
     "child": "Bambino"
   },
   "admin": {
+    "sidebar": {
+      "app_title": "Wedding",
+      "app_title_accent": "Admin",
+      "nav": {
+        "dashboard": "Dashboard",
+        "invitations": "Inviti",
+        "accommodations": "Alloggi",
+        "whatsapp": "WhatsApp",
+        "configuration": "Configurazione"
+      },
+      "logout": "Logout"
+    },
     "config": {
       "page_title": "Configurazione",
       "page_subtitle": "Gestisci prezzi, testi e sicurezza dell'applicazione",
