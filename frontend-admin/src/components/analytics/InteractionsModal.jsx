@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, SkipBack, Loader, Clock, Monitor, MapPin, Activity, MousePointer, Info } from 'lucide-react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -268,9 +270,9 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
           <div>
-            <h3 className="text-lg font-bold text-gray-800">Analisi Interazioni: {invitationName}</h3>
+            <h3 className="text-lg font-bold text-gray-800">{t('admin.analytics.interactions_modal.title', { name: invitationName })}</h3>
             <p className="text-sm text-gray-500">
-               {sessions.length} sessioni registrate
+               {t('admin.analytics.interactions_modal.sessions_count', { count: sessions.length })}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
@@ -282,12 +284,12 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
         <div className="flex-1 flex overflow-hidden">
             {/* Sidebar List (Sessions) */}
             <div className="w-72 border-r border-gray-100 overflow-y-auto bg-gray-50 flex flex-col shrink-0">
-                <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sessioni</div>
+                <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('admin.analytics.interactions_modal.sessions_list.title')}</div>
                 <div className="flex-1 space-y-2 p-2 pt-0">
                     {loading ? (
                         <div className="flex justify-center py-4"><Loader className="animate-spin text-pink-600"/></div>
                     ) : sessions.length === 0 ? (
-                        <p className="text-center text-gray-400 text-sm mt-4">Nessuna interazione</p>
+                        <p className="text-center text-gray-400 text-sm mt-4">{t('admin.analytics.interactions_modal.sessions_list.no_sessions')}</p>
                     ) : (
                         sessions.map((sess, idx) => (
                             <div 
@@ -305,7 +307,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                             >
                                 <div className="font-semibold mb-1 flex items-center justify-between">
                                     <span>#{sessions.length - idx}</span>
-                                    <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{sess.events.length} eventi</span>
+                                    <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{t('admin.analytics.interactions_modal.sessions_list.events_count', { count: sess.events.length })}</span>
                                 </div>
                                 <div className="flex items-center text-xs text-gray-500 mb-1">
                                     <Clock size={12} className="mr-1"/>
@@ -317,7 +319,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 </div>
                                 {sess.heatmap && (
                                      <div className="mt-2 flex items-center text-xs text-pink-600 font-medium">
-                                         <Play size={10} className="mr-1"/> Replay disponibile ({sess.heatmap.screen_width}x{sess.heatmap.screen_height})
+                                         <Play size={10} className="mr-1"/> {t('admin.analytics.interactions_modal.sessions_list.replay_available', { width: sess.heatmap.screen_width, height: sess.heatmap.screen_height })}
                                      </div>
                                 )}
                             </div>
@@ -330,11 +332,11 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
             <div className="w-80 border-r border-gray-100 overflow-y-auto bg-white p-4 shrink-0">
                 <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
                     <Activity size={16} className="mr-2 text-pink-600"/>
-                    Timeline Eventi
+                    {t('admin.analytics.interactions_modal.timeline.title')}
                 </h4>
                 
                 {!selectedSession ? (
-                     <p className="text-sm text-gray-400">Seleziona una sessione</p>
+                     <p className="text-sm text-gray-400">{t('admin.analytics.interactions_modal.timeline.select_session')}</p>
                 ) : (
                     <div className="space-y-4 relative">
                         {/* Vertical Line */}
@@ -370,14 +372,14 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                  <div className="p-3 bg-white border-b border-gray-100 flex justify-between items-center shrink-0 z-20 shadow-sm">
                      <h4 className="text-sm font-bold text-gray-800 flex items-center">
                          <MousePointer size={16} className="mr-2 text-pink-600"/>
-                         Replay Sessione
+                         {t('admin.analytics.interactions_modal.replay.title')}
                      </h4>
                      {selectedSession?.heatmap ? (
                          <div className="text-xs text-gray-500">
-                            Viewport originale: {selectedSession.heatmap.screen_width}x{selectedSession.heatmap.screen_height}
+                            {t('admin.analytics.interactions_modal.replay.viewport_original', { width: selectedSession.heatmap.screen_width, height: selectedSession.heatmap.screen_height })}
                          </div>
                      ) : (
-                         <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">Nessun dato heatmap</span>
+                         <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">{t('admin.analytics.interactions_modal.replay.no_heatmap')}</span>
                      )}
                  </div>
 
@@ -418,7 +420,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                  <button 
                                     onClick={() => { seekReplay(0); setIsPlaying(true); }}
                                     className="p-1 hover:text-pink-400 text-white transition-colors"
-                                    title="Riavvia"
+                                    title={t('admin.analytics.interactions_modal.replay.controls.restart')}
                                  >
                                      <SkipBack size={20} />
                                  </button>
@@ -453,7 +455,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                     ) : (
                         <div className="text-gray-400 flex flex-col items-center">
                             <Monitor size={64} className="mb-4 opacity-20" />
-                            <p className="text-sm">Seleziona una sessione con dati heatmap per vedere il replay</p>
+                            <p className="text-sm">{t('admin.analytics.interactions_modal.replay.select_session_prompt')}</p>
                         </div>
                     )}
                 </div>
