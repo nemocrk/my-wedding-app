@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
-import { Loader2, Globe } from 'lucide-react';
+import { Loader2, Globe, AlertTriangle } from 'lucide-react';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
 
 const TextConfigWidget = () => {
@@ -66,12 +66,26 @@ const TextConfigWidget = () => {
     fetchData(selectedLang);
   }, [selectedLang]);
 
+  // Helper per controllare se l'HTML è "vuoto" (es. "<p></p>" o "<br>")
+  const isContentEmpty = (html) => {
+      if (!html) return true;
+      const doc = new DOMParser().parseFromString(html, 'text/html');
+      return !doc.body.textContent.trim() && !doc.body.querySelector('img');
+  };
+
   const handleUpdateText = async (key, newContent) => {
     try {
-      // Logic Simplified: Always use UPDATE (PUT).
-      // The backend view (ConfigurableTextViewSet.update) handles "get_or_create" logic internally.
-      // This avoids issues with POST creation where 'key' might be read-only in serializer.
-      await api.updateConfigurableText(key, { content: newContent }, selectedLang);
+      if (isContentEmpty(newContent)) {
+          // SE VUOTO -> CANCELLA (DELETE)
+          // Se esiste già nel DB, lo rimuoviamo. Se non esiste, non facciamo nulla.
+          const existing = texts.find(t => t.key === key);
+          if (existing) {
+              await api.deleteConfigurableText(key, selectedLang);
+          }
+      } else {
+          // SE PIENO -> AGGIORNA (PUT UPSERT)
+          await api.updateConfigurableText(key, { content: newContent }, selectedLang);
+      }
       
       // Refresh list
       fetchData(selectedLang);
@@ -79,6 +93,24 @@ const TextConfigWidget = () => {
       console.error(err);
       alert('Errore durante il salvataggio: ' + err.message);
     }
+  };
+
+  const handleLanguageChange = (newLang) => {
+      if (newLang === selectedLang) return;
+
+      // Check se ci sono testi non configurati nella lingua corrente
+      const missingKeys = KNOWN_KEYS.filter(k => !texts.find(t => t.key === k.key));
+      
+      if (missingKeys.length > 0) {
+          const confirmSwitch = window.confirm(
+              `ATTENZIONE: Ci sono ${missingKeys.length} testi NON configurati in ${selectedLang.toUpperCase()}.\n\n` +
+              `Testi mancanti:\n- ${missingKeys.map(k => k.label).join('\n- ')}\n\n` +
+              `Vuoi cambiare lingua comunque?`
+          );
+          if (!confirmSwitch) return;
+      }
+      
+      setSelectedLang(newLang);
   };
 
   const getCombinedList = () => {
@@ -125,7 +157,7 @@ const TextConfigWidget = () => {
             {availableLanguages.map(lang => (
                 <button
                     key={lang.code}
-                    onClick={() => setSelectedLang(lang.code)}
+                    onClick={() => handleLanguageChange(lang.code)}
                     className={getLangButtonStyle(lang.code)}
                 >
                     <span className="text-lg leading-none">{lang.flag}</span>
