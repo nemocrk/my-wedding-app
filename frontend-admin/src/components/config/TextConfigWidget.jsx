@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../../services/api';
 import { Loader2, Globe } from 'lucide-react';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
+import { useTranslation } from 'react-i18next';
 
 const TextConfigWidget = () => {
+  const { t } = useTranslation();
   const [allTexts, setAllTexts] = useState([]); // Store ALL texts for ALL languages
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -52,7 +54,7 @@ const TextConfigWidget = () => {
 
         } catch (err) {
             console.error("Errore caricamento iniziale", err);
-            setError('Impossibile caricare le configurazioni.');
+            setError(t('admin.config.text_editor.load_error'));
         } finally {
             setLoading(false);
         }
@@ -102,7 +104,7 @@ const TextConfigWidget = () => {
       
     } catch (err) {
       console.error(err);
-      alert('Errore durante il salvataggio: ' + err.message);
+      alert(t('admin.config.text_editor.save_error') + ': ' + err.message);
     }
   };
 
@@ -153,9 +155,9 @@ const TextConfigWidget = () => {
         <div>
             <div className="flex items-center gap-2 text-indigo-600 mb-1">
                 <Globe size={20} />
-                <span className="text-xs font-bold uppercase tracking-wider">Localization</span>
+                <span className="text-xs font-bold uppercase tracking-wider">{t('admin.config.text_editor.localization')}</span>
             </div>
-            <h2 className="text-xl font-bold text-gray-800">Testi Configurabili</h2>
+            <h2 className="text-xl font-bold text-gray-800">{t('admin.config.text_editor.title')}</h2>
         </div>
         
         <div className="flex items-center gap-2 flex-wrap bg-gray-100 p-1.5 rounded-full">
@@ -186,7 +188,7 @@ const TextConfigWidget = () => {
       <div className="mb-6">
         <input 
           type="text" 
-          placeholder="Cerca testo (chiave o etichetta)..." 
+          placeholder={t('admin.config.text_editor.search_placeholder')} 
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none shadow-sm"
           value={filter}
           onChange={e => setFilter(e.target.value)}
@@ -207,11 +209,11 @@ const TextConfigWidget = () => {
                     </span>
                     {!isConfigured ? (
                         <span className="text-xs text-amber-700 font-bold px-2 py-1 bg-amber-50 rounded border border-amber-200 flex items-center gap-1">
-                             ⚠️ Manca in {selectedLang.toUpperCase()}
+                             ⚠️ {t('admin.config.text_editor.missing_in_lang', { lang: selectedLang.toUpperCase() })}
                         </span>
                     ) : (
                         <span className="text-xs text-emerald-700 font-bold px-2 py-1 bg-emerald-50 rounded border border-emerald-200 flex items-center gap-1">
-                             ✅ Configurato
+                             ✅ {t('admin.config.text_editor.configured')}
                         </span>
                     )}
                 </div>
@@ -228,7 +230,7 @@ const TextConfigWidget = () => {
       
       {list.length === 0 && (
         <p className="text-center text-gray-500 py-12 bg-white rounded-lg border border-dashed border-gray-300">
-            Nessun testo trovato con questo filtro.
+            {t('admin.config.text_editor.no_results')}
         </p>
       )}
     </div>
