@@ -9,7 +9,6 @@
       "default_user_message": "Non siamo riusciti a completare l'operazione richiesta.",
       "hide_technical_data": "Nascondi dettagli tecnici",
       "show_technical_data": "Mostra dettagli errore"
-
     }
   },
   "invitation": {
@@ -86,7 +85,7 @@
       },
       "unknown": {
         "emoji": "❓",
-        "text": "Che succede?s"
+        "text": "Che succede?"
       }
     },
     "labels": {
@@ -191,6 +190,125 @@
         "rate_limit_hint": "Limite di sicurezza per sessione (Anti-Ban)",
         "rate_limit_note": "Valore consigliato: 10 msg/ora. Non superare 20 per evitare ban da WhatsApp.",
         "placeholder_rate": "10"
+      }
+    },
+    "dashboard": {
+      "page_title": "Dashboard",
+      "page_subtitle": "Panoramica dello stato del matrimonio",
+      "loading": "Caricamento dashboard...",
+      "error": "Impossibile caricare le statistiche.",
+      "kpi": {
+        "confirmed_guests": "Ospiti Confermati",
+        "confirmed_guests_subtitle": "di cui {count} bambini",
+        "estimated_budget": "Budget Stimato (Max)",
+        "estimated_budget_subtitle": "Se tutti i pending accettano",
+        "current_cost": "Costo Attuale (Reale)",
+        "current_cost_subtitle": "Solo confermati",
+        "pending": "In Attesa",
+        "pending_subtitle": "Risposte mancanti"
+      },
+      "charts": {
+        "guests_status": "Stato Ospiti",
+        "logistics_costs": "Dettaglio Logistica & Costi",
+        "cost_breakdown": "Breakdown Costi (Confermati)",
+        "current_total": "Totale Attuale"
+      },
+      "guest_categories": {
+        "adults_confirmed": "Adulti Confermati",
+        "children_confirmed": "Bambini Confermati",
+        "adults_pending": "Adulti In Attesa",
+        "children_pending": "Bambini In Attesa",
+        "declined": "Declinati"
+      },
+      "logistics": {
+        "accommodation": "Alloggi",
+        "accommodation_subtitle": "Posti letti richiesti",
+        "transfer": "Transfer",
+        "transfer_subtitle": "Posti bus richiesti"
+      },
+      "costs": {
+        "adult_meals": "Pasti Adulti ({count})",
+        "child_meals": "Pasti Bambini ({count})"
+      }
+    },
+    "invitations": {
+      "page_title": "Censimento Inviti",
+      "page_subtitle": "Gestisci la lista degli invitati e i codici di accesso",
+      "loading": "Caricamento inviti...",
+      "no_invitations": "Nessun invito presente",
+      "no_invitations_subtitle": "Crea il tuo primo invito",
+      "buttons": {
+        "import_contacts": "Importa Contatti",
+        "new_invitation": "Nuovo Invito",
+        "deselect_all": "Deseleziona",
+        "verify_contacts": "Verifica Contatti",
+        "send_whatsapp": "Invia WhatsApp"
+      },
+      "bulk_action": {
+        "selected": "{count} Selezionati"
+      },
+      "table": {
+        "headers": {
+          "name_origin": "Nome & Origine",
+          "contact": "Contatto",
+          "guests": "Ospiti",
+          "status": "Stato",
+          "actions": "Azioni"
+        }
+      },
+      "status": {
+        "imported": "Importato",
+        "created": "Creato",
+        "sent": "Inviato",
+        "read": "Letto",
+        "confirmed": "Accettato",
+        "declined": "Declinato",
+        "unknown": "Sconosciuto"
+      },
+      "verification": {
+        "ok": "Verificato (OK)",
+        "not_present": "Non in rubrica",
+        "not_exist": "Non esiste su WhatsApp",
+        "not_valid": "Da verificare / Formato errato",
+        "verifying": "Verifica in corso...",
+        "click_to_verify": "Clicca per verificare"
+      },
+      "contact": {
+        "no_contact": "Nessun Contatto"
+      },
+      "origin": {
+        "bride": "Lato Sposa",
+        "groom": "Lato Sposo"
+      },
+      "actions": {
+        "send": "Invia",
+        "send_whatsapp": "Invia WhatsApp",
+        "contact_missing": "Contatto mancante o invalido",
+        "interaction_log": "Log Interazioni",
+        "copy_link": "Copia Link Pubblico",
+        "link_copied": "Link Copiato!",
+        "preview": "Apri Anteprima Sicura",
+        "edit": "Modifica",
+        "delete": "Elimina"
+      },
+      "services": {
+        "accommodation": "Alloggio",
+        "transfer": "Transfer"
+      },
+      "alerts": {
+        "no_valid_contacts": "Nessuno degli inviti selezionati ha un numero valido.",
+        "some_invalid": "{count} inviti su {total} non hanno un numero valido e saranno saltati. Procedere?",
+        "invalid_contact": "Numero non valido per questo contatto.",
+        "verify_failed": "Errore durante la verifica del contatto.",
+        "bulk_verify_complete": "Verifica completata per {count} inviti.",
+        "bulk_verify_failed": "Alcune verifiche sono fallite. Controlla la console.",
+        "delete_failed": "Impossibile eliminare l'invito"
+      },
+      "delete_modal": {
+        "title": "Elimina Invito",
+        "message": "Sei sicuro di voler eliminare questo invito? Questa azione rimuoverà tutti gli ospiti associati.",
+        "confirm": "Sì, elimina",
+        "cancel": "Annulla"
       }
     }
   }
