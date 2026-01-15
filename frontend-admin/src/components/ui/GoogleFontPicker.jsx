@@ -3,6 +3,7 @@ import * as Popover from '@radix-ui/react-popover';
 import { FixedSizeList as VirtualList } from 'react-window';
 import { Check, ChevronDown, Loader2, Search, AlertTriangle } from 'lucide-react';
 import { loadGoogleFont } from '../../utils/fontLoader';
+import { api } from '../../services/api';
 
 const CACHE_KEY = 'mw:googleFonts:v1:popularity';
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -39,25 +40,6 @@ function toCssFontFamily({ family, category }) {
   return `"${family}", ${categoryToCssFallback(category)}`;
 }
 
-async function fetchGoogleFonts({ apiKey, limit, signal }) {
-  const url = new URL('https://www.googleapis.com/webfonts/v1/webfonts');
-  url.searchParams.set('key', apiKey);
-  url.searchParams.set('sort', 'popularity');
-
-  const res = await fetch(url.toString(), { signal });
-  if (!res.ok) {
-    throw new Error(`Google Fonts API error: ${res.status}`);
-  }
-
-  const data = await res.json();
-  const items = Array.isArray(data?.items) ? data.items : [];
-
-  return items
-    .filter((f) => f?.family)
-    .slice(0, limit)
-    .map((f) => ({ family: f.family, category: f.category || 'sans-serif' }));
-}
-
 function readCache() {
   try {
     const raw = localStorage.getItem(CACHE_KEY);
@@ -80,10 +62,8 @@ function writeCache(items) {
 }
 
 export default function GoogleFontPicker({
-  apiKey,
   activeFamily,
   onSelect,
-  limit = 500,
   placeholder = 'Font',
 }) {
   const [open, setOpen] = useState(false);
@@ -92,17 +72,8 @@ export default function GoogleFontPicker({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const abortRef = useRef(null);
-
   useEffect(() => {
     if (!open) return;
-
-    // always have something to show
-    if (!apiKey) {
-      setFonts(FALLBACK_FONTS);
-      setError(null);
-      return;
-    }
 
     const cached = readCache();
     if (cached?.length) {
@@ -114,24 +85,31 @@ export default function GoogleFontPicker({
     setLoading(true);
     setError(null);
 
-    abortRef.current?.abort?.();
-    const controller = new AbortController();
-    abortRef.current = controller;
+    // Call backend proxy
+    api.fetchGoogleFonts()
+      .then((data) => {
+        // Normalize backend response (Google API structure)
+        const items = Array.isArray(data?.items) ? data.items : [];
+        const normalized = items
+          .filter((f) => f?.family)
+          .map((f) => ({ family: f.family, category: f.category || 'sans-serif' }));
+        
+        if (normalized.length === 0) {
+            // If proxy returns empty (e.g. key missing on server), use fallback
+            throw new Error('No fonts returned from server');
+        }
 
-    fetchGoogleFonts({ apiKey, limit, signal: controller.signal })
-      .then((items) => {
-        setFonts(items);
-        writeCache(items);
+        setFonts(normalized);
+        writeCache(normalized);
       })
       .catch((e) => {
-        if (e?.name === 'AbortError') return;
+        console.error("Font fetch error:", e);
         setError(e);
         setFonts(FALLBACK_FONTS);
       })
       .finally(() => setLoading(false));
 
-    return () => controller.abort();
-  }, [open, apiKey, limit]);
+  }, [open]);
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -184,7 +162,7 @@ export default function GoogleFontPicker({
         <button
           type="button"
           className="inline-flex items-center justify-between gap-2 px-2 py-1 rounded hover:bg-gray-200 text-xs font-medium text-gray-700 max-w-[180px]"
-          title={apiKey ? 'Google Fonts' : 'Imposta VITE_GOOGLE_FONTS_API_KEY per la lista completa'}
+          title={'Seleziona un font da Google Fonts'}
         >
           <span className="truncate" style={{ fontFamily: selected ? toCssFontFamily(selected) : undefined }}>
             {selected?.family || placeholder}
@@ -211,16 +189,10 @@ export default function GoogleFontPicker({
               {loading && <Loader2 size={14} className="animate-spin text-gray-500" />}
             </div>
 
-            {!apiKey && (
-              <div className="mt-2 text-[11px] text-amber-700 flex items-center gap-1">
-                <AlertTriangle size={12} />
-                VITE_GOOGLE_FONTS_API_KEY non impostata: lista ridotta.
-              </div>
-            )}
-
             {error && (
-              <div className="mt-2 text-[11px] text-red-600">
-                Errore Google Fonts API: uso lista ridotta.
+              <div className="mt-2 text-[11px] text-amber-600 flex items-center gap-1">
+                <AlertTriangle size={12} />
+                Offline mode: lista font ridotta.
               </div>
             )}
           </div>
