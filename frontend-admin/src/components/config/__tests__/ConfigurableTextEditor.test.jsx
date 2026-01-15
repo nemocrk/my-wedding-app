@@ -1,140 +1,173 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
+import userEvent from '@testing-library/user-event';
 import ConfigurableTextEditor from '../ConfigurableTextEditor';
 
-// Mock Lucide icons
-vi.mock('lucide-react', () => ({
-  Loader2: () => <span data-testid="loader-icon" />,
-  Save: () => <span data-testid="save-icon" />,
-  Undo: () => <span data-testid="undo-icon" />,
-  Bold: () => <span data-testid="bold-icon" />,
-  Italic: () => <span data-testid="italic-icon" />,
-  Underline: () => <span data-testid="underline-icon" />,
-  List: () => <span data-testid="list-icon" />,
-  ListOrdered: () => <span data-testid="list-ordered-icon" />,
-  Link: () => <span data-testid="link-icon" />,
-  Unlink: () => <span data-testid="unlink-icon" />,
-  RotateCcw: () => <span data-testid="rotate-ccw-icon" />,
-  RotateCw: () => <span data-testid="rotate-cw-icon" />,
-  Trash2: () => <span data-testid="trash-icon" />,
-  X: () => <span data-testid="x-icon" />,
-  Check: () => <span data-testid="check-icon" />,
-}));
-
-// Mock TipTap since it relies on browser APIs not fully present in JSDOM
-// We mock the hook and the component
-vi.mock('@tiptap/react', () => {
-  return {
-    useEditor: ({ content }) => ({
-      getHTML: () => content || '<p>Mock Content</p>',
-      commands: {
-        setContent: vi.fn(),
-      },
-      chain: () => ({
-        focus: () => ({
-          toggleBold: () => ({ run: vi.fn() }),
-          toggleItalic: () => ({ run: vi.fn() }),
-          toggleUnderline: () => ({ run: vi.fn() }),
-          toggleBulletList: () => ({ run: vi.fn() }),
-          toggleOrderedList: () => ({ run: vi.fn() }),
-          unsetLink: () => ({ run: vi.fn() }),
-          undo: () => ({ run: vi.fn() }),
-          redo: () => ({ run: vi.fn() }),
-          extendMarkRange: () => ({
-            setLink: () => ({ run: vi.fn() }),
-            unsetLink: () => ({ run: vi.fn() }),
-          }),
-        }),
-      }),
-      can: () => ({
-        chain: () => ({
-          focus: () => ({
-            toggleBold: () => ({ run: () => true }),
-            toggleItalic: () => ({ run: () => true }),
-            undo: () => ({ run: () => true }),
-            redo: () => ({ run: () => true }),
-          }),
-        }),
-      }),
-      isActive: () => false,
-      setEditable: vi.fn(),
-    }),
-    EditorContent: () => <div data-testid="mock-editor-content" />,
-  };
-});
-
-// Mock extensions
-vi.mock('@tiptap/starter-kit', () => ({ default: {} }));
-vi.mock('@tiptap/extension-link', () => ({ default: { configure: () => ({}) } }));
-vi.mock('@tiptap/extension-underline', () => ({ default: {} }));
+// NOTA: TipTap e Lucide icons sono mockati globalmente in setupTests.ts
 
 describe('ConfigurableTextEditor', () => {
   const mockOnSave = vi.fn();
 
-  it('renders correctly in view mode', () => {
+  it('renders correctly in preview mode', () => {
     render(
       <ConfigurableTextEditor 
         textKey="test.key" 
         initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave} 
+        onSave={mockOnSave}
+        label="Test Label"
       />
     );
 
-    expect(screen.getByText('test.key')).toBeInTheDocument();
-    expect(screen.getByTestId('edit-test.key')).toBeInTheDocument();
-    // In view mode, editor is rendered but opacity might differ.
-    // Our mock renders EditorContent always, but in real component logic applies styles.
-    expect(screen.getByTestId('tiptap-content-test.key')).toBeInTheDocument();
+    // Should show label
+    expect(screen.getByText('Test Label')).toBeInTheDocument();
+    
+    // Should show "Modifica" button
+    expect(screen.getByRole('button', { name: /modifica/i })).toBeInTheDocument();
+    
+    // Should show preview content
+    expect(screen.getByText(/Initial Content/i)).toBeInTheDocument();
   });
 
-  it('switches to edit mode on click', async () => {
+  it('uses textKey as label when label prop is not provided', () => {
     render(
       <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave} 
+        textKey="envelope.front.content" 
+        initialContent="<p>Test</p>" 
+        onSave={mockOnSave}
       />
     );
 
-    const editButton = screen.getByTestId('edit-test.key');
-    fireEvent.click(editButton);
-
-    expect(screen.getByTestId('save-test.key')).toBeInTheDocument();
-    expect(screen.getByTestId('cancel-test.key')).toBeInTheDocument();
-    
-    // Toolbar icons should be visible
-    expect(screen.getByTestId('bold-icon')).toBeInTheDocument();
+    // Should NOT show label in preview (only in modal header)
+    // Preview card shows the label prop or nothing
+    const modifyButton = screen.getByRole('button', { name: /modifica/i });
+    expect(modifyButton).toBeInTheDocument();
   });
 
-  it('calls onSave when save button is clicked', async () => {
+  it('opens fullscreen modal when edit button is clicked', async () => {
+    const user = userEvent.setup();
+    
     render(
       <ConfigurableTextEditor 
         textKey="test.key" 
         initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave} 
+        onSave={mockOnSave}
+        label="Test Label"
       />
     );
 
-    fireEvent.click(screen.getByTestId('edit-test.key'));
-    fireEvent.click(screen.getByTestId('save-test.key'));
+    const editButton = screen.getByRole('button', { name: /modifica/i });
+    await user.click(editButton);
 
-    expect(mockOnSave).toHaveBeenCalledWith('test.key', '<p>Initial Content</p>');
+    // Modal should open with Salva and Annulla buttons
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+    });
+    
+    // Modal header should show label
+    expect(screen.getByText('Test Label')).toBeInTheDocument();
   });
 
-  it('cancels editing', async () => {
+  it('calls onSave when save button is clicked in modal', async () => {
+    const user = userEvent.setup();
+    mockOnSave.mockResolvedValue(undefined); // Simulate async save
+    
     render(
       <ConfigurableTextEditor 
         textKey="test.key" 
         initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave} 
+        onSave={mockOnSave}
+        label="Test Label"
       />
     );
 
-    fireEvent.click(screen.getByTestId('edit-test.key'));
-    expect(screen.queryByTestId('edit-test.key')).not.toBeInTheDocument();
+    // Open modal
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+    });
+
+    // Click save
+    const saveButton = screen.getByRole('button', { name: /salva/i });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(mockOnSave).toHaveBeenCalledWith('test.key', expect.any(String));
+    });
+  });
+
+  it('closes modal when cancel button is clicked', async () => {
+    const user = userEvent.setup();
     
-    fireEvent.click(screen.getByTestId('cancel-test.key'));
+    render(
+      <ConfigurableTextEditor 
+        textKey="test.key" 
+        initialContent="<p>Initial Content</p>" 
+        onSave={mockOnSave}
+        label="Test Label"
+      />
+    );
+
+    // Open modal
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+    });
+
+    // Click cancel
+    const cancelButton = screen.getByRole('button', { name: /annulla/i });
+    await user.click(cancelButton);
+
+    // Modal should close
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /salva/i })).not.toBeInTheDocument();
+    });
+
+    // Should be back to preview mode
+    expect(screen.getByRole('button', { name: /modifica/i })).toBeInTheDocument();
+  });
+
+  it('displays empty content message when no content is provided', () => {
+    render(
+      <ConfigurableTextEditor 
+        textKey="test.key" 
+        initialContent="" 
+        onSave={mockOnSave}
+        label="Empty Test"
+      />
+    );
+
+    // Should show "Nessun contenuto" message
+    expect(screen.getByText(/Nessun contenuto/i)).toBeInTheDocument();
+  });
+
+  it('closes modal after successful save', async () => {
+    const user = userEvent.setup();
+    mockOnSave.mockResolvedValue(undefined);
     
-    expect(screen.getByTestId('edit-test.key')).toBeInTheDocument();
+    render(
+      <ConfigurableTextEditor 
+        textKey="test.key" 
+        initialContent="<p>Content</p>" 
+        onSave={mockOnSave}
+        label="Test"
+      />
+    );
+
+    // Open and save
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+    
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /salva/i }));
+
+    // Modal should close after save
+    await waitFor(() => {
+      expect(screen.queryByRole('button', { name: /salva/i })).not.toBeInTheDocument();
+    });
   });
 });
