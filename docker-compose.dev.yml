@@ -44,6 +44,9 @@ services:
       - ./frontend-admin:/app
       - /app/node_modules
     environment:
+      # Garantiamo che la chiave sia presente anche nell'override di sviluppo
+      # (Docker Compose a volte sostituisce le liste environment invece di unirle)
+      - VITE_GOOGLE_FONTS_API_KEY=${VITE_GOOGLE_FONTS_API_KEY}
       - CHOKIDAR_USEPOLLING=true
 
   # ---------------------------------------------
