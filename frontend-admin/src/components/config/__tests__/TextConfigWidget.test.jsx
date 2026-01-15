@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import TextConfigWidget from '../TextConfigWidget';
 import { api } from '../../../services/api';
@@ -14,7 +14,7 @@ vi.mock('../../../services/api', () => ({
   },
 }));
 
-// NOTA: TipTap, GoogleFontPicker e fontLoader sono mockati globalmente in setupTests.ts
+// NOTA: TipTap, GoogleFontPicker e fontLoader sono mockati globalmente in setupTests.tsx
 
 describe('TextConfigWidget', () => {
   const mockLanguages = [
@@ -83,10 +83,11 @@ describe('TextConfigWidget', () => {
     const editButtons = screen.getAllByRole('button', { name: /modifica/i });
     await user.click(editButtons[0]);
 
-    // Modal should open with Cancel/Save buttons
+    // Modal should open - use dialog role to scope queries
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      expect(within(dialog).getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+      expect(within(dialog).getByRole('button', { name: /salva/i })).toBeInTheDocument();
     });
   });
 
@@ -103,12 +104,14 @@ describe('TextConfigWidget', () => {
     const editButtons = screen.getAllByRole('button', { name: /modifica/i });
     await user.click(editButtons[0]);
 
-    // Wait for modal to open and click Save button
+    // Wait for modal to open and find Save button within dialog
+    let saveButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      expect(saveButton).toBeInTheDocument();
     });
 
-    const saveButton = screen.getByRole('button', { name: /salva/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -143,11 +146,13 @@ describe('TextConfigWidget', () => {
     if (cardEventoButton) {
       await user.click(cardEventoButton);
 
+      let saveButton;
       await waitFor(() => {
-        expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+        const dialog = screen.getByRole('dialog');
+        saveButton = within(dialog).getByRole('button', { name: /salva/i });
+        expect(saveButton).toBeInTheDocument();
       });
 
-      const saveButton = screen.getByRole('button', { name: /salva/i });
       await user.click(saveButton);
 
       await waitFor(() => {
@@ -179,11 +184,13 @@ describe('TextConfigWidget', () => {
     const editButtons = screen.getAllByRole('button', { name: /modifica/i });
     await user.click(editButtons[0]);
 
+    let saveButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      saveButton = within(dialog).getByRole('button', { name: /salva/i });
+      expect(saveButton).toBeInTheDocument();
     });
 
-    const saveButton = screen.getByRole('button', { name: /salva/i });
     await user.click(saveButton);
 
     await waitFor(() => {
@@ -222,16 +229,19 @@ describe('TextConfigWidget', () => {
     const editButtons = screen.getAllByRole('button', { name: /modifica/i });
     await user.click(editButtons[0]);
 
+    // Wait for modal and find Cancel button within dialog scope
+    let cancelButton;
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: /annulla/i })).toBeInTheDocument();
+      const dialog = screen.getByRole('dialog');
+      cancelButton = within(dialog).getByRole('button', { name: /annulla/i });
+      expect(cancelButton).toBeInTheDocument();
     });
 
-    const cancelButton = screen.getByRole('button', { name: /annulla/i });
     await user.click(cancelButton);
 
     // Modal should close
     await waitFor(() => {
-      expect(screen.queryByRole('button', { name: /annulla/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
 
     // Content should still be visible
