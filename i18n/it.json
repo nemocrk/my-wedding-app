@@ -6,8 +6,15 @@
     "cancel": "Annulla",
     "save": "Salva",
     "close": "Chiudi",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "back": "Indietro",
+    "next": "Avanti",
+    "submit": "Invia",
+    "understood": "Ho capito, chiudi",
     "error_modal": {
       "title": "Ops! Qualcosa non va",
+      "title_alt": "Qualcosa è andato storto",
       "button": "Ho capito, chiudi",
       "default_user_message": "Non siamo riusciti a completare l'operazione richiesta.",
       "hide_technical_data": "Nascondi dettagli tecnici",
@@ -176,7 +183,22 @@
       "error_message": "Errore durante il salvataggio.",
       "error_load": "Errore caricamento configurazione.",
       "dynamic_texts_title": "Contenuti Dinamici",
-      "dynamic_texts_subtitle": "Gestisci i testi configurabili visualizzati nelle card dell'invito utente"
+      "dynamic_texts_subtitle": "Gestisci i testi configurabili visualizzati nelle card dell'invito utente",
+      "text_editor": {
+        "localization": "Localization",
+        "title": "Testi Configurabili",
+        "search_placeholder": "Cerca testo...",
+        "missing_in_lang": "Manca in {lang}",
+        "configured": "Configurato",
+        "no_results": "Nessun testo trovato con questo filtro.",
+        "buttons": {
+          "edit": "Modifica",
+          "cancel": "Annulla",
+          "save": "Salva"
+        },
+        "save_error": "Errore durante il salvataggio",
+        "load_error": "Impossibile caricare le configurazioni"
+      }
     },
     "sections": {
       "prices": {
@@ -324,13 +346,89 @@
         "message": "Sei sicuro di voler eliminare questo invito? Questa azione rimuoverà tutti gli ospiti associati.",
         "confirm": "Sì, elimina",
         "cancel": "Annulla"
+      },
+      "create_modal": {
+        "title": "Nuovo Invito",
+        "step_of": "Step {step} di {total}",
+        "steps": {
+          "details": {
+            "title": "Dettagli Invito",
+            "origin_label": "Provenienza",
+            "side_groom": "Lato Sposo",
+            "side_bride": "Lato Sposa",
+            "display_name": "Nome Visualizzato",
+            "display_name_placeholder": "es. Famiglia Rossi",
+            "unique_code": "Codice Univoco (Slug)",
+            "unique_code_placeholder": "es. famiglia-rossi",
+            "phone_number": "Numero Telefono Referente",
+            "phone_placeholder": "+39 333 1234567",
+            "phone_hint": "Utilizzato per l'invio automatizzato WhatsApp (includere prefisso internazionale)",
+            "offered_options": "Opzioni Offerte",
+            "accommodation_offered": "Alloggio incluso",
+            "transfer_offered": "Transfer incluso"
+          },
+          "guests": {
+            "title": "Aggiungi Ospiti",
+            "subtitle": "Indica i membri di questo gruppo invitato",
+            "name_label": "Nome",
+            "name_placeholder": "Nome",
+            "lastname_label": "Cognome",
+            "lastname_placeholder": "Cognome",
+            "child_checkbox": "Bambino",
+            "add_guest": "Aggiungi Ospite",
+            "validation": {
+              "min_one": "Devi aggiungere almeno un ospite!"
+            }
+          },
+          "review": {
+            "title": "Riepilogo & Conferma",
+            "subtitle": "Verifica i dati prima di creare l'invito",
+            "family_name": "Nome Famiglia",
+            "code": "Codice",
+            "origin": "Provenienza",
+            "phone": "Telefono",
+            "services": "Servizi Offerti",
+            "none": "Nessuno",
+            "guests": "Ospiti ({count})"
+          }
+        },
+        "buttons": {
+          "next": "Avanti",
+          "back": "Indietro",
+          "create": "Crea Invito"
+        }
+      },
+      "import_modal": {
+        "title": "Importa Contatti da File",
+        "drag_drop": "Trascina qui il file CSV/Excel o",
+        "browse": "sfoglia",
+        "format_csv": "Formato CSV",
+        "format_excel": "Formato Excel (.xlsx)",
+        "required_columns": "Colonne richieste",
+        "column_name": "name",
+        "column_lastname": "lastname",
+        "column_phone": "phone (opzionale)",
+        "optional_columns": "Colonne opzionali",
+        "column_child": "is_child",
+        "column_origin": "origin (groom/bride)",
+        "column_display_name": "display_name (se vuoi raggruppare)",
+        "download_template": "Scarica Template",
+        "preview_title": "Anteprima ({count} ospiti rilevati)",
+        "import_button": "Importa {count} Ospiti",
+        "success": "Import completato! {count} inviti creati.",
+        "error": "Errore durante l'import",
+        "validation": {
+          "invalid_format": "Formato file non valido. Usa CSV o XLSX.",
+          "missing_columns": "Colonne mancanti"
+        }
       }
     },
     "whatsapp_config": {
       "page_title": "Integrazione WhatsApp",
       "tabs": {
         "connection": "Connessione & Stato",
-        "templates": "Template Messaggi"
+        "templates": "Template Messaggi",
+        "queue": "Coda Messaggi"
       },
       "connection": {
         "groom_account": "Account Sposo",
@@ -411,6 +509,23 @@
           }
         },
         "delete_confirm": "Sei sicuro di voler eliminare questo template?"
+      },
+      "queue": {
+        "title": "Messaggi in Coda",
+        "refresh": "Aggiorna Coda",
+        "clear_completed": "Pulisci Completati",
+        "no_messages": "Nessun messaggio in coda.",
+        "status": {
+          "pending": "In Attesa",
+          "sending": "Invio...",
+          "sent": "Inviato",
+          "failed": "Fallito"
+        },
+        "recipient": "Destinatario",
+        "message": "Messaggio",
+        "created_at": "Creato il",
+        "sent_at": "Inviato il",
+        "error": "Errore"
       }
     },
     "accommodations": {
@@ -431,7 +546,77 @@
         "adults": "Adulti",
         "children": "Bambini"
       },
-      "close_success": "Chiudi"
+      "close_success": "Chiudi",
+      "list": {
+        "no_accommodations": "Nessun alloggio configurato",
+        "no_accommodations_subtitle": "Aggiungi una struttura per iniziare a gestire gli assegnamenti.",
+        "total_capacity": "Capienza Totale Struttura",
+        "rooms_title": "Dettaglio Stanze & Assegnazioni",
+        "capacity_label": "Capienza",
+        "adults_short": "A",
+        "children_short": "B",
+        "free_slots": "Liberi",
+        "assigned_guests": "Ospiti Assegnati",
+        "empty_room": "Camera vuota"
+      },
+      "create_modal": {
+        "title": "Nuovo Alloggio",
+        "step_of": "Step {step} di 2",
+        "step1": {
+          "structure_name": "Nome Struttura",
+          "structure_placeholder": "es. Hotel Paradiso",
+          "address_label": "Indirizzo",
+          "address_placeholder": "es. Via Roma 123, Cagliari"
+        },
+        "step2": {
+          "info_message": "Definisci le stanze disponibili in questa struttura. Puoi aggiungerne quante ne vuoi.",
+          "room_name": "Nome/Numero",
+          "room_placeholder": "es. 101",
+          "adults_label": "Adulti",
+          "children_label": "Bambini",
+          "add_room": "Aggiungi Stanza"
+        },
+        "buttons": {
+          "next": "Avanti",
+          "back": "Indietro",
+          "save": "Salva Alloggio"
+        }
+      },
+      "auto_assign_modal": {
+        "title": "Arena delle Strategie",
+        "subtitle": "Ottimizza l'assegnazione automatica",
+        "simulation": {
+          "title": "Simulazione Scenari",
+          "description": "Il sistema eseguirà 6 algoritmi diversi in parallelo per trovare l'incastro migliore. Nessuna modifica verrà salvata finché non sceglierai una strategia.",
+          "start_button": "Avvia Simulazione (6 Strategie)",
+          "restart": "Ricomincia"
+        },
+        "results": {
+          "title": "Risultati Simulazione",
+          "best_fit": "BEST FIT",
+          "assigned": "Assegnati",
+          "guests": "Ospiti",
+          "unassigned": "Non Assegnati",
+          "wasted_beds": "Letti Sprecati",
+          "wasted_beds_info": "L'algoritmo \"Letti Sprecati\" indica i posti letto liberi in stanze parzialmente occupate. Un valore più basso significa un incastro più efficiente (stile Tetris).",
+          "apply_button": "Applica Questa Strategia",
+          "cancel_button": "Annulla"
+        }
+      },
+      "interactions_modal": {
+        "title": "Analisi Interazioni: {name}",
+        "sessions_count": "{count} sessioni registrate",
+        "sessions_tab": "Sessioni",
+        "no_interactions": "Nessuna interazione",
+        "events_count": "{count} eventi",
+        "replay_available": "Replay disponibile",
+        "timeline_title": "Timeline Eventi",
+        "select_session": "Seleziona una sessione",
+        "replay_title": "Replay Sessione",
+        "viewport": "Viewport originale",
+        "no_heatmap": "Nessun dato heatmap",
+        "select_for_replay": "Seleziona una sessione con dati heatmap per vedere il replay"
+      }
     }
   }
 }
