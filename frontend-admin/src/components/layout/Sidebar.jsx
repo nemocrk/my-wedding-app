@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 const Sidebar = () => {
     const { t } = useTranslation();
@@ -45,11 +46,20 @@ const Sidebar = () => {
                 </ul>
             </nav>
 
-            <div className="p-4 border-t border-gray-200">
-                <button className="flex items-center gap-3 text-gray-600 hover:text-red-600 transition-colors w-full px-3 py-2">
-                    <LogOut size={20} />
-                    {t('admin.sidebar.logout')}
-                </button>
+            {/* Footer Section: Language Switcher + Logout */}
+            <div className="border-t border-gray-200">
+                {/* Language Switcher */}
+                <div className="p-4 border-b border-gray-100">
+                    <LanguageSwitcher />
+                </div>
+                
+                {/* Logout Button */}
+                <div className="p-4">
+                    <button className="flex items-center gap-3 text-gray-600 hover:text-red-600 transition-colors w-full px-3 py-2 rounded-md hover:bg-red-50">
+                        <LogOut size={20} />
+                        {t('admin.sidebar.logout')}
+                    </button>
+                </div>
             </div>
         </aside>
     );
