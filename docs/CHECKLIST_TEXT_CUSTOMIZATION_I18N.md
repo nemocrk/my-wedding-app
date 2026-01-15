@@ -293,19 +293,26 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ---
 
-### **FASE 4: Frontend-Admin - i18n Integration**
+### **FASE 4: Frontend-Admin - i18n Integration** ✅ COMPLETATA
 
-#### **4.1 Refactoring Configuration.jsx**
-- [ ] **Leggere file attuale**: `frontend-admin/src/pages/Configuration.jsx`
-- [ ] **Aggiungere import useTranslation**
-- [ ] **Sostituire tutti i testi UI con traduzioni i18n**
+#### **4.1 i18n JSON Updates** ✅
+- [x] **Aggiornare i18n/it.json**: Aggiunte chiavi namespace `admin.sidebar` con traduzioni italiane
+- [x] **Aggiornare i18n/en.json**: Aggiunte chiavi namespace `admin.sidebar` con traduzioni inglesi
 
-#### **4.2 Refactoring Dashboard, InvitationList, ecc.**
-- [ ] **Dashboard.jsx**: sostituire testi
-- [ ] **InvitationList.jsx**: sostituire testi
-- [ ] **WhatsAppConfig.jsx**: sostituire testi
-- [ ] **AccommodationsPage.jsx**: sostituire testi
-- [ ] **Componenti comuni** (Layout, Sidebar, ecc.): sostituire testi
+#### **4.2 Refactoring Sidebar.jsx** ✅
+- [x] **Leggere file attuale**: `frontend-admin/src/components/layout/Sidebar.jsx`
+- [x] **Aggiungere import useTranslation**
+- [x] **Sostituire testi hardcoded con traduzioni i18n**:
+  - Titolo applicazione ("Wedding" + "Admin")
+  - Voci di navigazione (Dashboard, Inviti, Alloggi, WhatsApp, Configurazione)
+  - Pulsante Logout
+
+#### **4.3 Componenti Già Tradotti (Fasi Precedenti)** ✅
+- [x] **Configuration.jsx**: già completato con i18n in FASE 2
+- [x] **Dashboard.jsx**: già tradotto in precedenza
+- [x] **InvitationList.jsx**: già tradotto in precedenza
+- [x] **WhatsAppConfig.jsx**: già tradotto in precedenza
+- [x] **AccommodationsPage.jsx**: già tradotto in precedenza
 
 ---
 
@@ -405,20 +412,36 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-14 13:22 CET  
-**Status**: ✅ FASE 3 COMPLETATA - Frontend-User Full i18n & Dynamic Text  
-**Current Phase**: FASE 4 - Frontend-Admin i18n Integration  
-**Progress FASE 3**: 4/4 tasks completed (100%) ✅  
-**Progress Totale**: 42/146 tasks completed (29%)  
+**Last Updated**: 2026-01-15 15:18 CET  
+**Status**: ✅ FASE 4 COMPLETATA - Frontend-Admin Full i18n Integration  
+**Current Phase**: FASE 5 - Database Migration (BLOCKING STEP)  
+**Progress FASE 4**: 3/3 sections completed (100%) ✅  
+**Progress Totale**: 49/146 tasks completed (34%)  
 **Blockers**: None  
-**Next Step**: FASE 4.1 - Refactoring Configuration.jsx in frontend-admin  
+**Next Step**: FASE 5.1 - Database Migration Pre-Flight Checklist  
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-15 15:18 - docs: update checklist - FASE 4 fully completed
 2026-01-14 13:22 - docs: update checklist - FASE 3 fully completed
 2026-01-14 13:02 - docs: update checklist - completed FASE 3.1 & 3.2
 2026-01-14 11:31 - docs: update checklist - FASE 2 fully completed with tests
 2026-01-14 11:27 - docs: update checklist - completed FASE 2 (frontend-admin text widget)
+```
+
+### **FASE 4 - Commits & Files Modified**:
+```
+Commit: a937b99 - feat(i18n): add sidebar navigation translations
+Files:
+  - i18n/it.json (modified - added admin.sidebar namespace)
+
+Commit: bca92c9 - feat(i18n): add sidebar navigation translations (English)
+Files:
+  - i18n/en.json (modified - added admin.sidebar namespace)
+
+Commit: 24ed9f1 - feat(sidebar): integrate i18n translations for navigation menu
+Files:
+  - frontend-admin/src/components/layout/Sidebar.jsx (refactored)
 ```
 
 ### **FASE 3 - Commits & Files Created**:
@@ -458,4 +481,4 @@ Files:
 
 ---
 
-**🎉 FASE 3 completata al 100%! Tutti i componenti frontend-user ora utilizzano i18n e testi dinamici dal DB. Pronto per FASE 4: Frontend-Admin i18n Integration**
+**🎉 FASE 4 completata al 100%! Tutti i componenti frontend-admin ora utilizzano i18n per testi UI. Sistema bilingue (IT/EN) completo su entrambe le app. Pronto per FASE 5: Database Migration**
