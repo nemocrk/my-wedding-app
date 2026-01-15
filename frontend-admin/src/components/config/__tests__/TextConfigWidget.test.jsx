@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import TextConfigWidget from '../TextConfigWidget';
 import { api } from '../../../services/api';
 
-// Mock API service
+// Mock API service (specifico per questo test)
 vi.mock('../../../services/api', () => ({
   api: {
     fetchLanguages: vi.fn(),
@@ -14,57 +14,7 @@ vi.mock('../../../services/api', () => ({
   },
 }));
 
-// Mock TipTap Editor (heavy dependency)
-vi.mock('@tiptap/react', () => ({
-  useEditor: vi.fn(() => ({
-    getHTML: () => '<p>Mocked HTML</p>',
-    commands: {
-      setContent: vi.fn(),
-      focus: vi.fn(),
-    },
-    chain: () => ({
-      focus: () => ({ 
-        undo: () => ({ run: vi.fn() }),
-        redo: () => ({ run: vi.fn() }),
-      }),
-    }),
-    can: () => ({
-      chain: () => ({ 
-        focus: () => ({ 
-          undo: () => ({ run: () => false }),
-          redo: () => ({ run: () => false }),
-        }),
-      }),
-    }),
-    on: vi.fn(),
-    off: vi.fn(),
-    isActive: vi.fn(() => false),
-    getAttributes: vi.fn(() => ({})),
-  })),
-  EditorContent: ({ children }) => <div>{children}</div>,
-}));
-
-// Mock all TipTap extensions
-vi.mock('@tiptap/starter-kit', () => ({ default: { configure: vi.fn() } }));
-vi.mock('@tiptap/extension-link', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-underline', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-text-align', () => ({ default: { configure: vi.fn() } }));
-vi.mock('@tiptap/extension-subscript', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-superscript', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-highlight', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-text-style', () => ({ TextStyle: vi.fn() }));
-vi.mock('@tiptap/extension-color', () => ({ Color: vi.fn() }));
-vi.mock('@tiptap/extension-font-family', () => ({ default: vi.fn() }));
-
-// Mock GoogleFontPicker
-vi.mock('../../ui/GoogleFontPicker', () => ({
-  default: () => <div>Font Picker</div>,
-}));
-
-// Mock fontLoader
-vi.mock('../../../utils/fontLoader', () => ({
-  autoLoadFontsFromHTML: vi.fn(),
-}));
+// NOTA: TipTap, GoogleFontPicker e fontLoader sono mockati globalmente in setupTests.ts
 
 describe('TextConfigWidget', () => {
   const mockLanguages = [
