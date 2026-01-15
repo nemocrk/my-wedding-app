@@ -100,8 +100,8 @@ describe('TextConfigWidget', () => {
     // Modal should open - use dialog role to scope queries
     await waitFor(() => {
       const dialog = screen.getByRole('dialog');
-      expect(within(dialog).getByRole('button', { name: /annulla/i })).toBeInTheDocument();
-      expect(within(dialog).getByRole('button', { name: /salva/i })).toBeInTheDocument();
+      expect(within(dialog).getByTitle('Salva modifiche')).toBeInTheDocument();
+      expect(within(dialog).getByTitle('Annulla modifiche')).toBeInTheDocument();
     });
   });
 
@@ -247,7 +247,8 @@ describe('TextConfigWidget', () => {
     let cancelButton;
     await waitFor(() => {
       const dialog = screen.getByRole('dialog');
-      cancelButton = within(dialog).getByRole('button', { name: /annulla/i });
+      cancelButton = within(dialog).getByTitle('Annulla modifiche');
+      expect(within(dialog).getByTitle('Annulla modifiche')).toBeInTheDocument();
       expect(cancelButton).toBeInTheDocument();
     });
 

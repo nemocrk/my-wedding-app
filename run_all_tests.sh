@@ -70,9 +70,9 @@ echo "🧪 Esecuzione Pytest..."
 if [ "$COVERAGE" = true ]; then
     # Installa pytest-cov se manca
     pip install pytest-cov > /dev/null 2>&1
-    pytest -v --color=no --cov=core --cov-report=html --cov-report=term
+    pytest -v --cov=core --cov-report=html --cov-report=term
 else
-    pytest -v --color=no
+    pytest -v
 fi
 
 cd ..

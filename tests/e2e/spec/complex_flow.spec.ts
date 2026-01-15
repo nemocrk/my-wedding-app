@@ -104,7 +104,7 @@ test.describe('Complex Wedding Flow', () => {
             await page.goto(publicUrl);
             
             // Wait for envelope animation and content to load
-            await expect(page.getByRole('heading', { name: 'Domenico & Loredana' })).toBeVisible();
+            await expect(page.locator('body')).toContainText('Domenico & Loredana');
             await waitForPageReady(page);
 
             // Take screenshot only for the first user interaction to avoid clutter

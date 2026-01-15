@@ -59,14 +59,16 @@ describe('ConfigurableTextEditor', () => {
     await user.click(editButton);
 
     // Modal should open - use specific title to distinguish from TipTap Undo button
+    let dialog;
     await waitFor(() => {
-      expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByTitle('Salva modifiche')).toBeInTheDocument();
-      expect(screen.getByTitle('Annulla modifiche')).toBeInTheDocument();
+      dialog = screen.getByRole('dialog');
+      expect(dialog).toBeInTheDocument();
+      expect(within(dialog).getByTitle('Salva modifiche')).toBeInTheDocument();
+      expect(within(dialog).getByTitle('Annulla modifiche')).toBeInTheDocument();
     });
     
     // Modal header should show label
-    expect(screen.getByText('Test Label')).toBeInTheDocument();
+    expect(within(dialog).getByText('Test Label')).toBeInTheDocument();
   });
 
   it('calls onSave when save button is clicked in modal', async () => {

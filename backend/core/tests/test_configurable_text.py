@@ -3,7 +3,7 @@ import pytest
 from django.urls import reverse
 from rest_framework import status
 from core.models import ConfigurableText
-
+from django.db import transaction, IntegrityError
 
 @pytest.mark.django_db
 class TestConfigurableTextModel:
@@ -33,13 +33,14 @@ class TestConfigurableTextModel:
             content='Contenuto italiano'
         )
         
-        # DEVE FALLIRE: stessa key + stessa language
-        with pytest.raises(Exception):  # Django IntegrityError
-            ConfigurableText.objects.create(
-                key='card.alloggio.content',
-                language='it',
-                content='Altro contenuto italiano (duplicato)'
-            )
+        with transaction.atomic():
+            # DEVE FALLIRE: stessa key + stessa language
+            with pytest.raises(Exception):  # Django IntegrityError
+                ConfigurableText.objects.create(
+                    key='card.alloggio.content',
+                    language='it',
+                    content='Altro contenuto italiano (duplicato)'
+                )
         
         # DEVE PASSARE: stessa key ma language diversa (EN)
         text_en = ConfigurableText.objects.create(
@@ -155,15 +156,14 @@ class TestConfigurableTextAdminAPI:
     
     def test_create_configurable_text_via_api(self, admin_client):
         """Test POST /api/admin/texts/ creates new text."""
-        url = reverse('admin-texts-list')
         payload = {
-            'key': 'card.cosaltro.content',
             'language': 'it',
             'content': '<p>What else content</p>',
             'metadata': {'notes': 'Created via API'}
         }
+        url = reverse('admin-texts-detail', kwargs={'key': 'card.cosaltro.content'})
         
-        response = admin_client.post(url, payload, content_type='application/json')
+        response = admin_client.put(url, payload, content_type='application/json')
         
         assert response.status_code == status.HTTP_201_CREATED
         assert ConfigurableText.objects.filter(key='card.cosaltro.content', language='it').exists()

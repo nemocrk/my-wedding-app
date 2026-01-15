@@ -16,7 +16,7 @@ class ConfigurableTextSerializer(serializers.ModelSerializer):
     class Meta:
         model = ConfigurableText
         fields = ['key', 'content', 'metadata', 'updated_at']
-        read_only_fields = ['key', 'updated_at']  # 'key' read-only per impedire cambio in update
+        read_only_fields = ['key', 'updated_at']  # 'key' must be read-only for updates
 
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
