@@ -235,30 +235,7 @@ const MenuBar = ({ editor }) => {
         <button onClick={() => editor.chain().focus().redo().run()} disabled={!editor.can().chain().focus().redo().run()} className={btnClass(false)} title="Ripeti"><RotateCw className={iconSize} /></button>
       </div>
 
-      {/* Headings */}
-      <div className="flex gap-0.5 mr-1 border-r border-gray-300 pr-1 items-center">
-         <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
-            className={btnClass(editor.isActive('heading', { level: 1 }))}
-            title="Heading 1"
-         >
-           <Heading1 className={iconSize} />
-         </button>
-         <button
-            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
-            className={btnClass(editor.isActive('heading', { level: 2 }))}
-            title="Heading 2"
-         >
-           <Heading2 className={iconSize} />
-         </button>
-         <button
-            onClick={() => editor.chain().focus().setParagraph().run()}
-            className={btnClass(editor.isActive('paragraph'))}
-            title="Paragrafo"
-         >
-           <Type className={iconSize} />
-         </button>
-      </div>
+      {/* Headings REMOVED per user request */}
 
       {/* Fonts & Size & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
