@@ -92,8 +92,6 @@ const MenuBar = ({ editor }) => {
     return null;
   }
 
-  const googleFontsApiKey = import.meta.env.VITE_GOOGLE_FONTS_API_KEY;
-
   // Sync active font from editor state
   useEffect(() => {
     const currentFont = editor.getAttributes('textStyle').fontFamily;
@@ -178,7 +176,6 @@ const MenuBar = ({ editor }) => {
       {/* Fonts & Color */}
       <div className="flex gap-1 mr-1 border-r border-gray-300 pr-1 items-center">
           <GoogleFontPicker
-            apiKey={googleFontsApiKey}
             activeFamily={activeFontFamily}
             onSelect={(font) => {
               const fontFamily = `"${font.family}", ${font.category || 'sans-serif'}`;
@@ -246,90 +243,132 @@ const MenuBar = ({ editor }) => {
   );
 };
 
+// --- LAZY LOADED EDITOR WRAPPER ---
+// This component initializes the heavy TipTap editor only when rendered
+const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
+    const [isSaving, setIsSaving] = useState(false);
+
+    const editor = useEditor({
+        extensions: [
+            StarterKit.configure({
+                heading: { levels: [1, 2, 3] },
+            }),
+            TextAlign.configure({ types: ['heading', 'paragraph'] }),
+            Image.configure({ inline: true }),
+            Subscript,
+            Superscript,
+            Highlight,
+            TextStyle,
+            Color,
+            FontFamily,
+            Rotation,
+        ],
+        content: content || '',
+        editable: true,
+        autofocus: true,
+        editorProps: {
+            attributes: {
+                class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
+            },
+            handlePaste: (view, event) => {
+                const items = event.clipboardData?.items;
+                const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
+                if (hasHtml) return false;
+
+                const text = event.clipboardData?.getData('text/plain');
+                if (text && /<[a-z][\s\S]*>/i.test(text)) {
+                    const doc = new DOMParser().parseFromString(text, 'text/html');
+                    const errorNode = doc.querySelector('parsererror');
+                    if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
+                        event.preventDefault();
+                        view.props.editor.commands.insertContent(text);
+                        return true;
+                    }
+                }
+                return false;
+            }
+        },
+    });
+
+    // Auto-load fonts only for the active editor
+    useEffect(() => {
+        if (content) {
+            autoLoadFontsFromHTML(content);
+        }
+    }, [content]);
+
+    const handleSave = async () => {
+        if (!editor) return;
+        setIsSaving(true);
+        const htmlContent = editor.getHTML();
+        try {
+            await onSave(textKey, htmlContent);
+            // Parent handles closing
+        } catch (error) {
+            console.error('Failed to save text:', error);
+        } finally {
+            setIsSaving(false);
+        }
+    };
+
+    return (
+        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fadeIn">
+            {/* Header */}
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-3">
+                <div className="flex flex-col w-full sm:w-auto">
+                    <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Modifica</span>
+                    <h2 className="text-sm sm:text-xl font-bold text-gray-800 truncate max-w-[280px] sm:max-w-md" title={label || textKey}>
+                        {label || textKey}
+                    </h2>
+                </div>
+
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
+                        title="Annulla modifiche"
+                        data-testid={`cancel-${textKey}`}
+                    >
+                        <X size={16} /> <span className="sm:inline">Annulla</span>
+                    </button>
+                    <button
+                        onClick={handleSave}
+                        disabled={isSaving}
+                        className="flex-1 sm:flex-none justify-center items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all transform active:scale-95"
+                        title="Salva modifiche"
+                        data-testid={`save-${textKey}`}
+                    >
+                        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> <span className="sm:inline">Salva</span></>}
+                    </button>
+                </div>
+            </div>
+
+            {/* Editor Area */}
+            <div className="flex-1 overflow-hidden flex flex-col max-w-5xl mx-auto w-full border-x border-gray-100 shadow-xl sm:my-4 bg-white sm:rounded-lg">
+                <MenuBar editor={editor} />
+                <div className="flex-1 overflow-y-auto cursor-text" onClick={() => editor?.commands.focus()}>
+                    <EditorContent editor={editor} data-testid={`tiptap-content-${textKey}`} className="h-full" />
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- MAIN COMPONENT ---
+// Now lightweight, just renders a preview
 const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
   const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
-  // TipTap configuration
-  const editor = useEditor({
-    extensions: [
-      StarterKit.configure({
-        heading: { levels: [1, 2, 3] },
-      }),
-      TextAlign.configure({ types: ['heading', 'paragraph'] }),
-      Image.configure({ inline: true }),
-      Subscript,
-      Superscript,
-      Highlight,
-      TextStyle,
-      Color,
-      FontFamily,
-      Rotation,
-    ],
-    content: initialContent || '',
-    editable: true,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm sm:prose-lg max-w-none p-4 sm:p-6 focus:outline-none min-h-[50vh] [&_img]:max-w-full [&_img]:rounded-lg',
-      },
-      handlePaste: (view, event) => {
-        const items = event.clipboardData?.items;
-        const hasHtml = Array.from(items || []).some(item => item.type === 'text/html');
-        if (hasHtml) return false;
-
-        const text = event.clipboardData?.getData('text/plain');
-        if (text && /<[a-z][\s\S]*>/i.test(text)) {
-          const doc = new DOMParser().parseFromString(text, 'text/html');
-          const errorNode = doc.querySelector('parsererror');
-          if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
-            event.preventDefault();
-            view.props.editor.commands.insertContent(text);
-            return true;
-          }
-        }
-        return false;
-      }
-    },
-  });
-
-  // Auto-load fonts from initial content (for preview/editing)
+  // Auto-load fonts for preview (still needed but lighter than editor instance)
   useEffect(() => {
     if (initialContent) {
       autoLoadFontsFromHTML(initialContent);
     }
   }, [initialContent]);
 
-  // Sync content when initialContent changes (and not editing)
-  useEffect(() => {
-    if (editor && initialContent !== undefined && !isEditing) {
-      const currentContent = editor.getHTML();
-      if (initialContent !== currentContent) {
-         editor.commands.setContent(initialContent || '');
-      }
-    }
-  }, [initialContent, editor, isEditing]);
-
-  const handleSave = async () => {
-    if (!editor) return;
-
-    setIsSaving(true);
-    const htmlContent = editor.getHTML();
-
-    try {
-      await onSave(textKey, htmlContent);
+  const handleSaveWrapper = async (key, content) => {
+      await onSave(key, content);
       setIsEditing(false);
-    } catch (error) {
-      console.error('Failed to save text:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleCancel = () => {
-    if (editor) {
-      editor.commands.setContent(initialContent || '');
-    }
-    setIsEditing(false);
   };
 
   // Prevent scrolling on body when modal is open
@@ -370,47 +409,15 @@ const ConfigurableTextEditor = ({ textKey, initialContent, onSave, label }) => {
         </div>
       </div>
 
-      {/* Full Screen Modal */}
+      {/* Lazy Loaded Full Screen Modal */}
       {isEditing && (
-        <div className="fixed inset-0 z-50 flex flex-col bg-white animate-fadeIn">
-          {/* Header */}
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center px-4 py-3 sm:px-6 sm:py-4 border-b border-gray-200 bg-white shadow-sm shrink-0 gap-3">
-            <div className="flex flex-col w-full sm:w-auto">
-              <span className="text-[10px] sm:text-xs font-bold text-gray-400 uppercase tracking-wider">Modifica</span>
-              <h2 className="text-sm sm:text-xl font-bold text-gray-800 truncate max-w-[280px] sm:max-w-md" title={label || textKey}>
-                {label || textKey}
-              </h2>
-            </div>
-
-            <div className="flex gap-2 w-full sm:w-auto">
-              <button
-                onClick={handleCancel}
-                className="flex-1 sm:flex-none justify-center items-center gap-2 px-3 py-2 text-sm text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg font-medium transition-colors"
-                title="Annulla modifiche"
-                data-testid={`cancel-${textKey}`}
-              >
-                <X size={16} /> <span className="sm:inline">Annulla</span>
-              </button>
-              <button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="flex-1 sm:flex-none justify-center items-center gap-2 px-4 py-2 text-sm text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg font-bold shadow-lg shadow-indigo-200 transition-all transform active:scale-95"
-                title="Salva modifiche"
-                data-testid={`save-${textKey}`}
-              >
-                {isSaving ? <Loader2 className="animate-spin" size={16} /> : <><Check size={16} /> <span className="sm:inline">Salva</span></>}
-              </button>
-            </div>
-          </div>
-
-          {/* Editor Area */}
-          <div className="flex-1 overflow-hidden flex flex-col max-w-5xl mx-auto w-full border-x border-gray-100 shadow-xl sm:my-4 bg-white sm:rounded-lg">
-             <MenuBar editor={editor} />
-             <div className="flex-1 overflow-y-auto cursor-text" onClick={() => editor?.commands.focus()}>
-                <EditorContent editor={editor} data-testid={`tiptap-content-${textKey}`} className="h-full" />
-             </div>
-          </div>
-        </div>
+        <LazyEditor 
+            content={initialContent} 
+            onSave={handleSaveWrapper}
+            onCancel={() => setIsEditing(false)}
+            textKey={textKey}
+            label={label}
+        />
       )}
     </>
   );
