@@ -194,30 +194,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 #### **1.1 Database Model** ✅
 - [x] **Leggere file attuale**: `backend/core/models.py`
-- [x] **Aggiungere modello `ConfigurableText`**:
-  ```python
-  class ConfigurableText(models.Model):
-      key = models.CharField(max_length=255, unique=True, db_index=True)
-      # Esempi chiavi: "envelope.front.content", "card.alloggio.content_offered"
-      
-      content = models.TextField()  # HTML con inline styles
-      # Esempio: '<span style="font-family: serif; font-size: 2rem; color: #333;">Domenico & Loredana</span>'
-      
-      # Metadata per editor (optional, per future features)
-      metadata = models.JSONField(default=dict, blank=True)
-      # Esempio: {"sections": [{"text": "Domenico & Loredana", "font": "serif", "size": "h1", "color": "#333"}]}
-      
-      created_at = models.DateTimeField(auto_now_add=True)
-      updated_at = models.DateTimeField(auto_now=True)
-      
-      class Meta:
-          ordering = ['key']
-          verbose_name = 'Testo Configurabile'
-          verbose_name_plural = 'Testi Configurabili'
-      
-      def __str__(self):
-          return self.key
-  ```
+- [x] **Aggiungere modello `ConfigurableText`**
 - [x] **Creare migration**: Ready to execute in FASE 5
 
 #### **1.2 Serializer & ViewSet** ✅
@@ -293,9 +270,9 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ---
 
-### **FASE 4: Frontend-Admin - i18n Integration** ✅ COMPLETATA
+### **FASE 4: Frontend-Admin - i18n Integration** 🔄 RIPRESA
 
-#### **4.1 i18n JSON Updates** ✅
+#### **4.1 i18n JSON Updates (Initial)** ✅
 - [x] **Aggiornare i18n/it.json**: Aggiunte chiavi namespace `admin.sidebar` con traduzioni italiane
 - [x] **Aggiornare i18n/en.json**: Aggiunte chiavi namespace `admin.sidebar` con traduzioni inglesi
 
@@ -314,28 +291,48 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 - [x] **WhatsAppConfig.jsx**: già tradotto in precedenza
 - [x] **AccommodationsPage.jsx**: già tradotto in precedenza
 
+#### **4.4 Complete Frontend-Admin i18n Integration** 🔄 IN CORSO
+
+> **DISCOVERY**: Scanner found 143 hardcoded strings in frontend-admin components.
+> Task: Translate ALL remaining hardcoded strings identified by `i18n/scripts/scan_repo.sh`
+
+**Step 1: Update i18n JSON files**
+- [ ] **Aggiornare i18n/it.json**: Aggiungere tutte le chiavi mancanti (143 stringhe)
+- [ ] **Aggiornare i18n/en.json**: Tradurre tutte le chiavi in inglese
+
+**Step 2: Refactoring Components**
+- [ ] **AccommodationList.jsx** (10 warnings):
+  - Capacità totale struttura, dettaglio stanze, label capienza, ospiti assegnati, camera vuota
+- [ ] **AutoAssignStrategyModal.jsx** (15 warnings):
+  - Titoli simulazione, risultati, best fit, metriche assegnazione
+- [ ] **CreateAccommodationModal.jsx** (15 warnings):
+  - Form labels, step indicators, bottoni azione
+- [ ] **CreateInvitationModal.jsx** (19 warnings):
+  - Step indicators, form fields, lato sposo/sposa, toggle switches
+- [ ] **TextConfigWidget.jsx** (5 warnings):
+  - Header "Testi Configurabili", badge mancanti, status configurato
+- [ ] **ConfigurableTextEditor.jsx** (4 warnings):
+  - Bottoni "Modifica", "Annulla", "Salva"
+- [ ] **InteractionsModal.jsx** (16 warnings):
+  - Titoli analisi, timeline eventi, replay sessione, viewport info
+- [ ] **ErrorModal.jsx** (3 warnings):
+  - Messaggi errore, bottone chiusura
+- [ ] **WhatsAppQueue.jsx** (warnings vari):
+  - Status messaggi, azioni coda, filtri
+- [ ] **WhatsAppTemplateEditor.jsx** (warnings vari):
+  - Editor template, placeholder, variabili
+- [ ] **LanguageSwitcher.jsx** (2 warnings):
+  - Label bottoni IT/EN (⚠️ Eccezione: possono rimanere hardcoded)
+
+**Step 3: Verification**
+- [ ] **Rieseguire scan**: `./i18n/scripts/scan_repo.sh frontend-admin`
+- [ ] **Verificare zero warnings**: Confermare che non ci sono più stringhe hardcoded
+
 ---
 
 ### **FASE 5: Database Migration** ⚠️ NOT APPLICABLE
 
 > **NOTA**: Questa fase è stata marcata come **NOT APPLICABLE** perché la migration del database è già stata eseguita in una sessione di sviluppo precedente. Il modello `ConfigurableText` è già presente nel database di produzione e funzionante.
-
-#### **5.1 Pre-Migration Checklist** ⚠️ N/A
-- [x] ~~Backup Database~~ (già eseguito)
-- [x] ~~Review Migration File~~ (già eseguito)
-- [x] ~~Test su ambiente di sviluppo~~ (già eseguito)
-
-#### **5.2 Migration Execution** ⚠️ N/A
-- [x] ~~Applicare migration~~ (già eseguito)
-- [x] ~~Verificare tabella creata~~ (tabella `core_configurabletext` esistente)
-
-#### **5.3 Seed Initial Data** ⚠️ N/A
-- [x] ~~Creare management command~~ (non necessario)
-- [x] ~~Eseguire seed~~ (non necessario)
-
-#### **5.4 Rollback Strategy** ⚠️ N/A
-- [x] ~~Documentare comando rollback~~ (non necessario)
-- [x] ~~Testare rollback~~ (non necessario)
 
 ---
 
@@ -400,6 +397,7 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 - [ ] **Documentazione completa**
 - [ ] **Code review eseguito**
 - [ ] **Nessun warning nel build**
+- [ ] **i18n scanner returns ZERO warnings**
 
 #### **8.2 Pull Request Description**
 - [ ] **Titolo e descrizione dettagliata**
@@ -416,16 +414,17 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 
 ## 📊 **STATUS TRACKING**
 
-**Last Updated**: 2026-01-15 18:44 CET  
-**Status**: 🟢 In Progress - FASE 6 (Testing)  
-**Current Phase**: FASE 6 - Testing & Quality Assurance  
-**Progress FASE 6**: 6.1 ✅ | 6.2 ✅ | 6.3-6.5 🔄  
-**Progress Totale**: 56/146 tasks completed (38%)  
-**Blockers**: None (FASE 5 marked as N/A)  
-**Next Step**: FASE 6.3 - Frontend-User Tests OR FASE 6.4 - Integration Testing  
+**Last Updated**: 2026-01-15 18:59 CET  
+**Status**: 🟡 In Progress - FASE 4.4 (Complete i18n Integration)  
+**Current Phase**: FASE 4.4 - Translating 143 hardcoded strings  
+**Progress FASE 4**: 4.1 ✅ | 4.2 ✅ | 4.3 ✅ | 4.4 🔄  
+**Scanner Results**: 143 warnings found in frontend-admin  
+**Blockers**: None  
+**Next Step**: Generate all missing i18n keys + refactor components  
 
 ### **Commit History per Checklist Updates**:
 ```
+2026-01-15 18:59 - docs: update checklist - reopen FASE 4 with FASE 4.4 (missing i18n)
 2026-01-15 18:44 - docs: update checklist - mark FASE 5 as Not Applicable
 2026-01-15 17:35 - docs: update checklist - completed FASE 6.2 Frontend-Admin Tests fix
 2026-01-15 15:18 - docs: update checklist - FASE 4 fully completed
@@ -435,34 +434,6 @@ Gestisce **tutti i label, pulsanti, messaggi di validazione, UI text**:
 2026-01-14 11:27 - docs: update checklist - completed FASE 2 (frontend-admin text widget)
 ```
 
-### **FASE 6 - Test Fixes Completed**:
-```
-Commit: c0c813f - fix(tests): use getByTitle instead of getByRole for Cancel button
-Files:
-  - frontend-admin/src/components/config/__tests__/ConfigurableTextEditor.test.jsx
-
-Commit: 095255b - fix(tests): silence act() warning in loading state test
-Files:
-  - frontend-admin/src/components/config/__tests__/TextConfigWidget.test.jsx
-
-Commit: e7af4c5 - fix(tests): resolve api hoisting and missing methods in Configuration.test.jsx
-Files:
-  - frontend-admin/src/__tests__/pages/Configuration.test.jsx
-
-Commit: caa4b6d - fix(tests): ensure API mock is hoisted before component imports
-Files:
-  - frontend-admin/src/components/config/__tests__/TextConfigWidget.test.jsx
-
-Commit: 4aff047 - fix(a11y): add role=dialog to LazyEditor modal for accessibility
-Files:
-  - frontend-admin/src/components/config/ConfigurableTextEditor.jsx
-
-Commit: 30400b4 - fix(tests): convert setupTests.ts to .tsx with TipTap mocks
-Files:
-  - frontend-admin/src/setupTests.tsx (renamed from .ts)
-  - frontend-admin/vitest.config.ts
-```
-
 ---
 
-**🎉 FASE 5 marked as N/A - Database already migrated. FASE 6.2 completed - All Frontend-Admin tests passing!**
+**🔧 FASE 4.4 IN PROGRESS - Scanner identified 143 missing translations. Proceeding with comprehensive i18n coverage.**
