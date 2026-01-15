@@ -159,7 +159,9 @@
       "saving": "Saving...",
       "success_message": "Configuration saved successfully!",
       "error_message": "Error during save.",
-      "error_load": "Error loading configuration."
+      "error_load": "Error loading configuration.",
+      "dynamic_texts_title": "Dynamic Contents",
+      "dynamic_texts_subtitle": "Manage configurable texts displayed in user invitation cards"
     },
     "sections": {
       "prices": {
@@ -188,19 +190,6 @@
         "rate_limit_hint": "Safety limit per session (Anti-Ban)",
         "rate_limit_note": "Recommended value: 10 msg/hour. Do not exceed 20 to avoid WhatsApp ban.",
         "placeholder_rate": "10"
-      },
-      "text_customization": {
-        "title": "Text Customization",
-        "subtitle": "Configure long contents of the invitation letter",
-        "envelope_front": "Envelope Front",
-        "card_contents": "Card Contents",
-        "preview": "Preview",
-        "edit": "Edit",
-        "font": "Font",
-        "size": "Size",
-        "color": "Color",
-        "emoji": "Emoji",
-        "add_emoji": "Add Emoji"
       }
     }
   }
