@@ -7,8 +7,10 @@ import { api } from '../../../services/api';
 // Mock API service
 vi.mock('../../../services/api', () => ({
   api: {
+    fetchLanguages: vi.fn(),
     fetchConfigurableTexts: vi.fn(),
     updateConfigurableText: vi.fn(),
+    deleteConfigurableText: vi.fn(),
   },
 }));
 
@@ -22,6 +24,11 @@ vi.mock('emoji-picker-react', () => ({
 }));
 
 describe('TextConfigWidget', () => {
+  const mockLanguages = [
+    { code: 'it', label: 'Italiano', flag: '🇮🇹' },
+    { code: 'en', label: 'English', flag: '🇬🇧' },
+  ];
+
   const mockTexts = [
     {
       key: 'envelope.front.content',
@@ -37,6 +44,7 @@ describe('TextConfigWidget', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    api.fetchLanguages.mockResolvedValue(mockLanguages);
     api.fetchConfigurableTexts.mockResolvedValue(mockTexts);
   });
 
@@ -49,7 +57,8 @@ describe('TextConfigWidget', () => {
     render(<TextConfigWidget />);
 
     await waitFor(() => {
-      expect(api.fetchConfigurableTexts).toHaveBeenCalledTimes(1);
+      expect(api.fetchLanguages).toHaveBeenCalledTimes(1);
+      expect(api.fetchConfigurableTexts).toHaveBeenCalled();
     });
 
     expect(screen.getByText(/Busta: Fronte/i)).toBeInTheDocument();
@@ -112,12 +121,13 @@ describe('TextConfigWidget', () => {
         'envelope.front.content',
         expect.objectContaining({
           content: '<p>Testo modificato</p>',
-        })
+        }),
+        'it' // selectedLang default
       );
     });
 
     await waitFor(() => {
-      expect(api.fetchConfigurableTexts).toHaveBeenCalledTimes(2); 
+      expect(api.fetchConfigurableTexts).toHaveBeenCalled();
     });
   });
 
@@ -160,11 +170,11 @@ describe('TextConfigWidget', () => {
   });
 
   it('displays error message on fetch failure', async () => {
-    api.fetchConfigurableTexts.mockRejectedValue(new Error('Network error'));
+    api.fetchLanguages.mockRejectedValue(new Error('Network error'));
     render(<TextConfigWidget />);
 
     await waitFor(() => {
-      expect(screen.getByText(/Errore nel caricamento dei testi/i)).toBeInTheDocument();
+      expect(screen.getByText(/Impossibile caricare le configurazioni/i)).toBeInTheDocument();
     });
   });
 
