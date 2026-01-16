@@ -1029,7 +1029,7 @@ const LetterContent = ({ data }) => {
                 {/* Dynamically render Front Face content from configurable text */}
                 <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content', `
                     <h1 class="text-names">Domenico & Loredana</h1>
-                    <p class="text-wit">Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!</p>
+                    <p class="text-wit">${t('user.home.invite_card_text', 'Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!')}</p>
                     <p class="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
                     <p class="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
                     <div class="text-details" style="font-weight: 500">Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
