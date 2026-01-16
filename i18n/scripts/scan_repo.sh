@@ -10,7 +10,7 @@ NC='\033[0m' # No Color
 TARGET_DIR=$(realpath "${1:-.}")
 TEMP_DIR=".temp_i18n_scanner"
 
-echo -e "${BLUE}=== INIZIO SCANSIONE REPOSITORY ===${NC}"
+echo -e "${BLUE}=== INIZIO SCANSIONE REPOSITORY (CONFIGURAZIONE CORRETTA) ===${NC}"
 echo -e "Target: $TARGET_DIR\n"
 
 # ==========================================
@@ -45,8 +45,15 @@ class StringVisitor(ast.NodeVisitor):
 
     def _check(self, text, lineno):
         text = text.strip()
-        if not text or ' ' not in text: return 
+        if not text: return
+        
+        # FILTRO PYTHON:
+        # Se non c'è nemmeno una lettera, ignora (emoji, numeri, simboli).
+        if not any(char.isalpha() for char in text): return
+
         if text.startswith(('http', '/', '.', '{')): return
+        if ' ' not in text and (text.islower() or '_' in text): return
+
         self.issues.append((lineno, text))
 
 def scan(path):
@@ -79,7 +86,7 @@ echo -e "${GREEN}Analisi Python completata.${NC}\n"
 
 
 # ==========================================
-# PARTE 2: ANALISI REACT (Installazione Isolata)
+# PARTE 2: ANALISI REACT (ESLint Configurato da Docs)
 # ==========================================
 echo -e "${BLUE}[2/2] Analisi React (Setup ambiente temporaneo)...${NC}"
 
@@ -88,13 +95,13 @@ if ! command -v npm &> /dev/null; then
     exit 1
 fi
 
-# 1. Creiamo una cartella temporanea per installare le dipendenze senza sporcare il progetto
 mkdir -p "$TEMP_DIR"
-
-# 2. Creiamo un package.json minimale nella temp dir
 echo '{"private": true}' > "$TEMP_DIR/package.json"
 
-# 3. Creiamo la config ESLint nella temp dir
+# CONFIGURAZIONE ESLINT BASATA SULLA DOCUMENTAZIONE UFFICIALE
+# Opzione 'words': Filtra in base al contenuto della stringa.
+# Opzione 'jsx-attributes': Filtra in base al nome dell'attributo.
+# Regex: ^[^a-zA-ZÀ-ÿ]+$ -> Ignora stringhe che NON contengono lettere.
 cat << 'EOF' > "$TEMP_DIR/.eslintrc.json"
 {
   "parser": "@typescript-eslint/parser",
@@ -106,16 +113,16 @@ cat << 'EOF' > "$TEMP_DIR/.eslintrc.json"
   "plugins": ["i18next"],
   "rules": {
     "i18next/no-literal-string": ["warn", { 
-      "markupOnly": true,
-      "ignoreAttribute": ["className", "style", "src", "href", "to", "key", "id", "ref", "width", "height", "alt", "type", "role", "target", "as"]
+      "mode": "jsx-text-only",
+      "words": {
+        "exclude": ["^[^a-zA-ZÀ-ÿ]+$"]
+      }
     }]
   }
 }
 EOF
 
-# 4. Installiamo le dipendenze nella cartella temporanea (silenziosamente)
-# Usiamo versioni specifiche compatibili tra loro
-echo "Installazione dipendenze scanner (richiede qualche secondo)..."
+echo "Installazione dipendenze scanner..."
 cd "$TEMP_DIR" || exit
 npm install --silent --no-audit --no-fund \
     eslint@8.57.0 \
@@ -123,7 +130,6 @@ npm install --silent --no-audit --no-fund \
     @typescript-eslint/parser@7.0.0 \
     eslint-plugin-i18next
 
-# 5. Eseguiamo ESLint puntando alla directory originale
 echo -e "Esecuzione scansione React..."
 ./node_modules/.bin/eslint \
     --config .eslintrc.json \
@@ -131,7 +137,6 @@ echo -e "Esecuzione scansione React..."
     --ext .js,.jsx,.ts,.tsx \
     "$TARGET_DIR"
 
-# 6. Pulizia
 cd ..
 rm -rf "$TEMP_DIR"
 
