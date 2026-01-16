@@ -641,9 +641,19 @@
       "dashboard": {
         "title": "Message Queue",
         "stream_status": "Realtime Stream: {status}",
-        "retry_failed": "Retry Failed",
+        "refresh_tooltip": "Refresh list",
+        "retry_failed_btn": "Retry Failed",
         "loading": "Loading queue...",
-        "empty": "No messages in queue."
+        "empty_queue": "No messages in queue.",
+        "alert": {
+          "retry_failed": "Retry failed",
+          "force_failed": "Force send failed",
+          "delete_failed": "Delete failed",
+          "update_failed": "Update failed"
+        },
+        "confirm": {
+          "delete": "Are you sure you want to delete this message from the queue?"
+        }
       }
     },
     "accommodations": {
