@@ -160,6 +160,17 @@
   "badges": {
     "child": "Child"
   },
+  "user": {
+    "common": {
+      "loading_invite": "Loading invitation..."
+    },
+    "home": {
+      "invite_card_text": "You Are Invited"
+    },
+    "rsvp": {
+      "prefix": "RSVP"
+    }
+  },
   "admin": {
     "sidebar": {
       "app_title": "Wedding",
@@ -172,6 +183,14 @@
         "configuration": "Configuration"
       },
       "logout": "Logout"
+    },
+    "header": {
+      "title_main": "Wedding",
+      "title_accent": "Admin"
+    },
+    "tests": {
+      "pie_chart_mock": "Pie Chart Mock",
+      "font_picker_mock": "Font Picker"
     },
     "config": {
       "page_title": "Configuration",
@@ -198,6 +217,12 @@
         },
         "save_error": "Error during save",
         "load_error": "Unable to load configurations"
+      }
+    },
+    "configuration": {
+      "fonts": {
+        "offline_mode": "Offline mode: reduced font list.",
+        "no_fonts": "No fonts found."
       }
     },
     "sections": {
@@ -455,6 +480,20 @@
           "invalid_format": "Invalid file format. Use CSV or XLSX.",
           "missing_columns": "Missing columns"
         }
+      },
+      "import": {
+        "title": "Import from Phonebook",
+        "warning_title": "Warning!",
+        "ha_warning": "You cannot import contacts inside the HomeAssistant App",
+        "open_external": "Open external browser",
+        "groom_side": "Groom's Side",
+        "bride_side": "Bride's Side",
+        "success_count": "{count} contacts imported successfully!",
+        "description": "Select contacts from your phone to quickly add them to the invitation list.",
+        "open_phonebook": "Open Phonebook",
+        "selected_contacts": "Selected Contacts",
+        "processing": "Processing...",
+        "cancel_selection": "Cancel selection"
       }
     },
     "whatsapp_config": {
@@ -559,7 +598,52 @@
         "message": "Message",
         "created_at": "Created at",
         "sent_at": "Sent at",
-        "error": "Error"
+        "error": "Error",
+        "columns": {
+          "number": "Number",
+          "session": "Session",
+          "msg": "Msg",
+          "status": "Status",
+          "timings": "Timings",
+          "attempts": "Attempts",
+          "actions": "Actions"
+        },
+        "attempts_count": "Attempts: {count}"
+      }
+    },
+    "whatsapp": {
+      "common": {
+        "groom_label": "Groom (Sposo)",
+        "bride_label": "Bride (Sposa)"
+      },
+      "edit_modal": {
+        "title": "Edit Message",
+        "recipient": "Recipient",
+        "session": "Session",
+        "content": "Message Content",
+        "save": "Save Changes"
+      },
+      "send_modal": {
+        "title": "Send WhatsApp ({count})",
+        "sending_title": "Sending...",
+        "processing_progress": "Processing {current} of {total}",
+        "sent_count": "{count} Sent",
+        "failed_count": "{count} Failed",
+        "recipients_label": "Recipients:",
+        "select_template": "Select Template",
+        "choose_message_placeholder": "-- Choose a message --",
+        "preview_label": "Message Preview",
+        "placeholder_info": "(Placeholders will be replaced for each recipient)",
+        "variables_label": "Variables:",
+        "link_warning": "You are using {link} with multiple recipients. The system will generate a unique link for each one, sending might take longer.",
+        "queue_button": "Queue Message"
+      },
+      "dashboard": {
+        "title": "Message Queue",
+        "stream_status": "Realtime Stream: {status}",
+        "retry_failed": "Retry Failed",
+        "loading": "Loading queue...",
+        "empty": "No messages in queue."
       }
     },
     "accommodations": {
