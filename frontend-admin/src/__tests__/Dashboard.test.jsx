@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Dashboard from '../pages/Dashboard';
 import { api } from '../services/api';
+import { t } from 'i18next';
 
 // Mock API service
 vi.mock('../services/api', () => ({
@@ -17,7 +18,7 @@ vi.mock('recharts', () => {
     ...OriginalModule,
     ResponsiveContainer: ({ children }) => <div className="recharts-responsive-container">{children}</div>,
     PieChart: ({ children }) => <div className="recharts-pie-chart">{children}</div>,
-    Pie: () => <div className="recharts-pie">Pie Chart Mock</div>,
+    Pie: () => <div className="recharts-pie">{t('admin.tests.pie_chart_mock')}</div>,
     Cell: () => null,
     Tooltip: () => null,
     Legend: () => null,
@@ -82,7 +83,7 @@ describe('Dashboard Component', () => {
 
     // Check Charts existence
     expect(screen.getByText('Stato Ospiti')).toBeInTheDocument();
-    expect(screen.getByText('Pie Chart Mock')).toBeInTheDocument();
+    expect(screen.getByText(t('admin.tests.pie_chart_mock'))).toBeInTheDocument();
 
     // Check Logistics
     // The text on the UI card is "Alloggi" and "Transfer", NOT "Alloggio Confermato"
