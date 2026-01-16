@@ -626,24 +626,36 @@
       "send_modal": {
         "title": "Invia WhatsApp ({count})",
         "sending_title": "Invio in corso...",
-        "processing_progress": "Elaborazione {current} di {total}",
+        "processing": "Elaborazione {current} di {total}",
         "sent_count": "{count} Inviati",
         "failed_count": "{count} Falliti",
-        "recipients_label": "Destinatari:",
+        "recipients_label": "Destinatari",
         "select_template": "Seleziona Template",
-        "choose_message_placeholder": "-- Scegli un messaggio --",
-        "preview_label": "Anteprima Messaggio",
+        "choose_message": "-- Scegli un messaggio --",
+        "preview_message": "Anteprima Messaggio",
         "placeholder_info": "(I placeholder verranno sostituiti per ogni destinatario)",
-        "variables_label": "Variabili:",
-        "link_warning": "Stai usando {link} con molti destinatari. Il sistema dovrà generare un link univoco per ognuno, l'invio potrebbe richiedere più tempo.",
-        "queue_button": "Metti in Coda"
+        "textarea_placeholder": "Seleziona un template o scrivi un messaggio...",
+        "variables": "Variabili",
+        "link_warning_1": "Stai usando",
+        "link_warning_2": "con molti destinatari. Il sistema dovrà generare un link univoco per ognuno, l'invio potrebbe richiedere più tempo.",
+        "enqueue_button": "Metti in Coda"
       },
       "dashboard": {
         "title": "Coda di Invio Messaggi",
         "stream_status": "Realtime Stream: {status}",
-        "retry_failed": "Riprova Falliti",
+        "refresh_tooltip": "Aggiorna lista",
+        "retry_failed_btn": "Riprova Falliti",
         "loading": "Caricamento coda...",
-        "empty": "Nessun messaggio in coda."
+        "empty_queue": "Nessun messaggio in coda.",
+        "alert": {
+          "retry_failed": "Retry failed",
+          "force_failed": "Force send failed",
+          "delete_failed": "Delete failed",
+          "update_failed": "Update failed"
+        },
+        "confirm": {
+          "delete": "Sei sicuro di voler eliminare questo messaggio dalla coda?"
+        }
       }
     },
     "accommodations": {
