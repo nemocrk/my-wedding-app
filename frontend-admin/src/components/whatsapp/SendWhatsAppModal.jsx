@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Send, AlertTriangle, Loader, Smartphone } from 'lucide-react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
+  const { t } = useTranslation();
   const [templates, setTemplates] = useState([]);
   const [loadingTemplates, setLoadingTemplates] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState(null);
@@ -130,7 +132,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         <div className="flex justify-between items-center mb-6">
           <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
             <Smartphone className="text-green-600" />
-            Invia WhatsApp ({recipients.length})
+            {t('admin.whatsapp.send_modal.title', { count: recipients.length })}
           </h3>
           {!sending && (
             <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
@@ -142,8 +144,8 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         {sending ? (
           <div className="py-8 text-center">
             <Loader className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
-            <h4 className="text-lg font-semibold text-gray-800">Invio in corso...</h4>
-            <p className="text-gray-500 mb-4">Elaborazione {progress.current} di {progress.total}</p>
+            <h4 className="text-lg font-semibold text-gray-800">{t('admin.whatsapp.send_modal.sending_title')}</h4>
+            <p className="text-gray-500 mb-4">{t('admin.whatsapp.send_modal.processing', { current: progress.current, total: progress.total })}</p>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
               <div
                 className="bg-green-600 h-2.5 rounded-full transition-all duration-300"
@@ -151,27 +153,27 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
               ></div>
             </div>
             <div className="flex justify-center gap-4 text-sm">
-              <span className="text-green-600 font-medium">{progress.success} Inviati</span>
-              {progress.failed > 0 && <span className="text-red-500 font-medium">{progress.failed} Falliti</span>}
+              <span className="text-green-600 font-medium">{t('admin.whatsapp.send_modal.sent_count', { count: progress.success })}</span>
+              {progress.failed > 0 && <span className="text-red-500 font-medium">{t('admin.whatsapp.send_modal.failed_count', { count: progress.failed })}</span>}
             </div>
           </div>
         ) : (
           <div className="space-y-4">
             {/* RECIPIENTS PREVIEW */}
             <div className="bg-gray-50 p-3 rounded-md text-sm text-gray-600 max-h-24 overflow-y-auto">
-              <strong>Destinatari:</strong> {recipients.map(r => r.name).join(', ')}
+              <strong>{t('admin.whatsapp.send_modal.recipients_label')}:</strong> {recipients.map(r => r.name).join(', ')}
             </div>
 
             {/* TEMPLATE SELECTOR */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Seleziona Template</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.whatsapp.send_modal.select_template')}</label>
               <select
                 className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
                 onChange={handleTemplateSelect}
                 value={selectedTemplate?.id || ''}
                 disabled={loadingTemplates}
               >
-                <option value="">-- Scegli un messaggio --</option>
+                <option value="">{t('admin.whatsapp.send_modal.choose_message')}</option>
                 {templates.map(t => (
                   <option key={t.id} value={t.id}>{t.name}</option>
                 ))}
@@ -181,10 +183,10 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
             {/* MESSAGE EDITOR */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Anteprima Messaggio
+                {t('admin.whatsapp.send_modal.preview_message')}
                 {recipients.length > 1 && (
                   <span className="text-xs font-normal text-amber-600 ml-2">
-                    (I placeholder verranno sostituiti per ogni destinatario)
+                    {t('admin.whatsapp.send_modal.placeholder_info')}
                   </span>
                 )}
               </label>
@@ -193,10 +195,10 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
                 rows={6}
                 value={messageBody}
                 onChange={(e) => setMessageBody(e.target.value)}
-                placeholder="Seleziona un template o scrivi un messaggio..."
+                placeholder={t('admin.whatsapp.send_modal.textarea_placeholder')}
               />
               <div className="mt-1 flex gap-2 text-xs text-gray-500">
-                <span>Variabili:</span>
+                <span>{t('admin.whatsapp.send_modal.variables')}:</span>
                 <code className="bg-gray-100 px-1 rounded">{'{name}'}</code>
                 <code className="bg-gray-100 px-1 rounded">{'{code}'}</code>
                 <code className="bg-gray-100 px-1 rounded">{'{link}'}</code>
@@ -208,8 +210,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
               <div className="bg-amber-50 border-l-4 border-amber-400 p-3 flex items-start gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0" />
                 <p className="text-xs text-amber-700">
-                  Stai usando <strong>{'{link}'}</strong> con molti destinatari.
-                  Il sistema dovrà generare un link univoco per ognuno, l'invio potrebbe richiedere più tempo.
+                  {t('admin.whatsapp.send_modal.link_warning_1')} <strong>{'{link}'}</strong> {t('admin.whatsapp.send_modal.link_warning_2')}
                 </p>
               </div>
             )}
@@ -220,7 +221,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
                 onClick={onClose}
                 className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
               >
-                Annulla
+                {t('common.cancel')}
               </button>
               <button
                 onClick={handleSend}
@@ -228,7 +229,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
                 className="px-4 py-2 bg-green-600 border border-transparent rounded-md text-sm font-medium text-white hover:bg-green-700 flex items-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Send size={16} className="mr-2" />
-                Metti in Coda
+                {t('admin.whatsapp.send_modal.enqueue_button')}
               </button>
             </div>
           </div>
