@@ -3,18 +3,20 @@ import React, { useState } from 'react';
 import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LanguageSwitcher from '../LanguageSwitcher';
+import { useTranslation } from 'react-i18next';
 
 const Header = () => {
+  const { t } = useTranslation();
   const [isOpen, setIsOpen] = useState(false);
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const menuItems = [
-        { path: '/dashboard', title: 'Dashboard', icon: <LayoutDashboard size={20} /> },
-        { path: '/invitations', title: 'Inviti', icon: <Users size={20} /> },
-        { path: '/accommodations', title: 'Alloggi', icon: <Home size={20} /> },
-        { path: '/whatsapp', title: 'WhatsApp', icon: <MessageCircle size={20} /> },
-        { path: '/config', title: 'Configurazione', icon: <Settings size={20} /> }
+        { path: '/dashboard', title: t('admin.sidebar.nav.dashboard'), icon: <LayoutDashboard size={20} /> },
+        { path: '/invitations', title: t('admin.sidebar.nav.invitations'), icon: <Users size={20} /> },
+        { path: '/accommodations', title: t('admin.sidebar.nav.accommodations'), icon: <Home size={20} /> },
+        { path: '/whatsapp', title: t('admin.sidebar.nav.whatsapp'), icon: <MessageCircle size={20} /> },
+        { path: '/config', title: t('admin.sidebar.nav.configuration'), icon: <Settings size={20} /> }
   ];
 
   return (
@@ -22,7 +24,7 @@ const Header = () => {
       <div className="container mx-auto px-4 py-3 flex justify-between items-center">
         {/* Logo */}
         <div className="text-xl font-bold text-gray-800">
-          Wedding<span className="text-pink-600">Admin</span>
+          {t('admin.header.title_main')}<span className="text-pink-600">{t('admin.header.title_accent')}</span>
         </div>
 
         {/* Desktop Navigation (Visible only if Sidebar is hidden/not used, kept for robustness) */}
