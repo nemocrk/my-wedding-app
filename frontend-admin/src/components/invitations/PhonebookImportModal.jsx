@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { X, Smartphone, Check, Loader, AlertCircle, ExternalLink } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
-import { normalizePhone, selectBestPhone, generateSlug } from '../../utils/phonebookUtils';
+import { selectBestPhone, generateSlug } from '../../utils/phonebookUtils';
 
 const PhonebookImportModal = ({ onClose, onSuccess }) => {
+  const { t } = useTranslation();
   const [origin, setOrigin] = useState('groom');
   const [importedContacts, setImportedContacts] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -159,7 +161,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
       <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800">Importa da Rubrica</h3>
+          <h3 className="text-lg font-bold text-gray-800">{t('admin.invitations.import.title')}</h3>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
             <X size={24} />
           </button>
@@ -173,8 +175,8 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                 <div className="flex justify-center mb-2">
                   <AlertCircle size={32} className="text-amber-600" />
                 </div>
-                <h4 className="font-bold text-lg mb-1">Attenzione!</h4>
-                <p className="text-sm">All'interno dell'App HomeAssistant non si possono importare contatti</p>
+                <h4 className="font-bold text-lg mb-1">{t('admin.invitations.import.warning_title')}</h4>
+                <p className="text-sm">{t('admin.invitations.import.ha_warning')}</p>
               </div>
 
               <button
@@ -182,7 +184,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                 className="w-full bg-blue-600 hover:bg-blue-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-blue-200 active:scale-95"
               >
                 <ExternalLink size={20} className="mr-2" />
-                Apri browser esterno
+                {t('admin.invitations.import.open_external')}
               </button>
             </div>
           ) : (
@@ -197,7 +199,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                       origin === 'groom' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <span className="mr-2">🤵</span> Lato Sposo
+                    <span className="mr-2">🤵</span> {t('admin.invitations.import.groom_side')}
                   </button>
                   <button
                     type="button"
@@ -206,7 +208,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                       origin === 'bride' ? 'bg-white text-pink-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'
                     }`}
                   >
-                    <span className="mr-2">👰</span> Lato Sposa
+                    <span className="mr-2">👰</span> {t('admin.invitations.import.bride_side')}
                   </button>
                 </div>
               </div>
@@ -223,7 +225,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
               {successCount > 0 && (
                 <div className="bg-green-50 text-green-600 p-3 rounded-lg text-sm flex items-center justify-center font-medium">
                   <Check size={18} className="mr-2" />
-                  {successCount} contatti importati con successo!
+                  {t('admin.invitations.import.success_count', { count: successCount })}
                 </div>
               )}
 
@@ -231,7 +233,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
               {importedContacts.length === 0 ? (
                 <div className="text-center py-4">
                   <p className="text-gray-500 text-sm mb-4">
-                    Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.
+                    {t('admin.invitations.import.description')}
                   </p>
                   <button
                     onClick={handleImport}
@@ -239,14 +241,14 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-xl font-medium flex items-center justify-center transition-all shadow-lg shadow-indigo-200 active:scale-95"
                   >
                     {loading ? <Loader size={20} className="animate-spin" /> : <Smartphone size={20} className="mr-2" />}
-                    Apri Rubrica
+                    {t('admin.invitations.import.open_phonebook')}
                   </button>
                 </div>
               ) : (
                 <div className="space-y-4">
                   <div className="bg-indigo-50 p-4 rounded-xl text-center">
                     <span className="block text-2xl font-bold text-indigo-700 mb-1">{importedContacts.length}</span>
-                    <span className="text-sm text-indigo-600">Contatti Selezionati</span>
+                    <span className="text-sm text-indigo-600">{t('admin.invitations.import.selected_contacts')}</span>
                   </div>
 
                   <button
@@ -257,7 +259,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     {processing ? (
                       <>
                         <Loader size={20} className="animate-spin mr-2" />
-                        Elaborazione...
+                        {t('admin.invitations.import.processing')}
                       </>
                     ) : successCount > 0 ? (
                       'Completato'
@@ -271,7 +273,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
                     disabled={processing}
                     className="w-full text-gray-500 hover:text-gray-700 text-sm font-medium"
                   >
-                    Annulla selezione
+                    {t('admin.invitations.import.cancel_selection')}
                   </button>
                 </div>
               )}
