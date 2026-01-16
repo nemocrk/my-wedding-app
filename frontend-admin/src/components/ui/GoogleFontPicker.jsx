@@ -4,6 +4,7 @@ import { List  as VirtualList } from 'react-window';
 import { Check, ChevronDown, Loader2, Search, AlertTriangle } from 'lucide-react';
 import { loadGoogleFont } from '../../utils/fontLoader';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const CACHE_KEY = 'mw:googleFonts:v1:popularity';
 const CACHE_TTL_MS = 7 * 24 * 60 * 60 * 1000;
@@ -66,6 +67,7 @@ export default function GoogleFontPicker({
   onSelect,
   placeholder = 'Font',
 }) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [fonts, setFonts] = useState([]);
@@ -184,7 +186,7 @@ export default function GoogleFontPicker({
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
                 className="w-full bg-transparent outline-none text-sm"
-                placeholder="Cerca font..."
+                placeholder={t('admin.config.text_editor.search_placeholder')}
               />
               {loading && <Loader2 size={14} className="animate-spin text-gray-500" />}
             </div>
@@ -192,14 +194,14 @@ export default function GoogleFontPicker({
             {error && (
               <div className="mt-2 text-[11px] text-amber-600 flex items-center gap-1">
                 <AlertTriangle size={12} />
-                Offline mode: lista font ridotta.
+                {t('admin.configuration.fonts.offline_mode')}
               </div>
             )}
           </div>
 
           <div className="h-[280px]">
             {filtered.length === 0 ? (
-              <div className="p-4 text-sm text-gray-500">Nessun font trovato.</div>
+              <div className="p-4 text-sm text-gray-500">{t('admin.configuration.fonts.no_fonts')}</div>
             ) : (
               <VirtualList
                 width="100%"
