@@ -160,6 +160,17 @@
   "badges": {
     "child": "Bambino"
   },
+  "user": {
+    "common": {
+      "loading_invite": "Caricamento invito..."
+    },
+    "home": {
+      "invite_card_text": "Siete Invitati"
+    },
+    "rsvp": {
+      "prefix": "RSVP"
+    }
+  },
   "admin": {
     "sidebar": {
       "app_title": "Wedding",
@@ -172,6 +183,14 @@
         "configuration": "Configurazione"
       },
       "logout": "Logout"
+    },
+    "header": {
+      "title_main": "Wedding",
+      "title_accent": "Admin"
+    },
+    "tests": {
+      "pie_chart_mock": "Pie Chart Mock",
+      "font_picker_mock": "Font Picker"
     },
     "config": {
       "page_title": "Configurazione",
@@ -198,6 +217,12 @@
         },
         "save_error": "Errore durante il salvataggio",
         "load_error": "Impossibile caricare le configurazioni"
+      }
+    },
+    "configuration": {
+      "fonts": {
+        "offline_mode": "Offline mode: lista font ridotta.",
+        "no_fonts": "Nessun font trovato."
       }
     },
     "sections": {
@@ -455,6 +480,20 @@
           "invalid_format": "Formato file non valido. Usa CSV o XLSX.",
           "missing_columns": "Colonne mancanti"
         }
+      },
+      "import": {
+        "title": "Importa da Rubrica",
+        "warning_title": "Attenzione!",
+        "ha_warning": "All'interno dell'App HomeAssistant non si possono importare contatti",
+        "open_external": "Apri browser esterno",
+        "groom_side": "Lato Sposo",
+        "bride_side": "Lato Sposa",
+        "success_count": "{count} contatti importati con successo!",
+        "description": "Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.",
+        "open_phonebook": "Apri Rubrica",
+        "selected_contacts": "Contatti Selezionati",
+        "processing": "Elaborazione...",
+        "cancel_selection": "Annulla selezione"
       }
     },
     "whatsapp_config": {
@@ -559,7 +598,52 @@
         "message": "Messaggio",
         "created_at": "Creato il",
         "sent_at": "Inviato il",
-        "error": "Errore"
+        "error": "Errore",
+        "columns": {
+          "number": "Number",
+          "session": "Session",
+          "msg": "Msg",
+          "status": "Status",
+          "timings": "Timings",
+          "attempts": "Attempts",
+          "actions": "Actions"
+        },
+        "attempts_count": "Tentativi: {count}"
+      }
+    },
+    "whatsapp": {
+      "common": {
+        "groom_label": "Groom (Sposo)",
+        "bride_label": "Bride (Sposa)"
+      },
+      "edit_modal": {
+        "title": "Edit Message",
+        "recipient": "Recipient",
+        "session": "Session",
+        "content": "Message Content",
+        "save": "Save Changes"
+      },
+      "send_modal": {
+        "title": "Invia WhatsApp ({count})",
+        "sending_title": "Invio in corso...",
+        "processing_progress": "Elaborazione {current} di {total}",
+        "sent_count": "{count} Inviati",
+        "failed_count": "{count} Falliti",
+        "recipients_label": "Destinatari:",
+        "select_template": "Seleziona Template",
+        "choose_message_placeholder": "-- Scegli un messaggio --",
+        "preview_label": "Anteprima Messaggio",
+        "placeholder_info": "(I placeholder verranno sostituiti per ogni destinatario)",
+        "variables_label": "Variabili:",
+        "link_warning": "Stai usando {link} con molti destinatari. Il sistema dovrà generare un link univoco per ognuno, l'invio potrebbe richiedere più tempo.",
+        "queue_button": "Metti in Coda"
+      },
+      "dashboard": {
+        "title": "Coda di Invio Messaggi",
+        "stream_status": "Realtime Stream: {status}",
+        "retry_failed": "Riprova Falliti",
+        "loading": "Caricamento coda...",
+        "empty": "Nessun messaggio in coda."
       }
     },
     "accommodations": {
