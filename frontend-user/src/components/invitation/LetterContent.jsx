@@ -1017,7 +1017,7 @@ const LetterContent = ({ data }) => {
               <div className="front-content">
                 <div className="spacer-top"></div>
                 {/* Dynamically render Front Face content from configurable text */}
-                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content',) }} />
+                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content',"Domenico & Loredana") }} />
               </div>
               <motion.div className="wax-seal" initial={{ rotate: -30 }} animate={sealControls}>
                 <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
