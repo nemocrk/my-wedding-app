@@ -22,18 +22,28 @@ Le variabili d'ambiente critiche sono definite in `.env`.
 2.  **No-Rewrite**: Non riscrivere file da zero se non strettamente necessario. Applicare patch/diff.
 3.  **Testing**: Ogni feature deve essere verificata (es. `curl`, unit test, smoke test).
 4.  **Sicurezza**: Mai esporre il DB su Internet. Validare sempre gli input API.
-5.  **Aggiornamento**: Prima di aggiungere nuove dipendenze, assicurati sui vari package manager (es. NPMjs, ...) che stai utilizzando l'ultima versione stabile del componente. Assicurati inoltre che questa versione sia compatibile con quanto già presente.
+5.  **Aggiornamento**: Prima di aggiungere nuove dipendenze, assicurati sui vari package manager (es. NPMjs, ...) che stai utilizzando l'ultima versione stabile del componente.
 
-## 4. Regole di Gestione delle Pull Request
+## 4. Internationalization (i18n) & Text Management
+Ogni nuovo testo UI o contenuto deve seguire queste regole:
+1.  **NO Hardcoded Strings**: Tutti i testi visibili devono essere gestiti tramite i18n o CMS.
+2.  **i18n (Static Texts)**: Label, bottoni e messaggi di sistema vanno in `i18n/it.json` e `i18n/en.json`.
+    - Usare `useTranslation` hook nei componenti React.
+3.  **CMS (Dynamic Texts)**: Contenuti lunghi o modificabili dagli sposi (lettere, info card) vanno nel DB.
+    - Usare `useConfigurableText` hook.
+    - NON inserire HTML/Rich Text direttamente nel codice o nei JSON i18n.
+
+## 5. Regole di Gestione delle Pull Request
 1.  **Docs Update**: Prima di proporre o mergiare una pull request aggiorna tutta la documentazione impattata.
 2.  **Merge Description**: Crea un messaggio chiaro di tutte le modifiche sia in fase di creazione della pull request che in fase di Merge.
+3.  **i18n Check**: Eseguire `./i18n/scripts/scan_repo.sh` e assicurarsi di avere zero warning prima del merge.
 
-## 5. Struttura URL & Routing (Vedi `docs/03-BACKEND.md`)
+## 6. Struttura URL & Routing (Vedi `docs/03-BACKEND.md`)
 - `/api/public/`: API pubbliche (User).
 - `/api/admin/`: API protette (Admin).
 - `/dashboard`: Frontend Admin.
 
-## 6. Log delle Modifiche Recenti
+## 7. Log delle Modifiche Recenti
 - Documentazione completa del repository in `/docs`.
 - Aggiornamento regole AI per enforcing documentation update.
-- Aggiunta regole per gestione dipendenze e Pull Request.
+- Aggiunta regole i18n e CMS.
