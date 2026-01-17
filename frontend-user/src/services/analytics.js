@@ -5,11 +5,42 @@
 
 const API_BASE = 'api/public';
 
+// Generate a cryptographically secure random string using Web Crypto API
+const generateSecureRandomString = (length) => {
+    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+    const charsLength = chars.length;
+
+    // Prefer window.crypto / self.crypto where available
+    const cryptoObj =
+        (typeof window !== 'undefined' && window.crypto) ||
+        (typeof self !== 'undefined' && self.crypto) ||
+        (typeof crypto !== 'undefined' && crypto);
+
+    if (!cryptoObj || !cryptoObj.getRandomValues) {
+        // Fallback: still use Math.random, but this path should rarely be hit
+        let fallback = '';
+        for (let i = 0; i < length; i++) {
+            fallback += chars.charAt(Math.floor(Math.random() * charsLength));
+        }
+        return fallback;
+    }
+
+    const randomBytes = new Uint8Array(length);
+    cryptoObj.getRandomValues(randomBytes);
+
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        // Map each random byte to a character index
+        result += chars.charAt(randomBytes[i] % charsLength);
+    }
+    return result;
+};
+
 // Generate or retrieve session ID for this tab session
 const getSessionId = () => {
     let sid = sessionStorage.getItem('wedding_analytics_sid');
     if (!sid) {
-        sid = `sess_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+        sid = `sess_${Date.now()}_${generateSecureRandomString(9)}`;
         sessionStorage.setItem('wedding_analytics_sid', sid);
     }
     return sid;
