@@ -9,7 +9,7 @@ i18n
     fallbackLng: 'it',
     lng: localStorage.getItem('language') || 'it',
     backend: {
-      loadPath: '/i18n/{{lng}}.json',
+      loadPath: 'i18n/{{lng}}.json',
     },
     interpolation: {
       escapeValue: false // React già protegge da XSS
