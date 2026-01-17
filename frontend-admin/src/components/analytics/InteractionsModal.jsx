@@ -12,7 +12,10 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   
   // Replay State
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pendingSeek, setPendingSeek] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState('0 : 0');
+  const [intProgress, setIntProgress] = useState(0);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const containerRef = useRef(null);
@@ -21,6 +24,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   // Replay Events State (one-shot firing)
   const replayEventsRef = useRef([]);
   const replayFiredIndexRef = useRef(0);
+
+  const dateTimeFormat = new Intl.DateTimeFormat("it-IT", {hour: "2-digit", minute: "2-digit", second: "2-digit", });
 
   const getIframeOrigin = () => {
     try {
@@ -36,6 +41,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage(message, targetOrigin);
+    console.log(JSON.stringify(message));
   };
 
   const resetIframeReplayState = () => {
@@ -98,6 +104,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     replayFiredIndexRef.current = 0;
     // Reset iframe replay state when session changes
     resetIframeReplayState();
+    setIsPlaying(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedSession]); // Adding dependencies here might cause loops if not handled carefully, keeping exhaustive-deps disabled for now as logic is complex
 
@@ -106,6 +113,9 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     if (!selectedSession || !selectedSession.heatmap || !isPlaying) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       return;
+    }
+    if (pendingSeek) {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     }
 
     const mouseData = selectedSession.heatmap.mouse_data;
@@ -116,7 +126,13 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     const duration = endTime - startTime;
     
     let startTimestamp = null;
-    let initialProgress = progress;
+    let initialProgress = 0;
+    if(pendingSeek!==null){
+        resetIframeReplayState();
+        replayFiredIndexRef.current = 0;
+        initialProgress = pendingSeek
+    }
+    setPendingSeek(null);
 
     const animate = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
@@ -132,10 +148,21 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       }
 
       setProgress(newProgress);
-      // Removed direct drawCanvas call here to rely on the effect below or pass params directly if needed
-      // But actually drawCanvas needs refs so it's fine to call it here if we defined it outside or wrapped it.
-      // For now, keeping logic as is but fixing the lint warning by moving drawCanvas definition or ignoring.
-      // Ideally drawCanvas should be a useCallback or defined inside useEffect.
+      setProgressLabel(`${dateTimeFormat.formatRange(startTime + currentPlayTime, endTime).replace(/ - /g, '\n')}`)
+
+      // Fire events whose t_ms <= current heatmap time
+      const nowHeatmapMs = startTime + currentPlayTime;
+      const events = replayEventsRef.current || [];
+      while (replayFiredIndexRef.current < events.length) {
+        const evt = events[replayFiredIndexRef.current];
+        if (evt.t_ms > nowHeatmapMs) break;
+        dispatchReplayAction(evt);
+        replayFiredIndexRef.current += 1;
+      }
+
+      if (newProgress < 1 && isPlaying) {
+        animationRef.current = requestAnimationFrame(animate);
+      }
     };
 
     animationRef.current = requestAnimationFrame(animate);
@@ -144,7 +171,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, selectedSession]); // Leaving as is to avoid breaking complex playback logic
+  }, [isPlaying, selectedSession, pendingSeek]); // Leaving as is to avoid breaking complex playback logic
 
   // Helper to draw canvas
   const drawCanvas = (currentProgress) => {
@@ -163,7 +190,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw full path trace
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)'; // Pink trace
+    ctx.strokeStyle = 'rgba(236, 72, 153, 0.1)'; // Pink trace
     ctx.lineWidth = 2;
     data.forEach((point, i) => {
         const x = point.x * scaleX;
@@ -180,7 +207,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw active path
     ctx.beginPath();
-    ctx.strokeStyle = '#be185d'; // Pink-700
+    ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)'; // Pink trace
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -220,38 +247,10 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   // Manual Seek Effect
   useEffect(() => {
       if (selectedSession?.heatmap) drawCanvas(progress);
+      setIntProgress(Math.round(progress*100));
       // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [progress, selectedSession]);
 
-  const seekReplay = (newProg) => {
-    if (!selectedSession?.heatmap) return;
-    const mouseData = selectedSession.heatmap.mouse_data;
-    if (!mouseData || mouseData.length < 2) return;
-
-    const startTime = mouseData[0].t;
-    const endTime = mouseData[mouseData.length - 1].t;
-    const targetMs = startTime + ((endTime - startTime) * newProg);
-
-    // Reset and fast-forward events to target
-    resetIframeReplayState();
-    replayFiredIndexRef.current = 0;
-
-    const events = replayEventsRef.current || [];
-    while (replayFiredIndexRef.current < events.length) {
-      const evt = events[replayFiredIndexRef.current];
-      if (evt.t_ms > targetMs) break;
-      dispatchReplayAction(evt);
-      replayFiredIndexRef.current += 1;
-    }
-
-    setProgress(newProg);
-  };
-
-  // Drawing inside the animation loop needs access to drawCanvas.
-  // We can redefine animate inside the useEffect or use a ref for drawCanvas if strict mode is strict about it.
-  // But for now, the useEffect that calls requestAnimationFrame needs to call drawCanvas.
-  // I'll add drawCanvas to the useEffect scope or keep it outside and suppress the warning if it's stable.
-  // Since I can't easily move drawCanvas without passing many refs, I will keep the suppression but ensure i18n is applied.
 
   const getEventIcon = (type) => {
       if (type.includes('visit')) return <Monitor size={14} className="text-blue-500"/>;
@@ -294,6 +293,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 onClick={() => {
                                     setSelectedSession(sess);
                                     setProgress(0);
+                                    setProgressLabel('0 : 0');
                                     setIsPlaying(false);
                                 }}
                                 className={`p-3 rounded-lg cursor-pointer text-sm transition-all border ${
@@ -388,7 +388,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 width: `${selectedSession.heatmap.screen_width}px`,
                                 height: `${selectedSession.heatmap.screen_height}px`,
                                 // Scale down if bigger than container
-                                transform: `scale(${Math.min(1, (containerRef.current?.clientWidth - 64) / selectedSession.heatmap.screen_width)})`,
+                                transform: `scale(${Math.min((containerRef.current?.clientWidth - 64) / selectedSession.heatmap.screen_width,(containerRef.current?.clientHeight - 64) / selectedSession.heatmap.screen_height)})`,
                                 transformOrigin: 'center center',
                                 flexShrink: 0
                             }}
@@ -415,7 +415,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                              {/* Controls Overlay (Floating) */}
                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 border border-gray-700">
                                  <button 
-                                    onClick={() => { seekReplay(0); setIsPlaying(true); }}
+                                    onClick={() => { setPendingSeek(0); }}
                                     className="p-1 hover:text-pink-400 text-white transition-colors"
                                     title={t('admin.analytics.interactions_modal.replay.controls.restart')}
                                  >
@@ -432,20 +432,20 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           const x = e.clientX - rect.left;
                                           const newProg = Math.max(0, Math.min(1, x / rect.width));
-                                          seekReplay(newProg);
+                                          setPendingSeek(newProg);
                                       }}
                                  >
                                      <div 
                                         className="bg-pink-500 h-2 rounded-full absolute top-0 left-0 transition-all duration-100" 
-                                        style={{ width: `${progress * 100}%` }}
+                                        style={{ width: `${intProgress}%` }}
                                      />
                                      <div 
                                         className="w-4 h-4 bg-white rounded-full absolute top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 shadow transition-opacity"
-                                        style={{ left: `${progress * 100}%` }} 
+                                        style={{ left: `${intProgress}%` }} 
                                      />
                                  </div>
                                  <span className="text-xs font-mono w-12 text-right text-gray-300">
-                                     {Math.round(progress * 100)}%
+                                     {progressLabel}
                                  </span>
                              </div>
                         </div>

@@ -197,8 +197,9 @@ async function findMissingKeys(validKeys) {
     }
     
     // Optional: Check unused keys
-    // const unusedKeys = validKeys.filter(k => !usedKeys.has(k));
-    // console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length}) - Nota: potrebbero essere usate dinamicamente.`);
+    const unusedKeys = validKeys.filter(k => !usedKeys.has(k));
+    console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length}) - Nota: potrebbero essere usate dinamicamente.`);
+    unusedKeys.sort().forEach(k => console.log(`  - ${k}`));
 }
 
 // ==========================================
