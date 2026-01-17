@@ -152,7 +152,7 @@
     "aria_label_front": "Gira invito"
   },
   "whatsapp": {
-    "default_message": "Ciao, sono {guest_name}, avrei una domanda!",
+    "default_message": "Ciao, sono {{guest_name}}, avrei una domanda!",
     "alert_modify_confirmed": "⚠️ Hai già confermato! Per modificare contatta gli sposi:",
     "alert_confirm_after_decline": "⚠️ Se vuoi confermare dopo aver declinato, contatta gli sposi:",
     "alert_accommodation_change": "⚠️ Avevi già accettato! Contatta gli sposi:"
@@ -207,7 +207,7 @@
         "localization": "Localization",
         "title": "Testi Configurabili",
         "search_placeholder": "Cerca testo...",
-        "missing_in_lang": "Manca in {lang}",
+        "missing_in_lang": "Manca in {{lang}}",
         "configured": "Configurato",
         "no_results": "Nessun testo trovato con questo filtro.",
         "buttons": {
@@ -261,7 +261,7 @@
       "error": "Impossibile caricare le statistiche.",
       "kpi": {
         "confirmed_guests": "Ospiti Confermati",
-        "confirmed_guests_subtitle": "di cui {count} bambini",
+        "confirmed_guests_subtitle": "di cui {{count}} bambini",
         "estimated_budget": "Budget Stimato (Max)",
         "estimated_budget_subtitle": "Se tutti i pending accettano",
         "current_cost": "Costo Attuale (Reale)",
@@ -289,8 +289,8 @@
         "transfer_subtitle": "Posti bus richiesti"
       },
       "costs": {
-        "adult_meals": "Pasti Adulti ({count})",
-        "child_meals": "Pasti Bambini ({count})"
+        "adult_meals": "Pasti Adulti ({{count}})",
+        "child_meals": "Pasti Bambini ({{count}})"
       }
     },
     "analytics": {
@@ -334,7 +334,7 @@
         "send_whatsapp": "Invia WhatsApp"
       },
       "bulk_action": {
-        "selected": "{count} Selezionati"
+        "selected": "{{count}} Selezionati"
       },
       "table": {
         "headers": {
@@ -386,10 +386,10 @@
       },
       "alerts": {
         "no_valid_contacts": "Nessuno degli inviti selezionati ha un numero valido.",
-        "some_invalid": "{count} inviti su {total} non hanno un numero valido e saranno saltati. Procedere?",
+        "some_invalid": "{{count}} inviti su {{total}} non hanno un numero valido e saranno saltati. Procedere?",
         "invalid_contact": "Numero non valido per questo contatto.",
         "verify_failed": "Errore durante la verifica del contatto.",
-        "bulk_verify_complete": "Verifica completata per {count} inviti.",
+        "bulk_verify_complete": "Verifica completata per {{count}} inviti.",
         "bulk_verify_failed": "Alcune verifiche sono fallite. Controlla la console.",
         "delete_failed": "Impossibile eliminare l'invito"
       },
@@ -401,7 +401,7 @@
       },
       "create_modal": {
         "title": "Nuovo Invito",
-        "step_of": "Step {step} di {total}",
+        "step_of": "Step {{step}} di {{total}}",
         "steps": {
           "details": {
             "title": "Dettagli Invito",
@@ -447,7 +447,7 @@
             "phone": "Telefono",
             "services": "Servizi Offerti",
             "none": "Nessuno",
-            "guests": "Ospiti ({count})"
+            "guests": "Ospiti ({{count}})"
           }
         },
         "buttons": {
@@ -472,9 +472,9 @@
         "column_origin": "origin (groom/bride)",
         "column_display_name": "display_name (se vuoi raggruppare)",
         "download_template": "Scarica Template",
-        "preview_title": "Anteprima ({count} ospiti rilevati)",
-        "import_button": "Importa {count} Ospiti",
-        "success": "Import completato! {count} inviti creati.",
+        "preview_title": "Anteprima ({{count}} ospiti rilevati)",
+        "import_button": "Importa {{count}} Ospiti",
+        "success": "Import completato! {{count}} inviti creati.",
         "error": "Errore durante l'import",
         "validation": {
           "invalid_format": "Formato file non valido. Usa CSV o XLSX.",
@@ -488,7 +488,7 @@
         "open_external": "Apri browser esterno",
         "groom_side": "Lato Sposo",
         "bride_side": "Lato Sposa",
-        "success_count": "{count} contatti importati con successo!",
+        "success_count": "{{count}} contatti importati con successo!",
         "description": "Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.",
         "open_phonebook": "Apri Rubrica",
         "selected_contacts": "Contatti Selezionati",
@@ -523,7 +523,7 @@
         },
         "alerts": {
           "disconnect_confirm": "Sei sicuro di voler disconnettere questa sessione?",
-          "test_success": "Messaggio inviato con successo a {recipient}! Controlla il telefono.",
+          "test_success": "Messaggio inviato con successo a {{recipient}}! Controlla il telefono.",
           "test_error": "Errore invio messaggio test:"
         },
         "notes": {
@@ -534,7 +534,7 @@
         }
       },
       "qr_modal": {
-        "title": "Scansiona QR Code ({session})",
+        "title": "Scansiona QR Code ({{session}})",
         "generating": "Generazione QR Code in corso...",
         "instructions": "Apri WhatsApp sul telefono > Impostazioni > Dispositivi collegati > Collega un dispositivo",
         "close": "Chiudi"
@@ -608,7 +608,7 @@
           "attempts": "Attempts",
           "actions": "Actions"
         },
-        "attempts_count": "Tentativi: {count}"
+        "attempts_count": "Tentativi: {{count}}"
       }
     },
     "whatsapp": {
@@ -624,11 +624,11 @@
         "save": "Save Changes"
       },
       "send_modal": {
-        "title": "Invia WhatsApp ({count})",
+        "title": "Invia WhatsApp ({{count}})",
         "sending_title": "Invio in corso...",
-        "processing": "Elaborazione {current} di {total}",
-        "sent_count": "{count} Inviati",
-        "failed_count": "{count} Falliti",
+        "processing": "Elaborazione {{current}} di {{total}}",
+        "sent_count": "{{count}} Inviati",
+        "failed_count": "{{count}} Falliti",
         "recipients_label": "Destinatari",
         "select_template": "Seleziona Template",
         "choose_message": "-- Scegli un messaggio --",
@@ -642,7 +642,7 @@
       },
       "dashboard": {
         "title": "Coda di Invio Messaggi",
-        "stream_status": "Realtime Stream: {status}",
+        "stream_status": "Realtime Stream: {{status}}",
         "refresh_tooltip": "Aggiorna lista",
         "retry_failed_btn": "Riprova Falliti",
         "loading": "Caricamento coda...",
@@ -668,11 +668,11 @@
       "success": {
         "created": "Alloggio creato con successo!",
         "deleted": "Alloggio eliminato.",
-        "assigned": "Assegnazione completata! {count} invitati assegnati con la strategia scelta."
+        "assigned": "Assegnazione completata! {{count}} invitati assegnati con la strategia scelta."
       },
       "alerts": {
         "delete_confirm": "Sei sicuro di voler eliminare questo alloggio?",
-        "unassigned_warning": "Attenzione: {count} gruppi/inviti non assegnati",
+        "unassigned_warning": "Attenzione: {{count}} gruppi/inviti non assegnati",
         "adults": "Adulti",
         "children": "Bambini"
       },
@@ -691,7 +691,7 @@
       },
       "create_modal": {
         "title": "Nuovo Alloggio",
-        "step_of": "Step {step} di 2",
+        "step_of": "Step {{step}} di 2",
         "step1": {
           "structure_name": "Nome Struttura",
           "structure_placeholder": "es. Hotel Paradiso",
@@ -735,11 +735,11 @@
         }
       },
       "interactions_modal": {
-        "title": "Analisi Interazioni: {name}",
-        "sessions_count": "{count} sessioni registrate",
+        "title": "Analisi Interazioni: {{name}}",
+        "sessions_count": "{{count}} sessioni registrate",
         "sessions_tab": "Sessioni",
         "no_interactions": "Nessuna interazione",
-        "events_count": "{count} eventi",
+        "events_count": "{{count}} eventi",
         "replay_available": "Replay disponibile",
         "timeline_title": "Timeline Eventi",
         "select_session": "Seleziona una sessione",

@@ -246,7 +246,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       expect(screen.queryByLabelText(/Sarebbe carino organizzarmi/i)).toBeInTheDocument();
 
       await waitFor(() => {
-        fireEvent.click(screen.getByLabelText(/Noleggio Auto/i));
+        fireEvent.click(screen.getByLabelText(/Noleggerò un'auto/i));
       });
 
       // Car_option setted, so this checkbox is not rendered.
@@ -325,7 +325,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
   describe('Wizard Step 5 - Final Confirmation', () => {
     it('shows final summary with all data', async () => {
       const user = userEvent.setup();
-      render(<LetterContent data={mockData} />);
+      const {container } = render(<LetterContent data={mockData} />);
 
       // Navigate through all steps
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
@@ -342,7 +342,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByLabelText('Auto al seguito'));
       fireEvent.click(screen.getByText(/Avanti →/i)); // travel
       fireEvent.click(screen.getByText(/Avanti →/i)); // accommodation
-
+            
       await waitFor(() => {
         expect(screen.getByText('Conferma Finale')).toBeInTheDocument();
         expect(screen.getByText(/Trasporto:/i)).toBeInTheDocument();

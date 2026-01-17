@@ -70,7 +70,7 @@ const LetterContent = ({ data }) => {
   };
 
   const getWaLink = (number, customMessage) => {
-    const msg = customMessage || t('whatsapp.default_message').replaceAll("{guest_name}", data.name);
+    const msg = customMessage || t('whatsapp.default_message', {guest_name:data.name});
     safeLogInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
@@ -606,61 +606,51 @@ const LetterContent = ({ data }) => {
     'cosaltro': { title: t('cards.cosaltro.title'), icon: questionsIcon },
   };
 
+  const decorateDefaultCardContent = (cardId, children) => {
+    return (
+      <div className="expanded-content">
+        <div className="card-header">
+          <img src={cards[expandedCard]?.icon} alt={cards[cardId]?.title} className="card-icon" />
+          <h2>{t(cards[cardId]?.title)}</h2>
+        </div>
+        {children}
+      </div>
+    )
+  }
+
   const renderCardContent = (cardId) => {
+
     switch (cardId) {
       case 'alloggio':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.alloggio.title')}</h2>
-            {data.accommodation_offered ? (
-               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_offered', t('cards.alloggio.content_offered_default')) }} />
+        return decorateDefaultCardContent(cardId,
+          data.accommodation_offered ? (
+               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_offered') }} />
             ) : (
-               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_general', t('cards.alloggio.content_general_default')) }} />
-            )}
-          </div>
+               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_general') }} />
+            )
         );
       case 'viaggio':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.viaggio.title')}</h2>
-             <div dangerouslySetInnerHTML={{ __html: getText('card.viaggio.content', t('cards.viaggio.content_default')) }} />
-          </div>
+        return decorateDefaultCardContent(cardId,
+          <div dangerouslySetInnerHTML={{ __html: getText('card.viaggio.content') }} />
         );
       case 'evento':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.evento.title')}</h2>
-            {/* Se esiste un testo configurabile 'card.evento.content', usalo, altrimenti usa data.letter_content come fallback */}
-            <div className="letter-body">
-              {getText('card.evento.content') ? (
-                 <div dangerouslySetInnerHTML={{ __html: getText('card.evento.content') }} />
-              ) : (
-                data.letter_content.split('\n').map((line, idx) => (
-                  <p key={idx}>{line}</p>
-                ))
-              )}
-            </div>
+        return decorateDefaultCardContent(cardId,
+          <div className="letter-body">
+            <div dangerouslySetInnerHTML={{ __html: getText('card.evento.content') }} />
           </div>
         );
       case 'dresscode':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.dresscode.title')}</h2>
-            <div dangerouslySetInnerHTML={{ __html: getText('card.dresscode.content', t('cards.dresscode.content_default')) }} />
-          </div>
+        return decorateDefaultCardContent(cardId,
+          <div dangerouslySetInnerHTML={{ __html: getText('card.dresscode.content') }} />
         );
       case 'bottino':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.bottino.title')}</h2>
-            <div dangerouslySetInnerHTML={{ __html: getText('card.bottino.content', t('cards.bottino.content_default')) }} />
-          </div>
+        return decorateDefaultCardContent(cardId,
+          <div dangerouslySetInnerHTML={{ __html: getText('card.bottino.content') }} />
         );
       case 'cosaltro':
-        return (
-          <div className="expanded-content">
-            <h2>{t('cards.cosaltro.title')}</h2>
-            <div dangerouslySetInnerHTML={{ __html: getText('card.cosaltro.content', t('cards.cosaltro.content_default')) }} />
+        return decorateDefaultCardContent(cardId,
+          <>
+            <div dangerouslySetInnerHTML={{ __html: getText('card.cosaltro.content') }} />
             {(waNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
@@ -676,7 +666,7 @@ const LetterContent = ({ data }) => {
                 </div>
               </div>
             )}
-          </div>
+          </>
         );
       case 'rsvp':
         return (
@@ -698,7 +688,7 @@ const LetterContent = ({ data }) => {
                     <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
                     <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                     {data.accommodation_offered && (
-                      <p><strong>{t('rsvp.labels.accommodation')}:</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
+                      <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
                     )}
                   </div>
                 </div>
@@ -956,11 +946,11 @@ const LetterContent = ({ data }) => {
               <>
                 <div className="final-summary">
                   <h3>{t('rsvp.labels.summary')}</h3>
-                  <p><strong>{t('rsvp.labels.guests')}:</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                  <p><strong>{t('rsvp.labels.phone')}:</strong> {phoneNumber}</p>
-                  <p><strong>{t('rsvp.labels.transport')}:</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                  <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                  <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
+                  <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
                   {data.accommodation_offered && (
-                    <p><strong>{t('rsvp.labels.accommodation')}:</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
+                    <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
                   )}
                 </div>
 
@@ -1027,14 +1017,7 @@ const LetterContent = ({ data }) => {
               <div className="front-content">
                 <div className="spacer-top"></div>
                 {/* Dynamically render Front Face content from configurable text */}
-                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content', `
-                    <h1 class="text-names">Domenico & Loredana</h1>
-                    <p class="text-wit">${t('user.home.invite_card_text', 'Abbiamo deciso di fare il grande passo...<br />e di farlo a piedi nudi!')}</p>
-                    <p class="text-date">Ci sposiamo il 19 Settembre 2026<br />sulla spiaggia di Golfo Aranci</p>
-                    <p class="text-details">(Sì! in Sardegna!!)<br />Preparatevi a scambiare le scarpe strette con la sabbia tra le dita. Vi promettiamo:</p>
-                    <div class="text-details" style="font-weight: 500">Poca formalità • Molto spritz • Un tramonto indimenticabile</div>
-                    <p class="text-dress">Dress Code: Beach Chic<br /><span style="font-size: 0.7em; display: block; margin-top: 5px; opacity: 0.8">(I tacchi a spillo sono i nemici numero uno della sabbia!)</span></p>
-                `) }} />
+                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content',) }} />
               </div>
               <motion.div className="wax-seal" initial={{ rotate: -30 }} animate={sealControls}>
                 <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
@@ -1083,10 +1066,6 @@ const LetterContent = ({ data }) => {
                 <PaperModal style={{ width: '100%' }}>
                   <div style={{ padding: '2.5rem 1.5rem', position: 'relative' }}>
                     <motion.button className="close-modal-btn" onClick={handleCloseExpanded}>✕</motion.button>
-                    <div style={{ marginBottom: '1rem' }}>
-                      <img src={cards[expandedCard]?.icon} alt={cards[expandedCard]?.title} className="card-icon" />
-                      <h3 className="card-title">{cards[expandedCard]?.title}</h3>
-                    </div>
                     <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 10 }} transition={{ delay: 0.15 }}>
                       {renderCardContent(expandedCard)}
                     </motion.div>

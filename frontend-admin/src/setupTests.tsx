@@ -19,12 +19,169 @@ const translations = {
     "cancel": "Annulla",
     "save": "Salva",
     "close": "Chiudi",
+    "edit": "Modifica",
+    "delete": "Elimina",
+    "back": "Indietro",
+    "next": "Avanti",
+    "submit": "Invia",
+    "understood": "Ho capito, chiudi",
     "error_modal": {
       "title": "Ops! Qualcosa non va",
+      "title_alt": "Qualcosa è andato storto",
       "button": "Ho capito, chiudi",
       "default_user_message": "Non siamo riusciti a completare l'operazione richiesta.",
       "hide_technical_data": "Nascondi dettagli tecnici",
       "show_technical_data": "Mostra dettagli errore"
+    }
+  },
+  "invitation": {
+    "errors": {
+      "missing_params": "Link non valido. Mancano i parametri di autenticazione.",
+      "invalid": "Invito non valido",
+      "connection": "Errore di connessione",
+      "loading_failed": "Errore caricamento invito"
+    }
+  },
+  "cards": {
+    "alloggio": {
+      "title": "Alloggio",
+      "content_offered_default": "Abbiamo riservato per voi una sistemazione. Maggiori dettagli a breve!",
+      "content_general_default": "Per suggerimenti sugli alloggi nella zona, contattateci!"
+    },
+    "viaggio": {
+      "title": "Viaggio",
+      "content_default": "Informazioni sui trasporti e come raggiungere la location."
+    },
+    "evento": {
+      "title": "L'Evento"
+    },
+    "dresscode": {
+      "title": "Dress Code",
+      "content_default": "Eleganti ma comodi! Tacchi a spillo vietati sulla sabbia!"
+    },
+    "bottino": {
+      "title": "Bottino di nozze",
+      "content_default": "Dettagli IBAN in arrivo!"
+    },
+    "cosaltro": {
+      "title": "Cos'altro?",
+      "content_default": "Contattaci via WhatsApp:"
+    },
+    "not_available": {
+      "title": "Non Disponibile"
+    }
+  },
+  "rsvp": {
+    "title": "Conferma Presenza",
+    "steps": {
+      "summary": {
+        "title": "Il tuo RSVP"
+      },
+      "guests": {
+        "title": "Conferma Ospiti"
+      },
+      "contact": {
+        "title": "Numero di Contatto"
+      },
+      "travel": {
+        "title": "Come Viaggerai?"
+      },
+      "accommodation": {
+        "title": "Alloggio"
+      },
+      "final": {
+        "title": "Conferma Finale"
+      }
+    },
+    "status": {
+      "pending": {
+        "emoji": "⏳",
+        "text": "Cosa aspetti? Conferma subito!"
+      },
+      "confirmed": {
+        "emoji": "🎉",
+        "text": "Magnifico! Ti aspettiamo!!!"
+      },
+      "declined": {
+        "emoji": "😢",
+        "text": "Faremo un brindisi per te!"
+      },
+      "unknown": {
+        "emoji": "❓",
+        "text": "Che succede?"
+      }
+    },
+    "labels": {
+      "invited_guests": "Ospiti invitati:",
+      "contact_number": "Numero di contatto:",
+      "transport_type": "Tipo di trasporto:",
+      "schedule": "Orari:",
+      "car": "Auto:",
+      "summary": "Riepilogo:",
+      "guests": "Ospiti:",
+      "phone": "Telefono:",
+      "transport": "Trasporto:",
+      "accommodation": "Alloggio:",
+      "schedule_placeholder": "es: Partenza 10:00, Arrivo 14:00",
+      "name_placeholder": "Nome",
+      "lastname_placeholder": "Cognome",
+      "loading": "Caricamento..."
+    },
+    "buttons": {
+      "next": "Avanti →",
+      "back": "← Indietro",
+      "confirm_presence": "✔️ Conferma Presenza",
+      "decline": "❌ Declina",
+      "save_changes": "💾 Salva Modifiche",
+      "modify_answer": "Modifica Risposta"
+    },
+    "options": {
+      "ferry": "Traghetto",
+      "plane": "Aereo",
+      "car_with": "Auto al seguito",
+      "car_rental": "Noleggerò un'auto",
+      "carpool_interest": "Sarebbe carino organizzarmi con qualcun altro",
+      "accommodation_question": "Vuoi richiedere l'alloggio per la notte tra il 19 e il 20 settembre?",
+      "accommodation_yes": "Sì, richiedo l'alloggio",
+      "yes": "Sì",
+      "no": "No"
+    },
+    "validation": {
+      "no_guests": "Devi confermare almeno un ospite!",
+      "phone_required": "Il numero di telefono è obbligatorio",
+      "phone_invalid": "Formato non valido (es: +39 333 1234567)",
+      "travel_incomplete": "Compila tutti i campi del viaggio!",
+      "phone_empty": "Il numero di telefono è obbligatorio"
+    },
+    "messages": {
+      "already_confirmed": "Hai già confermato la tua presenza!",
+      "declined": "Hai declinato l'invito.",
+      "submitting": "Invio...",
+      "not_specified": "Non specificato"
+    }
+  },
+  "fab": {
+    "aria_label_back": "Torna alla copertina",
+    "aria_label_front": "Gira invito"
+  },
+  "whatsapp": {
+    "default_message": "Ciao, sono {guest_name}, avrei una domanda!",
+    "alert_modify_confirmed": "⚠️ Hai già confermato! Per modificare contatta gli sposi:",
+    "alert_confirm_after_decline": "⚠️ Se vuoi confermare dopo aver declinato, contatta gli sposi:",
+    "alert_accommodation_change": "⚠️ Avevi già accettato! Contatta gli sposi:"
+  },
+  "badges": {
+    "child": "Bambino"
+  },
+  "user": {
+    "common": {
+      "loading_invite": "Caricamento invito..."
+    },
+    "home": {
+      "invite_card_text": "Siete Invitati"
+    },
+    "rsvp": {
+      "prefix": "RSVP"
     }
   },
   "admin": {
@@ -40,6 +197,14 @@ const translations = {
       },
       "logout": "Logout"
     },
+    "header": {
+      "title_main": "Wedding",
+      "title_accent": "Admin"
+    },
+    "tests": {
+      "pie_chart_mock": "Pie Chart Mock",
+      "font_picker_mock": "Font Picker"
+    },
     "config": {
       "page_title": "Configurazione",
       "page_subtitle": "Gestisci prezzi, testi e sicurezza dell'applicazione",
@@ -50,7 +215,28 @@ const translations = {
       "error_message": "Errore durante il salvataggio.",
       "error_load": "Errore caricamento configurazione.",
       "dynamic_texts_title": "Contenuti Dinamici",
-      "dynamic_texts_subtitle": "Gestisci i testi configurabili visualizzati nelle card dell'invito utente"
+      "dynamic_texts_subtitle": "Gestisci i testi configurabili visualizzati nelle card dell'invito utente",
+      "text_editor": {
+        "localization": "Localization",
+        "title": "Testi Configurabili",
+        "search_placeholder": "Cerca testo...",
+        "missing_in_lang": "Manca in {lang}",
+        "configured": "Configurato",
+        "no_results": "Nessun testo trovato con questo filtro.",
+        "buttons": {
+          "edit": "Modifica",
+          "cancel": "Annulla",
+          "save": "Salva"
+        },
+        "save_error": "Errore durante il salvataggio",
+        "load_error": "Impossibile caricare le configurazioni"
+      }
+    },
+    "configuration": {
+      "fonts": {
+        "offline_mode": "Offline mode: lista font ridotta.",
+        "no_fonts": "Nessun font trovato."
+      }
     },
     "sections": {
       "prices": {
@@ -111,13 +297,40 @@ const translations = {
       },
       "logistics": {
         "accommodation": "Alloggi",
-        "accommodation_subtitle": "Posti letto richiesti",
+        "accommodation_subtitle": "Posti letti richiesti",
         "transfer": "Transfer",
         "transfer_subtitle": "Posti bus richiesti"
       },
       "costs": {
         "adult_meals": "Pasti Adulti ({count})",
         "child_meals": "Pasti Bambini ({count})"
+      }
+    },
+    "analytics": {
+      "interactions_modal": {
+        "title": "Analisi Interazioni: {name}",
+        "sessions_count": "{{count}} sessioni registrate",
+        "sessions_list": {
+          "title": "Sessioni",
+          "no_sessions": "Nessuna interazione",
+          "events_count": "{{count}} eventi",
+          "replay_available": "Replay disponibile ({{width}}x{{height}})"
+        },
+        "timeline": {
+          "title": "Timeline Eventi",
+          "select_session": "Seleziona una sessione"
+        },
+        "replay": {
+          "title": "Replay Sessione",
+          "viewport_original": "Viewport originale: {{width}}x{{height}}",
+          "no_heatmap": "Nessun dato heatmap",
+          "select_session_prompt": "Seleziona una sessione con dati heatmap per vedere il replay",
+          "controls": {
+            "restart": "Riavvia",
+            "play": "Play",
+            "pause": "Pausa"
+          }
+        }
       }
     },
     "invitations": {
@@ -198,13 +411,110 @@ const translations = {
         "message": "Sei sicuro di voler eliminare questo invito? Questa azione rimuoverà tutti gli ospiti associati.",
         "confirm": "Sì, elimina",
         "cancel": "Annulla"
+      },
+      "create_modal": {
+        "title": "Nuovo Invito",
+        "step_of": "Step {step} di {total}",
+        "steps": {
+          "details": {
+            "title": "Dettagli Invito",
+            "origin_label": "Provenienza",
+            "side_groom": "Lato Sposo",
+            "side_bride": "Lato Sposa",
+            "display_name": "Nome Visualizzato",
+            "display_name_placeholder": "es. Famiglia Rossi",
+            "unique_code": "Codice Univoco (Slug)",
+            "unique_code_placeholder": "es. famiglia-rossi",
+            "phone_number": "Numero Telefono Referente",
+            "phone_placeholder": "+39 333 1234567",
+            "phone_hint": "Utilizzato per l'invio automatizzato WhatsApp (includere prefisso internazionale)",
+            "offered_options": "Opzioni Offerte",
+            "accommodation_offered": "Alloggio incluso",
+            "transfer_offered": "Transfer incluso",
+            "validation": {
+              "name_code_required": "Nome e Codice sono obbligatori"
+            }
+          },
+          "guests": {
+            "title": "Aggiungi Ospiti",
+            "subtitle": "Indica i membri di questo gruppo invitato",
+            "name_label": "Nome",
+            "name_placeholder": "Nome",
+            "lastname_label": "Cognome",
+            "lastname_placeholder": "Cognome",
+            "child_checkbox": "Bambino",
+            "add_guest": "Aggiungi Ospite",
+            "validation": {
+              "min_one": "Devi aggiungere almeno un ospite!"
+            }
+          },
+          "review": {
+            "title": "Riepilogo & Conferma",
+            "subtitle": "Verifica i dati prima di creare l'invito",
+            "family_name": "Nome Famiglia",
+            "code": "Codice",
+            "affinity_title": "Affini (Vicini di tavolo)",
+            "non_affinity_title": "Non Affini (Lontano)",
+            "no_other_invites": "Non ci sono ancora altri inviti con cui creare affinità.",
+            "origin": "Provenienza",
+            "phone": "Telefono",
+            "services": "Servizi Offerti",
+            "none": "Nessuno",
+            "guests": "Ospiti ({count})"
+          }
+        },
+        "buttons": {
+          "next": "Avanti",
+          "back": "Indietro",
+          "create": "Crea Invito",
+          "saving": "Salvataggio..."
+        }
+      },
+      "import_modal": {
+        "title": "Importa Contatti da File",
+        "drag_drop": "Trascina qui il file CSV/Excel o",
+        "browse": "sfoglia",
+        "format_csv": "Formato CSV",
+        "format_excel": "Formato Excel (.xlsx)",
+        "required_columns": "Colonne richieste",
+        "column_name": "name",
+        "column_lastname": "lastname",
+        "column_phone": "phone (opzionale)",
+        "optional_columns": "Colonne opzionali",
+        "column_child": "is_child",
+        "column_origin": "origin (groom/bride)",
+        "column_display_name": "display_name (se vuoi raggruppare)",
+        "download_template": "Scarica Template",
+        "preview_title": "Anteprima ({count} ospiti rilevati)",
+        "import_button": "Importa {count} Ospiti",
+        "success": "Import completato! {count} inviti creati.",
+        "error": "Errore durante l'import",
+        "validation": {
+          "invalid_format": "Formato file non valido. Usa CSV o XLSX.",
+          "missing_columns": "Colonne mancanti"
+        }
+      },
+      "import": {
+        "title": "Importa da Rubrica",
+        "warning_title": "Attenzione!",
+        "ha_warning": "All'interno dell'App HomeAssistant non si possono importare contatti",
+        "open_external": "Apri browser esterno",
+        "groom_side": "Lato Sposo",
+        "bride_side": "Lato Sposa",
+        "success_count": "{count} contatti importati con successo!",
+        "description": "Seleziona i contatti dal tuo telefono per aggiungerli rapidamente alla lista inviti.",
+        "open_phonebook": "Apri Rubrica",
+        "selected_contacts": "Contatti Selezionati",
+        "processing": "Elaborazione...",
+        "cancel_selection": "Annulla selezione"
       }
     },
     "whatsapp_config": {
       "page_title": "Integrazione WhatsApp",
       "tabs": {
         "connection": "Connessione & Stato",
-        "templates": "Template Messaggi"
+        "templates": "Template Messaggi",
+        "queue": "Coda Messaggi"
       },
       "connection": {
         "groom_account": "Account Sposo",
@@ -285,6 +595,80 @@ const translations = {
           }
         },
         "delete_confirm": "Sei sicuro di voler eliminare questo template?"
+      },
+      "queue": {
+        "title": "Messaggi in Coda",
+        "refresh": "Aggiorna Coda",
+        "clear_completed": "Pulisci Completati",
+        "no_messages": "Nessun messaggio in coda.",
+        "status": {
+          "pending": "In Attesa",
+          "sending": "Invio...",
+          "sent": "Inviato",
+          "failed": "Fallito"
+        },
+        "recipient": "Destinatario",
+        "message": "Messaggio",
+        "created_at": "Creato il",
+        "sent_at": "Inviato il",
+        "error": "Errore",
+        "columns": {
+          "number": "Number",
+          "session": "Session",
+          "msg": "Msg",
+          "status": "Status",
+          "timings": "Timings",
+          "attempts": "Attempts",
+          "actions": "Actions"
+        },
+        "attempts_count": "Tentativi: {count}"
+      }
+    },
+    "whatsapp": {
+      "common": {
+        "groom_label": "Groom (Sposo)",
+        "bride_label": "Bride (Sposa)"
+      },
+      "edit_modal": {
+        "title": "Edit Message",
+        "recipient": "Recipient",
+        "session": "Session",
+        "content": "Message Content",
+        "save": "Save Changes"
+      },
+      "send_modal": {
+        "title": "Invia WhatsApp ({count})",
+        "sending_title": "Invio in corso...",
+        "processing": "Elaborazione {current} di {total}",
+        "sent_count": "{count} Inviati",
+        "failed_count": "{count} Falliti",
+        "recipients_label": "Destinatari",
+        "select_template": "Seleziona Template",
+        "choose_message": "-- Scegli un messaggio --",
+        "preview_message": "Anteprima Messaggio",
+        "placeholder_info": "(I placeholder verranno sostituiti per ogni destinatario)",
+        "textarea_placeholder": "Seleziona un template o scrivi un messaggio...",
+        "variables": "Variabili",
+        "link_warning_1": "Stai usando",
+        "link_warning_2": "con molti destinatari. Il sistema dovrà generare un link univoco per ognuno, l'invio potrebbe richiedere più tempo.",
+        "enqueue_button": "Metti in Coda"
+      },
+      "dashboard": {
+        "title": "Coda di Invio Messaggi",
+        "stream_status": "Realtime Stream: {status}",
+        "refresh_tooltip": "Aggiorna lista",
+        "retry_failed_btn": "Riprova Falliti",
+        "loading": "Caricamento coda...",
+        "empty_queue": "Nessun messaggio in coda.",
+        "alert": {
+          "retry_failed": "Retry failed",
+          "force_failed": "Force send failed",
+          "delete_failed": "Delete failed",
+          "update_failed": "Update failed"
+        },
+        "confirm": {
+          "delete": "Sei sicuro di voler eliminare questo messaggio dalla coda?"
+        }
       }
     },
     "accommodations": {
@@ -305,7 +689,78 @@ const translations = {
         "adults": "Adulti",
         "children": "Bambini"
       },
-      "close_success": "Chiudi"
+      "close_success": "Chiudi",
+      "list": {
+        "no_accommodations": "Nessun alloggio configurato",
+        "no_accommodations_subtitle": "Aggiungi una struttura per iniziare a gestire gli assegnamenti.",
+        "total_capacity": "Capienza Totale Struttura",
+        "rooms_title": "Dettaglio Stanze & Assegnazioni",
+        "capacity_label": "Capienza",
+        "adults_short": "A",
+        "children_short": "B",
+        "free_slots": "Liberi",
+        "assigned_guests": "Ospiti Assegnati",
+        "empty_room": "Camera vuota"
+      },
+      "create_modal": {
+        "title": "Nuovo Alloggio",
+        "step_of": "Step {step} di 2",
+        "step1": {
+          "structure_name": "Nome Struttura",
+          "structure_placeholder": "es. Hotel Paradiso",
+          "address_label": "Indirizzo",
+          "address_placeholder": "es. Via Roma 123, Cagliari"
+        },
+        "step2": {
+          "info_message": "Definisci le stanze disponibili in questa struttura. Puoi aggiungerne quante ne vuoi.",
+          "room_name": "Nome/Numero",
+          "room_placeholder": "es. 101",
+          "adults_label": "Adulti",
+          "children_label": "Bambini",
+          "add_room": "Aggiungi Stanza"
+        },
+        "buttons": {
+          "next": "Avanti",
+          "back": "Indietro",
+          "save": "Salva Alloggio"
+        }
+      },
+      "auto_assign_modal": {
+        "title": "Arena delle Strategie",
+        "subtitle": "Ottimizza l'assegnazione automatica",
+        "simulation": {
+          "title": "Simulazione Scenari",
+          "description": "Il sistema eseguirà 6 algoritmi diversi in parallelo per trovare l'incastro migliore. Nessuna modifica verrà salvata finché non sceglierai una strategia.",
+          "start_button": "Avvia Simulazione (6 Strategie)",
+          "restart": "Ricomincia"
+        },
+        "results": {
+          "title": "Risultati Simulazione",
+          "best_fit": "BEST FIT",
+          "assigned": "Assegnati",
+          "guests": "Ospiti",
+          "unassigned": "Non Assegnati",
+          "wasted_beds": "Letti Sprecati",
+          "wasted_beds_info": "L'algoritmo \"Letti Sprecati\" indica i posti letto liberi in stanze parzialmente occupate. Un valore più basso significa un incastro più efficiente (stile Tetris).",
+          "apply_button": "Applica Questa Strategia",
+          "confirm_apply": "Applicare la strategia {{strategy}}? Le modifiche saranno salvate nel DB.",
+          "cancel_button": "Annulla"
+        }
+      },
+      "interactions_modal": {
+        "title": "Analisi Interazioni: {name}",
+        "sessions_count": "{count} sessioni registrate",
+        "sessions_tab": "Sessioni",
+        "no_interactions": "Nessuna interazione",
+        "events_count": "{count} eventi",
+        "replay_available": "Replay disponibile",
+        "timeline_title": "Timeline Eventi",
+        "select_session": "Seleziona una sessione",
+        "replay_title": "Replay Sessione",
+        "viewport": "Viewport originale",
+        "no_heatmap": "Nessun dato heatmap",
+        "select_for_replay": "Seleziona una sessione con dati heatmap per vedere il replay"
+      }
     }
   }
 };
