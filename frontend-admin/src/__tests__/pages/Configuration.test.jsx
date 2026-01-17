@@ -1,21 +1,24 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import Configuration from '../../pages/Configuration';
 import { MemoryRouter } from 'react-router-dom';
 
-// Hoist mocks to ensure they are available before import
-const { mockUpdateConfig, mockGetConfig } = vi.hoisted(() => ({
-  mockUpdateConfig: vi.fn(),
-  mockGetConfig: vi.fn()
-}));
-
-// Mock the API module correctly matching api.js structure
+// CRITICAL: Hoist mocks calls BEFORE component imports
 vi.mock('../../services/api', () => ({
   api: {
-    getConfig: mockGetConfig,
-    updateConfig: mockUpdateConfig
+    getConfig: vi.fn(),
+    updateConfig: vi.fn(),
+    // Add missing methods that might be called by child components (TextConfigWidget)
+    fetchLanguages: vi.fn().mockResolvedValue([]),
+    fetchConfigurableTexts: vi.fn().mockResolvedValue([]),
+    getConfigurableText: vi.fn(),
+    createConfigurableText: vi.fn(),
+    updateConfigurableText: vi.fn(),
+    deleteConfigurableText: vi.fn(),
   }
 }));
+
+import Configuration from '../../pages/Configuration';
+import { api } from '../../services/api';
 
 describe('Configuration Page', () => {
   const mockConfigData = {
@@ -36,8 +39,10 @@ describe('Configuration Page', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetConfig.mockResolvedValue(mockConfigData);
-    mockUpdateConfig.mockResolvedValue({ success: true, message: 'Config updated' });
+    api.getConfig.mockResolvedValue(mockConfigData);
+    api.updateConfig.mockResolvedValue({ success: true, message: 'Config updated' });
+    api.fetchLanguages.mockResolvedValue([]);
+    api.fetchConfigurableTexts.mockResolvedValue([]);
   });
 
   const renderWithRouter = (component) => {
@@ -53,7 +58,7 @@ describe('Configuration Page', () => {
     
     // Wait for data load
     await waitFor(() => {
-        expect(mockGetConfig).toHaveBeenCalled();
+        expect(api.getConfig).toHaveBeenCalled();
     });
 
     expect(screen.getByText("Configurazione")).toBeInTheDocument();
@@ -66,7 +71,7 @@ describe('Configuration Page', () => {
 
   it('should validate price fields as numbers', async () => {
     renderWithRouter(<Configuration />);
-    await waitFor(() => expect(mockGetConfig).toHaveBeenCalled());
+    await waitFor(() => expect(api.getConfig).toHaveBeenCalled());
     
     // Find number inputs
     const priceInputs = screen.getAllByRole('spinbutton');
@@ -78,7 +83,7 @@ describe('Configuration Page', () => {
 
   it('should call API on valid form submission', async () => {
     renderWithRouter(<Configuration />);
-    await waitFor(() => expect(mockGetConfig).toHaveBeenCalled());
+    await waitFor(() => expect(api.getConfig).toHaveBeenCalled());
     
     const submitButton = screen.getByRole('button', { name: /salva/i });
     expect(submitButton).toBeInTheDocument();
@@ -86,9 +91,9 @@ describe('Configuration Page', () => {
     fireEvent.click(submitButton);
     
     await waitFor(() => {
-      expect(mockUpdateConfig).toHaveBeenCalled();
+      expect(api.updateConfig).toHaveBeenCalled();
       // Check that it was called with some data (we can be specific if needed)
-      expect(mockUpdateConfig).toHaveBeenCalledWith(expect.objectContaining({
+      expect(api.updateConfig).toHaveBeenCalledWith(expect.objectContaining({
           iban: 'IT000000000000'
       }));
     });

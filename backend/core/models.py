@@ -63,6 +63,58 @@ class GlobalConfig(models.Model):
         verbose_name_plural = "Configurazione Globale"
 
 
+class ConfigurableText(models.Model):
+    """
+    Gestisce contenuti lunghi e specifici del matrimonio configurabili da frontend-admin.
+    Supporta HTML con inline styles per personalizzazione font/size/color.
+    Supporta multi-lingua (i18n).
+    
+    Esempi chiavi:
+    - envelope.front.content: Front della busta
+    - card.alloggio.content_offered: Contenuto card Alloggio (offerto)
+    ...
+    """
+    key = models.CharField(
+        max_length=255, 
+        db_index=True,
+        help_text="Chiave per identificare il testo (es. 'envelope.front.content')",
+        verbose_name="Chiave"
+    )
+    
+    language = models.CharField(
+        max_length=5,
+        default='it',
+        db_index=True,
+        help_text="Codice lingua ISO (it, en, es...)",
+        verbose_name="Lingua"
+    )
+    
+    content = models.TextField(
+        help_text="Contenuto HTML con inline styles (es. <span style='font-family: serif;'>Testo</span>)",
+        verbose_name="Contenuto"
+    )
+    
+    # Metadata per editor (optional, per future features come section-based editing)
+    metadata = models.JSONField(
+        default=dict, 
+        blank=True,
+        help_text="Metadati per editor WYSIWYG (es. {\"sections\": [{\"text\": \"...\", \"font\": \"serif\"}]})",
+        verbose_name="Metadati"
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Creato il")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="Aggiornato il")
+    
+    class Meta:
+        ordering = ['key', 'language']
+        verbose_name = 'Testo Configurabile'
+        verbose_name_plural = 'Testi Configurabili'
+        unique_together = ['key', 'language']
+    
+    def __str__(self):
+        return f"{self.key} ({self.language})"
+
+
 class Accommodation(models.Model):
     """Struttura ricettiva (Hotel, B&B, Casa) per ospitare gli invitati"""
     name = models.CharField(max_length=200, verbose_name="Nome Alloggio")
@@ -215,12 +267,6 @@ class Invitation(models.Model):
         null=True,
         help_text="Orari partenza/arrivo (free-text)",
         verbose_name="Orari Viaggio"
-    )
-    travel_car_with = models.BooleanField(
-        null=True,
-        blank=True,
-        help_text="True se auto disponibile",
-        verbose_name="Auto disponibile"
     )
     travel_car_with = models.CharField(
         max_length=10,

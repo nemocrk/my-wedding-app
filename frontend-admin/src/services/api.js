@@ -116,7 +116,7 @@ export const api = {
     return handleResponse(response);
   },
 
-  // --- CONFIG ---
+  // --- CONFIG (System) ---
   getConfig: async () => {
     const response = await safeFetch(`${API_BASE_URL}/config/`);
     return handleResponse(response);
@@ -128,6 +128,57 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
+    return handleResponse(response);
+  },
+
+  // --- PUBLIC UTILS (i18n) ---
+  fetchLanguages: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/languages/`);
+    return handleResponse(response);
+  },
+
+  // --- GOOGLE FONTS PROXY (New) ---
+  fetchGoogleFonts: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/google-fonts/`);
+    return handleResponse(response);
+  },
+
+  // --- CONFIGURABLE TEXTS (Dynamic Content) ---
+  fetchConfigurableTexts: async (lang = null) => {
+    const url = lang ? `${API_BASE_URL}/texts/?lang=${lang}` : `${API_BASE_URL}/texts/`;
+    const response = await safeFetch(url);
+    return handleResponse(response);
+  },
+
+  getConfigurableText: async (key, lang = 'it') => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`);
+    return handleResponse(response);
+  },
+  
+  createConfigurableText: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateConfigurableText: async (key, data, lang = 'it') => {
+    // Note: 'key' in URL must be handled correctly if it contains dots
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteConfigurableText: async (key, lang = 'it') => {
+    const response = await safeFetch(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
+      method: 'DELETE',
+    });
+    if (response.status === 204) return true;
     return handleResponse(response);
   },
 

@@ -9,6 +9,7 @@ La dashboard è un'applicazione "Intranet-only", accessibile solo via VPN o Tunn
     - `/invitations`: CRUD Inviti.
     - `/accommodations`: Gestione Camere.
     - `/config`: Prezzi e Testi.
+- **Internationalization (i18n)**: Interfaccia completamente localizzata (IT/EN) per permettere l'uso da parte di wedding planner internazionali.
 
 ## 2. Pagine Principali (`src/pages/`)
 
@@ -43,16 +44,15 @@ Gestione logistica ospitalità.
 ### Configuration (`Configuration.jsx`)
 Pannello "Live Settings" per il Singleton `GlobalConfig`.
 - **Form Gestione**: Permette di modificare prezzi e testi senza redeploy.
-- **Anteprima Lettera**: Renderizza in tempo reale il template della lettera di benvenuto.
+- **Configurazione Testi (CMS)**: Nuova sezione per modificare i contenuti dinamici dell'app ospite.
 
-#### Sezioni Disponibili
-1. **Gestione Costi Unitari**: Prezzi per pasti, alloggi e transfer.
-2. **Testi e Comunicazioni**: Template personalizzabile per la lettera di invito.
-3. **Sicurezza Link Pubblici**: Gestione chiave segreta e messaggi di errore.
-4. **Configurazione WhatsApp**: 
-   - `whatsapp_rate_limit`: Limite messaggi/ora per sessione (anti-ban).
-   - Valore consigliato: 10 msg/ora.
-   - Range: 1-100 messaggi.
+#### Widget CMS (`TextConfigWidget`)
+Componente avanzato per la gestione dei `ConfigurableText`.
+- **Features**:
+  - Lista testi raggruppati per categoria (`home`, `cards`, `rsvp`).
+  - Search bar per trovare rapidamente i testi.
+  - Preview del contenuto.
+  - Modale di modifica con **Rich Text Editor**.
 
 ## 3. Servizi API (`src/services/`)
 
@@ -60,6 +60,10 @@ Pannello "Live Settings" per il Singleton `GlobalConfig`.
 Client HTTP principale.
 - **Interceptors**: Aggiunge automaticamente il cookie di sessione (CSRF/SessionID) per autenticazione Django.
 - **Gestione Errori**: Reindirizza al login se riceve 401/403.
+- **Nuovi Metodi CMS**:
+  - `fetchConfigurableTexts()`
+  - `getConfigurableText(key)`
+  - `updateConfigurableText(key, content)`
 
 ### `accommodationService.js`
 Servizio specializzato per la logistica.
@@ -71,8 +75,11 @@ L'interfaccia è costruita su componenti modulari stylati con Tailwind.
 - **Common**: `Button`, `Input`, `Modal` (wrapper accessibili).
 - **Layout**: 
     - `Sidebar`: Navigazione fissa visibile solo da **XL (1280px)** in su.
-    - `Header`: Burger menu visibile fino a XL.
+    - `Header`: Burger menu visibile fino a XL. Include **LanguageSwitcher**.
 - **Analytics**: Wrapper per i grafici Recharts per garantire consistenza di colori e font.
+- **Config**: 
+    - `TextConfigWidget`: Widget principale CMS.
+    - `ConfigurableTextEditor`: Editor WYSIWYG basato su TipTap.
 - **WhatsApp**: 
     - `QueueTable`: Componente per la visualizzazione dei messaggi in coda.
     - **Responsive Layout**: Dual view con switch a **LG (1024px)**.

@@ -1,3 +1,4 @@
+import '../../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
 import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import LetterContent from '../LetterContent';
@@ -241,8 +242,16 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
         fireEvent.click(screen.getByLabelText('Aereo'));
       });
 
-      // In current implementation car_option defaults to 'none' (truthy), so this checkbox is not rendered.
+      // In current implementation car_option defaults to 'none' (truthy), so this checkbox is rendered.
+      expect(screen.queryByLabelText(/Sarebbe carino organizzarmi/i)).toBeInTheDocument();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByLabelText(/Noleggerò un'auto/i));
+      });
+
+      // Car_option setted, so this checkbox is not rendered.
       expect(screen.queryByLabelText(/Sarebbe carino organizzarmi/i)).not.toBeInTheDocument();
+
     });
 
     it('validates travel fields before advancing', async () => {
@@ -316,7 +325,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
   describe('Wizard Step 5 - Final Confirmation', () => {
     it('shows final summary with all data', async () => {
       const user = userEvent.setup();
-      render(<LetterContent data={mockData} />);
+      const {container } = render(<LetterContent data={mockData} />);
 
       // Navigate through all steps
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
@@ -333,7 +342,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByLabelText('Auto al seguito'));
       fireEvent.click(screen.getByText(/Avanti →/i)); // travel
       fireEvent.click(screen.getByText(/Avanti →/i)); // accommodation
-
+            
       await waitFor(() => {
         expect(screen.getByText('Conferma Finale')).toBeInTheDocument();
         expect(screen.getByText(/Trasporto:/i)).toBeInTheDocument();

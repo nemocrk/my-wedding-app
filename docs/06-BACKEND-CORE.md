@@ -8,9 +8,23 @@ Il sistema utilizza un modello Singleton per gestire i parametri "live" del matr
 - **Parametri**:
     - `price_*`: Costi unitari per calcoli budget automatici.
     - `invitation_link_secret`: Salt per la generazione di token HMAC sicuri.
-    - `letter_text`: Template modificabile per la lettera di benvenuto.
+    - `whatsapp_*`: Configurazioni per l'integrazione WhatsApp.
 
-## 2. Gestione Inviti (`Invitation` & `Person`)
+## 2. Gestione Contenuti Dinamici (`ConfigurableText`)
+Modulo CMS leggero per permettere agli sposi di modificare i testi dell'applicazione (es. lettera di benvenuto, card informative) senza interventi tecnici.
+
+- **Struttura Key-Value**:
+  Ogni blocco di testo è identificato da una chiave univoca (es. `home.welcome`, `card.logistics`).
+  - `key`: Identificativo univoco (slug-like).
+  - `group`: Raggruppamento logico per facilitare la gestione in admin (es. `home`, `cards`, `rsvp`).
+  - `content`: Testo ricco (HTML safe) o plain text.
+  - `description`: Metadato per spiegare agli sposi dove appare questo testo.
+
+- **API Pubbliche vs Admin**:
+  - Le API pubbliche (`PublicConfigurableTextView`) espongono solo una mappa `{key: content}` in sola lettura, ottimizzata per il frontend user.
+  - Le API admin permettono il CRUD completo.
+
+## 3. Gestione Inviti (`Invitation` & `Person`)
 Il cuore del sistema.
 
 ### Modello `Invitation`
@@ -39,7 +53,7 @@ Rappresenta il singolo ospite.
     - Calcolo costi pasti (Menu ridotto).
 - `assigned_room`: FK verso `Room`, permette un'assegnazione granulare degli ospiti alle stanze disponibili.
 
-## 3. Automazione e Workflow (Signals)
+## 4. Automazione e Workflow (Signals)
 
 Il sistema implementa logiche reattive tramite Django Signals (`backend/core/signals.py`).
 
@@ -67,7 +81,7 @@ Quando viene registrata la prima analytics di tipo `visit` su un invito in stato
 - L'API `PublicLogInteractionView` aggiorna automaticamente lo stato a `read`.
 - Questo triggera a cascata il signal di cui sopra (se configurato un template per lo stato `read`).
 
-## 4. Gestione Alloggi (`Accommodation` & `Room`)
+## 5. Gestione Alloggi (`Accommodation` & `Room`)
 Sistema gerarchico per la gestione ospitalità.
 
 ### Logica "Available Slots"
@@ -101,7 +115,7 @@ L'endpoint `/auto-assign` può essere chiamato in due modalità:
 > L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
 > Usare i dati prefetched (`room.assigned_guests.all()`) causerebbe letture "stale" (vecchie) all'interno della stessa transazione, portando alla violazione della Regola 1 (più inviti nella stessa stanza).
 
-## 5. Analytics (`GuestInteraction` & `GuestHeatmap`)
+## 6. Analytics (`GuestInteraction` & `GuestHeatmap`)
 Sistema di tracciamento integrato.
 - **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
 - **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
@@ -114,6 +128,12 @@ classDiagram
         +Decimal price_adult_meal
         +String invitation_link_secret
         +save()
+    }
+    
+    class ConfigurableText {
+        +String key
+        +Text content
+        +String group
     }
 
     class Invitation {

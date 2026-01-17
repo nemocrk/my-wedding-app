@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { X, Play, Pause, SkipBack, Loader, Clock, Monitor, MapPin, Activity, MousePointer, Info } from 'lucide-react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
+  const { t } = useTranslation();
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -10,7 +12,10 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   
   // Replay State
   const [isPlaying, setIsPlaying] = useState(false);
+  const [pendingSeek, setPendingSeek] = useState(null);
   const [progress, setProgress] = useState(0);
+  const [progressLabel, setProgressLabel] = useState('0 : 0');
+  const [intProgress, setIntProgress] = useState(0);
   const canvasRef = useRef(null);
   const animationRef = useRef(null);
   const containerRef = useRef(null);
@@ -19,6 +24,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
   // Replay Events State (one-shot firing)
   const replayEventsRef = useRef([]);
   const replayFiredIndexRef = useRef(0);
+
+  const dateTimeFormat = new Intl.DateTimeFormat("it-IT", {hour: "2-digit", minute: "2-digit", second: "2-digit", });
 
   const getIframeOrigin = () => {
     try {
@@ -34,6 +41,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage(message, targetOrigin);
+    console.log(JSON.stringify(message));
   };
 
   const resetIframeReplayState = () => {
@@ -96,14 +104,18 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     replayFiredIndexRef.current = 0;
     // Reset iframe replay state when session changes
     resetIframeReplayState();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSession]);
+    setIsPlaying(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedSession]); // Adding dependencies here might cause loops if not handled carefully, keeping exhaustive-deps disabled for now as logic is complex
 
   // Handle Playback Logic
   useEffect(() => {
     if (!selectedSession || !selectedSession.heatmap || !isPlaying) {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       return;
+    }
+    if (pendingSeek) {
+      if (animationRef.current) cancelAnimationFrame(animationRef.current);
     }
 
     const mouseData = selectedSession.heatmap.mouse_data;
@@ -114,7 +126,13 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     const duration = endTime - startTime;
     
     let startTimestamp = null;
-    let initialProgress = progress;
+    let initialProgress = 0;
+    if(pendingSeek!==null){
+        resetIframeReplayState();
+        replayFiredIndexRef.current = 0;
+        initialProgress = pendingSeek
+    }
+    setPendingSeek(null);
 
     const animate = (timestamp) => {
       if (!startTimestamp) startTimestamp = timestamp;
@@ -130,10 +148,10 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       }
 
       setProgress(newProgress);
-      drawCanvas(newProgress);
+      setProgressLabel(`${dateTimeFormat.formatRange(startTime + currentPlayTime, endTime).replace(/ - /g, '\n')}`)
 
       // Fire events whose t_ms <= current heatmap time
-      const nowHeatmapMs = startTime + ((endTime - startTime) * newProgress);
+      const nowHeatmapMs = startTime + currentPlayTime;
       const events = replayEventsRef.current || [];
       while (replayFiredIndexRef.current < events.length) {
         const evt = events[replayFiredIndexRef.current];
@@ -152,38 +170,10 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isPlaying, selectedSession]); 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isPlaying, selectedSession, pendingSeek]); // Leaving as is to avoid breaking complex playback logic
 
-  // Manual Seek
-  useEffect(() => {
-      if (selectedSession?.heatmap) drawCanvas(progress);
-  }, [progress, selectedSession]);
-
-  const seekReplay = (newProg) => {
-    if (!selectedSession?.heatmap) return;
-    const mouseData = selectedSession.heatmap.mouse_data;
-    if (!mouseData || mouseData.length < 2) return;
-
-    const startTime = mouseData[0].t;
-    const endTime = mouseData[mouseData.length - 1].t;
-    const targetMs = startTime + ((endTime - startTime) * newProg);
-
-    // Reset and fast-forward events to target
-    resetIframeReplayState();
-    replayFiredIndexRef.current = 0;
-
-    const events = replayEventsRef.current || [];
-    while (replayFiredIndexRef.current < events.length) {
-      const evt = events[replayFiredIndexRef.current];
-      if (evt.t_ms > targetMs) break;
-      dispatchReplayAction(evt);
-      replayFiredIndexRef.current += 1;
-    }
-
-    setProgress(newProg);
-  };
-
+  // Helper to draw canvas
   const drawCanvas = (currentProgress) => {
     const canvas = canvasRef.current;
     if (!canvas || !selectedSession?.heatmap) return;
@@ -200,7 +190,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw full path trace
     ctx.beginPath();
-    ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)'; // Pink trace
+    ctx.strokeStyle = 'rgba(236, 72, 153, 0.1)'; // Pink trace
     ctx.lineWidth = 2;
     data.forEach((point, i) => {
         const x = point.x * scaleX;
@@ -217,7 +207,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
 
     // Draw active path
     ctx.beginPath();
-    ctx.strokeStyle = '#be185d'; // Pink-700
+    ctx.strokeStyle = 'rgba(236, 72, 153, 0.3)'; // Pink trace
     ctx.lineWidth = 3;
     ctx.lineCap = 'round';
     ctx.lineJoin = 'round';
@@ -254,6 +244,14 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     }
   };
 
+  // Manual Seek Effect
+  useEffect(() => {
+      if (selectedSession?.heatmap) drawCanvas(progress);
+      setIntProgress(Math.round(progress*100));
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [progress, selectedSession]);
+
+
   const getEventIcon = (type) => {
       if (type.includes('visit')) return <Monitor size={14} className="text-blue-500"/>;
       if (type.includes('rsvp')) return <Activity size={14} className="text-green-500"/>;
@@ -268,9 +266,9 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
         {/* Header */}
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
           <div>
-            <h3 className="text-lg font-bold text-gray-800">Analisi Interazioni: {invitationName}</h3>
+            <h3 className="text-lg font-bold text-gray-800">{t('admin.analytics.interactions_modal.title', { name: invitationName })}</h3>
             <p className="text-sm text-gray-500">
-               {sessions.length} sessioni registrate
+               {t('admin.analytics.interactions_modal.sessions_count', { count: sessions.length })}
             </p>
           </div>
           <button onClick={onClose} className="p-2 hover:bg-gray-200 rounded-full transition-colors">
@@ -282,12 +280,12 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
         <div className="flex-1 flex overflow-hidden">
             {/* Sidebar List (Sessions) */}
             <div className="w-72 border-r border-gray-100 overflow-y-auto bg-gray-50 flex flex-col shrink-0">
-                <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">Sessioni</div>
+                <div className="p-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t('admin.analytics.interactions_modal.sessions_list.title')}</div>
                 <div className="flex-1 space-y-2 p-2 pt-0">
                     {loading ? (
                         <div className="flex justify-center py-4"><Loader className="animate-spin text-pink-600"/></div>
                     ) : sessions.length === 0 ? (
-                        <p className="text-center text-gray-400 text-sm mt-4">Nessuna interazione</p>
+                        <p className="text-center text-gray-400 text-sm mt-4">{t('admin.analytics.interactions_modal.sessions_list.no_sessions')}</p>
                     ) : (
                         sessions.map((sess, idx) => (
                             <div 
@@ -295,6 +293,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 onClick={() => {
                                     setSelectedSession(sess);
                                     setProgress(0);
+                                    setProgressLabel('0 : 0');
                                     setIsPlaying(false);
                                 }}
                                 className={`p-3 rounded-lg cursor-pointer text-sm transition-all border ${
@@ -305,7 +304,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                             >
                                 <div className="font-semibold mb-1 flex items-center justify-between">
                                     <span>#{sessions.length - idx}</span>
-                                    <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{sess.events.length} eventi</span>
+                                    <span className="text-[10px] bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">{t('admin.analytics.interactions_modal.sessions_list.events_count', { count: sess.events.length })}</span>
                                 </div>
                                 <div className="flex items-center text-xs text-gray-500 mb-1">
                                     <Clock size={12} className="mr-1"/>
@@ -317,7 +316,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 </div>
                                 {sess.heatmap && (
                                      <div className="mt-2 flex items-center text-xs text-pink-600 font-medium">
-                                         <Play size={10} className="mr-1"/> Replay disponibile ({sess.heatmap.screen_width}x{sess.heatmap.screen_height})
+                                         <Play size={10} className="mr-1"/> {t('admin.analytics.interactions_modal.sessions_list.replay_available', { width: sess.heatmap.screen_width, height: sess.heatmap.screen_height })}
                                      </div>
                                 )}
                             </div>
@@ -330,11 +329,11 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
             <div className="w-80 border-r border-gray-100 overflow-y-auto bg-white p-4 shrink-0">
                 <h4 className="text-sm font-bold text-gray-800 mb-4 flex items-center">
                     <Activity size={16} className="mr-2 text-pink-600"/>
-                    Timeline Eventi
+                    {t('admin.analytics.interactions_modal.timeline.title')}
                 </h4>
                 
                 {!selectedSession ? (
-                     <p className="text-sm text-gray-400">Seleziona una sessione</p>
+                     <p className="text-sm text-gray-400">{t('admin.analytics.interactions_modal.timeline.select_session')}</p>
                 ) : (
                     <div className="space-y-4 relative">
                         {/* Vertical Line */}
@@ -370,14 +369,14 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                  <div className="p-3 bg-white border-b border-gray-100 flex justify-between items-center shrink-0 z-20 shadow-sm">
                      <h4 className="text-sm font-bold text-gray-800 flex items-center">
                          <MousePointer size={16} className="mr-2 text-pink-600"/>
-                         Replay Sessione
+                         {t('admin.analytics.interactions_modal.replay.title')}
                      </h4>
                      {selectedSession?.heatmap ? (
                          <div className="text-xs text-gray-500">
-                            Viewport originale: {selectedSession.heatmap.screen_width}x{selectedSession.heatmap.screen_height}
+                            {t('admin.analytics.interactions_modal.replay.viewport_original', { width: selectedSession.heatmap.screen_width, height: selectedSession.heatmap.screen_height })}
                          </div>
                      ) : (
-                         <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">Nessun dato heatmap</span>
+                         <span className="text-xs text-orange-500 bg-orange-50 px-2 py-1 rounded">{t('admin.analytics.interactions_modal.replay.no_heatmap')}</span>
                      )}
                  </div>
 
@@ -389,7 +388,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                 width: `${selectedSession.heatmap.screen_width}px`,
                                 height: `${selectedSession.heatmap.screen_height}px`,
                                 // Scale down if bigger than container
-                                transform: `scale(${Math.min(1, (containerRef.current?.clientWidth - 64) / selectedSession.heatmap.screen_width)})`,
+                                transform: `scale(${Math.min((containerRef.current?.clientWidth - 64) / selectedSession.heatmap.screen_width,(containerRef.current?.clientHeight - 64) / selectedSession.heatmap.screen_height)})`,
                                 transformOrigin: 'center center',
                                 flexShrink: 0
                             }}
@@ -416,9 +415,9 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                              {/* Controls Overlay (Floating) */}
                              <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 bg-gray-900/90 backdrop-blur shadow-2xl rounded-full px-6 py-3 flex items-center gap-4 z-50 border border-gray-700">
                                  <button 
-                                    onClick={() => { seekReplay(0); setIsPlaying(true); }}
+                                    onClick={() => { setPendingSeek(0); }}
                                     className="p-1 hover:text-pink-400 text-white transition-colors"
-                                    title="Riavvia"
+                                    title={t('admin.analytics.interactions_modal.replay.controls.restart')}
                                  >
                                      <SkipBack size={20} />
                                  </button>
@@ -433,27 +432,27 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
                                           const rect = e.currentTarget.getBoundingClientRect();
                                           const x = e.clientX - rect.left;
                                           const newProg = Math.max(0, Math.min(1, x / rect.width));
-                                          seekReplay(newProg);
+                                          setPendingSeek(newProg);
                                       }}
                                  >
                                      <div 
                                         className="bg-pink-500 h-2 rounded-full absolute top-0 left-0 transition-all duration-100" 
-                                        style={{ width: `${progress * 100}%` }}
+                                        style={{ width: `${intProgress}%` }}
                                      />
                                      <div 
                                         className="w-4 h-4 bg-white rounded-full absolute top-1/2 transform -translate-y-1/2 opacity-0 group-hover:opacity-100 shadow transition-opacity"
-                                        style={{ left: `${progress * 100}%` }} 
+                                        style={{ left: `${intProgress}%` }} 
                                      />
                                  </div>
                                  <span className="text-xs font-mono w-12 text-right text-gray-300">
-                                     {Math.round(progress * 100)}%
+                                     {progressLabel}
                                  </span>
                              </div>
                         </div>
                     ) : (
                         <div className="text-gray-400 flex flex-col items-center">
                             <Monitor size={64} className="mb-4 opacity-20" />
-                            <p className="text-sm">Seleziona una sessione con dati heatmap per vedere il replay</p>
+                            <p className="text-sm">{t('admin.analytics.interactions_modal.replay.select_session_prompt')}</p>
                         </div>
                     )}
                 </div>

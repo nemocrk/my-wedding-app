@@ -1,20 +1,27 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 const Sidebar = () => {
+    const { t } = useTranslation();
+    
     const navItems = [
-        { path: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/invitations', label: 'Inviti', icon: Users },
-        { path: '/accommodations', label: 'Alloggi', icon: Home },
-        { path: '/whatsapp', label: 'WhatsApp', icon: MessageCircle },
-        { path: '/config', label: 'Configurazione', icon: Settings },
+        { path: '/dashboard', label: t('admin.sidebar.nav.dashboard'), icon: LayoutDashboard },
+        { path: '/invitations', label: t('admin.sidebar.nav.invitations'), icon: Users },
+        { path: '/accommodations', label: t('admin.sidebar.nav.accommodations'), icon: Home },
+        { path: '/whatsapp', label: t('admin.sidebar.nav.whatsapp'), icon: MessageCircle },
+        { path: '/config', label: t('admin.sidebar.nav.configuration'), icon: Settings },
     ];
 
     return (
         <aside className="w-64 bg-white border-r border-gray-200 min-h-screen flex flex-col fixed left-0 top-0 z-30">
             <div className="h-16 flex items-center px-6 border-b border-gray-200">
-                <span className="text-xl font-bold text-gray-800">Wedding<span className="text-pink-600">Admin</span></span>
+                <span className="text-xl font-bold text-gray-800">
+                    {t('admin.sidebar.app_title')}
+                    <span className="text-pink-600">{t('admin.sidebar.app_title_accent')}</span>
+                </span>
             </div>
 
             <nav className="flex-1 overflow-y-auto py-4">
@@ -39,11 +46,20 @@ const Sidebar = () => {
                 </ul>
             </nav>
 
-            <div className="p-4 border-t border-gray-200">
-                <button className="flex items-center gap-3 text-gray-600 hover:text-red-600 transition-colors w-full px-3 py-2">
-                    <LogOut size={20} />
-                    Logout
-                </button>
+            {/* Footer Section: Language Switcher + Logout */}
+            <div className="border-t border-gray-200">
+                {/* Language Switcher */}
+                <div className="p-4 border-b border-gray-100">
+                    <LanguageSwitcher />
+                </div>
+                
+                {/* Logout Button */}
+                <div className="p-4">
+                    <button className="flex items-center gap-3 text-gray-600 hover:text-red-600 transition-colors w-full px-3 py-2 rounded-md hover:bg-red-50">
+                        <LogOut size={20} />
+                        {t('admin.sidebar.logout')}
+                    </button>
+                </div>
             </div>
         </aside>
     );

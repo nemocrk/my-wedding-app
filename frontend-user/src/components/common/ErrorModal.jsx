@@ -3,8 +3,10 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
 import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
+import { useTranslation } from 'react-i18next';
 
 const ErrorModal = ({ error, onClose }) => {
+  const { t } = useTranslation();
   const [showDetails, setShowDetails] = useState(false);
 
   // If no error, don't render anything (controlled by parent state usually)
@@ -79,11 +81,11 @@ const ErrorModal = ({ error, onClose }) => {
             </div>
 
             <h3 style={{ fontSize: '1.5rem', fontWeight: 'bold', color: '#1f2937', marginBottom: '0.5rem' }}>
-              Ops! Qualcosa non va
+              {t('common.error_modal.title')}
             </h3>
             
             <p style={{ color: '#6b7280', marginBottom: '1.5rem', fontFamily: 'system-ui, sans-serif' }}>
-              {error.userMessage || "Non siamo riusciti a completare l'operazione richiesta."}
+              {error.userMessage || t('common.error_modal.default_user_message')}
             </p>
 
             {/* Error Details Section */}
@@ -96,7 +98,7 @@ const ErrorModal = ({ error, onClose }) => {
                   marginBottom: '0.5rem', border: 'none', background: 'transparent', cursor: 'pointer'
                 }}
               >
-                {showDetails ? 'Nascondi dettagli tecnici' : 'Mostra dettagli errore'}
+                {showDetails ? t('common.error_modal.hide_technical_data') : t('common.error_modal.show_technical_data')}
                 <span style={{ marginLeft: '0.25rem', display: 'flex' }}>
                   {showDetails ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
                 </span>
@@ -135,7 +137,7 @@ const ErrorModal = ({ error, onClose }) => {
               onMouseOver={(e) => e.target.style.backgroundColor = '#b91c1c'}
               onMouseOut={(e) => e.target.style.backgroundColor = '#dc2626'}
             >
-              Ho capito, chiudi
+              {t('common.error_modal.button')}
             </button>
           </div>
         </motion.div>

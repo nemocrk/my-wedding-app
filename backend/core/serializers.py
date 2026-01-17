@@ -2,13 +2,21 @@ from rest_framework import serializers
 from .models import (
     Invitation, Person, GlobalConfig, Accommodation, Room,
     GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, 
-    WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate
+    WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate,
+    ConfigurableText
 )
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
         model = GlobalConfig
         fields = '__all__'
+
+class ConfigurableTextSerializer(serializers.ModelSerializer):
+    """Serializer per testi configurabili (Front Busta + Card Content)"""
+    class Meta:
+        model = ConfigurableText
+        fields = ['key', 'content', 'metadata', 'updated_at']
+        read_only_fields = ['key', 'updated_at']  # 'key' must be read-only for updates
 
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)

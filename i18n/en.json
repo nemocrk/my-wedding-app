@@ -1,0 +1,753 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "yes": "Yes",
+    "no": "No",
+    "cancel": "Cancel",
+    "save": "Save",
+    "close": "Close",
+    "edit": "Edit",
+    "delete": "Delete",
+    "back": "Back",
+    "next": "Next",
+    "submit": "Submit",
+    "understood": "Got it, close",
+    "error_modal": {
+      "title": "Oops! Something went wrong",
+      "title_alt": "Something went wrong",
+      "button": "Got it, close",
+      "default_user_message": "We couldn't complete the requested operation.",
+      "hide_technical_data": "Hide technical details",
+      "show_technical_data": "Show error details"
+    }
+  },
+  "invitation": {
+    "errors": {
+      "missing_params": "Invalid link. Authentication parameters are missing.",
+      "invalid": "Invalid invitation",
+      "connection": "Connection error",
+      "loading_failed": "Error loading invitation"
+    }
+  },
+  "cards": {
+    "alloggio": {
+      "title": "Accommodation",
+      "content_offered_default": "We have reserved accommodation for you. More details coming soon!",
+      "content_general_default": "For accommodation suggestions in the area, contact us!"
+    },
+    "viaggio": {
+      "title": "Travel",
+      "content_default": "Information about transportation and how to reach the venue."
+    },
+    "evento": {
+      "title": "The Event"
+    },
+    "dresscode": {
+      "title": "Dress Code",
+      "content_default": "Elegant but comfortable! High heels forbidden on the sand!"
+    },
+    "bottino": {
+      "title": "Wedding Gift Registry",
+      "content_default": "IBAN details coming soon!"
+    },
+    "cosaltro": {
+      "title": "What else?",
+      "content_default": "Contact us via WhatsApp:"
+    },
+    "not_available": {
+      "title": "Not Available"
+    }
+  },
+  "rsvp": {
+    "title": "Confirm Presence",
+    "steps": {
+      "summary": {
+        "title": "Your RSVP"
+      },
+      "guests": {
+        "title": "Confirm Guests"
+      },
+      "contact": {
+        "title": "Contact Number"
+      },
+      "travel": {
+        "title": "How Will You Travel?"
+      },
+      "accommodation": {
+        "title": "Accommodation"
+      },
+      "final": {
+        "title": "Final Confirmation"
+      }
+    },
+    "status": {
+      "pending": {
+        "emoji": "⏳",
+        "text": "What are you waiting for? Confirm now!"
+      },
+      "confirmed": {
+        "emoji": "🎉",
+        "text": "Wonderful! We're waiting for you!!!"
+      },
+      "declined": {
+        "emoji": "😢",
+        "text": "We'll toast to you!"
+      },
+      "unknown": {
+        "emoji": "❓",
+        "text": "What's happening?"
+      }
+    },
+    "labels": {
+      "invited_guests": "Invited guests:",
+      "contact_number": "Contact number:",
+      "transport_type": "Transport type:",
+      "schedule": "Schedule:",
+      "car": "Car:",
+      "summary": "Summary:",
+      "guests": "Guests:",
+      "phone": "Phone:",
+      "transport": "Transport:",
+      "accommodation": "Accommodation:",
+      "schedule_placeholder": "e.g., Departure 10:00, Arrival 14:00",
+      "name_placeholder": "First Name",
+      "lastname_placeholder": "Last Name",
+      "loading": "Loading..."
+    },
+    "buttons": {
+      "next": "Next →",
+      "back": "← Back",
+      "confirm_presence": "✔️ Confirm Attendance",
+      "decline": "❌ Decline",
+      "save_changes": "💾 Save Changes",
+      "modify_answer": "Modify Answer"
+    },
+    "options": {
+      "ferry": "Ferry",
+      "plane": "Plane",
+      "car_with": "Car on board",
+      "car_rental": "I'll rent a car",
+      "carpool_interest": "It would be nice to coordinate with someone else",
+      "accommodation_question": "Do you want to request accommodation for the night between September 19 and 20?",
+      "accommodation_yes": "Yes, I request accommodation",
+      "yes": "Yes",
+      "no": "No"
+    },
+    "validation": {
+      "no_guests": "You must confirm at least one guest!",
+      "phone_required": "Phone number is required",
+      "phone_invalid": "Invalid format (e.g., +39 333 1234567)",
+      "travel_incomplete": "Fill in all travel fields!",
+      "phone_empty": "Phone number is required"
+    },
+    "messages": {
+      "already_confirmed": "You have already confirmed your attendance!",
+      "declined": "You have declined the invitation.",
+      "submitting": "Submitting...",
+      "not_specified": "Not specified"
+    }
+  },
+  "fab": {
+    "aria_label_back": "Back to cover",
+    "aria_label_front": "Flip invitation"
+  },
+  "whatsapp": {
+    "default_message": "Hi, I'm {{guest_name}}, I have a question!",
+    "alert_modify_confirmed": "⚠️ You have already confirmed! To modify, contact the couple:",
+    "alert_confirm_after_decline": "⚠️ If you want to confirm after declining, contact the couple:",
+    "alert_accommodation_change": "⚠️ You had already accepted! Contact the couple:"
+  },
+  "badges": {
+    "child": "Child"
+  },
+  "user": {
+    "common": {
+      "loading_invite": "Loading invitation..."
+    },
+    "home": {
+      "invite_card_text": "You Are Invited"
+    },
+    "rsvp": {
+      "prefix": "RSVP"
+    }
+  },
+  "admin": {
+    "sidebar": {
+      "app_title": "Wedding",
+      "app_title_accent": "Admin",
+      "nav": {
+        "dashboard": "Dashboard",
+        "invitations": "Invitations",
+        "accommodations": "Accommodations",
+        "whatsapp": "WhatsApp",
+        "configuration": "Configuration"
+      },
+      "logout": "Logout"
+    },
+    "header": {
+      "title_main": "Wedding",
+      "title_accent": "Admin"
+    },
+    "tests": {
+      "pie_chart_mock": "Pie Chart Mock",
+      "font_picker_mock": "Font Picker"
+    },
+    "config": {
+      "page_title": "Configuration",
+      "page_subtitle": "Manage prices, texts and application security",
+      "loading": "Loading configuration...",
+      "save_button": "Save Changes",
+      "saving": "Saving...",
+      "success_message": "Configuration saved successfully!",
+      "error_message": "Error during save.",
+      "error_load": "Error loading configuration.",
+      "dynamic_texts_title": "Dynamic Contents",
+      "dynamic_texts_subtitle": "Manage configurable texts displayed in user invitation cards",
+      "text_editor": {
+        "localization": "Localization",
+        "title": "Configurable Texts",
+        "search_placeholder": "Search text...",
+        "missing_in_lang": "Missing in {{lang}}",
+        "configured": "Configured",
+        "no_results": "No text found with this filter.",
+        "buttons": {
+          "edit": "Edit",
+          "cancel": "Cancel",
+          "save": "Save"
+        },
+        "save_error": "Error during save",
+        "load_error": "Unable to load configurations"
+      }
+    },
+    "configuration": {
+      "fonts": {
+        "offline_mode": "Offline mode: reduced font list.",
+        "no_fonts": "No fonts found."
+      }
+    },
+    "sections": {
+      "prices": {
+        "title": "Unit Cost Management",
+        "adult_meal": "Adult Meal (€)",
+        "child_meal": "Child Meal (€)",
+        "accommodation_adult": "Adult Accommodation (€)",
+        "accommodation_child": "Child Accommodation (€)",
+        "transfer": "Transfer per person (€)"
+      },
+      "texts": {
+        "title": "Texts and Communications",
+        "letter_template": "Welcome Letter Template",
+        "available_vars": "Available: {guest_names}, {family_name}, {code}",
+        "placeholder": "Enter text here..."
+      },
+      "security": {
+        "title": "Public Link Security",
+        "secret_key": "Secret Key for Links",
+        "secret_warning": "(WARNING: Changing this value will make all previously sent links stop working)",
+        "unauthorized_message": "Error Message (Expired/Invalid Link)"
+      },
+      "whatsapp": {
+        "title": "WhatsApp Configuration",
+        "rate_limit": "Rate Limit (messages/hour)",
+        "rate_limit_hint": "Safety limit per session (Anti-Ban)",
+        "rate_limit_note": "Recommended value: 10 msg/hour. Do not exceed 20 to avoid WhatsApp ban.",
+        "placeholder_rate": "10"
+      }
+    },
+    "dashboard": {
+      "page_title": "Dashboard",
+      "page_subtitle": "Wedding status overview",
+      "loading": "Loading dashboard...",
+      "error": "Unable to load statistics.",
+      "kpi": {
+        "confirmed_guests": "Confirmed Guests",
+        "confirmed_guests_subtitle": "of which {{count}} children",
+        "estimated_budget": "Estimated Budget (Max)",
+        "estimated_budget_subtitle": "If all pending accept",
+        "current_cost": "Current Cost (Actual)",
+        "current_cost_subtitle": "Confirmed only",
+        "pending": "Pending",
+        "pending_subtitle": "Missing responses"
+      },
+      "charts": {
+        "guests_status": "Guest Status",
+        "logistics_costs": "Logistics & Costs Detail",
+        "cost_breakdown": "Cost Breakdown (Confirmed)",
+        "current_total": "Current Total"
+      },
+      "guest_categories": {
+        "adults_confirmed": "Confirmed Adults",
+        "children_confirmed": "Confirmed Children",
+        "adults_pending": "Pending Adults",
+        "children_pending": "Pending Children",
+        "declined": "Declined"
+      },
+      "logistics": {
+        "accommodation": "Accommodation",
+        "accommodation_subtitle": "Beds requested",
+        "transfer": "Transfer",
+        "transfer_subtitle": "Bus seats requested"
+      },
+      "costs": {
+        "adult_meals": "Adult Meals ({{count}})",
+        "child_meals": "Child Meals ({{count}})"
+      }
+    },
+    "analytics": {
+      "interactions_modal": {
+        "title": "Interaction Analysis: {{name}}",
+        "sessions_count": "{{count}} recorded sessions",
+        "sessions_list": {
+          "title": "Sessions",
+          "no_sessions": "No interactions",
+          "events_count": "{{count}} events",
+          "replay_available": "Replay available ({{width}}x{{height}})"
+        },
+        "timeline": {
+          "title": "Event Timeline",
+          "select_session": "Select a session"
+        },
+        "replay": {
+          "title": "Session Replay",
+          "viewport_original": "Original viewport: {{width}}x{{height}}",
+          "no_heatmap": "No heatmap data",
+          "select_session_prompt": "Select a session with heatmap data to view replay",
+          "controls": {
+            "restart": "Restart",
+            "play": "Play",
+            "pause": "Pause"
+          }
+        }
+      }
+    },
+    "invitations": {
+      "page_title": "Invitations Census",
+      "page_subtitle": "Manage guest list and access codes",
+      "loading": "Loading invitations...",
+      "no_invitations": "No invitations yet",
+      "no_invitations_subtitle": "Create your first invitation",
+      "buttons": {
+        "import_contacts": "Import Contacts",
+        "new_invitation": "New Invitation",
+        "deselect_all": "Deselect",
+        "verify_contacts": "Verify Contacts",
+        "send_whatsapp": "Send WhatsApp"
+      },
+      "bulk_action": {
+        "selected": "{{count}} Selected"
+      },
+      "table": {
+        "headers": {
+          "name_origin": "Name & Origin",
+          "contact": "Contact",
+          "guests": "Guests",
+          "status": "Status",
+          "actions": "Actions"
+        }
+      },
+      "status": {
+        "imported": "Imported",
+        "created": "Created",
+        "sent": "Sent",
+        "read": "Read",
+        "confirmed": "Accepted",
+        "declined": "Declined",
+        "unknown": "Unknown"
+      },
+      "verification": {
+        "ok": "Verified (OK)",
+        "not_present": "Not in contacts",
+        "not_exist": "Doesn't exist on WhatsApp",
+        "not_valid": "To verify / Invalid format",
+        "verifying": "Verifying...",
+        "click_to_verify": "Click to verify"
+      },
+      "contact": {
+        "no_contact": "No Contact"
+      },
+      "origin": {
+        "bride": "Bride's Side",
+        "groom": "Groom's Side"
+      },
+      "actions": {
+        "send": "Send",
+        "send_whatsapp": "Send WhatsApp",
+        "contact_missing": "Contact missing or invalid",
+        "interaction_log": "Interaction Log",
+        "copy_link": "Copy Public Link",
+        "link_copied": "Link Copied!",
+        "preview": "Open Secure Preview",
+        "edit": "Edit",
+        "delete": "Delete"
+      },
+      "services": {
+        "accommodation": "Accommodation",
+        "transfer": "Transfer"
+      },
+      "alerts": {
+        "no_valid_contacts": "None of the selected invitations have a valid number.",
+        "some_invalid": "{{count}} out of {{total}} invitations don't have a valid number and will be skipped. Proceed?",
+        "invalid_contact": "Invalid number for this contact.",
+        "verify_failed": "Error verifying contact.",
+        "bulk_verify_complete": "Verification completed for {{count}} invitations.",
+        "bulk_verify_failed": "Some verifications failed. Check the console.",
+        "delete_failed": "Unable to delete invitation"
+      },
+      "delete_modal": {
+        "title": "Delete Invitation",
+        "message": "Are you sure you want to delete this invitation? This action will remove all associated guests.",
+        "confirm": "Yes, delete",
+        "cancel": "Cancel"
+      },
+      "create_modal": {
+        "title": "New Invitation",
+        "step_of": "Step {{step}} of {{total}}",
+        "steps": {
+          "details": {
+            "title": "Invitation Details",
+            "origin_label": "Origin",
+            "side_groom": "Groom's Side",
+            "side_bride": "Bride's Side",
+            "display_name": "Display Name",
+            "display_name_placeholder": "e.g., Rossi Family",
+            "unique_code": "Unique Code (Slug)",
+            "unique_code_placeholder": "e.g., rossi-family",
+            "phone_number": "Reference Phone Number",
+            "phone_placeholder": "+39 333 1234567",
+            "phone_hint": "Used for automated WhatsApp sending (include international prefix)",
+            "offered_options": "Offered Options",
+            "accommodation_offered": "Accommodation included",
+            "transfer_offered": "Transfer included",
+            "validation": {
+              "name_code_required": "Name and Code are required"
+            }
+          },
+          "guests": {
+            "title": "Add Guests",
+            "subtitle": "Indicate the members of this invited group",
+            "name_label": "First Name",
+            "name_placeholder": "First Name",
+            "lastname_label": "Last Name",
+            "lastname_placeholder": "Last Name",
+            "child_checkbox": "Child",
+            "add_guest": "Add Guest",
+            "validation": {
+              "min_one": "You must add at least one guest!"
+            }
+          },
+          "review": {
+            "title": "Summary & Confirmation",
+            "subtitle": "Review data before creating the invitation",
+            "family_name": "Family Name",
+            "code": "Code",
+            "origin": "Origin",
+            "phone": "Phone",
+            "services": "Offered Services",
+            "none": "None",
+            "guests": "Guests ({{count}})",
+            "affinity_title": "Affinity (Seat Together)",
+            "non_affinity_title": "Non-Affinity (Keep Apart)",
+            "no_other_invites": "There are no other invitations yet to create affinities with."
+          }
+        },
+        "buttons": {
+          "next": "Next",
+          "back": "Back",
+          "create": "Create Invitation",
+          "saving": "Saving..."
+        }
+      },
+      "import_modal": {
+        "title": "Import Contacts from File",
+        "drag_drop": "Drag CSV/Excel file here or",
+        "browse": "browse",
+        "format_csv": "CSV Format",
+        "format_excel": "Excel Format (.xlsx)",
+        "required_columns": "Required columns",
+        "column_name": "name",
+        "column_lastname": "lastname",
+        "column_phone": "phone (optional)",
+        "optional_columns": "Optional columns",
+        "column_child": "is_child",
+        "column_origin": "origin (groom/bride)",
+        "column_display_name": "display_name (if you want to group)",
+        "download_template": "Download Template",
+        "preview_title": "Preview ({{count}} guests detected)",
+        "import_button": "Import {{count}} Guests",
+        "success": "Import completed! {{count}} invitations created.",
+        "error": "Error during import",
+        "validation": {
+          "invalid_format": "Invalid file format. Use CSV or XLSX.",
+          "missing_columns": "Missing columns"
+        }
+      },
+      "import": {
+        "title": "Import from Phonebook",
+        "warning_title": "Warning!",
+        "ha_warning": "You cannot import contacts inside the HomeAssistant App",
+        "open_external": "Open external browser",
+        "groom_side": "Groom's Side",
+        "bride_side": "Bride's Side",
+        "success_count": "{{count}} contacts imported successfully!",
+        "description": "Select contacts from your phone to quickly add them to the invitation list.",
+        "open_phonebook": "Open Phonebook",
+        "selected_contacts": "Selected Contacts",
+        "processing": "Processing...",
+        "cancel_selection": "Cancel selection"
+      }
+    },
+    "whatsapp_config": {
+      "page_title": "WhatsApp Integration",
+      "tabs": {
+        "connection": "Connection & Status",
+        "templates": "Message Templates",
+        "queue": "Message Queue"
+      },
+      "connection": {
+        "groom_account": "Groom Account",
+        "bride_account": "Bride Account",
+        "status": {
+          "loading": "Loading...",
+          "connected": "Connected",
+          "disconnected": "Disconnected",
+          "error": "Error"
+        },
+        "profile_name": "WhatsApp User",
+        "last_check": "Last check:",
+        "never": "Never",
+        "buttons": {
+          "verify_status": "Verify Status",
+          "connect_account": "Connect Account",
+          "disconnect": "Disconnect Session",
+          "send_test": "Send Test Message"
+        },
+        "alerts": {
+          "disconnect_confirm": "Are you sure you want to disconnect this session?",
+          "test_success": "Message sent successfully to {{recipient}}! Check your phone.",
+          "test_error": "Error sending test message:"
+        },
+        "notes": {
+          "title": "Important Anti-Ban Notes",
+          "rule_1": "Never send messages to contacts who haven't written first.",
+          "rule_2": "The system simulates human typing (typing...) before each send.",
+          "rule_3": "A safety limit of 10 messages/hour per session is active."
+        }
+      },
+      "qr_modal": {
+        "title": "Scan QR Code ({{session}})",
+        "generating": "Generating QR Code...",
+        "instructions": "Open WhatsApp on your phone > Settings > Linked devices > Link a device",
+        "close": "Close"
+      },
+      "templates": {
+        "title": "Message Template Management",
+        "new_template": "New Template",
+        "no_templates": "No templates configured.",
+        "create_now": "Create one now",
+        "types": {
+          "automatic": "Automatic",
+          "manual": "Manual (Spot)"
+        },
+        "status": {
+          "inactive": "Inactive"
+        },
+        "trigger": "Trigger: Status change to",
+        "modal": {
+          "title_create": "New Template",
+          "title_edit": "Edit Template",
+          "fields": {
+            "name": "Template Name",
+            "name_placeholder": "e.g., Receipt Confirmation",
+            "type": "Type",
+            "type_manual": "Manual (Spot)",
+            "type_auto": "Automatic (Status Change)",
+            "trigger_status": "Activate when status becomes:",
+            "trigger_select": "-- Select Status --",
+            "trigger_sent": "Sent",
+            "trigger_read": "Read",
+            "trigger_confirmed": "Accepted (Confirmed)",
+            "trigger_declined": "Declined",
+            "content": "Message Content",
+            "content_placeholder": "Hi {name}, here's your invitation...",
+            "is_active": "Template Active"
+          },
+          "placeholders": {
+            "name": "Name",
+            "link": "Link",
+            "code": "Code"
+          },
+          "buttons": {
+            "cancel": "Cancel",
+            "save": "Save Template"
+          }
+        },
+        "delete_confirm": "Are you sure you want to delete this template?"
+      },
+      "queue": {
+        "title": "Queued Messages",
+        "refresh": "Refresh Queue",
+        "clear_completed": "Clear Completed",
+        "no_messages": "No messages in queue.",
+        "status": {
+          "pending": "Pending",
+          "sending": "Sending...",
+          "sent": "Sent",
+          "failed": "Failed"
+        },
+        "recipient": "Recipient",
+        "message": "Message",
+        "created_at": "Created at",
+        "sent_at": "Sent at",
+        "error": "Error",
+        "columns": {
+          "number": "Number",
+          "session": "Session",
+          "msg": "Msg",
+          "status": "Status",
+          "timings": "Timings",
+          "attempts": "Attempts",
+          "actions": "Actions"
+        },
+        "attempts_count": "Attempts: {{count}}"
+      }
+    },
+    "whatsapp": {
+      "common": {
+        "groom_label": "Groom (Sposo)",
+        "bride_label": "Bride (Sposa)"
+      },
+      "edit_modal": {
+        "title": "Edit Message",
+        "recipient": "Recipient",
+        "session": "Session",
+        "content": "Message Content",
+        "save": "Save Changes"
+      },
+      "send_modal": {
+        "title": "Send WhatsApp ({{count}})",
+        "sending_title": "Sending...",
+        "processing": "Processing {{current}} of {{total}}",
+        "sent_count": "{{count}} Sent",
+        "failed_count": "{{count}} Failed",
+        "recipients_label": "Recipients:",
+        "select_template": "Select Template",
+        "choose_message": "-- Choose a message --",
+        "preview_message": "Message Preview",
+        "placeholder_info": "(Placeholders will be replaced for each recipient)",
+        "textarea_placeholder": "Select a template or type a message...",
+        "variables": "Variables",
+        "link_warning_1": "You are using",
+        "link_warning_2": "with multiple recipients. The system will generate a unique link for each one, sending might take longer.",
+        "enqueue_button": "Queue"
+      },
+      "dashboard": {
+        "title": "Message Queue",
+        "stream_status": "Realtime Stream: {{status}}",
+        "refresh_tooltip": "Refresh list",
+        "retry_failed_btn": "Retry Failed",
+        "loading": "Loading queue...",
+        "empty_queue": "No messages in queue.",
+        "alert": {
+          "retry_failed": "Retry failed",
+          "force_failed": "Force send failed",
+          "delete_failed": "Delete failed",
+          "update_failed": "Update failed"
+        },
+        "confirm": {
+          "delete": "Are you sure you want to delete this message from the queue?"
+        }
+      }
+    },
+    "accommodations": {
+      "page_title": "Accommodation Management",
+      "page_subtitle": "Configure lodging facilities and assign guests.",
+      "buttons": {
+        "auto_assign": "Auto Assign (Arena)",
+        "new_accommodation": "New Accommodation"
+      },
+      "success": {
+        "created": "Accommodation created successfully!",
+        "deleted": "Accommodation deleted.",
+        "assigned": "Assignment completed! {{count}} invitations assigned with the chosen strategy."
+      },
+      "alerts": {
+        "delete_confirm": "Are you sure you want to delete this accommodation?",
+        "unassigned_warning": "Warning: {{count}} unassigned groups/invitations",
+        "adults": "Adults",
+        "children": "Children"
+      },
+      "close_success": "Close",
+      "list": {
+        "no_accommodations": "No accommodations configured",
+        "no_accommodations_subtitle": "Add a facility to start managing assignments.",
+        "total_capacity": "Total Facility Capacity",
+        "rooms_title": "Rooms & Assignments Detail",
+        "capacity_label": "Capacity",
+        "adults_short": "A",
+        "children_short": "C",
+        "free_slots": "Free",
+        "assigned_guests": "Assigned Guests",
+        "empty_room": "Empty room"
+      },
+      "create_modal": {
+        "title": "New Accommodation",
+        "step_of": "Step {{step}} of 2",
+        "step1": {
+          "structure_name": "Facility Name",
+          "structure_placeholder": "e.g., Paradise Hotel",
+          "address_label": "Address",
+          "address_placeholder": "e.g., Via Roma 123, Cagliari"
+        },
+        "step2": {
+          "info_message": "Define the available rooms in this facility. You can add as many as you want.",
+          "room_name": "Name/Number",
+          "room_placeholder": "e.g., 101",
+          "adults_label": "Adults",
+          "children_label": "Children",
+          "add_room": "Add Room"
+        },
+        "buttons": {
+          "next": "Next",
+          "back": "Back",
+          "save": "Save Accommodation"
+        }
+      },
+      "auto_assign_modal": {
+        "title": "Strategy Arena",
+        "subtitle": "Optimize automatic assignment",
+        "simulation": {
+          "title": "Scenario Simulation",
+          "description": "The system will run 6 different algorithms in parallel to find the best fit. No changes will be saved until you choose a strategy.",
+          "start_button": "Start Simulation (6 Strategies)",
+          "restart": "Restart"
+        },
+        "results": {
+          "title": "Simulation Results",
+          "best_fit": "BEST FIT",
+          "assigned": "Assigned",
+          "guests": "Guests",
+          "unassigned": "Unassigned",
+          "wasted_beds": "Wasted Beds",
+          "wasted_beds_info": "The \"Wasted Beds\" algorithm indicates free beds in partially occupied rooms. A lower value means a more efficient fit (Tetris style).",
+          "apply_button": "Apply This Strategy",
+          "cancel_button": "Cancel",
+          "confirm_apply": "Apply strategy {{strategy}}? Changes will be saved to the database."
+        }
+      },
+      "interactions_modal": {
+        "title": "Interaction Analysis: {{name}}",
+        "sessions_count": "{{count}} recorded sessions",
+        "sessions_tab": "Sessions",
+        "no_interactions": "No interactions",
+        "events_count": "{{count}} events",
+        "replay_available": "Replay available",
+        "timeline_title": "Event Timeline",
+        "select_session": "Select a session",
+        "replay_title": "Session Replay",
+        "viewport": "Original viewport",
+        "no_heatmap": "No heatmap data",
+        "select_for_replay": "Select a session with heatmap data to view replay"
+      }
+    }
+  }
+}

@@ -1,7 +1,9 @@
 import React from 'react';
 import { Trash2, Users, Home, User, Baby, Bed } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const AccommodationList = ({ accommodations, onDelete }) => {
+    const { t } = useTranslation();
     
     if (!accommodations || accommodations.length === 0) {
         return (
@@ -9,8 +11,8 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                 <div className="flex justify-center mb-4">
                     <Home className="text-gray-400" size={48} />
                 </div>
-                <h3 className="text-lg font-medium text-gray-900">Nessun alloggio configurato</h3>
-                <p className="mt-1 text-gray-500">Aggiungi una struttura per iniziare a gestire gli assegnamenti.</p>
+                <h3 className="text-lg font-medium text-gray-900">{t('admin.accommodations.list.no_accommodations')}</h3>
+                <p className="mt-1 text-gray-500">{t('admin.accommodations.list.no_accommodations_subtitle')}</p>
             </div>
         );
     }
@@ -45,7 +47,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                             <div className="flex justify-between items-center mb-2">
                                 <span className="text-sm font-medium text-gray-700 flex items-center gap-2">
                                     <Users size={16} />
-                                    Capienza Totale Struttura
+                                    {t('admin.accommodations.list.total_capacity')}
                                 </span>
                                 <span className="text-sm text-gray-600">
                                     <span className="font-bold">{used}</span> / {total}
@@ -63,7 +65,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                         <div className="space-y-4">
                             <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider flex items-center gap-2">
                                 <Bed size={14} />
-                                Dettaglio Stanze & Assegnazioni
+                                {t('admin.accommodations.list.rooms_title')}
                             </h4>
                             
                             {acc.rooms && acc.rooms.map(room => {
@@ -79,7 +81,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                             <div>
                                                 <span className="font-bold text-gray-800 text-base">{room.room_number}</span>
                                                 <span className="ml-3 text-xs text-gray-500">
-                                                    Capienza: A:{room.capacity_adults} B:{room.capacity_children}
+                                                    {t('admin.accommodations.list.capacity_label')}: {t('admin.accommodations.list.adults_short')}:{room.capacity_adults} {t('admin.accommodations.list.children_short')}:{room.capacity_children}
                                                 </span>
                                             </div>
                                             <div className="text-xs">
@@ -88,7 +90,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                                     ? 'text-red-600' 
                                                     : 'text-green-600'
                                                 }`}>
-                                                    Liberi: A:{availableSlots.adult_slots_free} B:{availableSlots.child_slots_free}
+                                                    {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
                                                 </span>
                                             </div>
                                         </div>
@@ -111,7 +113,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                         {/* Assigned Guests in Room */}
                                         {room.assigned_guests && room.assigned_guests.length > 0 ? (
                                             <div className="mt-3">
-                                                <p className="text-xs font-semibold text-gray-500 mb-2">Ospiti Assegnati:</p>
+                                                <p className="text-xs font-semibold text-gray-500 mb-2">{t('admin.accommodations.list.assigned_guests')}:</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {room.assigned_guests.map((guest, idx) => (
                                                         <span 
@@ -129,7 +131,7 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className="text-xs text-gray-400 italic mt-2">Camera vuota</p>
+                                            <p className="text-xs text-gray-400 italic mt-2">{t('admin.accommodations.list.empty_room')}</p>
                                         )}
                                     </div>
                                 );

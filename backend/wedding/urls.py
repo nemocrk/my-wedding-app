@@ -4,10 +4,11 @@ from rest_framework.routers import DefaultRouter
 from core.views import (
     # Admin Views
     InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet, 
-    WhatsAppTemplateViewSet,
+    WhatsAppTemplateViewSet, ConfigurableTextViewSet, AdminGoogleFontsProxyView,
     # Public Views
     PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
-    PublicLogInteractionView, PublicLogHeatmapView
+    PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
+    PublicLanguagesView
 )
 # Importa WhatsApp ViewSet dal modulo corretto
 from whatsapp.views import WhatsAppMessageQueueViewSet, WhatsAppMessageEventViewSet
@@ -25,6 +26,7 @@ admin_router.register(r'invitations', InvitationViewSet, basename='admin-invitat
 admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-accommodation')
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
 admin_router.register(r'whatsapp-templates', WhatsAppTemplateViewSet, basename='admin-whatsapp-templates')
+admin_router.register(r'texts', ConfigurableTextViewSet, basename='admin-texts')
 
 # Viewset spostati dal core a whatsapp per pulizia, ma registrati qui per mantenere endpoint unificati sotto /api/admin/
 admin_router.register(r'whatsapp-queue', WhatsAppMessageQueueViewSet, basename='admin-whatsapp-queue')
@@ -48,6 +50,11 @@ urlpatterns = [
     # ========================================
     path('api/admin/', include(admin_router.urls)),
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
+    # 6. Lingue Disponibili (pubblico)
+    path('api/admin/languages/', PublicLanguagesView.as_view(), name='public-languages'),
+    
+    # NEW: Google Fonts Proxy (Backend-to-Google)
+    path('api/admin/google-fonts/', AdminGoogleFontsProxyView.as_view(), name='admin-google-fonts'),
     
     # --- WHATSAPP INTEGRATION ROUTES (Admin Only) ---
     # Include urls specifici per actions (status, qr, refresh, logout)
@@ -72,4 +79,10 @@ urlpatterns = [
     # 4. Analytics & Tracking
     path('api/public/log-interaction/', PublicLogInteractionView.as_view(), name='public-log-interaction'),
     path('api/public/log-heatmap/', PublicLogHeatmapView.as_view(), name='public-log-heatmap'),
+    
+    # 5. Testi Configurabili (pubblico read-only per Home/Landing)
+    path('api/public/texts/', PublicConfigurableTextView.as_view(), name='public-texts'),
+
+    # 6. Lingue Disponibili (pubblico)
+    path('api/public/languages/', PublicLanguagesView.as_view(), name='public-languages'),
 ]

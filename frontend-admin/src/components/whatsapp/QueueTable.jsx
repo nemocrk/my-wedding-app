@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { MessageCircle, RotateCcw, Trash2, Send, Edit2, Clock, CheckCircle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, onEdit }) => {
+  const { t } = useTranslation();
   const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, content: '' });
 
   const handleMouseEnter = (e, content) => {
@@ -37,10 +39,10 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
     }
 
     const dbMap = {
-        'pending': { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
+        'pending': { label: t('admin.whatsapp_config.queue.status.pending'), color: 'bg-yellow-100 text-yellow-800' },
         'processing': { label: 'Processing', color: 'bg-blue-100 text-blue-800' },
-        'sent': { label: 'Sent', color: 'bg-green-100 text-green-800' },
-        'failed': { label: 'Failed', title:msg.error_log, color: 'bg-red-100 text-red-800' },
+        'sent': { label: t('admin.whatsapp_config.queue.status.sent'), color: 'bg-green-100 text-green-800' },
+        'failed': { label: t('admin.whatsapp_config.queue.status.failed'), title:msg.error_log, color: 'bg-red-100 text-red-800' },
         'skipped': { label: 'Skipped', title:msg.error_log, color: 'bg-gray-100 text-gray-800' }
     };
     const config = dbMap[msg.status] || { label: msg.status, color: 'bg-gray-100' };
@@ -93,13 +95,13 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Number</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
-              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Msg</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timings</th>
-              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attempts</th>
-              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.number')}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.session')}</th>
+              <th scope="col" className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.msg')}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.status')}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.timings')}</th>
+              <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.attempts')}</th>
+              <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">{t('admin.whatsapp_config.queue.columns.actions')}</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -168,7 +170,7 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
             <div className="text-sm text-gray-600">
               <div className="flex items-center gap-2 mb-2">
                 <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{msg.session_type}</span>
-                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">Attempts: {msg.attempts}</span>
+                <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{t('admin.whatsapp_config.queue.attempts_count', { count: msg.attempts })}</span>
               </div>
               {/* Mostriamo un'anteprima del testo invece del tooltip su mobile */}
               <div className="text-xs bg-slate-50 p-2 rounded italic text-gray-500 line-clamp-2">

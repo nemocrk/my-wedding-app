@@ -28,6 +28,19 @@ fi
 echo "========================================================"
 echo ""
 
+# 0. Static Checks
+echo "--------------------------------------------------------"
+echo "🔍 [0/4] Esecuzione Static Checks (i18n)..."
+echo "--------------------------------------------------------"
+echo "🌐 Verifica allineamento e completezza traduzioni..."
+if [ -f "i18n/scripts/i18n-check.js" ]; then
+    node i18n/scripts/i18n-check.js
+else
+    echo "⚠️  Script i18n-check.js non trovato. Skipping."
+fi
+echo "✅ Static Checks Completati con successo."
+echo ""
+
 # 1. Backend Tests
 echo "--------------------------------------------------------"
 echo "🐍 [1/4] Esecuzione Backend Tests (Pytest)..."

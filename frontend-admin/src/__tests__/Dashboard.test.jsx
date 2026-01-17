@@ -49,7 +49,6 @@ describe('Dashboard Component', () => {
   });
 
   it('renders loading state initially', () => {
-    // Return a promise that never resolves (or delays) to check loading state
     api.getDashboardStats.mockReturnValue(new Promise(() => {}));
     render(<Dashboard />);
     expect(screen.getByText('Caricamento dashboard...')).toBeInTheDocument();
@@ -59,7 +58,6 @@ describe('Dashboard Component', () => {
     api.getDashboardStats.mockResolvedValue(mockStats);
     render(<Dashboard />);
 
-    // Wait for data to load
     await waitFor(() => {
       expect(screen.queryByText('Caricamento dashboard...')).not.toBeInTheDocument();
     });

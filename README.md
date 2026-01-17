@@ -5,6 +5,8 @@
 Applicazione web a microservizi per la gestione delle partecipazioni di matrimonio digitali.
 Il sistema offre un'esperienza utente unica (apertura busta animata) e una console di amministrazione avanzata per il monitoraggio degli invitati e l'analisi comportamentale (heatmap).
 
+**Novità**: Supporto multilingua (i18n) e CMS per la personalizzazione dei testi.
+
 ## 📚 Documentazione Tecnica Completa
 
 **OBBLIGATORIA PER SVILUPPATORI E AI:** Consultare `/docs` prima di ogni modifica.
@@ -20,8 +22,10 @@ Il sistema offre un'esperienza utente unica (apertura busta animata) e una conso
 | [**07-BACKEND-API.md**](docs/07-BACKEND-API.md) | Serializers, Views e Autenticazione API |
 | [**08-FRONTEND-USER.md**](docs/08-FRONTEND-USER-COMPONENTS.md) | Componenti e Logica App Pubblica |
 | [**09-FRONTEND-ADMIN.md**](docs/09-FRONTEND-ADMIN-COMPONENTS.md) | Componenti e Logica Dashboard Gestionale |
+| [**USER_GUIDE_TEXT.md**](docs/USER_GUIDE_TEXT_CUSTOMIZATION.md) | **NUOVO**: Guida utente per modifica testi |
+| [**I18N_GUIDE.md**](docs/I18N_GUIDE.md) | **NUOVO**: Guida sviluppatori per traduzioni |
 | [**PGBOUNCER.md**](docs/PGBOUNCER.md) | Connection Pooling PostgreSQL con pgBouncer |
-| [**CHECKLIST_DOCUMENTATION.md**](docs/CHECKLIST_DOCUMENTATION.md) | Piano iterativo documentazione |
+| [**CHECKLIST.md**](docs/CHECKLIST_TEXT_CUSTOMIZATION_I18N.md) | Tracking feature i18n |
 
 **Regola d'oro**: Ogni modifica al codice richiede l'aggiornamento della documentazione corrispondente.
 
@@ -33,7 +37,9 @@ Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 3.  **Adminer (DB GUI):** Interfaccia web leggera per gestione database PostgreSQL. Accessibile su porta 8081.
 4.  **Backend (Django + DRF):** API REST. Gestisce logica di business, autenticazione e raccolta dati di tracking. **Non accessibile direttamente dall'esterno** - solo tramite nginx.
 5.  **Frontend User (React):** Esposto su **Internet** tramite `nginx-public`. Mostra l'invito animato. Accesso tramite query param univoco.
+    - **Features**: i18n (IT/EN), CMS dinamico, Animazione busta.
 6.  **Frontend Admin (React):** Esposto **SOLO su localhost:8080** tramite `nginx-intranet`. Dashboard per gestione adesioni e visualizzazione Heatmap/Navigazione. **Richiede SSH tunnel o VPN per accesso remoto**.
+    - **Features**: Gestione CMS, Grafici, Logistica, WhatsApp integration.
 7.  **Nginx Public:** Gateway Internet che espone solo frontend-user e API pubbliche su porta 80/443.
 8.  **Nginx Intranet:** Gateway amministrativo che espone frontend-admin su `127.0.0.1:8080`.
 
@@ -95,6 +101,7 @@ In sintesi:
 4.  **Logging:** Log parlanti e strutturati su stdout.
 5.  **Gestione Errori:** Modali frontend per errori API, niente `alert()`.
 6.  **Documentazione:** Aggiornamento obbligatorio dei file `/docs` per ogni modifica al codice.
+7.  **i18n:** Tutti i testi UI devono usare chiavi di traduzione (no hardcoded strings).
 
 ## Prerequisiti & Ambiente di Sviluppo
 

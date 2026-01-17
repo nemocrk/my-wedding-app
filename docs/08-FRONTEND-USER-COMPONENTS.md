@@ -7,6 +7,7 @@ L'applicazione è una Single Page Application (SPA) costruita con React 19.
 - **Entry Point**: `src/main.jsx`
 - **Root Component**: `src/App.jsx`
 - **Routing**: Gestito internamente (o tramite semplice conditional rendering in base allo stato).
+- **Internationalization (i18n)**: Supporto nativo IT/EN tramite `react-i18next`.
 
 ## 2. Componenti Core (`src/components/`)
 
@@ -15,17 +16,24 @@ Il componente "Wow Effect" iniziale. Simula l'apertura fisica di una busta da le
 - **Tecnologia**: CSS3 Animations + React State.
 - **Stati**: `closed` → `opening` → `open`.
 - **Interazione**: Al click/tap, innesca la transizione che rivela il contenuto (`LetterContent`).
+- **Testi Dinamici**: Utilizza `useConfigurableText` per mostrare un messaggio di benvenuto personalizzato sul fronte della busta.
 
 ### LetterContent (`LetterContent.jsx`)
 Il corpo principale dell'invito.
-- **Visualizzazione**: Mostra il testo personalizzato ricevuto dall'API (`letter_content`).
+- **Visualizzazione**: Renderizza i contenuti dinamici (CMS) per ogni sezione (Alloggio, Viaggio, Evento, ecc.).
 - **Logica Condizionale**: Renderizza le sezioni RSVP, Accommodation e Transfer solo se i flag `*_offered` nel payload API sono `true`.
-- **Form Gestione**: Include i controlli per accettare/declinare e specificare note/allergie.
+- **Form Gestione**: Include i controlli per accettare/declinare e specificare note/allergie, completamente localizzati (i18n).
+- **Integrazione CMS**: Recupera i testi configurati nell'admin panel tramite `TextContext`.
 
 ### ErrorModal (`ErrorModal.jsx`)
 Sistema centralizzato per la gestione degli errori.
 - **Utilizzo**: Invocato automaticamente via `useApiErrorModal` hook quando una chiamata API fallisce.
-- **UX**: Impedisce il "silenzio" degli errori, mostrando feedback chiaro all'utente (es. "Codice invito non valido").
+- **UX**: Impedisce il "silenzio" degli errori, mostrando feedback chiaro e localizzato all'utente (es. "Codice invito non valido").
+
+### LanguageSwitcher (`LanguageSwitcher.jsx`)
+Componente UI per il cambio lingua.
+- **Persistenza**: Salva la preferenza utente in `localStorage`.
+- **Posizione**: Integrato nell'header/footer o accessibile globalmente.
 
 ## 3. Gestione Stato & Hooks (`src/hooks/`)
 
@@ -33,6 +41,11 @@ Sistema centralizzato per la gestione degli errori.
 Custom hook per intercettare errori API e pilotare il modale.
 - **Pattern**: Wrappa le chiamate `fetch` o intercetta le promise rejection.
 - **Vantaggio**: Decoppia la logica di errore dai componenti UI.
+
+### `useConfigurableText` (via `TextContext`)
+Hook per accedere ai testi dinamici in qualsiasi punto dell'app.
+- **Fallback**: Restituisce un valore di default se la chiave non è configurata o le API non rispondono.
+- **Loading State**: Gestisce lo stato di caricamento dei testi.
 
 ## 4. Servizi API (`src/services/`)
 
@@ -42,6 +55,10 @@ Client HTTP tipizzato (wrapper su `fetch`).
 - **Endpoints**:
     - `getInvitation(code)`: Recupera i dati iniziali.
     - `submitRSVP(code, data)`: Invia le conferme (con gestione token).
+
+### `textConfig.js`
+Servizio dedicato al recupero dei testi CMS.
+- **Endpoints**: `getConfigurableTexts()` (chiama `/api/public/texts/`).
 
 ### `analytics.js`
 Modulo per il tracking granulare.
@@ -73,8 +90,9 @@ L'applicazione segue uno standard rigoroso per la gestione delle immagini e dell
 Il contenitore logico principale.
 1.  Estrae il `code` dall'URL (slug).
 2.  Chiama `api.getInvitation(code)`.
-3.  Gestisce gli stati di caricamento (`LoadingScreen`) ed errore (`ErrorScreen`).
-4.  Se successo, monta `EnvelopeAnimation` passando i dati ricevuti.
+3.  In parallelo, il `TextContext` carica i testi dinamici.
+4.  Gestisce gli stati di caricamento (`LoadingScreen`) ed errore (`ErrorScreen`).
+5.  Se successo, monta `EnvelopeAnimation` passando i dati ricevuti.
 
 ## Diagramma Flusso UI
 

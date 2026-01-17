@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
+  const { t } = useTranslation();
   const [formData, setFormData] = useState({
     session_type: 'groom',
     message: '',
@@ -52,7 +54,7 @@ const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
           <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
             <div className="flex justify-between items-start">
               <h3 className="text-lg leading-6 font-medium text-gray-900" id="modal-title">
-                Edit Message
+                {t('admin.whatsapp.edit_modal.title')}
               </h3>
               <button 
                 onClick={onClose} 
@@ -65,27 +67,27 @@ const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
             
             <form onSubmit={handleSubmit} className="mt-4 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700">Recipient</label>
+                <label className="block text-sm font-medium text-gray-700">{t('admin.whatsapp.edit_modal.recipient')}</label>
                 <div className="mt-1 p-2 bg-gray-50 rounded-md text-gray-900">
                   {message?.recipient_number}
                 </div>
               </div>
 
               <div>
-                <label htmlFor="session_type" className="block text-sm font-medium text-gray-700">Session</label>
+                <label htmlFor="session_type" className="block text-sm font-medium text-gray-700">{t('admin.whatsapp.edit_modal.session')}</label>
                 <select
                   id="session_type"
                   value={formData.session_type}
                   onChange={(e) => setFormData({...formData, session_type: e.target.value})}
                   className="mt-1 block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
                 >
-                  <option value="groom">Groom (Sposo)</option>
-                  <option value="bride">Bride (Sposa)</option>
+                  <option value="groom">{t('admin.whatsapp.common.groom_label')}</option>
+                  <option value="bride">{t('admin.whatsapp.common.bride_label')}</option>
                 </select>
               </div>
 
               <div>
-                <label htmlFor="message" className="block text-sm font-medium text-gray-700">Message Content</label>
+                <label htmlFor="message" className="block text-sm font-medium text-gray-700">{t('admin.whatsapp.edit_modal.content')}</label>
                 <textarea
                   id="message"
                   rows={6}
@@ -101,14 +103,14 @@ const EditMessageModal = ({ isOpen, onClose, message, onSave }) => {
                   className="w-full inline-flex justify-center items-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-indigo-600 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:ml-3 sm:w-auto sm:text-sm"
                 >
                   <Save className="h-4 w-4 mr-2" />
-                  Save Changes
+                  {t('admin.whatsapp.edit_modal.save')}
                 </button>
                 <button
                   type="button"
                   onClick={onClose}
                   className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
                 >
-                  Cancel
+                  {t('common.cancel')}
                 </button>
               </div>
             </form>

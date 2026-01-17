@@ -22,7 +22,7 @@ test('shows DB status when no realtime status exists', () => {
     />
   );
 
-  expect(screen.getAllByText('Pending').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getAllByText('In Attesa').length).toBeGreaterThanOrEqual(1);
 });
 
 test('shows realtime status when available', () => {
@@ -52,6 +52,6 @@ test('shows error log when failed', () => {
     />
   );
 
-  expect(screen.getAllByText('Failed').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getAllByText('Fallito').length).toBeGreaterThanOrEqual(1);
   expect(screen.getAllByTitle('Network error').length).toBeGreaterThanOrEqual(1);
 });
