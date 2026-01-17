@@ -368,7 +368,7 @@ app.get('/:session_type/status', async (req, res) => {
                 headers, 
                 timeout: 3000 
             });
-            console.log(`[${session_type}] Profile fetched:`, profileResp.data);
+            console.log('[%s] Profile fetched:', session_type, profileResp.data);
             
             if (profileResp.data) {
                 data.me = { 
