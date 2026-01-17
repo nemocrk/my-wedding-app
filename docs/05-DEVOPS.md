@@ -56,7 +56,6 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 | `DB_PASSWORD` | Password PostgreSQL | `changeme` | **Secure Random** |
 | `DJANGO_SECRET_KEY` | Chiave crittografica Django | `dev-key` | **Secure Random** |
 | `ALLOWED_HOSTS` | Host header whitelist | `localhost` | `miodominio.com` |
-| `VITE_GOOGLE_FONTS_API_KEY` | Google Web Fonts API key (Font Picker Admin) | *(empty)* | **Restricted Key** |
 | `WAHA_API_KEY_GROOM` | API Key per sessione Sposo | `secret` | **Secure Random** |
 | `WAHA_API_KEY_BRIDE` | API Key per sessione Sposa | `secret` | **Secure Random** |
 | `WAHA_WORKER_INTERVAL` | Intervallo check coda messaggi (sec) | `60` | `60` |

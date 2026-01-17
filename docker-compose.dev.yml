@@ -47,24 +47,66 @@ services:
       - CHOKIDAR_USEPOLLING=true
 
   # ---------------------------------------------
+  # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
+  # ---------------------------------------------
+  nginx-public:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/public.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+      - ./i18n:/usr/share/nginx/html/i18n:ro
+      - static_volume:/var/www/static:ro
+      - media_volume:/var/www/media:ro
+    depends_on:
+      frontend-user:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+    networks:
+      - frontend_public_network
+      - backend_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ---------------------------------------------
+  # 6. NGINX INTRANET - Gateway Intranet (solo frontend-admin)
+  # ---------------------------------------------
+  nginx-intranet:
+    image: nginx:alpine
+    ports:
+      - "127.0.0.1:8080:80"  # BIND SOLO SU LOCALHOST - accesso via SSH tunnel
+    volumes:
+      - ./nginx/intranet.conf:/etc/nginx/nginx.conf:ro
+      - ./i18n:/usr/share/nginx/html/i18n:ro
+    depends_on:
+      frontend-admin:
+        condition: service_healthy
+      backend:
+        condition: service_healthy
+      whatsapp-integration:
+         condition: service_healthy
+    networks:
+      - frontend_intranet_network
+      - backend_network
+      - whatsapp_intranet_network
+    restart: always
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      
+  # ---------------------------------------------
   # WHATSAPP INTEGRATION (Dev Overrides)
   # ---------------------------------------------
   
-  # Sessione Sposo
-  waha-groom:
-    # In DEV potremmo volere la dashboard, ma per sicurezza rimuoviamo l'esposizione diretta
-    # Se necessario debuggare, meglio usare docker exec o network container
-    environment:
-      # Swagger comunque utile se raggiunto da dentro la rete
-      WHATSAPP_SWAGGER_USERNAME: admin
-      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
-
-  # Sessione Sposa
-  waha-bride:
-    environment:
-      WHATSAPP_SWAGGER_USERNAME: admin
-      WHATSAPP_SWAGGER_PASSWORD: ${DB_PASSWORD:-admin}
-
   # Integration Layer - Hot Reload Node.js
   whatsapp-integration:
     build:
