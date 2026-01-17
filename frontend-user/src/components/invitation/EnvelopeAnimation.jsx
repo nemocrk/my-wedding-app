@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import './EnvelopeAnimation.css'; // Manteniamo il CSS per layout di base
 import flapImg from '../../assets/illustrations/flap.png';
 import noFlapImg from '../../assets/illustrations/no-flap.png';
@@ -8,6 +9,7 @@ import waxImg from '../../assets/illustrations/wax.png';
 import LetterContent from './LetterContent';
 
 const EnvelopeAnimation = ({ onComplete, invitationData }) => {
+    const { t } = useTranslation();
     const [step, setStep] = useState(0);
     const [finalY, setFinalY] = useState(-50); // Default fallback
 
@@ -142,7 +144,7 @@ const EnvelopeAnimation = ({ onComplete, invitationData }) => {
                            NOTA: Per evitare duplicazioni o stati complessi, qui potremmo mostrare solo un placeholder visivo
                            o la stessa LetterContent con pointer-events-none.
                         */}
-                        {invitationData ? <LetterContent data={invitationData} /> : <div>Loading...</div>}
+                        {invitationData ? <LetterContent data={invitationData} /> : <div>{t('common.loading')}</div>}
                      </div>
                 </motion.div>
 

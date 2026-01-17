@@ -11,6 +11,7 @@ Le API sono divise in due macro-categorie:
 - **Session-Based**: L'accesso inizia con una `POST /api/public/auth/` inviando `code` e `token`.
 - **HMAC Verification**: Il token nell'URL viene validato crittograficamente usando una `SECRET_KEY` lato server.
 - **Session Persistence**: Dopo l'autenticazione, `invitation_id` viene salvato nella sessione server-side (cookie `sessionid`).
+- **Read-Only Endpoints**: Alcuni endpoint pubblici (es. `/api/public/texts/`) non richiedono autenticazione se servono dati statici/configurabili globali.
 
 ### Admin API
 - **Network Isolation**: In produzione, queste API non sono esposte su Internet (blocco Nginx).
@@ -42,6 +43,17 @@ Invia o aggiorna la risposta (RSVP).
   }
   ```
 
+#### `GET /texts/`
+Recupera la configurazione dei testi dinamici (CMS).
+- **Auth**: Pubblica, nessuna autenticazione richiesta.
+- **Response**: Mappa chiave-valore con tutti i testi configurati.
+  ```json
+  {
+    "home.welcome": "<p>Benvenuti al nostro matrimonio...</p>",
+    "card.logistics": "..."
+  }
+  ```
+
 #### `POST /log-interaction/`
 Traccia eventi analitici (es. click su bottoni).
 - **Body**: `{ "event_type": "click_cta", "metadata": { "btn": "map" } }`
@@ -63,6 +75,13 @@ CRUD completo sugli inviti.
 - `POST /{id}/mark-as-sent/` : Imposta manualmente lo stato a "Inviato" (senza inviare messaggi).
 - `GET /{id}/interactions/` : Storico log interazioni.
 - `GET /{id}/heatmaps/` : Dati heatmap sessioni utente.
+
+#### Configurable Texts (`/texts/`)
+Gestione CMS testi dinamici.
+- `GET /`: Lista tutti i testi configurabili.
+- `GET /{key}/`: Dettaglio singolo testo (lookup field = key).
+- `PATCH /{key}/`: Aggiorna contenuto testo.
+  - Body: `{ "content": "<p>Nuovo contenuto...</p>" }`
 
 #### Accommodations (`/accommodations/`)
 Gestione strutture e stanze.
@@ -104,6 +123,18 @@ Gestione integrazione WAHA.
 ---
 
 ## Data Models (JSON Schemas)
+
+### Configurable Text Object
+```json
+{
+  "id": 10,
+  "key": "home.welcome",
+  "group": "home",
+  "description": "Testo intro busta",
+  "content": "<p>Benvenuti...</p>",
+  "updated_at": "2026-01-15T10:00:00Z"
+}
+```
 
 ### Invitation Object
 ```json

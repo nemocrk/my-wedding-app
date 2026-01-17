@@ -3,8 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone } from 'lucide-react';
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
+import { useTranslation } from 'react-i18next';
 
 const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
+  const { t } = useTranslation();
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   const [loading, setLoading] = useState(false);
@@ -130,14 +132,14 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const handleNext = () => {
     if (step === 1) {
       if (!formData.name || !formData.code) {
-        alert("Nome e Codice sono obbligatori"); 
+        alert(t('admin.invitations.create_modal.steps.details.validation.name_code_required') || "Nome e Codice sono obbligatori"); 
         return;
       }
     }
     if (step === 2) {
       const isValid = formData.guests.every(g => g.first_name);
       if (!isValid) {
-        alert("Tutti gli ospiti devono avere almeno il nome");
+        alert(t('admin.invitations.create_modal.steps.guests.validation.min_one'));
         return;
       }
     }
@@ -152,7 +154,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
     setLoading(true);
     try {
       if (isEditMode) {
-        await api.updateInvitation(initialData.id, formData);
+        await api.updateInvitation(initialData.id, {...formData, status: formData.status==='imported'?'created':formData.status} );
       } else {
         await api.createInvitation(formData);
       }
@@ -161,8 +163,8 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       onClose();
     } catch (error) {
       console.error("Save failed", error);
-      setErrorMessage(error.message); // Set message
-      setErrorModalOpen(true);        // Open modal
+      setErrorMessage(error.message);
+      setErrorModalOpen(true);
     } finally {
       setLoading(false);
     }
@@ -176,9 +178,9 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
           <div className="flex justify-between items-center px-8 py-6 border-b border-gray-100 bg-white">
             <div>
               <h2 className="text-2xl font-bold text-gray-800">
-                {isEditMode ? 'Modifica Invito' : 'Nuovo Invito'}
+                {t('admin.invitations.create_modal.title')}
               </h2>
-              <p className="text-sm text-gray-500 mt-1">Step {step} di {totalSteps}</p>
+              <p className="text-sm text-gray-500 mt-1">{t('admin.invitations.create_modal.step_of', { step, total: totalSteps })}</p>
             </div>
             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-500 hover:text-gray-700">
               <X size={24} />
@@ -203,7 +205,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 space-y-6">
                     <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                       <span className="bg-pink-100 text-pink-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">1</span>
-                      Dettagli Invito
+                      {t('admin.invitations.create_modal.steps.details.title')}
                     </h3>
                     
                     {/* ORIGIN TOGGLE */}
@@ -219,7 +221,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           }`}
                         >
                           <span className="mr-2">🤵</span>
-                          Lato Sposo
+                          {t('admin.invitations.create_modal.steps.details.side_groom')}
                         </button>
                         <button
                           type="button"
@@ -231,32 +233,32 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           }`}
                         >
                           <span className="mr-2">👰</span>
-                          Lato Sposa
+                          {t('admin.invitations.create_modal.steps.details.side_bride')}
                         </button>
                       </div>
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Nome Visualizzato</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.invitations.create_modal.steps.details.display_name')}</label>
                         <input
                           type="text"
                           name="name"
                           value={formData.name}
                           onChange={handleInputChange}
-                          placeholder="Es. Famiglia Rossi"
+                          placeholder={t('admin.invitations.create_modal.steps.details.display_name_placeholder')}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Codice Univoco (Slug)</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.invitations.create_modal.steps.details.unique_code')}</label>
                         <input
                           type="text"
                           name="code"
                           value={formData.code}
                           onChange={handleInputChange}
-                          placeholder="Es. famiglia-rossi"
+                          placeholder={t('admin.invitations.create_modal.steps.details.unique_code_placeholder')}
                           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all font-mono text-sm"
                         />
                       </div>
@@ -264,7 +266,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
 
                     {/* PHONE NUMBER */}
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Numero Telefono Referente</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">{t('admin.invitations.create_modal.steps.details.phone_number')}</label>
                       <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                           <Phone size={18} className="text-gray-400" />
@@ -274,17 +276,17 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           name="phone_number"
                           value={formData.phone_number}
                           onChange={handleInputChange}
-                          placeholder="+39 333 1234567"
+                          placeholder={t('admin.invitations.create_modal.steps.details.phone_placeholder')}
                           className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
                         />
                       </div>
                       <p className="text-xs text-gray-500 mt-1">
-                        Utilizzato per l'invio automatizzato WhatsApp (includere prefisso internazionale)
+                        {t('admin.invitations.create_modal.steps.details.phone_hint')}
                       </p>
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
-                      <label className="block text-sm font-medium text-gray-700 mb-4">Opzioni Offerte</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-4">{t('admin.invitations.create_modal.steps.details.offered_options')}</label>
                       <div className="flex flex-col sm:flex-row gap-4">
                         <label className={`flex items-center p-4 border rounded-lg cursor-pointer transition-all ${formData.accommodation_offered ? 'border-pink-500 bg-pink-50' : 'border-gray-200 hover:border-pink-200'}`}>
                           <input
@@ -296,7 +298,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           />
                           <div className="flex items-center">
                             <Home size={20} className={`mr-2 ${formData.accommodation_offered ? 'text-pink-600' : 'text-gray-400'}`} />
-                            <span className={formData.accommodation_offered ? 'text-gray-900 font-medium' : 'text-gray-600'}>Alloggio incluso</span>
+                            <span className={formData.accommodation_offered ? 'text-gray-900 font-medium' : 'text-gray-600'}>{t('admin.invitations.create_modal.steps.details.accommodation_offered')}</span>
                           </div>
                         </label>
 
@@ -310,7 +312,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                           />
                           <div className="flex items-center">
                             <Bus size={20} className={`mr-2 ${formData.transfer_offered ? 'text-pink-600' : 'text-gray-400'}`} />
-                            <span className={formData.transfer_offered ? 'text-gray-900 font-medium' : 'text-gray-600'}>Transfer incluso</span>
+                            <span className={formData.transfer_offered ? 'text-gray-900 font-medium' : 'text-gray-600'}>{t('admin.invitations.create_modal.steps.details.transfer_offered')}</span>
                           </div>
                         </label>
                       </div>
@@ -325,14 +327,14 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   <div className="flex justify-between items-center">
                     <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                       <span className="bg-pink-100 text-pink-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">2</span>
-                      Lista Ospiti
+                      {t('admin.invitations.create_modal.steps.guests.title')}
                     </h3>
                     <button 
                       onClick={addGuest}
                       className="flex items-center text-sm font-medium text-pink-600 hover:text-pink-700 bg-pink-50 hover:bg-pink-100 px-3 py-1.5 rounded-lg transition-colors"
                     >
                       <UserPlus size={16} className="mr-1.5" />
-                      Aggiungi Ospite
+                      {t('admin.invitations.create_modal.steps.guests.add_guest')}
                     </button>
                   </div>
 
@@ -344,23 +346,23 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                         </div>
                         
                         <div className="flex-1 w-full">
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Nome</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.invitations.create_modal.steps.guests.name_label')}</label>
                           <input
                             type="text"
                             value={guest.first_name}
                             onChange={(e) => updateGuest(index, 'first_name', e.target.value)}
-                            placeholder="Mario"
+                            placeholder={t('admin.invitations.create_modal.steps.guests.name_placeholder')}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-sm"
                           />
                         </div>
                         
                         <div className="flex-1 w-full">
-                          <label className="block text-xs font-medium text-gray-500 mb-1">Cognome</label>
+                          <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.invitations.create_modal.steps.guests.lastname_label')}</label>
                           <input
                             type="text"
                             value={guest.last_name}
                             onChange={(e) => updateGuest(index, 'last_name', e.target.value)}
-                            placeholder="Rossi"
+                            placeholder={t('admin.invitations.create_modal.steps.guests.lastname_placeholder')}
                             className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-1 focus:ring-pink-500 focus:border-pink-500 outline-none text-sm"
                           />
                         </div>
@@ -373,7 +375,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                               onChange={(e) => updateGuest(index, 'is_child', e.target.checked)}
                               className="w-4 h-4 text-pink-600 focus:ring-pink-500 border-gray-300 rounded mr-2"
                             />
-                            <span className="text-sm text-gray-600">Bambino</span>
+                            <span className="text-sm text-gray-600">{t('admin.invitations.create_modal.steps.guests.child_checkbox')}</span>
                           </label>
                         </div>
 
@@ -395,13 +397,13 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                 <div className="space-y-6 animate-fadeIn">
                   <h3 className="text-lg font-semibold text-gray-800 flex items-center">
                       <span className="bg-pink-100 text-pink-600 w-8 h-8 rounded-full flex items-center justify-center text-sm mr-3">3</span>
-                      Affinità & Tavoli
+                      {t('admin.invitations.create_modal.steps.review.title')}
                     </h3>
                   
                   {existingInvitations.length === 0 ? (
                     <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                       <Users size={32} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">Non ci sono ancora altri inviti con cui creare affinità.</p>
+                      <p className="text-gray-500">{t('admin.invitations.create_modal.steps.review.no_other_invites') || "Non ci sono ancora altri inviti con cui creare affinità."}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -409,7 +411,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h4 className="font-semibold text-green-700 mb-4 flex items-center">
                           <Users className="mr-2" size={20} />
-                          Affini (Vicina di tavolo)
+                          {t('admin.invitations.create_modal.steps.review.affinity_title') || "Affini (Vicina di tavolo)"}
                         </h4>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                           {existingInvitations.map(inv => (
@@ -436,7 +438,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h4 className="font-semibold text-red-700 mb-4 flex items-center">
                           <Users className="mr-2" size={20} />
-                          Non Affini (Lontano)
+                          {t('admin.invitations.create_modal.steps.review.non_affinity_title') || "Non Affini (Lontano)"}
                         </h4>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                           {existingInvitations.map(inv => (
@@ -476,7 +478,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
               }`}
             >
               <ChevronLeft size={18} className="mr-2" />
-              Indietro
+              {t('admin.invitations.create_modal.buttons.back')}
             </button>
 
             <div className="flex space-x-4">
@@ -486,7 +488,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   disabled={loading}
                   className="flex items-center px-6 py-2.5 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-md"
                 >
-                  Avanti
+                  {t('admin.invitations.create_modal.buttons.next')}
                   <ChevronRight size={18} className="ml-2" />
                 </button>
               ) : (
@@ -496,11 +498,11 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   className="flex items-center px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-pink-200 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {loading ? (
-                    <span className="animate-pulse">Salvataggio...</span>
+                    <span className="animate-pulse">{t('admin.invitations.create_modal.buttons.saving') || 'Salvataggio...'}</span>
                   ) : (
                     <>
                       <Save size={18} className="mr-2" />
-                      {isEditMode ? 'Aggiorna Invito' : 'Salva Invito'}
+                      {t('admin.invitations.create_modal.buttons.create')}
                     </>
                   )}
                 </button>

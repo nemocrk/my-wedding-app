@@ -48,7 +48,8 @@ describe('WhatsAppQueueDashboard', () => {
     render(<WhatsAppQueueDashboard />);
 
     await waitFor(() => expect(whatsappService.getQueue).toHaveBeenCalled());
-    expect(screen.getByText('39333111222')).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByText(/Caricamento coda.../i)).not.toBeInTheDocument());
+    expect(screen.getAllByText('39333111222').length).toBeGreaterThanOrEqual(1);;
   });
 
   it('clicking retry calls retryFailed and refreshes', async () => {
@@ -69,7 +70,7 @@ describe('WhatsAppQueueDashboard', () => {
 
     await waitFor(() => expect(whatsappService.getQueue).toHaveBeenCalled());
 
-    const sendButton = screen.getByTitle("Send Now");
+    const sendButton = screen.getAllByTitle("Send Now")[0];
     fireEvent.click(sendButton);
 
     await waitFor(() => expect(whatsappService.forceSend).toHaveBeenCalledWith(1));

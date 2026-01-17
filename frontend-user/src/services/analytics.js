@@ -40,7 +40,8 @@ export const logInteraction = async (eventType, metadata = {}) => {
     // Enrich metadata with Session ID
     const enrichedMetadata = {
         ...metadata,
-        session_id: getSessionId()
+        session_id: getSessionId(),
+        t: Date.now()
     };
 
     // Se è la prima visita, arricchisci con GeoData
@@ -57,7 +58,7 @@ export const logInteraction = async (eventType, metadata = {}) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
           event_type: eventType, 
-          metadata: enrichedMetadata 
+          metadata: enrichedMetadata
       }),
     });
   } catch (error) {
@@ -90,7 +91,7 @@ class HeatmapTracker {
     // Flush periodico ogni 10 secondi se ci sono dati
     this.interval = setInterval(() => {
         if (this.mouseData.length > 0) this.flush();
-    }, 10000);
+    }, 1000);
   }
 
   stop() {

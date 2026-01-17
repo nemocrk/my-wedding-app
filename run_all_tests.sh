@@ -28,6 +28,19 @@ fi
 echo "========================================================"
 echo ""
 
+# 0. Static Checks
+echo "--------------------------------------------------------"
+echo "🔍 [0/4] Esecuzione Static Checks (i18n)..."
+echo "--------------------------------------------------------"
+echo "🌐 Verifica allineamento e completezza traduzioni..."
+if [ -f "i18n/scripts/i18n-check.js" ]; then
+    node i18n/scripts/i18n-check.js
+else
+    echo "⚠️  Script i18n-check.js non trovato. Skipping."
+fi
+echo "✅ Static Checks Completati con successo."
+echo ""
+
 # 1. Backend Tests
 echo "--------------------------------------------------------"
 echo "🐍 [1/4] Esecuzione Backend Tests (Pytest)..."
@@ -35,12 +48,13 @@ echo "--------------------------------------------------------"
 cd backend
 
 # Auto-Setup Venv if missing
-if [ ! -d "venv" ]; then
+if [ ! -d ".venv" ]; then
     echo "⚠️  Virtual environment non trovato. Creazione in corso..."
-    python3 -m venv venv
-    source venv/bin/activate
+    python3 -m venv .venv
+    source .venv/bin/activate
 else
-    source venv/bin/activate
+    echo "⚠️  Virtual environment trovato. Lo attivo..."
+    source .venv/bin/activate
 fi
 
 if [ -f "requirements.txt" ]; then

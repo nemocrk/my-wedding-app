@@ -8,6 +8,7 @@
   align-items: center;
   padding: 1rem;
   background: transparent;
+  overflow-y: hidden;
 }
 
 /* FLIP CARD CONTAINER */
@@ -209,7 +210,6 @@
 .info-card:active {
   transform: translateY(0);
 }
-
 /* Icon inside card (left side) */
 .card-icon {
   height: 100%;
@@ -371,6 +371,18 @@
   margin-top: 1rem;
 }
 
+/* Allinea immagine e h2 sulla stessa riga */
+.expanded-content .card-header {
+  display: flex;
+  align-items: center; /* Centra verticalmente l'immagine rispetto al testo */
+  gap: 15px;           /* Crea spazio tra immagine e titolo */
+  margin-bottom: 15px; /* Distanza dal testo sottostante */
+}
+
+/* Rimuovi i margini predefiniti di h2 per un allineamento perfetto */
+.expanded-content .card-header h2 {
+  margin: 0;
+}
 /* ========== RSVP MODAL TITLE ========== */
 .rsvp-modal-title {
   font-family: 'Caveat', cursive;
@@ -1108,7 +1120,7 @@
 
     /* Wax Seal Mobile Adjustment */
     .wax-seal {
-        max-width: 50px;
+        max-width: 48px;
         bottom: -6px;
         left: 20px;
     }
@@ -1371,9 +1383,11 @@
     .text-names { font-size: 1.6rem; }
     .text-wit { font-size: 0.75rem; }
     .text-date { font-size: 1rem; }
+    .spacer-top {
+        height: 5%;
+    }
     
     .wax-seal {
-        max-width: 40px;
         left: 10px;
         bottom: -11px;
     }

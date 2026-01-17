@@ -1,6 +1,6 @@
 # Struttura del Database
 
-Il progetto utilizza PostgreSQL come RDBMS principale. Lo schema è progettato per gestire in modo efficiente le relazioni tra inviti (gruppi) e ospiti (singoli), tracciando al contempo le interazioni per fini statistici.
+Il progetto utilizza PostgreSQL come RDBMS principale. Lo schema è progettato per gestire in modo efficiente le relazioni tra inviti (gruppi) e ospiti (singoli), tracciando al contempo le interazioni per fini statistici e permettendo la configurazione dinamica dei testi.
 
 ## Entity Relationship Diagram (ERD)
 
@@ -42,6 +42,15 @@ erDiagram
         string whatsapp_bride_number
         int whatsapp_rate_limit
     }
+    
+    CONFIGURABLE_TEXT {
+        int id PK
+        string key "Identificativo univoco (es. home.welcome)"
+        text content "Testo con formattazione HTML/JSON"
+        string description "Descrizione uso per Admin"
+        string group "Raggruppamento logico"
+        datetime updated_at
+    }
 
     WHATSAPP_SESSION_STATUS {
         int id PK
@@ -81,8 +90,13 @@ Rappresenta il singolo invitato. Distingue tra adulti e bambini (`is_child`) per
 ### 3. GlobalConfig (Singleton)
 Contiene le configurazioni globali dell'applicazione, modificabili a runtime dall'admin:
 - **Prezzi**: Costi unitari per budget tracker.
-- **Testi**: Template per le lettere.
 - **WhatsApp**: Numeri di telefono sposi, rate limit orario e flag simulazione typing.
+
+### 4. ConfigurableText (CMS)
+Modello per la gestione dei contenuti testuali dinamici dell'applicazione (CMS leggero).
+- **Key**: Chiave univoca utilizzata dal frontend per recuperare il contenuto (es. `home.title`, `card.logistics`).
+- **Content**: Contenuto ricco (HTML o testo semplice) editabile tramite WYSIWYG nell'admin panel.
+- **Group**: Categorizzazione logica per l'interfaccia di amministrazione (es. `home`, `cards`, `rsvp`).
 
 ## Modelli Analytics
 - **GuestInteraction**: Traccia eventi discreti (click, visite, rsvp).
@@ -91,11 +105,11 @@ Contiene le configurazioni globali dell'applicazione, modificabili a runtime dal
 ## Modelli WhatsApp Integration
 Modelli dedicati alla gestione della messaggistica asincrona per evitare blocchi:
 
-### 4. WhatsAppSessionStatus
+### 5. WhatsAppSessionStatus
 Mantiene lo stato corrente della connessione con i container WAHA.
 - **Scopo**: Permette al frontend admin di sapere se è necessario mostrare il QR code senza interrogare direttamente i container (che sono su rete interna).
 
-### 5. WhatsAppMessageQueue
+### 6. WhatsAppMessageQueue
 Coda di persistenza per i messaggi in uscita.
 - **Logica**: I messaggi non vengono inviati subito. Un worker processa questa tabella cronologicamente.
 - **Rate Limiting**: Il worker controlla quante entry in stato `SENT` esistono nell'ultima ora prima di evadere nuovi messaggi `PENDING`.

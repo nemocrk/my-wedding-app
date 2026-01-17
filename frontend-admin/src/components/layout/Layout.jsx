@@ -8,16 +8,16 @@ const Layout = () => {
     // FIX: Aggiunto 'overflow-hidden' per impedire che il body scrolli
     // Garantisce che scrolli SOLO il tag <main> interno
     <div className="flex h-screen overflow-hidden bg-gray-50 font-sans text-gray-900">
-      {/* Sidebar fissa a sinistra (Desktop) */}
-      <div className="hidden md:block">
+      {/* Sidebar fissa a sinistra (Visible only XL+) */}
+      <div className="hidden xl:block">
         <Sidebar />
       </div>
 
       {/* Area Contenuto Principale */}
-      <div className="flex-1 flex flex-col md:ml-64 transition-all duration-300">
+      <div className="flex-1 flex flex-col xl:ml-64 transition-all duration-300">
         
-        {/* Header (visibile su Mobile per il menu, o su Desktop per azioni utente) */}
-        <div className="md:hidden">
+        {/* Header Mobile/Tablet (Visible until XL) */}
+        <div className="xl:hidden">
             <Header />
         </div>
 

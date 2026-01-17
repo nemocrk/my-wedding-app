@@ -4,5 +4,24 @@
         "pub.name": [
             "ui"
         ]
-    }
+    },
+    "python-env.workspaceSearchPaths": [
+        "./backend",
+        "./backend/.venv",
+        "./backend/",
+    ],
+    "python.useEnvironmentsExtension": true,
+    "python.testing.pytestEnabled": true,
+    "python-envs.pythonProjects": [
+        {
+            "path": "backend",
+            "envManager": "ms-python.python:venv",
+            "packageManager": "ms-python.python:pip"
+        }
+    ],
+    "python.testing.pytestArgs": [
+        "-c",
+        "./backend/pytest.ini"
+    ],
+    "python.testing.unittestEnabled": false,
 }

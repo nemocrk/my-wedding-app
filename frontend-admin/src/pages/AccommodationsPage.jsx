@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Home, Sparkles, AlertCircle, X } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import AccommodationList from '../components/accommodations/AccommodationList';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
 import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
@@ -7,6 +8,7 @@ import { api } from '../services/api';
 import ErrorModal from '../components/common/ErrorModal';
 
 const AccommodationsPage = () => {
+    const { t } = useTranslation();
     const [accommodations, setAccommodations] = useState([]);
     const [unassignedInvitations, setUnassignedInvitations] = useState([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -38,7 +40,7 @@ const AccommodationsPage = () => {
     const handleCreate = async (data) => {
         try {
             await api.createAccommodation(data);
-            setSuccessMsg('Alloggio creato con successo!');
+            setSuccessMsg(t('admin.accommodations.success.created'));
             fetchData();
             setIsCreateModalOpen(false);
         } catch (err) {
@@ -47,10 +49,10 @@ const AccommodationsPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm("Sei sicuro di voler eliminare questo alloggio?")) return;
+        if (!window.confirm(t('admin.accommodations.alerts.delete_confirm'))) return;
         try {
             await api.deleteAccommodation(id);
-            setSuccessMsg('Alloggio eliminato.');
+            setSuccessMsg(t('admin.accommodations.success.deleted'));
             fetchData();
         } catch (err) {
             setError(err);
@@ -58,7 +60,7 @@ const AccommodationsPage = () => {
     };
 
     const handleStrategySuccess = (result) => {
-        setSuccessMsg(`Assegnazione completata! ${result.assigned_guests} invitati assegnati con la strategia scelta.`);
+        setSuccessMsg(t('admin.accommodations.success.assigned', { count: result.assigned_guests }));
         fetchData();
     };
 
@@ -66,8 +68,8 @@ const AccommodationsPage = () => {
         <div className="space-y-6">
             <header className="flex justify-between items-center mb-6">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">Gestione Alloggi</h1>
-                    <p className="text-gray-500">Configura le strutture ricettive e assegna gli ospiti.</p>
+                    <h1 className="text-2xl font-bold text-gray-800">{t('admin.accommodations.page_title')}</h1>
+                    <p className="text-gray-500">{t('admin.accommodations.page_subtitle')}</p>
                 </div>
                 <div className="flex gap-3">
                     <button 
@@ -75,14 +77,14 @@ const AccommodationsPage = () => {
                         className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
                     >
                         <Sparkles size={20} />
-                        Auto Assign (Arena)
+                        {t('admin.accommodations.buttons.auto_assign')}
                     </button>
                     <button 
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors shadow-sm"
                     >
                         <Plus size={20} />
-                        Nuovo Alloggio
+                        {t('admin.accommodations.buttons.new_accommodation')}
                     </button>
                 </div>
             </header>
@@ -91,7 +93,7 @@ const AccommodationsPage = () => {
                 <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg relative mb-4" role="alert">
                     <span className="block sm:inline">{successMsg}</span>
                     <button className="absolute top-0 bottom-0 right-0 px-4 py-3" onClick={() => setSuccessMsg('')}>
-                        <span className="sr-only">Chiudi</span>
+                        <span className="sr-only">{t('admin.accommodations.close_success')}</span>
                         <X className="h-6 w-6 text-green-500" role="button" />
                     </button>
                 </div>
@@ -106,13 +108,13 @@ const AccommodationsPage = () => {
                         </div>
                         <div className="ml-3">
                             <h3 className="text-sm font-medium text-yellow-800">
-                                Attenzione: {unassignedInvitations.length} gruppi/inviti non assegnati
+                                {t('admin.accommodations.alerts.unassigned_warning', { count: unassignedInvitations.length })}
                             </h3>
                             <div className="mt-2 text-sm text-yellow-700">
                                 <ul className="list-disc pl-5 space-y-1">
                                     {unassignedInvitations.map((inv) => (
                                         <li key={inv.id}>
-                                            <span className="font-semibold">{inv.name}</span> ({inv.adults_count} Adulti, {inv.children_count} Bambini)
+                                            <span className="font-semibold">{inv.name}</span> ({inv.adults_count} {t('admin.accommodations.alerts.adults')}, {inv.children_count} {t('admin.accommodations.alerts.children')})
                                         </li>
                                     ))}
                                 </ul>

@@ -36,6 +36,13 @@ export class ApiHelper {
     return response.json();
   }
 
+  async markAsSent(id: number) {
+    const response = await this.request.post(`${ADMIN_API}/invitations/${id}/mark-as-sent/`);
+    if (!response.ok()) {
+      throw new Error(`Failed to mark as sent: ${await response.text()}`);
+    }
+    return response.json();
+  }
   async createAccommodation(data: any) {
 
     const response = await this.request.post(`${ADMIN_API}/accommodations/`, {

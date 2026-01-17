@@ -1,12 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { AnimatePresence } from 'motion/react';
+import { useTranslation } from 'react-i18next';
 import { authenticateInvitation } from '../services/api';
 import EnvelopeAnimation from '../components/invitation/EnvelopeAnimation';
+// LetterContent is commented out in original file but we keep imports
 import LetterContent from '../components/invitation/LetterContent';
 import LoadingScreen from '../components/common/LoadingScreen';
 import './InvitationPage.css';
 
 const InvitationPage = () => {
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [invitationData, setInvitationData] = useState(null);
   const [error, setError] = useState(null);
@@ -14,13 +17,21 @@ const InvitationPage = () => {
 
   useEffect(() => {
     const initializeInvitation = async () => {
+      // STOPPER: Se abbiamo già i dati, non ri-autentichiamo.
+      // Questo previene che il cambio lingua (che aggiorna 't' e ri-triggera l'effect)
+      // causi un fallimento perché i parametri URL sono stati rimossi.
+      if (invitationData) {
+        setLoading(false);
+        return;
+      }
+
       // Estrai parametri URL
       const params = new URLSearchParams(window.location.search);
       const code = params.get('code');
       const token = params.get('token');
 
       if (!code || !token) {
-        const errorMsg = 'Link non valido. Mancano i parametri di autenticazione.';
+        const errorMsg = t('invitation.errors.missing_params');
         const customError = new Error(errorMsg);
         // Dispatch event AFTER a short delay to ensure listeners are ready/processing
         setTimeout(() => {
@@ -41,12 +52,12 @@ const InvitationPage = () => {
           // Rimuovi parametri dall'URL per sicurezza
           window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-           const errMsg = data.message || 'Invito non valido';
+           const errMsg = data.message || t('invitation.errors.invalid');
            throw new Error(errMsg);
         }
       } catch (err) {
         console.error('Errore autenticazione:', err);
-        setError('Errore di connessione.');
+        setError(t('invitation.errors.connection'));
         // Dispatch global error for the Modal to show up
         window.dispatchEvent(new CustomEvent('api-error', { detail: err }));
       } finally {
@@ -55,7 +66,7 @@ const InvitationPage = () => {
     };
 
     initializeInvitation();
-  }, []);
+  }, [t, invitationData]); // Added invitationData to deps to be safe/compliant
 
   if (loading) {
     return <LoadingScreen />;
@@ -65,7 +76,7 @@ const InvitationPage = () => {
   if (error) {
     return <div className="min-h-screen bg-gray-50 flex items-center justify-center text-gray-400">
         {/* Fallback visuale leggero se la modale fallisse */}
-        <p className="opacity-0">Errore caricamento invito</p>
+        <p className="opacity-0">{t('invitation.errors.loading_failed')}</p>
     </div>;
   }
 

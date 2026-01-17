@@ -1,10 +1,12 @@
 // frontend-admin/src/components/common/ErrorModal.jsx
 import React, { useState } from 'react';
 import { X, ChevronDown, ChevronUp } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import sadFaceUrl from '../../assets/illustrations/sad-face.svg';
 
 const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
   const [showDetails, setShowDetails] = useState(false);
+  const { t } = useTranslation();
 
   if (!isOpen) return null;
 
@@ -35,11 +37,11 @@ const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
           </div>
 
           <h3 className="text-2xl font-bold text-gray-800 mb-2">
-            Qualcosa è andato storto
+            {t('common.error_modal.title')}
           </h3>
           
           <p className="text-gray-500 mb-6">
-            Non siamo riusciti a completare l'operazione richiesta.
+            {t('common.error_modal.default_user_message')}
           </p>
 
           {/* Error Details Section */}
@@ -48,7 +50,7 @@ const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
               onClick={() => setShowDetails(!showDetails)}
               className="flex items-center justify-center w-full text-sm text-red-600 font-medium hover:text-red-700 transition-colors mb-2 focus:outline-none"
             >
-              {showDetails ? 'Nascondi dettagli tecnici' : 'Mostra dettagli errore'}
+              {showDetails ? t('common.error_modal.hide_technical_data') : t('common.error_modal.show_technical_data')}
               {showDetails ? <ChevronUp size={16} className="ml-1" /> : <ChevronDown size={16} className="ml-1" />}
             </button>
 
@@ -72,7 +74,7 @@ const ErrorModal = ({ isOpen, onClose, errorDetails }) => {
             onClick={onClose}
             className="mt-8 w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-3 px-6 rounded-xl transition-all shadow-lg shadow-red-200 hover:shadow-red-300 transform active:scale-95"
           >
-            Ho capito, chiudi
+            {t('common.error_modal.button')}
           </button>
         </div>
       </div>

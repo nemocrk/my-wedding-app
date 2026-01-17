@@ -1,22 +1,38 @@
 name: Full Stack Test Suite
 
 on:
+  workflow_dispatch:
   push:
     branches: [ "main" ]
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
   pull_request:
     branches: [ "main" ]
-    paths-ignore:
-      - 'docs/**'
-      - '**.md'
+    
 jobs:
+  # ==============================================================================
+  # 0. STATIC CHECKS (i18n, linting)
+  # ==============================================================================
+  static-checks:
+    name: 🔍 Static Checks (i18n)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend-user/package-lock.json
+
+      - name: Run i18n Validation
+        run: node i18n/scripts/i18n-check.js
+
   # ==============================================================================
   # 1. BACKEND TESTS (Matches run_all_tests.sh Section 1)
   # ==============================================================================
   backend-test:
     name: 🐍 Backend Tests (Pytest)
+    needs: [static-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -60,6 +76,7 @@ jobs:
   # ==============================================================================
   frontend-user-test:
     name: ⚛️ Frontend User Tests
+    needs: [static-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
@@ -105,6 +122,7 @@ jobs:
   # ==============================================================================
   frontend-admin-test:
     name: 🛠️ Frontend Admin Tests
+    needs: [static-checks]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6

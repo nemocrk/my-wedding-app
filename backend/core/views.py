@@ -1,27 +1,82 @@
-from rest_framework import viewsets, status
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import Sum, Count, Q
 from django.contrib.sessions.models import Session
 from django.db import transaction
+from django.conf import settings
 from .models import (
     Invitation, GlobalConfig, Person, Accommodation, Room, 
-    GuestInteraction, GuestHeatmap, WhatsAppTemplate
+    GuestInteraction, GuestHeatmap, WhatsAppTemplate,
+    ConfigurableText
 )
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
-    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer
+    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer,
+    ConfigurableTextSerializer
 )
 import logging
 import os
-import copy
+import json
 
 logger = logging.getLogger(__name__)
 
 # ========================================
 # PUBLIC API (Internet - Session Based)
 # ========================================
+
+class PublicLanguagesView(APIView):
+    """
+    Endpoint pubblico per recuperare le lingue disponibili.
+    Legge dal file generato automaticamente 'core/fixtures/languages.json'.
+    """
+    def get(self, request):
+        fixture_path = os.path.join(settings.BASE_DIR, 'core/fixtures/languages.json')
+        try:
+            if os.path.exists(fixture_path):
+                with open(fixture_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                return Response(data)
+            else:
+                # Fallback se il file non è stato generato
+                return Response([
+                    {"code": "it", "label": "Italiano", "flag": "🇮🇹"},
+                    {"code": "en", "label": "English", "flag": "🇬🇧"}
+                ])
+        except Exception as e:
+            logger.error(f"Error reading languages fixture: {e}")
+            return Response([{"code": "it", "label": "Italiano", "flag": "🇮🇹"}])
+
+class PublicConfigurableTextView(APIView):
+    """
+    Endpoint pubblico per recuperare i testi configurati.
+    Supporta filtro lingua (?lang=en). Fallback a 'it' se non trovato.
+    """
+    def get(self, request):
+        lang = request.query_params.get('lang', 'it')
+        
+        # Recupera tutti i testi
+        texts = ConfigurableText.objects.all()
+        
+        # Costruisce dizionario con fallback logic:
+        # Prima carica 'it' (default), poi sovrascrive con la lingua richiesta
+        # Questo assicura che se manca una chiave in 'en', si veda quella 'it'
+        
+        data = {}
+        
+        # 1. Base Layer (Italiano/Default)
+        base_texts = texts.filter(language='it')
+        for t in base_texts:
+            data[t.key] = t.content
+            
+        # 2. Override Layer (Requested Language)
+        if lang != 'it':
+            lang_texts = texts.filter(language=lang)
+            for t in lang_texts:
+                data[t.key] = t.content # Override
+        
+        return Response(data)
 
 class PublicInvitationAuthView(APIView):
     def post(self, request):
@@ -33,6 +88,8 @@ class PublicInvitationAuthView(APIView):
         try:
             invitation = Invitation.objects.get(code=code)
             if not invitation.verify_token(token, config.invitation_link_secret):
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
+            if not invitation.status in [Invitation.Status.SENT, Invitation.Status.READ, Invitation.Status.CONFIRMED, Invitation.Status.DECLINED ]:
                 return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
             request.session['invitation_code'] = code
             request.session['invitation_token'] = token
@@ -271,6 +328,105 @@ class PublicLogHeatmapView(APIView):
 # ADMIN API (Intranet Only)
 # ========================================
 
+class AdminGoogleFontsProxyView(APIView):
+    """
+    Proxy sicuro per Google Fonts → OFFLINE MODE.
+    Legge dal file statico backend/assets/fontInfo.json invece di chiamare l'API.
+    """
+    def get(self, request):
+        font_file_path = os.path.join(settings.BASE_DIR, 'assets', 'fontInfo.json')
+        
+        if not os.path.exists(font_file_path):
+            logger.error(f"Font info file not found at {font_file_path}")
+            return Response(
+                {'error': 'Font database not available'}, 
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
+        try:
+            with open(font_file_path, 'r', encoding='utf-8') as f:
+                fonts_data = json.load(f)
+            
+            # Trasforma la struttura locale nel formato che il frontend si aspetta (Google API format)
+            items = []
+            for font in fonts_data:
+                items.append({
+                    'family': font.get('name'),
+                    'category': font.get('category', 'sans-serif'),
+                    'variants': font.get('variants', []),
+                    'subsets': font.get('subsets', [])
+                })
+            
+            # Restituisce nel formato Google API standard per compatibilità
+            return Response({'items': items})
+            
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Error reading font info file: {e}")
+            return Response(
+                {'error': 'Failed to load font database'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+class ConfigurableTextViewSet(viewsets.ModelViewSet):
+    """
+    CRUD completo per i testi configurabili.
+    Supporta ricerca per key e filtro per language.
+    """
+    queryset = ConfigurableText.objects.all().order_by('key')
+    serializer_class = ConfigurableTextSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['key', 'content']
+    lookup_field = 'key' 
+    lookup_value_regex = '[^/]+' 
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
+        return qs
+
+    def retrieve(self, request, key=None, *args, **kwargs):
+        """
+        Custom retrieve that tries to find the text by key AND language.
+        """
+        lang = request.query_params.get('lang', 'it')
+        try:
+            instance = ConfigurableText.objects.get(key=key, language=lang)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        except ConfigurableText.DoesNotExist:
+            return Response({'error': 'Not Found', 'key': key, 'language': lang}, status=status.HTTP_404_NOT_FOUND)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Create or Update logic hidden behind PUT/PATCH on the 'key'.
+        """
+        key = kwargs.get('key')
+        lang = request.query_params.get('lang', 'it')
+        partial = kwargs.pop('partial', False)
+        
+        instance, created = ConfigurableText.objects.get_or_create(
+            key=key, 
+            language=lang,
+            defaults={'content': request.data.get('content', '')}
+        )
+        
+        if not created:
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        else:
+            if 'content' in request.data:
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+            else:
+                serializer = self.get_serializer(instance)
+            
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
     queryset = Invitation.objects.all().order_by('-created_at')
@@ -353,6 +509,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
             sid = hm.session_id
             if sid not in sessions_map:
                 sessions_map[sid] = {'session_id': sid, 'start_time': hm.timestamp, 'heatmap': {'id': hm.id, 'mouse_data': hm.mouse_data, 'screen_width': hm.screen_width, 'screen_height': hm.screen_height}, 'events': [], 'device_info': 'Unknown'}
+            else:
+                sessions_map[sid]['heatmap']['mouse_data'].extend(hm.mouse_data)
         for evt in interactions:
             meta = evt.metadata or {}
             sid = meta.get('session_id')
@@ -757,3 +915,22 @@ class DashboardStatsView(APIView):
                 'currency': '€'
             }
         })
+
+class GlobalConfigViewSet(viewsets.ViewSet):
+    def list(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config)
+        return Response(serializer.data)
+
+    def create(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for WhatsApp Templates"""
+    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
+    serializer_class = WhatsAppTemplateSerializer
