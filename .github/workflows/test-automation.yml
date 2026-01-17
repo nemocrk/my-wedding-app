@@ -2,21 +2,41 @@ name: Full Stack Test Suite
 
 on:
   workflow_dispatch:
-  push:
-    branches: [ "main" ]
   pull_request:
     branches: [ "main" ]
-    
+    types: [labeled, synchronize]
+
+# Cancella esecuzioni vecchie se ne parte una nuova sullo stesso branch
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write # Necessario per rimuovere la label
+
 jobs:
   # ==============================================================================
   # 0. STATIC CHECKS (i18n, linting)
   # ==============================================================================
   static-checks:
     name: 🔍 Static Checks (i18n)
+    # Esegue SOLO se manuale O se la label 'ready-to-test' è presente
+    if: |
+      github.event_name == 'workflow_dispatch' || 
+      contains(github.event.pull_request.labels.*.name, 'ready-to-test')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
       
+      # AUTO-CLEANUP: Rimuove la label immediatamente per evitare loop futuri
+      - name: 🏷️ Remove Trigger Label
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr edit ${{ github.event.pull_request.number }} --remove-label "ready-to-test" || echo "Label not found or already removed"
+
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
@@ -32,7 +52,7 @@ jobs:
   # ==============================================================================
   backend-test:
     name: 🐍 Backend Tests (Pytest)
-    needs: [static-checks]
+    needs: [static-checks] # Dipende dal successo del job precedente
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
