@@ -115,6 +115,23 @@ class ConfigurableText(models.Model):
         return f"{self.key} ({self.language})"
 
 
+class InvitationLabel(models.Model):
+    """Etichetta personalizzabile per gli inviti"""
+    name = models.CharField(max_length=50, unique=True, verbose_name="Nome Etichetta")
+    color = models.CharField(max_length=7, default="#CCCCCC", verbose_name="Colore (HEX)")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Etichetta Invito"
+        verbose_name_plural = "Etichette Invito"
+        ordering = ['name']
+
+
 class Accommodation(models.Model):
     """Struttura ricettiva (Hotel, B&B, Casa) per ospitare gli invitati"""
     name = models.CharField(max_length=200, verbose_name="Nome Alloggio")
@@ -290,6 +307,20 @@ class Invitation(models.Model):
         related_name='assigned_invitations',
         on_delete=models.SET_NULL,
         verbose_name="Alloggio Assegnato"
+    )
+    
+    # NUOVI CAMPI (Issue #51)
+    accommodation_pinned = models.BooleanField(
+        default=False, 
+        verbose_name="Blocca Assegnazione Alloggio",
+        help_text="Se attivo, l'algoritmo di auto-assegnazione non modificherà l'alloggio di questo invito."
+    )
+    
+    labels = models.ManyToManyField(
+        InvitationLabel, 
+        blank=True, 
+        related_name='invitations',
+        verbose_name="Etichette"
     )
 
     # Affinità
