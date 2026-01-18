@@ -10,13 +10,16 @@ Questa checklist guida l'implementazione delle nuove funzionalità richieste per
 **Per garantire un'evoluzione organica del progetto, ogni step deve rispettare rigorosamente i seguenti principi:**
 
 1. **Assessment Totale**: Prima di ogni modifica, analizzare il contesto (inclusi file nascosti, Dockerfile, Nginx). Non ignorare mai le dipendenze infrastrutturali.
-2. **Evoluzione Incrementale (No-Rewriting)**: Vietato riscrivere moduli da zero. Il codice esistente va evoluto ed esteso, mantenendo coerenza stilistica e architetturale.
+2. **Evoluzione Incrementale (No-Rewriting)**: Vietato riscrivere moduli da zero. Il codice esistente va evoluto ed esteso.
 3. **Documentazione Viva**: "Se il codice cambia, la documentazione cambia". Aggiornare contestualmente `docs/`, `README.md` e `API_DOCUMENTATION.md`.
 4. **Protocollo Testing & Qualità**:
    - **Unit Test**: Obbligatori per ogni nuova logica (Backend & Frontend).
    - **Smoke Test**: Verifica build container post-modifica.
-   - **Non-Regression**: Assicurarsi che le feature esistenti (apertura busta, heatmap) non subiscano impatti.
-5. **Governance Database**: Ogni modifica allo schema (es. nuove label, flag pinned) richiede approvazione preventiva e un piano di migrazione chiaro per i dati esistenti.
+   - **Non-Regression**: Assicurarsi che le feature esistenti non subiscano impatti.
+5. **Governance Database**: Ogni modifica allo schema richiede approvazione preventiva e piano migrazione.
+6. **i18n by Design (Zero Hardcoded Strings)**: 
+   - **UI Statica**: Ogni nuova label, bottone o messaggio di errore DEVE usare `i18n` (file JSON). Vietato scrivere "Salva" o "Errore" direttamente nel codice React/Django.
+   - **User Data**: I dati inseriti dall'utente (es. nomi label personalizzate) devono essere trattati come stringhe raw e renderizzati in sicurezza.
 
 ---
 
@@ -72,6 +75,7 @@ Questa checklist guida l'implementazione delle nuove funzionalità richieste per
 - [ ] Aggiungere componente "LabelManager" (o settings page) per definire colori.
 - [ ] Aggiornare form "Censimento Invito":
   - Campo "Labels" tipo Multi-Select con creazione dinamica (es. `react-select` Creatable).
+  - **i18n**: Assicurarsi che i placeholder ("Select labels...") siano tradotti.
 
 ### Lista Inviti (Miglioramenti)
 - [ ] Aggiungere colonna "Labels" con badge colorati.
@@ -99,6 +103,7 @@ Questa checklist guida l'implementazione delle nuove funzionalità richieste per
 ### Frontend Tests
 - [ ] Smoke Test: Build frontend-admin.
 - [ ] Test UX: Creazione label da form invito.
+- [ ] **i18n Audit**: Eseguire script di scansione per verificare assenza stringhe hardcoded.
 
 ---
 
