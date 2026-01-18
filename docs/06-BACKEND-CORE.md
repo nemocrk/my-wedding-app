@@ -34,6 +34,8 @@ Raggruppa un nucleo familiare.
   - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
   - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
   - `contact_verified`: Enum (`ok`, `not_valid`, `not_exist`, `not_present`) che indica lo stato di verifica del numero su WhatsApp.
+- **Etichette (Labels)**:
+  - `labels`: Relazione ManyToMany con `InvitationLabel`. Permette di categorizzare gli inviti (es. "VIP", "Colleghi").
 - **Affinities**: Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
 - **Workflow Status**:
   Gestisce il ciclo di vita dell'invito:
@@ -44,7 +46,13 @@ Raggruppa un nucleo familiare.
 - **Flags Logistici**:
     - `accommodation_offered`: Se True, sblocca il form "Richiesta Alloggio" nel frontend.
     - `transfer_offered`: Se True, sblocca la selezione "Navetta".
+    - `accommodation_pinned`: Se True, l'algoritmo di auto-assegnazione salta questo invito, preservando la stanza assegnata manualmente.
 - **Token HMAC**: Il metodo `generate_verification_token` crea una firma crittografica basata su `code + id + secret_key` per validare le richieste API pubbliche e prevenire ID enumeration.
+
+### Modello `InvitationLabel`
+Dizionario delle etichette disponibili.
+- `name`: Nome univoco (es. "VIP").
+- `color`: Colore HEX per badge UI.
 
 ### Modello `Person`
 Rappresenta il singolo ospite.
@@ -110,6 +118,7 @@ L'endpoint `/auto-assign` può essere chiamato in due modalità:
 2. **Regola 2 (Compatibilità)**: Una struttura non può ospitare inviti tra loro "non affini".
 3. **Regola 3 (Atomicità)**: Tutte le persone di un invito devono trovare posto nella stessa struttura (in una o più stanze), altrimenti l'intero invito non viene assegnato (Rollback).
 4. **Regola 4 (Slot)**: Adulti solo in slot adulti; Bambini in slot bambini o adulti.
+5. **Regola 5 (Pinning)**: Se `invitation.accommodation_pinned` è True, l'invito viene escluso dalla riassegnazione e la sua stanza è considerata occupata a priori.
 
 > **⚠️ NOTA TECNICA IMPORTANTE (Prefetch vs Live Query)**
 > L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
@@ -117,7 +126,7 @@ L'endpoint `/auto-assign` può essere chiamato in due modalità:
 
 ## 6. Analytics (`GuestInteraction` & `GuestHeatmap`)
 Sistema di tracciamento integrato.
-- **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
+- **GuestInteraction**: Traccia eventi discreti (Visit, Click, RSVP). Include metadata (IP anonimizzato, Device Type).
 - **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
 
 ## Diagramma Classi Core
@@ -143,7 +152,13 @@ classDiagram
         +Enum contact_verified
         +Enum status
         +Boolean accommodation_offered
+        +Boolean accommodation_pinned
         +generate_token()
+    }
+    
+    class InvitationLabel {
+        +String name
+        +String color
     }
 
     class Person {
@@ -165,6 +180,7 @@ classDiagram
     }
 
     Invitation "1" *-- "*" Person : contains
+    Invitation "*" -- "*" InvitationLabel : labeled_by
     Room "1" o-- "*" Person : houses
     WhatsAppTemplate "1" .. "*" Invitation : triggers
 ```
