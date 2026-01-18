@@ -6,6 +6,20 @@ Questa checklist guida l'implementazione delle nuove funzionalità richieste per
 
 ---
 
+## 🛡️ REGOLE AUREE (COMPLIANCE OBBLIGATORIA)
+**Per garantire un'evoluzione organica del progetto, ogni step deve rispettare rigorosamente i seguenti principi:**
+
+1. **Assessment Totale**: Prima di ogni modifica, analizzare il contesto (inclusi file nascosti, Dockerfile, Nginx). Non ignorare mai le dipendenze infrastrutturali.
+2. **Evoluzione Incrementale (No-Rewriting)**: Vietato riscrivere moduli da zero. Il codice esistente va evoluto ed esteso, mantenendo coerenza stilistica e architetturale.
+3. **Documentazione Viva**: "Se il codice cambia, la documentazione cambia". Aggiornare contestualmente `docs/`, `README.md` e `API_DOCUMENTATION.md`.
+4. **Protocollo Testing & Qualità**:
+   - **Unit Test**: Obbligatori per ogni nuova logica (Backend & Frontend).
+   - **Smoke Test**: Verifica build container post-modifica.
+   - **Non-Regression**: Assicurarsi che le feature esistenti (apertura busta, heatmap) non subiscano impatti.
+5. **Governance Database**: Ogni modifica allo schema (es. nuove label, flag pinned) richiede approvazione preventiva e un piano di migrazione chiaro per i dati esistenti.
+
+---
+
 ## 1. Piano di Migrazione Database (Governance)
 > **ATTENZIONE**: Modifiche allo schema dati. Richiesta approvazione prima dell'apply.
 
