@@ -1,6 +1,6 @@
 // frontend-admin/src/components/invitations/CreateInvitationModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone, Tag } from 'lucide-react';
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const totalSteps = 3;
   const [loading, setLoading] = useState(false);
   const [existingInvitations, setExistingInvitations] = useState([]);
+  const [availableLabels, setAvailableLabels] = useState([]);
 
   // Edit Mode Flag
   const isEditMode = !!initialData;
@@ -27,6 +28,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
     phone_number: '',
     accommodation_offered: false,
     transfer_offered: false,
+    label_ids: [],
     guests: [
       { first_name: '', last_name: '', is_child: false }
     ],
@@ -44,6 +46,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
         phone_number: initialData.phone_number || '',
         accommodation_offered: initialData.accommodation_offered || false,
         transfer_offered: initialData.transfer_offered || false,
+        label_ids: initialData.labels ? initialData.labels.map(l => l.id) : [],
         guests: initialData.guests && initialData.guests.length > 0 
           ? initialData.guests 
           : [{ first_name: '', last_name: '', is_child: false }],
@@ -52,6 +55,19 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       });
     }
   }, [initialData]);
+
+  // Fetch available labels
+  useEffect(() => {
+    const loadLabels = async () => {
+        try {
+            const data = await api.fetchInvitationLabels();
+            setAvailableLabels(data.results || data);
+        } catch (error) {
+            console.error("Failed to load labels", error);
+        }
+    };
+    loadLabels();
+  }, []);
 
   // Fetch existing invitations for affinities step
   useEffect(() => {
@@ -79,6 +95,17 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const toggleLabel = (labelId) => {
+    setFormData(prev => {
+        const currentLabels = prev.label_ids || [];
+        if (currentLabels.includes(labelId)) {
+            return { ...prev, label_ids: currentLabels.filter(id => id !== labelId) };
+        } else {
+            return { ...prev, label_ids: [...currentLabels, labelId] };
+        }
+    });
   };
 
   // Guest Management
@@ -283,6 +310,43 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       <p className="text-xs text-gray-500 mt-1">
                         {t('admin.invitations.create_modal.steps.details.phone_hint')}
                       </p>
+                    </div>
+
+                    {/* LABELS SECTION */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                             <Tag size={16} className="inline mr-1"/> {t('admin.invitations.create_modal.steps.details.labels') || "Etichette"}
+                        </label>
+                        {availableLabels.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {availableLabels.map(label => {
+                                    const isSelected = formData.label_ids.includes(label.id);
+                                    return (
+                                        <button
+                                            key={label.id}
+                                            type="button"
+                                            onClick={() => toggleLabel(label.id)}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                                isSelected 
+                                                ? 'ring-2 ring-offset-1' 
+                                                : 'opacity-70 hover:opacity-100'
+                                            }`}
+                                            style={{
+                                                backgroundColor: isSelected ? label.color : 'white',
+                                                borderColor: label.color,
+                                                color: isSelected ? '#fff' : label.color,
+                                                '--tw-ring-color': label.color
+                                            }}
+                                        >
+                                            {label.name}
+                                            {isSelected && <Check size={12} className="inline ml-1" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-gray-400 italic">{t('admin.invitations.create_modal.steps.details.no_labels') || "Nessuna etichetta disponibile"}</p>
+                        )}
                     </div>
 
                     <div className="pt-4 border-t border-gray-100">
