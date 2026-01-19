@@ -45,9 +45,9 @@ class InvitationSerializer(serializers.ModelSerializer):
     label_ids = serializers.PrimaryKeyRelatedField(
         many=True, 
         queryset=InvitationLabel.objects.all(), 
-        write_only=True, 
-        source='labels',
-        required=False  # Changed to False to fix tests
+        write_only=True,
+        required=False,
+        allow_empty=True
     )
     accommodation = AccommodationSerializer(read_only=True)
     assigned_room = RoomSerializer(read_only=True)
@@ -63,12 +63,15 @@ class InvitationSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         guests_data = validated_data.pop('guests')
-        labels_data = validated_data.pop('labels', [])
+        label_ids = validated_data.pop('label_ids', [])
+        
+        # Remove labels if present (should not be due to source removal, but safe to keep)
+        validated_data.pop('labels', None)
         
         invitation = Invitation.objects.create(**validated_data)
         
-        if labels_data:
-            invitation.labels.set(labels_data)
+        if label_ids:
+            invitation.labels.set(label_ids)
             
         for guest_data in guests_data:
             Person.objects.create(invitation=invitation, **guest_data)
@@ -77,7 +80,10 @@ class InvitationSerializer(serializers.ModelSerializer):
         
     def update(self, instance, validated_data):
         guests_data = validated_data.pop('guests', None)
-        labels_data = validated_data.pop('labels', None)
+        label_ids = validated_data.pop('label_ids', None)
+        
+        # Remove labels if present
+        validated_data.pop('labels', None)
         
         # Update invitation fields
         for attr, value in validated_data.items():
@@ -85,8 +91,8 @@ class InvitationSerializer(serializers.ModelSerializer):
         instance.save()
 
         # Update labels if provided
-        if labels_data is not None:
-            instance.labels.set(labels_data)
+        if label_ids is not None:
+            instance.labels.set(label_ids)
             
         # Update guests if provided
         if guests_data is not None:
