@@ -112,15 +112,15 @@ const InvitationList = () => {
   };
 
   // --- HELPERS ---
+  const statusConfig = {
+    imported: { icon: FileText, label: t('admin.invitations.status.imported'), color: 'bg-gray-100 text-gray-600' },
+    created: { icon: FileText, label: t('admin.invitations.status.created'), color: 'bg-gray-100 text-gray-600' },
+    sent: { icon: Send, label: t('admin.invitations.status.sent'), color: 'bg-blue-100 text-blue-700' },
+    read: { icon: Eye, label: t('admin.invitations.status.read'), color: 'bg-indigo-100 text-indigo-700' },
+    confirmed: { icon: CheckCircle, label: t('admin.invitations.status.confirmed'), color: 'bg-green-100 text-green-800' },
+    declined: { icon: XCircle, label: t('admin.invitations.status.declined'), color: 'bg-red-100 text-red-800' },
+  };
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      imported: { icon: FileText, label: t('admin.invitations.status.imported'), color: 'bg-gray-100 text-gray-600' },
-      created: { icon: FileText, label: t('admin.invitations.status.created'), color: 'bg-gray-100 text-gray-600' },
-      sent: { icon: Send, label: t('admin.invitations.status.sent'), color: 'bg-blue-100 text-blue-700' },
-      read: { icon: Eye, label: t('admin.invitations.status.read'), color: 'bg-indigo-100 text-indigo-700' },
-      confirmed: { icon: CheckCircle, label: t('admin.invitations.status.confirmed'), color: 'bg-green-100 text-green-800' },
-      declined: { icon: XCircle, label: t('admin.invitations.status.declined'), color: 'bg-red-100 text-red-800' },
-    };
     
     const config = statusConfig[status] || { icon: HelpCircle, label: t('admin.invitations.status.unknown'), color: 'bg-gray-100 text-gray-600' };
     const Icon = config.icon;
@@ -360,11 +360,11 @@ const InvitationList = () => {
               className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
           >
               <option value="">{t('admin.invitations.filters.all_statuses') || "Tutti gli stati"}</option>
-              <option value="created">Created</option>
-              <option value="sent">Sent</option>
-              <option value="read">Read</option>
-              <option value="confirmed">Confirmed</option>
-              <option value="declined">Declined</option>
+              <option value="created">statusConfig['created'].label</option>
+              <option value="sent">statusConfig['sent'].label</option>
+              <option value="read">statusConfig['read'].label</option>
+              <option value="confirmed">statusConfig['confirmed'].label</option>
+              <option value="declined">statusConfig['declined'].label</option>
           </select>
 
           {labels.length > 0 && (

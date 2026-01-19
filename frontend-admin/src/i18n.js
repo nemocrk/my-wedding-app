@@ -6,16 +6,16 @@ i18n
   .use(HttpBackend)
   .use(initReactI18next)
   .init({
-    backend: {
-      loadPath: '/i18n/{{lng}}.json'
-    },
-    lng: localStorage.getItem('language') || 'it',
     fallbackLng: 'it',
+    lng: localStorage.getItem('language') || 'it',
+    backend: {
+      loadPath: 'i18n/{{lng}}.json',
+    },
     interpolation: {
-      escapeValue: false
+      escapeValue: false // React già protegge da XSS
     },
     react: {
-      useSuspense: false
+      useSuspense: false // Evita problemi con Suspense in dev mode
     }
   });
 
