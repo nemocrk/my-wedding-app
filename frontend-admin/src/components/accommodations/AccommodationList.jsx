@@ -38,7 +38,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                     onClick={() => onEdit(acc)}
                                     className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
                                     aria-label="Edit"
-                                    title={t('admin.accommodations.list.edit') || "Modifica"}
+                                    title={t('admin.accommodations.list.edit')}
                                 >
                                     <Edit2 size={20} />
                                 </button>
@@ -46,7 +46,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                     onClick={() => onDelete(acc.id)}
                                     className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                     aria-label="Delete"
-                                    title={t('admin.accommodations.list.delete') || "Elimina"}
+                                    title={t('admin.accommodations.list.delete')}
                                 >
                                     <Trash2 size={20} />
                                 </button>

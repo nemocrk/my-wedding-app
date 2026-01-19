@@ -1,37 +1,19 @@
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LabelsPage from '../pages/LabelsPage';
+import LabelManager from '../pages/LabelManager';
 import { api } from '../services/api';
 
 // Mock API
 vi.mock('../services/api', () => ({
   api: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+    fetchInvitationLabels: vi.fn(),
+    createInvitationLabel: vi.fn(),
+    updateInvitationLabel: vi.fn(),
+    deleteInvitationLabel: vi.fn(),
   }
 }));
 
-// Mock Translations
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => {
-        const translations = {
-            'labels.title': 'Gestione Etichette',
-            'labels.create': 'Nuova Etichetta',
-            'common.actions': 'Azioni',
-            'common.edit': 'Modifica',
-            'common.delete': 'Elimina',
-            'common.save': 'Salva',
-            'common.cancel': 'Annulla'
-        };
-        return translations[key] || key;
-    }
-  }),
-}));
-
-describe('LabelsPage', () => {
+describe('LabelManager', () => {
   const mockLabels = [
     { id: 1, name: 'VIP', color: '#FF0000' },
     { id: 2, name: 'Family', color: '#00FF00' },
@@ -39,38 +21,42 @@ describe('LabelsPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    api.get.mockResolvedValue({ data: mockLabels });
+    api.fetchInvitationLabels.mockResolvedValue({ results: mockLabels });
   });
 
   it('renders labels list correctly', async () => {
-    render(<LabelsPage />);
+    render(<LabelManager />);
     
     // Check loading/initial render
     expect(screen.getByText('Gestione Etichette')).toBeInTheDocument();
     
     // Wait for data to load
     await waitFor(() => {
-      expect(screen.getByText('VIP')).toBeInTheDocument();
-      expect(screen.getByText('Family')).toBeInTheDocument();
+      const elementsVIP = screen.getAllByText('VIP');
+      expect(elementsVIP.length).toBeGreaterThan(0);
+      expect(elementsVIP[0]).toBeInTheDocument();
+      const elementsFamily = screen.getAllByText('Family');
+      expect(elementsFamily.length).toBeGreaterThan(0);
+      expect(elementsFamily[0]).toBeInTheDocument();
     });
     
-    expect(api.get).toHaveBeenCalledWith('/invitation-labels/');
+  expect(api.fetchInvitationLabels).toHaveBeenCalled();
   });
 
   it('opens create modal and submits new label', async () => {
-    api.post.mockResolvedValue({ data: { id: 3, name: 'Friends', color: '#0000FF' } });
-    api.get.mockResolvedValueOnce({ data: mockLabels }).mockResolvedValueOnce({ 
-        data: [...mockLabels, { id: 3, name: 'Friends', color: '#0000FF' }] 
+    api.createInvitationLabel.mockResolvedValue({ data: { id: 3, name: 'Friends', color: '#0000FF' } });
+    api.fetchInvitationLabels.mockResolvedValueOnce({ results: mockLabels }).mockResolvedValueOnce({ 
+        results: [...mockLabels, { id: 3, name: 'Friends', color: '#0000FF' }] 
     });
 
-    render(<LabelsPage />);
+    render(<LabelManager />);
     
     // Open Modal
     const createBtn = screen.getByText('Nuova Etichetta');
     fireEvent.click(createBtn);
     
     // Fill Form
-    const nameInput = screen.getByPlaceholderText('Nome etichetta');
+    const nameInput = screen.getByLabelText(/Nome etichetta/i);
     fireEvent.change(nameInput, { target: { value: 'Friends' } });
     
     // Submit
@@ -78,40 +64,31 @@ describe('LabelsPage', () => {
     fireEvent.click(saveBtn);
     
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/invitation-labels/', { 
-        name: 'Friends', color: '#CCCCCC' // Default color check
+      expect(api.createInvitationLabel).toHaveBeenCalledWith({ 
+        name: 'Friends', color: '#3B82F6' // Default color check
       });
     });
   });
 
   it('handles label deletion', async () => {
-    api.delete.mockResolvedValue({});
-    api.get.mockResolvedValueOnce({ data: mockLabels }).mockResolvedValueOnce({ 
-        data: [mockLabels[0]] // Remove second label
+    api.deleteInvitationLabel.mockResolvedValue({});
+    api.fetchInvitationLabels.mockResolvedValueOnce({ results: mockLabels }).mockResolvedValueOnce({ 
+        results: [mockLabels[0]] // Remove second label
     });
 
-    render(<LabelsPage />);
+    render(<LabelManager />);
     
-    await waitFor(() => screen.getByText('Family'));
-    
+    await waitFor(() => {    
+      const elementsFamily = screen.getAllByText('Family');
+      expect(elementsFamily.length).toBeGreaterThan(0);
+      expect(elementsFamily[0]).toBeInTheDocument();
+    });
     // Click Delete on second item
-    const deleteBtns = screen.getAllByText('Elimina'); // Assuming button text or title
-    fireEvent.click(deleteBtns[1]); 
+    const deleteBtn = screen.getByRole('button', { name: /delete Family/i }); // Assuming button text or title
+    fireEvent.click(deleteBtn); 
+    const deleteBtns = screen.getByText('Elimina'); // Assuming button text or title
+    fireEvent.click(deleteBtns); 
     
-    // Confirm (Mock window.confirm if used, or custom modal)
-    // Assuming simple button click for now based on typical implementation, 
-    // or if a confirmation dialog exists, we need to target it.
-    // For this test, let's assume the component uses a confirmation modal or direct delete.
-    // Adjusting based on standard admin UIs: usually a confirm dialog appears.
-    
-    // If standard window.confirm:
-    // vi.spyOn(window, 'confirm').mockImplementation(() => true);
-    
-    // If Custom Modal: find confirm button in modal. 
-    // Let's assume the delete button directly calls api for this simple test case
-    // or check if a confirmation appears.
-    
-    // Re-verify logic based on typical implementation:
-    expect(api.delete).toHaveBeenCalledWith('/invitation-labels/2/');
+    expect(api.deleteInvitationLabel).toHaveBeenCalledWith(2);
   });
 });

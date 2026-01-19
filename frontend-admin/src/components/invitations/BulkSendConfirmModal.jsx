@@ -22,7 +22,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
       // Logic: Contact is valid if it has a phone number
       // We might also check if it's already sent, but the API handles idempotency usually.
       // For UI clarity, we prioritize phone number presence.
-      if (inv.phone_number && inv.phone_number.length > 5) {
+      if (inv.phone_number && inv.phone_number.length > 5 && inv.status == 'created') {
         valid.push(inv);
       } else {
         invalid.push(inv);
@@ -58,7 +58,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
     } catch (error) {
       console.error("Bulk send failed", error);
       setIsSending(false);
-      alert(t('admin.invitations.alerts.bulk_send_failed') || "Errore durante l'invio massivo");
+      alert(t('admin.invitations.alerts.bulk_send_failed'));
     }
   };
 
@@ -75,10 +75,10 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
             </div>
             <div>
               <h2 className="text-xl font-bold text-gray-900">
-                {t('admin.invitations.bulk_send_confirm.title') || 'Invia Inviti Selezionati'}
+                {t('admin.invitations.bulk_send_confirm.title')}
               </h2>
               <p className="text-sm text-gray-500">
-                {t('admin.invitations.bulk_send_confirm.subtitle') || 'Questa azione invierà il messaggio di benvenuto automatico'}
+                {t('admin.invitations.bulk_send_confirm.subtitle')}
               </p>
             </div>
           </div>
@@ -99,7 +99,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
               <div className="flex items-center text-green-600 text-sm font-medium mb-1">
                 <CheckCircle size={16} className="mr-1" />
-                {t('admin.invitations.bulk_send_confirm.ready_to_send') || 'Pronti per l\'invio'}
+                {t('admin.invitations.bulk_send_confirm.ready_to_send')}
               </div>
               <div className="text-3xl font-bold text-green-900">{valid.length}</div>
             </div>
@@ -107,7 +107,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center text-red-600 text-sm font-medium mb-1">
                 <AlertCircle size={16} className="mr-1" />
-                {t('admin.invitations.bulk_send_confirm.missing_contact') || 'Senza contatto'}
+                {t('admin.invitations.bulk_send_confirm.missing_contact')}
               </div>
               <div className="text-3xl font-bold text-red-900">{invalid.length}</div>
             </div>
@@ -120,11 +120,10 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
                 <AlertCircle size={20} className="text-yellow-600 mr-3 mt-0.5 flex-shrink-0" />
                 <div>
                   <h3 className="font-semibold text-yellow-900 mb-1">
-                    {t('admin.invitations.bulk_send_confirm.exclusion_warning') || 'Alcuni inviti saranno esclusi'}
+                    {t('admin.invitations.bulk_send_confirm.exclusion_warning')}
                   </h3>
                   <p className="text-sm text-yellow-800">
-                    {t('admin.invitations.bulk_send_confirm.exclusion_details', { count: invalid.length }) || 
-                      `${invalid.length} inviti non hanno un numero di telefono valido e non riceveranno il messaggio.`}
+                    {t('admin.invitations.bulk_send_confirm.exclusion_details', { count: invalid.length })}
                   </p>
                 </div>
               </div>
@@ -135,7 +134,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
           {valid.length > 0 ? (
             <div>
               <h3 className="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wide">
-                {t('admin.invitations.bulk_send_confirm.recipient_list') || 'Destinatari'}
+                {t('admin.invitations.bulk_send_confirm.recipient_list')}
               </h3>
               <div className="bg-gray-50 rounded-lg border border-gray-200 max-h-60 overflow-y-auto divide-y divide-gray-200">
                 {valid.map((inv) => (
@@ -154,7 +153,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
                     </div>
                     {inv.status === 'sent' && (
                       <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">
-                        {t('admin.invitations.status.already_sent') || 'Già Inviato'}
+                        {t('admin.invitations.status.already_sent')}
                       </span>
                     )}
                   </div>
@@ -164,7 +163,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
           ) : (
              <div className="text-center py-8 text-gray-500">
                 <AlertCircle size={48} className="mx-auto text-gray-300 mb-2" />
-                <p>{t('admin.invitations.bulk_send_confirm.no_valid_contacts') || 'Nessun contatto valido selezionato.'}</p>
+                <p>{t('admin.invitations.bulk_send_confirm.no_valid_contacts')}</p>
              </div>
           )}
         </div>
@@ -191,12 +190,12 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
               {isSending ? (
                 <>
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-                  {t('common.processing') || 'Invio in corso...'}
+                  {t('common.processing')}
                 </>
               ) : (
                 <>
                   <Send size={18} className="mr-2" />
-                  {t('admin.invitations.bulk_send_confirm.confirm_action') || 'Conferma Invio'}
+                  {t('admin.invitations.bulk_send_confirm.confirm_action')}
                 </>
               )}
             </button>

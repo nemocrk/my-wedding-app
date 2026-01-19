@@ -21,7 +21,8 @@
       "default_user_message": "We couldn't complete the requested operation.",
       "hide_technical_data": "Hide technical details",
       "show_technical_data": "Show error details"
-    }
+    },
+    "error_loading_data": "Error loading data"
   },
   "invitation": {
     "errors": {
@@ -337,7 +338,8 @@
         "deselect_all": "Deselect All",
         "verify_contacts": "Verify Contacts",
         "send_whatsapp": "Send WhatsApp",
-        "send_invitations": "Send Invitations"
+        "send_invitations": "Send Invitations",
+        "manage_labels": "Manage Labels"
       },
       "bulk_action": {
         "selected": "{{count}} selected"
@@ -352,6 +354,14 @@
         "recipient_list": "Recipients",
         "no_valid_contacts": "No valid contacts selected.",
         "confirm_action": "Confirm Send"
+      },
+      "bulk_labels": {
+        "title": "Bulk Label Management",
+        "subtitle": "Edit labels for {{count}} selected invitations",
+        "action_label": "Action",
+        "action_add": "Add Labels (keep existing)",
+        "action_remove": "Remove Labels (if present)",
+        "labels_select": "Select Labels"
       },
       "filters": {
         "title": "Filters",

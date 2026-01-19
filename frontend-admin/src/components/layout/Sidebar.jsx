@@ -12,7 +12,7 @@ const Sidebar = () => {
         { path: '/invitations', label: t('admin.sidebar.nav.invitations'), icon: Users },
         { path: '/accommodations', label: t('admin.sidebar.nav.accommodations'), icon: Hotel },
         { path: '/whatsapp', label: t('admin.sidebar.nav.whatsapp'), icon: MessageCircle },
-        { path: '/labels', icon: Tag, label: t('admin.sidebar.nav.labels') || "Etichette" }, 
+        { path: '/labels', icon: Tag, label: t('admin.sidebar.nav.labels') }, 
         { path: '/config', label: t('admin.sidebar.nav.configuration'), icon: Settings },
   ];
 

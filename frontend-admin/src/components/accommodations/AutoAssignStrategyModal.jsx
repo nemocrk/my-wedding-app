@@ -35,7 +35,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
     };
 
     const applyStrategy = async (strategyCode) => {
-        if (!window.confirm(t('admin.accommodations.auto_assign_modal.results.confirm_apply', { strategy: strategyCode }) || `Applicare la strategia ${strategyCode}? Le modifiche saranno salvate nel DB.`)) return;
+        if (!window.confirm(t('admin.accommodations.auto_assign_modal.results.confirm_apply', { strategy: strategyCode }))) return;
         setIsLoading(true);
         try {
             const response = await api.triggerAutoAssign(true, strategyCode);

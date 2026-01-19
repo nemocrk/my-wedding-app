@@ -95,15 +95,15 @@ const LabelManager = () => {
     <div className="animate-fadeIn pb-24">
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">{t('admin.labels.title') || "Gestione Etichette"}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('admin.labels.subtitle') || "Organizza gli invitati con tag personalizzati"}</p>
+          <h1 className="text-2xl font-bold text-gray-800">{t('admin.labels.title')}</h1>
+          <p className="text-sm text-gray-500 mt-1">{t('admin.labels.subtitle')}</p>
         </div>
         <button
           onClick={handleCreate}
           className="bg-pink-600 hover:bg-pink-700 text-white px-4 py-2 rounded-lg flex items-center transition-all shadow-sm hover:shadow-pink-200"
         >
           <Plus size={20} className="mr-2" />
-          {t('admin.labels.new_label') || "Nuova Etichetta"}
+          {t('admin.labels.new_label')}
         </button>
       </div>
 
@@ -115,7 +115,7 @@ const LabelManager = () => {
         ) : labels.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
             <Tag size={48} className="text-gray-300 mb-3 mx-auto" />
-            <p className="text-lg font-medium text-gray-900">{t('admin.labels.no_labels') || "Nessuna etichetta trovata"}</p>
+            <p className="text-lg font-medium text-gray-900">{t('admin.labels.no_labels')}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -123,16 +123,16 @@ const LabelManager = () => {
               <thead className="bg-gray-50">
                 <tr>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                    {t('admin.labels.table.preview') || "Anteprima"}
+                    {t('admin.labels.table.preview')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                     {t('admin.labels.table.name') || "Nome"}
+                     {t('admin.labels.table.name')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                     {t('admin.labels.table.color') || "Codice Colore"}
+                     {t('admin.labels.table.color')}
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                     {t('admin.labels.table.actions') || "Azioni"}
+                     {t('admin.labels.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -163,6 +163,7 @@ const LabelManager = () => {
                       <button
                         onClick={() => handleDeleteClick(label.id)}
                         className="text-red-600 hover:text-red-900"
+                        aria-label={`Delete ${label.name}`}
                       >
                         <Trash2 size={18} />
                       </button>
@@ -181,7 +182,7 @@ const LabelManager = () => {
           <div className="bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
             <div className="flex justify-between items-center px-6 py-4 border-b border-gray-100 bg-gray-50">
               <h3 className="font-bold text-gray-800">
-                {editingLabel ? (t('admin.labels.edit_title') || "Modifica Etichetta") : (t('admin.labels.create_title') || "Nuova Etichetta")}
+                {editingLabel ? (t('admin.labels.edit_title')) : (t('admin.labels.create_title'))}
               </h3>
               <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X size={20} />
@@ -190,10 +191,11 @@ const LabelManager = () => {
             
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  {t('admin.labels.form.name') || "Nome Etichetta"}
+                <label className="block text-sm font-medium text-gray-700 mb-1" for="nome-label">
+                  {t('admin.labels.form.name')}
                 </label>
                 <input
+                  id="nome-label"
                   type="text"
                   required
                   value={formData.name}
@@ -205,7 +207,7 @@ const LabelManager = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                   {t('admin.labels.form.color') || "Colore"}
+                   {t('admin.labels.form.color')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {colorPalette.map(c => (
@@ -241,7 +243,7 @@ const LabelManager = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                   {t('common.cancel') || "Annulla"}
+                   {t('common.cancel')}
                 </button>
                 <button
                   type="submit"
@@ -253,7 +255,7 @@ const LabelManager = () => {
                   ) : (
                     <>
                       <Save size={18} className="mr-2" />
-                      {t('common.save') || "Salva"}
+                      {t('common.save')}
                     </>
                   )}
                 </button>
@@ -267,10 +269,10 @@ const LabelManager = () => {
         isOpen={isDeleteModalOpen}
         onClose={() => setIsDeleteModalOpen(false)}
         onConfirm={handleConfirmDelete}
-        title={t('admin.labels.delete_modal.title') || "Elimina Etichetta"}
-        message={t('admin.labels.delete_modal.message') || "Sei sicuro? Questa azione rimuoverà l'etichetta da tutti gli inviti associati."}
-        confirmText={t('common.delete') || "Elimina"}
-        cancelText={t('common.cancel') || "Annulla"}
+        title={t('admin.labels.delete_modal.title')}
+        message={t('admin.labels.delete_modal.message')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
         isDangerous={true}
       />
     </div>

@@ -370,12 +370,12 @@ const InvitationList = () => {
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-center">
           <div className="flex items-center text-gray-500">
              <Filter size={18} className="mr-2" />
-             <span className="text-sm font-medium">{t('admin.invitations.filters.title') || "Filtri"}:</span>
+             <span className="text-sm font-medium">{t('admin.invitations.filters.title')}:</span>
           </div>
 
           <input
              type="text"
-             placeholder={t('admin.invitations.filters.search_placeholder') || "Cerca per nome..."}
+             placeholder={t('admin.invitations.filters.search_placeholder')}
              value={searchTerm}
              onChange={(e) => setSearchTerm(e.target.value)}
              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none min-w-[200px]"
@@ -386,7 +386,7 @@ const InvitationList = () => {
               onChange={(e) => setActiveStatusFilter(e.target.value)}
               className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
           >
-              <option value="">{t('admin.invitations.filters.all_statuses') || "Tutti gli stati"}</option>
+              <option value="">{t('admin.invitations.filters.all_statuses')}</option>
               <option value="created">{t('admin.invitations.status.created')}</option>
               <option value="sent">{t('admin.invitations.status.sent')}</option>
               <option value="read">{t('admin.invitations.status.read')}</option>
@@ -400,7 +400,7 @@ const InvitationList = () => {
                 onChange={(e) => setActiveLabelFilter(e.target.value)}
                 className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
              >
-                <option value="">{t('admin.invitations.filters.all_labels') || "Tutte le etichette"}</option>
+                <option value="">{t('admin.invitations.filters.all_labels')}</option>
                 {labels.map(l => (
                     <option key={l.id} value={l.id}>{l.name}</option>
                 ))}
@@ -435,7 +435,7 @@ const InvitationList = () => {
                className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
                <Tag size={16} className="mr-2" />
-               {t('admin.invitations.buttons.manage_labels') || "Gestisci Etichette"}
+               {t('admin.invitations.buttons.manage_labels')}
             </button>
 
              {/* PULSANTE BULK SEND INVITATIONS */}
@@ -444,7 +444,7 @@ const InvitationList = () => {
                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
                <Send size={16} className="mr-2" />
-               {t('admin.invitations.buttons.send_invitations') || "Invia Inviti"}
+               {t('admin.invitations.buttons.send_invitations')}
             </button>
             
             <button

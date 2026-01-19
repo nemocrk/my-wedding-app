@@ -65,8 +65,8 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
                     <div>
-                        <h2 className="text-xl font-bold text-gray-800">{t('admin.accommodations.edit_modal.title') || "Modifica Alloggio"}</h2>
-                        <p className="text-sm text-gray-500">{t('admin.accommodations.edit_modal.step_of', { step, total: 2 }) || `Passo ${step} di 2`}</p>
+                        <h2 className="text-xl font-bold text-gray-800">{t('admin.accommodations.edit_modal.title')}</h2>
+                        <p className="text-sm text-gray-500">{t('admin.accommodations.edit_modal.step_of', { step, total: 2 })}</p>
                     </div>
                     <button onClick={onClose} className="text-gray-400 hover:text-gray-600 transition-colors">
                         <X size={24} />
@@ -78,22 +78,22 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                     {step === 1 ? (
                         <div className="space-y-4">
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.accommodations.edit_modal.step1.structure_name') || "Nome Struttura"}</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.accommodations.edit_modal.step1.structure_name')}</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                    placeholder={t('admin.accommodations.edit_modal.step1.structure_placeholder') || "es. Hotel Rossi"}
+                                    placeholder={t('admin.accommodations.edit_modal.step1.structure_placeholder')}
                                     value={formData.name}
                                     onChange={e => handleBaseChange('name', e.target.value)}
                                     autoFocus
                                 />
                             </div>
                             <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.accommodations.edit_modal.step1.address_label') || "Indirizzo"}</label>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.accommodations.edit_modal.step1.address_label')}</label>
                                 <input 
                                     type="text"
                                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent outline-none transition-all"
-                                    placeholder={t('admin.accommodations.edit_modal.step1.address_placeholder') || "Via Roma, 1"}
+                                    placeholder={t('admin.accommodations.edit_modal.step1.address_placeholder')}
                                     value={formData.address}
                                     onChange={e => handleBaseChange('address', e.target.value)}
                                 />
@@ -102,23 +102,23 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                     ) : (
                         <div className="space-y-4">
                             <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm mb-4">
-                                {t('admin.accommodations.edit_modal.step2.info_message') || "Modifica le camere esistenti o aggiungi nuove camere."}
+                                {t('admin.accommodations.edit_modal.step2.info_message')}
                             </div>
                             
                             {formData.rooms.map((room, idx) => (
                                 <div key={idx} className="flex gap-3 items-end bg-gray-50 p-3 rounded-lg border border-gray-100">
                                     <div className="flex-grow">
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.room_name') || "Camera"}</label>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.room_name')}</label>
                                         <input 
                                             type="text"
                                             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-pink-500 outline-none"
                                             value={room.room_number}
                                             onChange={e => handleRoomChange(idx, 'room_number', e.target.value)}
-                                            placeholder={t('admin.accommodations.edit_modal.step2.room_placeholder') || "101"}
+                                            placeholder={t('admin.accommodations.edit_modal.step2.room_placeholder')}
                                         />
                                     </div>
                                     <div className="w-20">
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.adults_label') || "Adulti"}</label>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.adults_label')}</label>
                                         <input 
                                             type="number"
                                             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-pink-500 outline-none"
@@ -128,7 +128,7 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                                         />
                                     </div>
                                     <div className="w-20">
-                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.children_label') || "Bambini"}</label>
+                                        <label className="block text-xs font-medium text-gray-500 mb-1">{t('admin.accommodations.edit_modal.step2.children_label')}</label>
                                         <input 
                                             type="number"
                                             className="w-full px-3 py-2 border border-gray-300 rounded focus:ring-2 focus:ring-pink-500 outline-none"
@@ -140,7 +140,7 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                                     <button 
                                         onClick={() => removeRoom(idx)}
                                         className="mb-1 p-2 text-red-500 hover:bg-red-50 rounded transition-colors"
-                                        title={t('common.delete') || "Elimina"}
+                                        title={t('common.delete')}
                                     >
                                         <Trash2 size={20} />
                                     </button>
@@ -152,7 +152,7 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                                 className="w-full py-2 border-2 border-dashed border-gray-300 rounded-lg text-gray-500 hover:border-pink-500 hover:text-pink-600 transition-all flex justify-center items-center gap-2 font-medium"
                             >
                                 <Plus size={20} />
-                                {t('admin.accommodations.edit_modal.step2.add_room') || "Aggiungi Camera"}
+                                {t('admin.accommodations.edit_modal.step2.add_room')}
                             </button>
                         </div>
                     )}
@@ -167,7 +167,7 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                                 disabled={!formData.name}
                                 className="flex items-center gap-2 bg-pink-600 text-white px-6 py-2 rounded-lg hover:bg-pink-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {t('admin.accommodations.edit_modal.buttons.next') || "Avanti"} <ArrowRight size={18} />
+                                {t('admin.accommodations.edit_modal.buttons.next')} <ArrowRight size={18} />
                             </button>
                         </div>
                     ) : (
@@ -176,13 +176,13 @@ const EditAccommodationModal = ({ isOpen, onClose, onSave, accommodation }) => {
                                 onClick={() => setStep(1)}
                                 className="flex items-center gap-2 text-gray-600 hover:text-gray-900 px-4 py-2 font-medium"
                             >
-                                <ArrowLeft size={18} /> {t('admin.accommodations.edit_modal.buttons.back') || "Indietro"}
+                                <ArrowLeft size={18} /> {t('admin.accommodations.edit_modal.buttons.back')}
                             </button>
                             <button 
                                 onClick={handleSubmit}
                                 className="flex items-center gap-2 bg-green-600 text-white px-6 py-2 rounded-lg hover:bg-green-700 transition-colors shadow-sm"
                             >
-                                <Save size={18} /> {t('admin.accommodations.edit_modal.buttons.save') || "Salva Modifiche"}
+                                <Save size={18} /> {t('admin.accommodations.edit_modal.buttons.save')}
                             </button>
                         </>
                     )}

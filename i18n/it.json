@@ -21,7 +21,8 @@
       "default_user_message": "Non siamo riusciti a completare l'operazione richiesta.",
       "hide_technical_data": "Nascondi dettagli tecnici",
       "show_technical_data": "Mostra dettagli errore"
-    }
+    },
+    "error_loading_data": "Errore caricamento dati"
   },
   "invitation": {
     "errors": {
@@ -337,7 +338,8 @@
         "deselect_all": "Deseleziona tutti",
         "verify_contacts": "Verifica Contatti",
         "send_whatsapp": "Invia WhatsApp",
-        "send_invitations": "Invia Inviti"
+        "send_invitations": "Invia Inviti",
+        "manage_labels": "Gestisci Etichette"
       },
       "bulk_action": {
         "selected": "{{count}} selezionati"
@@ -352,6 +354,14 @@
         "recipient_list": "Destinatari",
         "no_valid_contacts": "Nessun contatto valido selezionato.",
         "confirm_action": "Conferma Invio"
+      },
+      "bulk_labels": {
+        "title": "Gestione Etichette Massiva",
+        "subtitle": "Modifica le etichette per {{count}} inviti selezionati",
+        "action_label": "Azione da eseguire",
+        "action_add": "Aggiungi Etichette (mantieni esistenti)",
+        "action_remove": "Rimuovi Etichette (se presenti)",
+        "labels_select": "Seleziona Etichette"
       },
       "filters": {
         "title": "Filtri",

@@ -99,6 +99,22 @@ export class ApiHelper {
     }
     return response.json();
   }
+  async deleteLabel(name: string) {
+    const searchResp = await this.request.get(`${ADMIN_API}/invitation-labels/?search=${name}`);
+    if (!searchResp.ok()) {
+      throw new Error(`Failed to search label: ${await searchResp.text()}`);
+    }
+
+    const foundLabels = (await searchResp.json());
+
+    if(foundLabels.filter((lab: {id: number; name: string; color: string;}) => lab.name === name).length){
+      const deleteResp = await this.request.delete(`${ADMIN_API}/invitation-labels/${foundLabels.filter((lab: {id: number; name: string; color: string;}) => lab.name === name)[0].id}/`);
+      if (deleteResp.status() === 204) return true;
+      return deleteResp.json();
+    } else {
+      return searchResp.json();
+    }
+  }
 
   async bulkSend(invitationIds: number[]) {
     const response = await this.request.post(`${ADMIN_API}/invitations/bulk-send/`, {

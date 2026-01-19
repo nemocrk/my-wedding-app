@@ -192,7 +192,7 @@ test.describe('Complex Wedding Flow', () => {
         await page.goto('http://localhost:8080/#/dashboard');
         
         // Wait for dashboard to refresh with new data
-        await expect(page.locator('main').getByText('Alloggi')).toBeVisible();
+        await expect(page.locator('main').getByText('Alloggio', { exact: true })).toBeVisible();
         await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible();
         await waitForPageReady(page);
         
@@ -207,8 +207,8 @@ test.describe('Complex Wedding Flow', () => {
         for (const id of createdAccommodationIds) {
             await api.deleteAccommodation(id);
         }
-        // Labels cleanup (if endpoints exist, otherwise DB reset might be needed in real env)
-        // Ignoring label cleanup for this test scope as it's minor data
+        await api.deleteLabel('VIP Flow');
+        await api.deleteLabel('Friends Flow');
     }
   });
 });

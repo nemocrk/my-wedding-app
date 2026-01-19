@@ -60,7 +60,7 @@ const LetterContent = ({ data }) => {
   const sealControls = useAnimation();
   
   const waNumber = data.whatsapp.whatsapp_number;
-  const waName = data.whatsapp.whatsapp_name || "Sposi";
+  const waName = data.whatsapp.whatsapp_name;
 
   // Helper per logging condizionale
   const safeLogInteraction = (eventName, details) => {

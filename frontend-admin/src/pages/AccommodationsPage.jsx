@@ -59,7 +59,7 @@ const AccommodationsPage = () => {
     const handleUpdate = async (id, data) => {
         try {
             await api.updateAccommodation(id, data);
-            setSuccessMsg(t('admin.accommodations.success.updated') || 'Alloggio aggiornato con successo');
+            setSuccessMsg(t('admin.accommodations.success.updated'));
             fetchData();
             setIsEditModalOpen(false);
             setEditingAccommodation(null);
@@ -83,8 +83,8 @@ const AccommodationsPage = () => {
         try {
             await api.updateInvitation(invitationId, { accommodation_assignment_pinned: isPinned });
             setSuccessMsg(isPinned 
-                ? (t('admin.accommodations.success.pinned') || 'Assegnazione bloccata')
-                : (t('admin.accommodations.success.unpinned') || 'Assegnazione sbloccata')
+                ? (t('admin.accommodations.success.pinned'))
+                : (t('admin.accommodations.success.unpinned'))
             );
             fetchData();
         } catch (err) {

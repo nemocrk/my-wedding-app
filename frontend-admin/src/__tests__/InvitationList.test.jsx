@@ -1,32 +1,6 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within  } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import InvitationList from '../components/InvitationList';
-import { api } from '../services/api';
-
-vi.mock('../services/api', () => ({
-  api: {
-    get: vi.fn(),
-    post: vi.fn(),
-  }
-}));
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => {
-      const translations = {
-        'invitations.title': 'Inviti',
-        'common.search': 'Cerca',
-        'bulk.send': 'Invia WhatsApp',
-        'bulk.verify': 'Verifica Numeri',
-        'bulk.labels': 'Gestisci Etichette',
-        'filters.status': 'Stato',
-        'filters.labels': 'Etichette',
-        'common.selected': 'selezionati'
-      };
-      return translations[key] || key;
-    }
-  }),
-}));
+import InvitationList from '../pages/InvitationList';
 
 describe('InvitationList', () => {
   const mockInvitations = [
@@ -37,6 +11,7 @@ describe('InvitationList', () => {
       status: 'created',
       origin: 'groom',
       accommodation_pinned: false,
+      phone_number: '3333333333',
       labels: [{ id: 1, name: 'VIP', color: '#FF0000' }]
     },
     {
@@ -46,6 +21,7 @@ describe('InvitationList', () => {
       status: 'sent',
       origin: 'bride',
       accommodation_pinned: true,
+      phone_number: '3333333333',
       labels: [{ id: 2, name: 'Family', color: '#00FF00' }]
     }
   ];
@@ -55,31 +31,63 @@ describe('InvitationList', () => {
     { id: 2, name: 'Family', color: '#00FF00' },
   ];
 
+  globalThis.fetch = vi.fn((url, options = {}) => {
+    const method = options.method?.toUpperCase() || 'GET';
+
+    // Prepariamo una risposta di successo standard
+    const createResponse = (data) => Promise.resolve({
+      ok: true,
+      status: 200,
+      headers: new Headers({ 'content-type': 'application/json' }),
+      json: () => Promise.resolve(data),
+    });
+
+    // Logica di routing del mock
+    if (url.includes('/invitations')) {
+      // Caso specifico: POST bulk-send
+      if (method === 'POST' && url.includes('/bulk-send/')) {
+        return createResponse({ success: true, sent: 5 });
+      }
+      // Caso generale: GET invitations
+      return createResponse({ results: mockInvitations });
+    }
+
+    if (url.includes('/invitation-labels')) {
+      return createResponse(mockLabels); // Ritorna l'array di etichette
+    }
+
+    // Fallback di default (array vuoto)
+    return createResponse({ results: [] });
+  });
+
   beforeEach(() => {
     vi.clearAllMocks();
-    api.get.mockImplementation((url) => {
-      if (url.includes('/invitations')) return Promise.resolve({ data: mockInvitations });
-      if (url.includes('/invitation-labels')) return Promise.resolve({ data: mockLabels });
-      return Promise.resolve({ data: [] });
-    });
-    api.post.mockResolvedValue({ data: { success: true, updated_count: 2 } });
   });
 
   it('renders invitations list with labels', async () => {
     render(<InvitationList />);
 
     await waitFor(() => {
-      expect(screen.getByText('Famiglia Rossi')).toBeInTheDocument();
-      expect(screen.getByText('Famiglia Bianchi')).toBeInTheDocument();
+      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
+      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('VIP')).toBeInTheDocument();
-    expect(screen.getByText('Family')).toBeInTheDocument();
+    const elementsVIP = screen.getAllByText('VIP');
+    expect(elementsVIP.length).toBeGreaterThan(0);
+    expect(elementsVIP[0]).toBeInTheDocument();
+    const elementsFamily = screen.getAllByText('Family');
+    expect(elementsFamily.length).toBeGreaterThan(0);
+    expect(elementsFamily[0]).toBeInTheDocument();
   });
 
   it('supports bulk selection and triggers bulk actions', async () => {
     render(<InvitationList />);
-    await waitFor(() => screen.getByText('Famiglia Rossi'));
+    await waitFor(() => {
+      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
+      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
+    });
 
     const checkboxes = screen.getAllByRole('checkbox');
     fireEvent.click(checkboxes[0]); // Select row 1
@@ -87,10 +95,22 @@ describe('InvitationList', () => {
     expect(screen.getByText(/selezionati/i)).toBeInTheDocument();
 
     // Trigger Bulk Send
-    const sendBtn = screen.getByText('Invia WhatsApp');
-    fireEvent.click(sendBtn);
+    const sendBtn1 = screen.getByText('Invia Inviti');
+    fireEvent.click(sendBtn1);
+    const sendBtn2 = screen.getByText('Conferma Invio');
+    fireEvent.click(sendBtn2);
     await waitFor(() => {
-      expect(api.post).toHaveBeenCalledWith('/invitations/bulk-send/', { invitation_ids: [1] });
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        "api/admin/invitations/bulk-send/", // URL completo come da log
+        expect.objectContaining({
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          // Il body deve essere una stringa JSON, non un oggetto
+          body: JSON.stringify({ invitation_ids: [1] }), 
+        })
+      );
     });
 
     // Reset selection (assuming automatic or manual - simplifying for test)
@@ -107,18 +127,30 @@ describe('InvitationList', () => {
 
   it('applies filters by status and label', async () => {
     render(<InvitationList />);
-    await waitFor(() => screen.getByText('Famiglia Rossi'));
+    await waitFor(() => {
+      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
+      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
+    });
+    // Trova l'opzione specifica
+    const statusOption = screen.getByRole('option', { name: 'Tutti gli stati' });
+    // Risali alla select (il "combobox" genitore)
+    const statusSelect = statusOption.closest('select');
 
-    const statusSelect = screen.getByLabelText('Stato');
     fireEvent.change(statusSelect, { target: { value: 'sent' } });
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/invitations/?status=sent');
+      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?status=sent', undefined);
     });
+    
+    fireEvent.change(statusSelect, { target: { value: '' } });
 
-    const labelSelect = screen.getByLabelText('Etichette');
+    // Trova l'opzione specifica
+    const labelOption = screen.getByRole('option', { name: 'Tutte le etichette' });
+    // Risali alla select (il "combobox" genitore)
+    const labelSelect = labelOption.closest('select');
     fireEvent.change(labelSelect, { target: { value: '1' } });
     await waitFor(() => {
-      expect(api.get).toHaveBeenCalledWith('/invitations/?label=1');
+      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?label=1', undefined);
     });
   });
 });

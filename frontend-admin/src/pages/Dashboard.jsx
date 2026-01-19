@@ -42,11 +42,11 @@ const Dashboard = () => {
 
   // 2. Invitation Status Data (NEW)
   const invitationStatusData = [
-    { name: t('admin.invitations.status.created') || 'Creato', value: stats.invitations?.created || 0, color: '#9CA3AF', icon: FileText },
-    { name: t('admin.invitations.status.sent') || 'Inviato', value: stats.invitations?.sent || 0, color: '#3B82F6', icon: Send },
-    { name: t('admin.invitations.status.read') || 'Letto', value: stats.invitations?.read || 0, color: '#6366F1', icon: Eye },
-    { name: t('admin.invitations.status.confirmed') || 'Confermato', value: stats.invitations?.confirmed || 0, color: '#10B981', icon: CheckCircle },
-    { name: t('admin.invitations.status.declined') || 'Rifiutato', value: stats.invitations?.declined || 0, color: '#EF4444', icon: XCircle },
+    { name: t('admin.invitations.status.created'), value: stats.invitations?.created || 0, color: '#9CA3AF', icon: FileText },
+    { name: t('admin.invitations.status.sent'), value: stats.invitations?.sent || 0, color: '#3B82F6', icon: Send },
+    { name: t('admin.invitations.status.read'), value: stats.invitations?.read || 0, color: '#6366F1', icon: Eye },
+    { name: t('admin.invitations.status.confirmed'), value: stats.invitations?.confirmed || 0, color: '#10B981', icon: CheckCircle },
+    { name: t('admin.invitations.status.declined'), value: stats.invitations?.declined || 0, color: '#EF4444', icon: XCircle },
   ].filter(d => d.value > 0);
 
   const StatCard = ({ title, value, subValue, icon: Icon, colorClass, bgClass }) => (
@@ -136,7 +136,7 @@ const Dashboard = () => {
 
         {/* CHART 2: INVITATION STATUS (NEW) */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.invitation_status') || "Stato Inviti"}</h3>
+          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.invitation_status')}</h3>
           <div className="space-y-3">
             {invitationStatusData.map((status, idx) => {
               const Icon = status.icon;

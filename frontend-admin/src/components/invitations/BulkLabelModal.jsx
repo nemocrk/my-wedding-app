@@ -28,7 +28,6 @@ const BulkLabelModal = ({ open, onClose, selectedIds, onSuccess }) => {
       setLabels(data.results || data);
     } catch (err) {
       console.error("Error fetching labels:", err);
-      setError(t('admin.common.error_loading_data'));
     } finally {
       setLoading(false);
     }
@@ -45,7 +44,6 @@ const BulkLabelModal = ({ open, onClose, selectedIds, onSuccess }) => {
       onClose();
     } catch (err) {
       console.error("Error bulk updating labels:", err);
-      setError(t('admin.common.error_generic'));
     } finally {
       setSubmitting(false);
     }
@@ -178,7 +176,7 @@ const BulkLabelModal = ({ open, onClose, selectedIds, onSuccess }) => {
                 disabled={submitting}
                 className="px-4 py-2 text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 font-medium transition-colors disabled:opacity-50"
             >
-                {t('admin.common.cancel')}
+                {t('common.cancel')}
             </button>
             <button
                 onClick={handleSubmit}
@@ -186,7 +184,7 @@ const BulkLabelModal = ({ open, onClose, selectedIds, onSuccess }) => {
                 className="px-4 py-2 text-white bg-pink-600 rounded-lg hover:bg-pink-700 font-medium transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
             >
                 {submitting && <Loader size={18} className="animate-spin mr-2" />}
-                {t('admin.common.confirm')}
+                {t('common.confirm')}
             </button>
         </div>
       </div>

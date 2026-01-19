@@ -560,7 +560,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
         """
         invitation_ids = request.data.get('invitation_ids', [])
         label_ids = request.data.get('label_ids', [])
-        action_type = request.data.get('action', "add")
+        action_type = request.data.get('action', "na")
         
         if not invitation_ids:
             return Response(
@@ -579,12 +579,31 @@ class InvitationViewSet(viewsets.ModelViewSet):
             )
         
         invitations = Invitation.objects.filter(id__in=invitation_ids)
-        if not invitations.exists():
-            return Response({'error': 'No valid invitations found'}, status=status.HTTP_404_NOT_FOUND)
+        found_ids = set(invitations.values_list('id', flat=True))
+        missing_ids = set(invitation_ids) - found_ids
+        
+        if missing_ids:
+            return Response(
+                {
+                    'error': 'Some invitation IDs not found',
+                    'missing_ids': list(missing_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
             
+        # Validazione: verifica che tutti gli ID esistano
         labels = InvitationLabel.objects.filter(id__in=label_ids)
-        if not labels.exists():
-             return Response({'error': 'No valid labels found'}, status=status.HTTP_404_NOT_FOUND)
+        found_label_ids = set(labels.values_list('id', flat=True))
+        missing_label_ids = set(label_ids) - found_label_ids
+        
+        if missing_label_ids:
+            return Response(
+                {
+                    'error': 'Some label IDs not found',
+                    'missing_ids': list(missing_label_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
         
         updated_count = 0
         with transaction.atomic():

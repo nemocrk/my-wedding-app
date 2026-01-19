@@ -55,16 +55,6 @@ vi.mock('../services/api', () => ({
   }
 }));
 
-// Mock Translations
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key, params) => {
-        if (key === 'admin.accommodations.alerts.unassigned_warning') return `Warning: ${params.count} unassigned`;
-        if (key === 'admin.accommodations.success.assigned') return `${params.count} guests assigned`;
-        return key;
-    }
-  }),
-}));
 
 describe('AccommodationsPage', () => {
   const mockAccommodations = [
@@ -84,9 +74,9 @@ describe('AccommodationsPage', () => {
     render(<AccommodationsPage />);
     
     await waitFor(() => {
-      expect(screen.getByText('admin.accommodations.page_title')).toBeInTheDocument();
+      expect(screen.getByText('Gestione Alloggi')).toBeInTheDocument();
       expect(screen.getByText('Grand Hotel')).toBeInTheDocument();
-      expect(screen.getByText(/Warning: 1 unassigned/)).toBeInTheDocument();
+      expect(screen.getByText(/1 inviti senza alloggio assegnato/)).toBeInTheDocument();
     });
   });
 
@@ -94,7 +84,7 @@ describe('AccommodationsPage', () => {
     render(<AccommodationsPage />);
     
     // Open Modal
-    const createBtn = screen.getByText('admin.accommodations.buttons.new_accommodation');
+    const createBtn = screen.getByText('Nuovo Alloggio');
     fireEvent.click(createBtn);
     
     await waitFor(() => screen.getByTestId('create-modal'));
@@ -107,7 +97,7 @@ describe('AccommodationsPage', () => {
     
     await waitFor(() => {
       expect(api.createAccommodation).toHaveBeenCalledWith({ name: 'New Hotel' });
-      expect(screen.getByText('admin.accommodations.success.created')).toBeInTheDocument();
+      expect(screen.getByText('Alloggio creato con successo')).toBeInTheDocument();
     });
   });
 
@@ -143,7 +133,7 @@ describe('AccommodationsPage', () => {
     await waitFor(() => {
         expect(confirmSpy).toHaveBeenCalled();
         expect(api.deleteAccommodation).toHaveBeenCalledWith(1);
-        expect(screen.getByText('admin.accommodations.success.deleted')).toBeInTheDocument();
+        expect(screen.getByText('Alloggio eliminato')).toBeInTheDocument();
     });
     
     confirmSpy.mockRestore();
@@ -168,14 +158,14 @@ describe('AccommodationsPage', () => {
     render(<AccommodationsPage />);
     
     // Open Strategy Modal
-    fireEvent.click(screen.getByText('admin.accommodations.buttons.auto_assign'));
+    fireEvent.click(screen.getByText('Assegnazione Automatica'));
     await waitFor(() => screen.getByTestId('strategy-modal'));
     
     // Run
     fireEvent.click(screen.getByText('Run Strategy'));
     
     await waitFor(() => {
-        expect(screen.getByText('5 guests assigned')).toBeInTheDocument();
+        expect(screen.getByText('5 ospiti assegnati automaticamente')).toBeInTheDocument();
         // Should trigger data refresh
         expect(api.fetchAccommodations).toHaveBeenCalledTimes(2); // Initial + After Strategy
     });
