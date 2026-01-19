@@ -513,12 +513,292 @@ John,Smith,john@example.com,+1234567890,SMITH-JOHN-001,Friends,2,Yes,Yes,2
 ...
 ```
 
+---
+
+## 🆕 Nuovi Endpoints: Gestione Etichette (Labels)
+
+### 14. Lista Etichette Invito
+
+Ottiene tutte le etichette disponibili per categorizzare gli inviti.
+
+```http
+GET /api/admin/invitation-labels/
+Authorization: Token <token>
+```
+
+**Response (200):**
+
+```json
+[
+  {
+    "id": 1,
+    "name": "VIP",
+    "color": "#FF5733",
+    "created_at": "2025-01-01T10:00:00Z",
+    "updated_at": "2025-01-01T10:00:00Z"
+  },
+  {
+    "id": 2,
+    "name": "Colleghi",
+    "color": "#3498DB",
+    "created_at": "2025-01-02T14:00:00Z",
+    "updated_at": "2025-01-02T14:00:00Z"
+  }
+]
+```
+
+### 15. Creare Etichetta
+
+```http
+POST /api/admin/invitation-labels/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "name": "Famiglia Stretta",
+  "color": "#27AE60"
+}
+```
+
+**Request Body:**
+
+| Campo | Tipo | Required | Descrizione |
+|-------|------|----------|-------------|
+| `name` | string | ✓ | Nome etichetta (max 50 caratteri, univoco) |
+| `color` | string | ✓ | Colore HEX (es. "#FF5733") |
+
+**Response (201):**
+
+```json
+{
+  "id": 3,
+  "name": "Famiglia Stretta",
+  "color": "#27AE60",
+  "created_at": "2026-01-19T13:00:00Z",
+  "updated_at": "2026-01-19T13:00:00Z"
+}
+```
+
+### 16. Aggiornare Etichetta
+
+```http
+PATCH /api/admin/invitation-labels/{id}/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "color": "#E74C3C"
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "id": 1,
+  "name": "VIP",
+  "color": "#E74C3C",
+  "updated_at": "2026-01-19T13:30:00Z"
+}
+```
+
+### 17. Eliminare Etichetta
+
+```http
+DELETE /api/admin/invitation-labels/{id}/
+Authorization: Token <token>
+```
+
+**Response (204 No Content)**
+
+**Nota**: L'eliminazione rimuove l'etichetta da tutti gli inviti associati.
+
+---
+
+## 🆕 Nuovi Endpoints: Azioni Bulk
+
+### 18. Bulk Send WhatsApp
+
+Invia messaggi WhatsApp a più inviti contemporaneamente.
+
+```http
+POST /api/admin/invitations/bulk-send/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "invitation_ids": [1, 5, 12, 23],
+  "template_id": 3,
+  "session": "groom"
+}
+```
+
+**Request Body:**
+
+| Campo | Tipo | Required | Descrizione |
+|-------|------|----------|-------------|
+| `invitation_ids` | array[int] | ✓ | Lista ID inviti destinatari |
+| `template_id` | integer | ✓ | ID template messaggio WhatsApp |
+| `session` | string | ✓ | Sessione WhatsApp ("groom" o "bride") |
+
+**Response (202 Accepted):**
+
+```json
+{
+  "success": true,
+  "queued_messages": 4,
+  "skipped": [
+    {
+      "invitation_id": 5,
+      "reason": "Missing phone number"
+    }
+  ],
+  "message": "Messages queued for sending"
+}
+```
+
+### 19. Bulk Verify Contacts
+
+Verifica la validità dei numeri WhatsApp per più inviti.
+
+```http
+POST /api/admin/invitations/bulk-verify/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "invitation_ids": [1, 2, 3, 4, 5]
+}
+```
+
+**Response (202 Accepted):**
+
+```json
+{
+  "success": true,
+  "verified_count": 5,
+  "results": [
+    {
+      "invitation_id": 1,
+      "status": "ok"
+    },
+    {
+      "invitation_id": 2,
+      "status": "not_exist"
+    },
+    {
+      "invitation_id": 3,
+      "status": "ok"
+    }
+  ]
+}
+```
+
+### 20. Bulk Apply Labels
+
+Applica o rimuove etichette da più inviti.
+
+```http
+POST /api/admin/invitations/bulk-labels/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "invitation_ids": [1, 2, 3],
+  "label_ids": [1, 5],
+  "action": "add"
+}
+```
+
+**Request Body:**
+
+| Campo | Tipo | Required | Descrizione |
+|-------|------|----------|-------------|
+| `invitation_ids` | array[int] | ✓ | Lista ID inviti target |
+| `label_ids` | array[int] | ✓ | Lista ID etichette da applicare |
+| `action` | string | ✓ | "add" (aggiungi) o "remove" (rimuovi) |
+
+**Response (200):**
+
+```json
+{
+  "success": true,
+  "updated_count": 3,
+  "message": "Labels applied successfully"
+}
+```
+
+---
+
+## 🆕 Nuovi Endpoints: Gestione Alloggi Avanzata
+
+### 21. Pin/Unpin Accommodation
+
+Blocca o sblocca l'assegnazione alloggio per un invito specifico (impedisce riassegnazione automatica).
+
+```http
+PATCH /api/admin/invitations/{id}/pin-accommodation/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "pinned": true
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "id": 1,
+  "accommodation_pinned": true,
+  "message": "Accommodation assignment locked"
+}
+```
+
+### 22. Edit Accommodation
+
+Modifica i dettagli di una struttura alloggio esistente.
+
+```http
+PATCH /api/admin/accommodations/{id}/
+Content-Type: application/json
+Authorization: Token <token>
+
+{
+  "name": "Hotel Paradise (Updated)",
+  "address": "Via Roma 123, Cagliari"
+}
+```
+
+**Response (200):**
+
+```json
+{
+  "id": 1,
+  "name": "Hotel Paradise (Updated)",
+  "address": "Via Roma 123, Cagliari",
+  "rooms": [
+    {
+      "id": 101,
+      "name": "101",
+      "capacity_adults": 2,
+      "capacity_children": 1
+    }
+  ],
+  "updated_at": "2026-01-19T14:00:00Z"
+}
+```
+
+---
+
 ## Codici di Stato HTTP
 
 | Codice | Significato |
 |--------|-------------|
 | 200 | OK - Richiesta eseguita con successo |
 | 201 | Created - Risorsa creata con successo |
+| 202 | Accepted - Richiesta accettata per elaborazione asincrona |
 | 204 | No Content - Richiesta eseguita, nessun contenuto da restituire |
 | 400 | Bad Request - Dati inviati non validi |
 | 401 | Unauthorized - Token mancante o non valido |
@@ -577,6 +857,18 @@ curl -X POST http://localhost/api/guest/response/ \
 # Admin: Lista invitati (con token)
 curl http://localhost:8080/api/admin/guests/ \
   -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b"
+
+# Admin: Crea etichetta
+curl -X POST http://localhost:8080/api/admin/invitation-labels/ \
+  -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"VIP","color":"#FF5733"}'
+
+# Admin: Bulk send WhatsApp
+curl -X POST http://localhost:8080/api/admin/invitations/bulk-send/ \
+  -H "Authorization: Token 9944b09199c62bcf9418ad846dd0e4bbdfc6ee4b" \
+  -H "Content-Type: application/json" \
+  -d '{"invitation_ids":[1,2,3],"template_id":1,"session":"groom"}'
 ```
 
 ### Con Postman/Insomnia
@@ -606,3 +898,8 @@ L'interfaccia interattiva ti permette di testare tutti gli endpoint.
 - [Django REST Framework](https://www.django-rest-framework.org/)
 - [OpenAPI Specification](https://swagger.io/specification/)
 - [HTTP Status Codes](https://httpstatuses.com/)
+
+---
+
+## Legenda Simboli 🆕
+- 🆕 = Nuovi endpoint introdotti nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi`.
