@@ -43,8 +43,8 @@ export class ApiHelper {
     }
     return response.json();
   }
-  async createAccommodation(data: any) {
 
+  async createAccommodation(data: any) {
     const response = await this.request.post(`${ADMIN_API}/accommodations/`, {
       data: data
     });
@@ -76,5 +76,54 @@ export class ApiHelper {
       const response = await this.request.get(`${ADMIN_API}/dashboard/stats/`);
       if (!response.ok()) throw new Error("Stats failed");
       return response.json();
+  }
+
+  // --- NEW FEATURES HELPER METHODS ---
+
+  async createLabel(name: string, color: string) {
+    const response = await this.request.post(`${ADMIN_API}/invitation-labels/`, {
+      data: { name, color }
+    });
+    if (!response.ok()) {
+      throw new Error(`Failed to create label: ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  async bulkSend(invitationIds: number[]) {
+    const response = await this.request.post(`${ADMIN_API}/invitations/bulk-send/`, {
+      data: { invitation_ids: invitationIds }
+    });
+    if (!response.ok()) {
+      throw new Error(`Failed to bulk send: ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  async bulkApplyLabels(invitationIds: number[], labelIds: number[], action: 'add' | 'remove') {
+    const response = await this.request.post(`${ADMIN_API}/invitations/bulk-labels/`, {
+      data: { invitation_ids: invitationIds, label_ids: labelIds, action }
+    });
+    if (!response.ok()) {
+      throw new Error(`Failed to bulk apply labels: ${await response.text()}`);
+    }
+    return response.json();
+  }
+
+  async pinAccommodation(invitationId: number, pinned: boolean) {
+    const response = await this.request.post(`${ADMIN_API}/invitations/${invitationId}/pin-accommodation/`, {
+      data: { pinned }
+    });
+    if (!response.ok()) {
+        // Fallback: try PATCH update if specific endpoint doesn't exist yet (depending on backend impl)
+        const responsePatch = await this.request.patch(`${ADMIN_API}/invitations/${invitationId}/`, {
+            data: { accommodation_pinned: pinned }
+        });
+        if (!responsePatch.ok()) {
+            throw new Error(`Failed to pin accommodation: ${await response.text()}`);
+        }
+        return responsePatch.json();
+    }
+    return response.json();
   }
 }
