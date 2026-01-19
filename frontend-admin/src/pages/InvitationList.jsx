@@ -1,6 +1,6 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone, Tag, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
@@ -13,6 +13,12 @@ const InvitationList = () => {
   const { t } = useTranslation();
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters State
+  const [labels, setLabels] = useState([]);
+  const [activeLabelFilter, setActiveLabelFilter] = useState('');
+  const [activeStatusFilter, setActiveStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
@@ -49,7 +55,12 @@ const InvitationList = () => {
   const fetchInvitations = async () => {
     setLoading(true);
     try {
-      const data = await api.fetchInvitations();
+      const filters = {};
+      if (activeLabelFilter) filters.label = activeLabelFilter;
+      if (activeStatusFilter) filters.status = activeStatusFilter;
+      if (searchTerm) filters.search = searchTerm;
+
+      const data = await api.fetchInvitations(filters);
       setInvitations(data.results || data);
     } catch (error) {
       console.error('Failed to load invitations', error);
@@ -58,9 +69,30 @@ const InvitationList = () => {
     }
   };
 
+  const fetchLabels = async () => {
+      try {
+          const data = await api.fetchInvitationLabels();
+          setLabels(data.results || data);
+      } catch (error) {
+          console.error("Failed to load labels", error);
+      }
+  };
+
   useEffect(() => {
+    fetchLabels();
     fetchInvitations();
-  }, []);
+  }, [activeLabelFilter, activeStatusFilter]); // Refetch on filter change
+
+  // Debounced search
+  useEffect(() => {
+      const delayDebounceFn = setTimeout(() => {
+          if (searchTerm !== '') {
+            fetchInvitations();
+          }
+      }, 500);
+      return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
 
   // --- SELECTION LOGIC ---
   const toggleSelectAll = () => {
@@ -307,6 +339,48 @@ const InvitationList = () => {
         </div>
       </div>
 
+      {/* FILTERS BAR */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-center">
+          <div className="flex items-center text-gray-500">
+             <Filter size={18} className="mr-2" />
+             <span className="text-sm font-medium">{t('admin.invitations.filters.title') || "Filtri"}:</span>
+          </div>
+
+          <input
+             type="text"
+             placeholder={t('admin.invitations.filters.search_placeholder') || "Cerca per nome..."}
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none min-w-[200px]"
+          />
+
+          <select
+              value={activeStatusFilter}
+              onChange={(e) => setActiveStatusFilter(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+          >
+              <option value="">{t('admin.invitations.filters.all_statuses') || "Tutti gli stati"}</option>
+              <option value="created">Created</option>
+              <option value="sent">Sent</option>
+              <option value="read">Read</option>
+              <option value="confirmed">Confirmed</option>
+              <option value="declined">Declined</option>
+          </select>
+
+          {labels.length > 0 && (
+             <select
+                value={activeLabelFilter}
+                onChange={(e) => setActiveLabelFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+             >
+                <option value="">{t('admin.invitations.filters.all_labels') || "Tutte le etichette"}</option>
+                {labels.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+             </select>
+          )}
+      </div>
+
       {/* BULK ACTION BAR */}
       {selectedIds.length > 0 && (
         <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn">
@@ -421,6 +495,20 @@ const InvitationList = () => {
                           <code className="text-xs text-pink-600 font-mono bg-gray-100 px-1 rounded border border-gray-200">
                             {invitation.code}
                           </code>
+                          {/* LABELS BADGES */}
+                          {invitation.labels && invitation.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {invitation.labels.map(label => (
+                                    <span 
+                                        key={label.id} 
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                                        style={{ backgroundColor: label.color }}
+                                    >
+                                        {label.name}
+                                    </span>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -664,6 +752,20 @@ const InvitationList = () => {
                         <span className="text-lg">{invitation.origin === 'bride' ? '👰' : '🤵'}</span>
                       </div>
                       <div className="text-xs text-gray-500 font-mono">{invitation.code}</div>
+                      {/* MOBILE LABELS */}
+                        {invitation.labels && invitation.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {invitation.labels.map(label => (
+                                    <span 
+                                        key={label.id} 
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                                        style={{ backgroundColor: label.color }}
+                                    >
+                                        {label.name}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                   </div>
                   <div>{getStatusBadge(invitation.status)}</div>
