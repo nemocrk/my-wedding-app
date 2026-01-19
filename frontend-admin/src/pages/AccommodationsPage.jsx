@@ -3,6 +3,7 @@ import { Plus, Home, Sparkles, AlertCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import AccommodationList from '../components/accommodations/AccommodationList';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
+import EditAccommodationModal from '../components/accommodations/EditAccommodationModal';
 import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
 import { api } from '../services/api';
 import ErrorModal from '../components/common/ErrorModal';
@@ -12,6 +13,8 @@ const AccommodationsPage = () => {
     const [accommodations, setAccommodations] = useState([]);
     const [unassignedInvitations, setUnassignedInvitations] = useState([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [editingAccommodation, setEditingAccommodation] = useState(null);
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -48,11 +51,41 @@ const AccommodationsPage = () => {
         }
     };
 
+    const handleEdit = (accommodation) => {
+        setEditingAccommodation(accommodation);
+        setIsEditModalOpen(true);
+    };
+
+    const handleUpdate = async (id, data) => {
+        try {
+            await api.updateAccommodation(id, data);
+            setSuccessMsg(t('admin.accommodations.success.updated') || 'Alloggio aggiornato con successo');
+            fetchData();
+            setIsEditModalOpen(false);
+            setEditingAccommodation(null);
+        } catch (err) {
+            setError(err);
+        }
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm(t('admin.accommodations.alerts.delete_confirm'))) return;
         try {
             await api.deleteAccommodation(id);
             setSuccessMsg(t('admin.accommodations.success.deleted'));
+            fetchData();
+        } catch (err) {
+            setError(err);
+        }
+    };
+
+    const handleTogglePin = async (invitationId, isPinned) => {
+        try {
+            await api.updateInvitation(invitationId, { accommodation_assignment_pinned: isPinned });
+            setSuccessMsg(isPinned 
+                ? (t('admin.accommodations.success.pinned') || 'Assegnazione bloccata')
+                : (t('admin.accommodations.success.unpinned') || 'Assegnazione sbloccata')
+            );
             fetchData();
         } catch (err) {
             setError(err);
@@ -127,12 +160,24 @@ const AccommodationsPage = () => {
             <AccommodationList 
                 accommodations={accommodations} 
                 onDelete={handleDelete}
+                onEdit={handleEdit}
+                onTogglePin={handleTogglePin}
             />
 
             <CreateAccommodationModal 
                 isOpen={isCreateModalOpen} 
                 onClose={() => setIsCreateModalOpen(false)} 
                 onSave={handleCreate} 
+            />
+
+            <EditAccommodationModal
+                isOpen={isEditModalOpen}
+                onClose={() => {
+                    setIsEditModalOpen(false);
+                    setEditingAccommodation(null);
+                }}
+                onSave={handleUpdate}
+                accommodation={editingAccommodation}
             />
 
             <AutoAssignStrategyModal
