@@ -34,17 +34,32 @@ Raggruppa un nucleo familiare.
   - `origin`: Enum (`groom`/`bride`) fondamentale per organizzazione tavoli e statistiche.
   - `phone_number`: Numero per invio automatizzato inviti via WhatsApp.
   - `contact_verified`: Enum (`ok`, `not_valid`, `not_exist`, `not_present`) che indica lo stato di verifica del numero su WhatsApp.
+- **Etichette (Labels)** 🆕:
+  - `labels`: Relazione ManyToMany con `InvitationLabel`. Permette di categorizzare gli inviti (es. "VIP", "Colleghi", "Famiglia Stretta").
+  - **Utilizzo**: Filtraggio e organizzazione visiva nella dashboard admin, segnalazione di gruppi speciali (es. bambini, ospiti con esigenze particolari).
 - **Affinities**: Relazione molti-a-molti ricorsiva per indicare gruppi amici (usato dall'algoritmo di assegnazione stanze).
 - **Workflow Status**:
   Gestisce il ciclo di vita dell'invito:
-  1. `created`: Inserito a sistema.
-  2. `sent`: Messaggio inviato agli ospiti.
-  3. `read`: Gli ospiti hanno visualizzato la pagina (pixel tracking).
-  4. `confirmed` / `declined`: Scelta finale.
+  1. `imported`: Importato da file esterno (CSV/Excel).
+  2. `created`: Inserito manualmente a sistema.
+  3. `sent`: Messaggio inviato agli ospiti.
+  4. `read`: Gli ospiti hanno visualizzato la pagina (pixel tracking).
+  5. `confirmed` / `declined`: Scelta finale.
 - **Flags Logistici**:
     - `accommodation_offered`: Se True, sblocca il form "Richiesta Alloggio" nel frontend.
     - `transfer_offered`: Se True, sblocca la selezione "Navetta".
+    - `accommodation_pinned` 🆕: Se True, l'algoritmo di auto-assegnazione salta questo invito, preservando la stanza assegnata manualmente. **Caso d'uso**: Inviti VIP o con esigenze speciali che richiedono un controllo manuale degli alloggi.
 - **Token HMAC**: Il metodo `generate_verification_token` crea una firma crittografica basata su `code + id + secret_key` per validare le richieste API pubbliche e prevenire ID enumeration.
+
+### Modello `InvitationLabel` 🆕
+Dizionario delle etichette disponibili per categorizzare gli inviti.
+- `name`: Nome univoco (es. "VIP", "Colleghi", "Famiglia").
+- `color`: Colore HEX per badge UI (es. "#FF5733").
+- **CRUD Admin**: Le etichette vengono gestite tramite un'interfaccia dedicata nella dashboard admin (`/api/admin/invitation-labels/`).
+- **Utilizzo**: 
+  - Filtraggio avanzato nella lista inviti.
+  - Visualizzazione con badge colorati.
+  - Selezione bulk per azioni massive (es. invio WhatsApp a tutti gli inviti con label "Colleghi").
 
 ### Modello `Person`
 Rappresenta il singolo ospite.
@@ -110,14 +125,21 @@ L'endpoint `/auto-assign` può essere chiamato in due modalità:
 2. **Regola 2 (Compatibilità)**: Una struttura non può ospitare inviti tra loro "non affini".
 3. **Regola 3 (Atomicità)**: Tutte le persone di un invito devono trovare posto nella stessa struttura (in una o più stanze), altrimenti l'intero invito non viene assegnato (Rollback).
 4. **Regola 4 (Slot)**: Adulti solo in slot adulti; Bambini in slot bambini o adulti.
+5. **Regola 5 (Pinning)** 🆕: Se `invitation.accommodation_pinned` è True, l'invito viene escluso dalla riassegnazione e la sua stanza è considerata occupata a priori. **Implementazione**: Prima di svuotare le assegnazioni (`assigned_room = None`), filtrare gli inviti con `accommodation_pinned=False`. Le stanze con ospiti "pinned" devono essere marcate come NON disponibili per le altre strategie.
 
 > **⚠️ NOTA TECNICA IMPORTANTE (Prefetch vs Live Query)**
 > L'algoritmo utilizza `prefetch_related` per efficienza, MA per il controllo dell'owner della stanza (`get_room_owner`) è **OBBLIGATORIO** eseguire una query "live" sul database (`Person.objects.filter(...)`).
 > Usare i dati prefetched (`room.assigned_guests.all()`) causerebbe letture "stale" (vecchie) all'interno della stessa transazione, portando alla violazione della Regola 1 (più inviti nella stessa stanza).
 
+### Bulk Actions & Operazioni Massive 🆕
+La dashboard admin supporta selezione multipla e azioni bulk:
+- **Bulk Send WhatsApp**: Selezionare più inviti e accodare i messaggi in un'unica operazione.
+- **Bulk Label Assignment**: Applicare/rimuovere label da gruppi di inviti selezionati.
+- **Endpoint**: `/api/admin/invitations/bulk-send/` (POST con `invitation_ids: [...]`).
+
 ## 6. Analytics (`GuestInteraction` & `GuestHeatmap`)
 Sistema di tracciamento integrato.
-- **GuestInteraction**: Traccia eventi discreti (Visit, RSVP Submit, Click). Include metadata (IP anonimizzato, Device Type).
+- **GuestInteraction**: Traccia eventi discreti (Visit, Click, RSVP). Include metadata (IP anonimizzato, Device Type).
 - **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
 
 ## Diagramma Classi Core
@@ -143,7 +165,13 @@ classDiagram
         +Enum contact_verified
         +Enum status
         +Boolean accommodation_offered
+        +Boolean accommodation_pinned
         +generate_token()
+    }
+    
+    class InvitationLabel {
+        +String name
+        +String color
     }
 
     class Person {
@@ -165,6 +193,10 @@ classDiagram
     }
 
     Invitation "1" *-- "*" Person : contains
+    Invitation "*" -- "*" InvitationLabel : labeled_by
     Room "1" o-- "*" Person : houses
     WhatsAppTemplate "1" .. "*" Invitation : triggers
 ```
+
+## Legenda Simboli 🆕
+- 🆕 = Novità introdotte nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi`.

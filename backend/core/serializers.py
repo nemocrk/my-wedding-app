@@ -3,7 +3,7 @@ from .models import (
     Invitation, Person, GlobalConfig, Accommodation, Room,
     GuestInteraction, GuestHeatmap, WhatsAppSessionStatus, 
     WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate,
-    ConfigurableText
+    ConfigurableText, InvitationLabel
 )
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
@@ -17,6 +17,11 @@ class ConfigurableTextSerializer(serializers.ModelSerializer):
         model = ConfigurableText
         fields = ['key', 'content', 'metadata', 'updated_at']
         read_only_fields = ['key', 'updated_at']  # 'key' must be read-only for updates
+
+class InvitationLabelSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = InvitationLabel
+        fields = ['id', 'name', 'color']
 
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
@@ -192,14 +197,23 @@ class InvitationSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True)
     accommodation = AccommodationSerializer(read_only=True) # Nested read-only for display
     contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
+    labels = InvitationLabelSerializer(many=True, read_only=True)  # Read: Object List
+    label_ids = serializers.PrimaryKeyRelatedField(
+        many=True, 
+        write_only=True, 
+        queryset=InvitationLabel.objects.all(), 
+        required=False,     # MUST be False for tests to pass
+        allow_empty=True    # MUST be True for empty list
+    ) 
     
     class Meta:
         model = Invitation
         fields = [
-            'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
+            'id', 'code', 'name', 'accommodation_offered', 'transfer_offered', 'accommodation_pinned',
             'accommodation_requested', 'transfer_requested', 'accommodation',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status',
-            'origin', 'phone_number', 'contact_verified', 'contact_verified_display'
+            'origin', 'phone_number', 'contact_verified', 'contact_verified_display',
+            'labels', 'label_ids'
         ]
         read_only_fields = ['id', 'created_at', 'contact_verified_display']
 
@@ -207,8 +221,16 @@ class InvitationSerializer(serializers.ModelSerializer):
         guests_data = validated_data.pop('guests')
         affinities = validated_data.pop('affinities', [])
         non_affinities = validated_data.pop('non_affinities', [])
+        label_ids = validated_data.pop('label_ids', []) # Retrieve manually
+        
+        # Remove nested labels if accidentally passed (though read-only)
+        validated_data.pop('labels', None)
         
         invitation = Invitation.objects.create(**validated_data)
+        
+        # Set ManyToMany Fields
+        if label_ids:
+             invitation.labels.set(label_ids)
         
         for guest_data in guests_data:
             guest_data.pop('id', None)
@@ -222,6 +244,10 @@ class InvitationSerializer(serializers.ModelSerializer):
         guests_data = validated_data.pop('guests', None)
         affinities = validated_data.pop('affinities', None)
         non_affinities = validated_data.pop('non_affinities', None)
+        label_ids = validated_data.pop('label_ids', None) # Retrieve manually
+        
+        # Remove nested labels
+        validated_data.pop('labels', None)
         
         # Check if phone number is changing
         new_phone = validated_data.get('phone_number')
@@ -233,8 +259,12 @@ class InvitationSerializer(serializers.ModelSerializer):
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        
+        # 2. Update Labels
+        if label_ids is not None:
+            instance.labels.set(label_ids)
 
-        # 2. Update Guests (preserva assigned_room se presente)
+        # 3. Update Guests (preserva assigned_room se presente)
         if guests_data is not None:
             existing_guests = {g.id: g for g in instance.guests.all()}
             incoming_guest_ids = []
@@ -261,7 +291,7 @@ class InvitationSerializer(serializers.ModelSerializer):
                 if g_id not in incoming_guest_ids:
                     guest.delete()
 
-        # 3. Update Affinities
+        # 4. Update Affinities
         self._handle_affinities(instance, affinities, non_affinities)
 
         return instance
@@ -282,15 +312,16 @@ class InvitationListSerializer(serializers.ModelSerializer):
     guests = PersonSerializer(many=True, read_only=True)
     accommodation_name = serializers.CharField(source='accommodation.name', read_only=True)
     contact_verified_display = serializers.CharField(source='get_contact_verified_display', read_only=True)
+    labels = InvitationLabelSerializer(many=True, read_only=True)
 
     class Meta:
         model = Invitation
         fields = [
             'id', 'name', 'code', 'guests_count', 'guests', 
-            'accommodation_offered', 'transfer_offered', 
+            'accommodation_offered', 'transfer_offered', 'accommodation_pinned',
             'accommodation_requested', 'transfer_requested',
             'status', 'accommodation_name', 'origin', 'phone_number',
-            'contact_verified', 'contact_verified_display'
+            'contact_verified', 'contact_verified_display', 'labels'
         ]
 
 # --- NEW SERIALIZERS ---

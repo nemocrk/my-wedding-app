@@ -1,6 +1,6 @@
 // frontend-admin/src/components/invitations/CreateInvitationModal.jsx
 import React, { useState, useEffect } from 'react';
-import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone } from 'lucide-react';
+import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users, Check, Phone, Tag } from 'lucide-react';
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
 import { useTranslation } from 'react-i18next';
@@ -11,6 +11,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const totalSteps = 3;
   const [loading, setLoading] = useState(false);
   const [existingInvitations, setExistingInvitations] = useState([]);
+  const [availableLabels, setAvailableLabels] = useState([]);
 
   // Edit Mode Flag
   const isEditMode = !!initialData;
@@ -27,6 +28,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
     phone_number: '',
     accommodation_offered: false,
     transfer_offered: false,
+    label_ids: [],
     guests: [
       { first_name: '', last_name: '', is_child: false }
     ],
@@ -44,6 +46,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
         phone_number: initialData.phone_number || '',
         accommodation_offered: initialData.accommodation_offered || false,
         transfer_offered: initialData.transfer_offered || false,
+        label_ids: initialData.labels ? initialData.labels.map(l => l.id) : [],
         guests: initialData.guests && initialData.guests.length > 0 
           ? initialData.guests 
           : [{ first_name: '', last_name: '', is_child: false }],
@@ -52,6 +55,19 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       });
     }
   }, [initialData]);
+
+  // Fetch available labels
+  useEffect(() => {
+    const loadLabels = async () => {
+        try {
+            const data = await api.fetchInvitationLabels();
+            setAvailableLabels(data.results || data);
+        } catch (error) {
+            console.error("Failed to load labels", error);
+        }
+    };
+    loadLabels();
+  }, []);
 
   // Fetch existing invitations for affinities step
   useEffect(() => {
@@ -79,6 +95,17 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
+  };
+
+  const toggleLabel = (labelId) => {
+    setFormData(prev => {
+        const currentLabels = prev.label_ids || [];
+        if (currentLabels.includes(labelId)) {
+            return { ...prev, label_ids: currentLabels.filter(id => id !== labelId) };
+        } else {
+            return { ...prev, label_ids: [...currentLabels, labelId] };
+        }
+    });
   };
 
   // Guest Management
@@ -132,7 +159,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const handleNext = () => {
     if (step === 1) {
       if (!formData.name || !formData.code) {
-        alert(t('admin.invitations.create_modal.steps.details.validation.name_code_required') || "Nome e Codice sono obbligatori"); 
+        alert(t('admin.invitations.create_modal.steps.details.validation.name_code_required')); 
         return;
       }
     }
@@ -285,6 +312,43 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       </p>
                     </div>
 
+                    {/* LABELS SECTION */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                             <Tag size={16} className="inline mr-1"/> {t('admin.invitations.create_modal.steps.details.labels')}
+                        </label>
+                        {availableLabels.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                                {availableLabels.map(label => {
+                                    const isSelected = formData.label_ids.includes(label.id);
+                                    return (
+                                        <button
+                                            key={label.id}
+                                            type="button"
+                                            onClick={() => toggleLabel(label.id)}
+                                            className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
+                                                isSelected 
+                                                ? 'ring-2 ring-offset-1' 
+                                                : 'opacity-70 hover:opacity-100'
+                                            }`}
+                                            style={{
+                                                backgroundColor: isSelected ? label.color : 'white',
+                                                borderColor: label.color,
+                                                color: isSelected ? '#fff' : label.color,
+                                                '--tw-ring-color': label.color
+                                            }}
+                                        >
+                                            {label.name}
+                                            {isSelected && <Check size={12} className="inline ml-1" />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        ) : (
+                            <p className="text-xs text-gray-400 italic">{t('admin.invitations.create_modal.steps.details.no_labels')}</p>
+                        )}
+                    </div>
+
                     <div className="pt-4 border-t border-gray-100">
                       <label className="block text-sm font-medium text-gray-700 mb-4">{t('admin.invitations.create_modal.steps.details.offered_options')}</label>
                       <div className="flex flex-col sm:flex-row gap-4">
@@ -403,7 +467,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   {existingInvitations.length === 0 ? (
                     <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 text-center">
                       <Users size={32} className="text-gray-300 mx-auto mb-3" />
-                      <p className="text-gray-500">{t('admin.invitations.create_modal.steps.review.no_other_invites') || "Non ci sono ancora altri inviti con cui creare affinità."}</p>
+                      <p className="text-gray-500">{t('admin.invitations.create_modal.steps.review.no_other_invites')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -411,7 +475,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h4 className="font-semibold text-green-700 mb-4 flex items-center">
                           <Users className="mr-2" size={20} />
-                          {t('admin.invitations.create_modal.steps.review.affinity_title') || "Affini (Vicina di tavolo)"}
+                          {t('admin.invitations.create_modal.steps.review.affinity_title')}
                         </h4>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                           {existingInvitations.map(inv => (
@@ -438,7 +502,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                       <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
                         <h4 className="font-semibold text-red-700 mb-4 flex items-center">
                           <Users className="mr-2" size={20} />
-                          {t('admin.invitations.create_modal.steps.review.non_affinity_title') || "Non Affini (Lontano)"}
+                          {t('admin.invitations.create_modal.steps.review.non_affinity_title')}
                         </h4>
                         <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                           {existingInvitations.map(inv => (
@@ -498,7 +562,7 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
                   className="flex items-center px-8 py-2.5 bg-pink-600 hover:bg-pink-700 text-white rounded-lg font-medium transition-all shadow-sm hover:shadow-pink-200 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {loading ? (
-                    <span className="animate-pulse">{t('admin.invitations.create_modal.buttons.saving') || 'Salvataggio...'}</span>
+                    <span className="animate-pulse">{t('admin.invitations.create_modal.buttons.saving')}</span>
                   ) : (
                     <>
                       <Save size={18} className="mr-2" />

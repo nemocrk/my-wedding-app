@@ -5,7 +5,8 @@ import Dashboard from './pages/Dashboard';
 import InvitationList from './pages/InvitationList';
 import AccommodationsPage from './pages/AccommodationsPage';
 import Configuration from './pages/Configuration';
-import WhatsAppConfig from './pages/WhatsAppConfig'; // New Import
+import WhatsAppConfig from './pages/WhatsAppConfig'; 
+import LabelManager from './pages/LabelManager'; // New Import
 import ErrorModal from './components/common/ErrorModal';
 import useApiErrorModal from './hooks/useApiErrorModal';
 import './App.css';
@@ -28,8 +29,9 @@ function App() {
             <Route path="dashboard" element={<Dashboard />} />
             <Route path="invitations" element={<InvitationList />} />
             <Route path="accommodations" element={<AccommodationsPage />} />
+            <Route path="labels" element={<LabelManager />} /> {/* New Route */}
             <Route path="config" element={<Configuration />} />
-            <Route path="whatsapp" element={<WhatsAppConfig />} /> {/* New Route */}
+            <Route path="whatsapp" element={<WhatsAppConfig />} />
           </Route>
         </Routes>
       </div>

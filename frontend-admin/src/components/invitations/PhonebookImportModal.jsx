@@ -66,7 +66,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
         // Filtro e normalizzazione preliminare
         const validContacts = contacts
           .map(c => {
-            const name = c.name?.[0] || 'Sconosciuto';
+            const name = c.name?.[0];
             const rawPhone = selectBestPhone(c.tel);
             return {
               original: c,
@@ -84,7 +84,7 @@ const PhonebookImportModal = ({ onClose, onSuccess }) => {
       }
     } catch (err) {
       console.error(err);
-      setError(err.message || "Errore durante l'accesso alla rubrica.");
+      setError(err.message);
     } finally {
       setLoading(false);
     }

@@ -1,18 +1,26 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone, Tag, Filter } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
+import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
+import BulkLabelModal from '../components/invitations/BulkLabelModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
   const { t } = useTranslation();
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Filters State
+  const [labels, setLabels] = useState([]);
+  const [activeLabelFilter, setActiveLabelFilter] = useState('');
+  const [activeStatusFilter, setActiveStatusFilter] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Selection State for Bulk Actions
   const [selectedIds, setSelectedIds] = useState([]);
@@ -28,6 +36,10 @@ const InvitationList = () => {
   // WhatsApp Modal State
   const [isWAModalOpen, setIsWAModalOpen] = useState(false);
   const [waRecipients, setWaRecipients] = useState([]);
+  
+  // Bulk Send Modal State
+  const [isBulkSendModalOpen, setIsBulkSendModalOpen] = useState(false);
+  const [isBulkLabelModalOpen, setIsBulkLabelModalOpen] = useState(false);
 
   // Action States
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
@@ -49,7 +61,12 @@ const InvitationList = () => {
   const fetchInvitations = async () => {
     setLoading(true);
     try {
-      const data = await api.fetchInvitations();
+      const filters = {};
+      if (activeLabelFilter) filters.label = activeLabelFilter;
+      if (activeStatusFilter) filters.status = activeStatusFilter;
+      if (searchTerm) filters.search = searchTerm;
+
+      const data = await api.fetchInvitations(filters);
       setInvitations(data.results || data);
     } catch (error) {
       console.error('Failed to load invitations', error);
@@ -58,9 +75,30 @@ const InvitationList = () => {
     }
   };
 
+  const fetchLabels = async () => {
+      try {
+          const data = await api.fetchInvitationLabels();
+          setLabels(data.results || data);
+      } catch (error) {
+          console.error("Failed to load labels", error);
+      }
+  };
+
   useEffect(() => {
+    fetchLabels();
     fetchInvitations();
-  }, []);
+  }, [activeLabelFilter, activeStatusFilter]); // Refetch on filter change
+
+  // Debounced search
+  useEffect(() => {
+      const delayDebounceFn = setTimeout(() => {
+          if (searchTerm !== '') {
+            fetchInvitations();
+          }
+      }, 500);
+      return () => clearTimeout(delayDebounceFn);
+  }, [searchTerm]);
+
 
   // --- SELECTION LOGIC ---
   const toggleSelectAll = () => {
@@ -80,15 +118,15 @@ const InvitationList = () => {
   };
 
   // --- HELPERS ---
+  const statusConfig = {
+    imported: { icon: FileText, label: t('admin.invitations.status.imported'), color: 'bg-gray-100 text-gray-600' },
+    created: { icon: FileText, label: t('admin.invitations.status.created'), color: 'bg-gray-100 text-gray-600' },
+    sent: { icon: Send, label: t('admin.invitations.status.sent'), color: 'bg-blue-100 text-blue-700' },
+    read: { icon: Eye, label: t('admin.invitations.status.read'), color: 'bg-indigo-100 text-indigo-700' },
+    confirmed: { icon: CheckCircle, label: t('admin.invitations.status.confirmed'), color: 'bg-green-100 text-green-800' },
+    declined: { icon: XCircle, label: t('admin.invitations.status.declined'), color: 'bg-red-100 text-red-800' },
+  };
   const getStatusBadge = (status) => {
-    const statusConfig = {
-      imported: { icon: FileText, label: t('admin.invitations.status.imported'), color: 'bg-gray-100 text-gray-600' },
-      created: { icon: FileText, label: t('admin.invitations.status.created'), color: 'bg-gray-100 text-gray-600' },
-      sent: { icon: Send, label: t('admin.invitations.status.sent'), color: 'bg-blue-100 text-blue-700' },
-      read: { icon: Eye, label: t('admin.invitations.status.read'), color: 'bg-indigo-100 text-indigo-700' },
-      confirmed: { icon: CheckCircle, label: t('admin.invitations.status.confirmed'), color: 'bg-green-100 text-green-800' },
-      declined: { icon: XCircle, label: t('admin.invitations.status.declined'), color: 'bg-red-100 text-red-800' },
-    };
     
     const config = statusConfig[status] || { icon: HelpCircle, label: t('admin.invitations.status.unknown'), color: 'bg-gray-100 text-gray-600' };
     const Icon = config.icon;
@@ -148,7 +186,18 @@ const InvitationList = () => {
     }
   };
 
-  const handleBulkSend = () => {
+  const handleBulkSendInvitations = () => {
+      // Opens the confirmation modal for bulk sending invitations
+      if (selectedIds.length === 0) return;
+      setIsBulkSendModalOpen(true);
+  };
+
+  const handleBulkLabels = () => {
+      if (selectedIds.length === 0) return;
+      setIsBulkLabelModalOpen(true);
+  };
+
+  const handleWABulkSend = () => {
     if (openingWABulk || isWAModalOpen) return;
     setOpeningWABulk(true);
 
@@ -197,6 +246,16 @@ const InvitationList = () => {
   const handleWASuccess = () => {
     setSelectedIds([]);
     fetchInvitations();
+  };
+  
+  const handleBulkSendSuccess = () => {
+      setSelectedIds([]);
+      fetchInvitations();
+  };
+
+  const handleBulkLabelSuccess = () => {
+      setSelectedIds([]);
+      fetchInvitations();
   };
 
   // --- SINGLE ACTIONS ---
@@ -307,9 +366,51 @@ const InvitationList = () => {
         </div>
       </div>
 
+      {/* FILTERS BAR */}
+      <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-center">
+          <div className="flex items-center text-gray-500">
+             <Filter size={18} className="mr-2" />
+             <span className="text-sm font-medium">{t('admin.invitations.filters.title')}:</span>
+          </div>
+
+          <input
+             type="text"
+             placeholder={t('admin.invitations.filters.search_placeholder')}
+             value={searchTerm}
+             onChange={(e) => setSearchTerm(e.target.value)}
+             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none min-w-[200px]"
+          />
+
+          <select
+              value={activeStatusFilter}
+              onChange={(e) => setActiveStatusFilter(e.target.value)}
+              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+          >
+              <option value="">{t('admin.invitations.filters.all_statuses')}</option>
+              <option value="created">{t('admin.invitations.status.created')}</option>
+              <option value="sent">{t('admin.invitations.status.sent')}</option>
+              <option value="read">{t('admin.invitations.status.read')}</option>
+              <option value="confirmed">{t('admin.invitations.status.confirmed')}</option>
+              <option value="declined">{t('admin.invitations.status.declined')}</option>
+          </select>
+
+          {labels.length > 0 && (
+             <select
+                value={activeLabelFilter}
+                onChange={(e) => setActiveLabelFilter(e.target.value)}
+                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+             >
+                <option value="">{t('admin.invitations.filters.all_labels')}</option>
+                {labels.map(l => (
+                    <option key={l.id} value={l.id}>{l.name}</option>
+                ))}
+             </select>
+          )}
+      </div>
+
       {/* BULK ACTION BAR */}
       {selectedIds.length > 0 && (
-        <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn">
+        <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn flex-wrap gap-4">
           <div className="flex items-center">
             <span className="font-semibold text-gray-800 mr-4">{t('admin.invitations.bulk_action.selected', { count: selectedIds.length })}</span>
             <button
@@ -328,8 +429,26 @@ const InvitationList = () => {
               {verifyingContacts ? <Loader size={16} className="animate-spin mr-2"/> : <RefreshCw size={16} className="mr-2"/>}
               {t('admin.invitations.buttons.verify_contacts')}
             </button>
+            
             <button
-              onClick={handleBulkSend}
+               onClick={handleBulkLabels}
+               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+               <Tag size={16} className="mr-2" />
+               {t('admin.invitations.buttons.manage_labels')}
+            </button>
+
+             {/* PULSANTE BULK SEND INVITATIONS */}
+            <button
+               onClick={handleBulkSendInvitations}
+               className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+               <Send size={16} className="mr-2" />
+               {t('admin.invitations.buttons.send_invitations')}
+            </button>
+            
+            <button
+              onClick={handleWABulkSend}
               disabled={openingWABulk}
               className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
@@ -421,6 +540,20 @@ const InvitationList = () => {
                           <code className="text-xs text-pink-600 font-mono bg-gray-100 px-1 rounded border border-gray-200">
                             {invitation.code}
                           </code>
+                          {/* LABELS BADGES */}
+                          {invitation.labels && invitation.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {invitation.labels.map(label => (
+                                    <span 
+                                        key={label.id} 
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                                        style={{ backgroundColor: label.color }}
+                                    >
+                                        {label.name}
+                                    </span>
+                                ))}
+                            </div>
+                          )}
                         </div>
                       </div>
                     </td>
@@ -664,6 +797,20 @@ const InvitationList = () => {
                         <span className="text-lg">{invitation.origin === 'bride' ? '👰' : '🤵'}</span>
                       </div>
                       <div className="text-xs text-gray-500 font-mono">{invitation.code}</div>
+                      {/* MOBILE LABELS */}
+                        {invitation.labels && invitation.labels.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1">
+                                {invitation.labels.map(label => (
+                                    <span 
+                                        key={label.id} 
+                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                                        style={{ backgroundColor: label.color }}
+                                    >
+                                        {label.name}
+                                    </span>
+                                ))}
+                            </div>
+                        )}
                     </div>
                   </div>
                   <div>{getStatusBadge(invitation.status)}</div>
@@ -789,6 +936,7 @@ const InvitationList = () => {
         )}
       </div>
 
+      {/* --- MODALS --- */}
       {isModalOpen && (
         <CreateInvitationModal
           onClose={() => setIsModalOpen(false)}
@@ -811,6 +959,25 @@ const InvitationList = () => {
           onSuccess={handleWASuccess}
           recipients={waRecipients}
         />
+      )}
+      
+      {isBulkSendModalOpen && (
+        <BulkSendConfirmModal
+           isOpen={isBulkSendModalOpen}
+           onClose={() => setIsBulkSendModalOpen(false)}
+           selectedIds={selectedIds}
+           invitations={invitations}
+           onSuccess={handleBulkSendSuccess}
+        />
+      )}
+      
+      {isBulkLabelModalOpen && (
+         <BulkLabelModal
+            open={isBulkLabelModalOpen}
+            onClose={() => setIsBulkLabelModalOpen(false)}
+            selectedIds={selectedIds}
+            onSuccess={handleBulkLabelSuccess}
+         />
       )}
 
       {interactionInvitation && (

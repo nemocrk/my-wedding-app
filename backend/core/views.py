@@ -9,12 +9,12 @@ from django.conf import settings
 from .models import (
     Invitation, GlobalConfig, Person, Accommodation, Room, 
     GuestInteraction, GuestHeatmap, WhatsAppTemplate,
-    ConfigurableText
+    ConfigurableText, InvitationLabel
 )
 from .serializers import (
     InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
     AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer,
-    ConfigurableTextSerializer
+    ConfigurableTextSerializer, InvitationLabelSerializer
 )
 import logging
 import os
@@ -427,14 +427,60 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
             
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
+class InvitationLabelViewSet(viewsets.ModelViewSet):
+    """
+    CRUD per le etichette degli inviti.
+    Permette di creare, modificare, eliminare etichette personalizzate.
+    """
+    queryset = InvitationLabel.objects.all().order_by('name')
+    serializer_class = InvitationLabelSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
     queryset = Invitation.objects.all().order_by('-created_at')
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'code']
+    ordering_fields = ['created_at', 'status', 'name']
     
     def get_serializer_class(self):
         if self.action == 'list':
             return InvitationListSerializer
         return InvitationSerializer
+
+    def get_queryset(self):
+        """
+        Supporto filtri query params:
+        - ?status=confirmed
+        - ?label=<label_id>
+        - ?origin=groom|bride
+        - ?accommodation_pinned=true|false
+        """
+        qs = super().get_queryset()
+        
+        # Filtro per status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        
+        # Filtro per label_id
+        label_filter = self.request.query_params.get('label')
+        if label_filter:
+            qs = qs.filter(labels__id=label_filter)
+        
+        # Filtro per origin
+        origin_filter = self.request.query_params.get('origin')
+        if origin_filter:
+            qs = qs.filter(origin=origin_filter)
+        
+        # Filtro per accommodation_pinned
+        pinned_filter = self.request.query_params.get('accommodation_pinned')
+        if pinned_filter is not None:
+            pinned_bool = pinned_filter.lower() == 'true'
+            qs = qs.filter(accommodation_pinned=pinned_bool)
+        
+        return qs
 
     @action(detail=False, methods=['get'])
     def search(self, request):
@@ -464,6 +510,119 @@ class InvitationViewSet(viewsets.ModelViewSet):
         invitation.status = Invitation.Status.SENT
         invitation.save()
         return Response({'status': 'sent', 'message': f'Invito {invitation.name} segnato come Inviato'})
+
+    @action(detail=False, methods=['post'], url_path='bulk-send')
+    def bulk_send(self, request):
+        """
+        Bulk mark-as-sent action.
+        Body: {"invitation_ids": [1, 2, 3]}
+        Effetto: Imposta status='sent' per tutti gli inviti specificati.
+        Identico a chiamare mark-as-sent su ogni singolo invito.
+        """
+        invitation_ids = request.data.get('invitation_ids', [])
+        
+        if not invitation_ids:
+            return Response(
+                {'error': 'invitation_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Validazione: verifica che tutti gli ID esistano
+        invitations = Invitation.objects.filter(id__in=invitation_ids)
+        found_ids = set(invitations.values_list('id', flat=True))
+        missing_ids = set(invitation_ids) - found_ids
+        
+        if missing_ids:
+            return Response(
+                {
+                    'error': 'Some invitation IDs not found',
+                    'missing_ids': list(missing_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Bulk update (atomic)
+        updated_count = invitations.update(status=Invitation.Status.SENT)
+        
+        logger.info(f"📤 Bulk-send: {updated_count} invitations marked as SENT")
+        
+        return Response({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'{updated_count} inviti segnati come Inviati'
+        })
+    @action(detail=False, methods=['post'], url_path='bulk-labels')
+    def bulk_labels(self, request):
+        """
+        Bulk handle labels action.
+        Body: {"invitation_ids": [1, 2, 3], "label_ids": [1, 3], "action": 'add' | 'remove'}
+        Effetto: Aggiunge o rimuove label per tutti gli inviti specificati.
+        """
+        invitation_ids = request.data.get('invitation_ids', [])
+        label_ids = request.data.get('label_ids', [])
+        action_type = request.data.get('action', "na")
+        
+        if not invitation_ids:
+            return Response(
+                {'error': 'invitation_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not label_ids:
+            return Response(
+                {'error': 'label_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if action_type not in ['add', 'remove']:
+            return Response(
+                {'error': 'action must be \'add\' or \'remove\''}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        invitations = Invitation.objects.filter(id__in=invitation_ids)
+        found_ids = set(invitations.values_list('id', flat=True))
+        missing_ids = set(invitation_ids) - found_ids
+        
+        if missing_ids:
+            return Response(
+                {
+                    'error': 'Some invitation IDs not found',
+                    'missing_ids': list(missing_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+            
+        # Validazione: verifica che tutti gli ID esistano
+        labels = InvitationLabel.objects.filter(id__in=label_ids)
+        found_label_ids = set(labels.values_list('id', flat=True))
+        missing_label_ids = set(label_ids) - found_label_ids
+        
+        if missing_label_ids:
+            return Response(
+                {
+                    'error': 'Some label IDs not found',
+                    'missing_ids': list(missing_label_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        updated_count = 0
+        with transaction.atomic():
+            if action_type == 'add':
+                for inv in invitations:
+                    inv.labels.add(*labels)
+                updated_count = invitations.count()
+            elif action_type == 'remove':
+                for inv in invitations:
+                    inv.labels.remove(*labels)
+                updated_count = invitations.count()
+        
+        logger.info(f"🏷️ Bulk-labels: {action_type} labels for {updated_count} invitations")
+        
+        return Response({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'Etichette aggiornate per {updated_count} inviti'
+        })
 
     @action(detail=True, methods=['post'], url_path='mark-as-read')
     def mark_as_read(self, request, pk=None):
@@ -566,6 +725,15 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
     @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
+        """
+        Auto-assignment algorithm with accommodation_pinned support.
+        
+        CRITICAL: Invitations with accommodation_pinned=True are EXCLUDED from:
+        1. Reset operation (if reset_previous=True)
+        2. Assignment algorithm execution
+        
+        Their rooms are considered occupied and unavailable for new assignments.
+        """
         strategy_code = request.data.get('strategy', 'SIMULATION')
         is_simulation = strategy_code == 'SIMULATION'
         
@@ -620,15 +788,28 @@ class AccommodationViewSet(viewsets.ModelViewSet):
             sid = transaction.savepoint()
             
             try:
+                # CRITICAL: Reset ONLY non-pinned invitations
                 if request.data.get('reset_previous', False):
-                    Person.objects.filter(assigned_room__isnull=False).update(assigned_room=None)
-                    Invitation.objects.filter(accommodation__isnull=False).update(accommodation=None)
+                    # Reset only guests belonging to NON-PINNED invitations
+                    Person.objects.filter(
+                        assigned_room__isnull=False,
+                        invitation__accommodation_pinned=False
+                    ).update(assigned_room=None)
+                    
+                    Invitation.objects.filter(
+                        accommodation__isnull=False,
+                        accommodation_pinned=False
+                    ).update(accommodation=None)
+                    
+                    logger.info("🔄 Reset completed (pinned invitations preserved)")
 
+                # CRITICAL: Fetch only NON-PINNED invitations for assignment
                 invitations = list(Invitation.objects.filter(
                     status=Invitation.Status.CONFIRMED,
                     accommodation_requested=True,
+                    accommodation_pinned=False,  # EXCLUDE PINNED
                     guests__assigned_room__isnull=True,
-                    guests__not_coming=False  # Exclude not_coming guests
+                    guests__not_coming=False
                 ).distinct().prefetch_related('guests', 'affinities', 'non_affinities'))
 
                 accommodations = list(Accommodation.objects.prefetch_related(
@@ -641,12 +822,26 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 assignment_log = []
 
                 def get_room_owner(room):
-                    owner_ids = list(Person.objects.filter(assigned_room=room, not_coming=False).values_list('invitation_id', flat=True).distinct())
-                    if not owner_ids: return None
-                    if len(owner_ids) > 1: return -1
+                    """
+                    CRITICAL: Query LIVE (not prefetched) to avoid stale data.
+                    Returns:
+                    - None: room is empty
+                    - int: invitation_id (single owner)
+                    - -1: multiple owners (violation, should never happen)
+                    """
+                    owner_ids = list(Person.objects.filter(
+                        assigned_room=room, 
+                        not_coming=False
+                    ).values_list('invitation_id', flat=True).distinct())
+                    
+                    if not owner_ids: 
+                        return None
+                    if len(owner_ids) > 1: 
+                        return -1  # Multi-owner violation
                     return owner_ids[0]
 
                 def is_accommodation_compatible(acc, inv):
+                    """Check if invitation can coexist with current occupants (affinity check)"""
                     non_affine_ids = set(inv.non_affinities.values_list('id', flat=True))
                     existing_inv_ids = set(Person.objects.filter(
                         assigned_room__accommodation=acc,
@@ -658,9 +853,12 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     return True
 
                 def can_fit(room, person, inv_id):
+                    """Check if person can be assigned to room (capacity + ownership rules)"""
                     owner = get_room_owner(room)
-                    if owner == -1: return False
-                    if owner is not None and owner != inv_id: return False
+                    if owner == -1: 
+                        return False  # Room corrupted
+                    if owner is not None and owner != inv_id: 
+                        return False  # Room owned by another invitation
                     
                     slots = room.available_slots()
                     if person.is_child:
@@ -669,15 +867,19 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         return slots['adult_slots_free'] > 0
 
                 def assign_invitation(inv, acc):
+                    """Attempt to assign all guests of invitation to accommodation (atomic)"""
                     nonlocal assigned_count, wasted_beds
                     
                     if strategy_params.get('perfect_match_only', False):
-                        if acc.available_capacity() < inv.guests.filter(not_coming=False).count(): return False
+                        if acc.available_capacity() < inv.guests.filter(not_coming=False).count(): 
+                            return False
 
-                    if not is_accommodation_compatible(acc, inv): return False
+                    if not is_accommodation_compatible(acc, inv): 
+                        return False
 
                     persons = list(inv.guests.filter(assigned_room__isnull=True, not_coming=False))
-                    if not persons: return True
+                    if not persons: 
+                        return True  # Already assigned
 
                     rooms = list(acc.rooms.all())
                     rooms.sort(key=strategy_params['room_sort'])
@@ -719,13 +921,15 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 processed_ids = set()
 
                 for inv in invitations:
-                    if inv.id in processed_ids: continue
+                    if inv.id in processed_ids: 
+                        continue
                     
                     group = [inv]
                     if strategy_params.get('group_affinity', True):
                         affinities = list(inv.affinities.filter(
                             status=Invitation.Status.CONFIRMED,
-                            accommodation_requested=True
+                            accommodation_requested=True,
+                            accommodation_pinned=False  # EXCLUDE PINNED from affinity groups
                         ).exclude(id__in=processed_ids))
                         group.extend(affinities)
                     
@@ -743,7 +947,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         
                         if group_success:
                             transaction.savepoint_commit(sid_group)
-                            for g_inv in group: processed_ids.add(g_inv.id)
+                            for g_inv in group: 
+                                processed_ids.add(g_inv.id)
                             assigned_group = True
                             break
                         else:
@@ -751,20 +956,27 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     
                     if not assigned_group and not strategy_params.get('force_cluster', False):
                          for g_inv in group:
-                            if g_inv.id in processed_ids: continue
+                            if g_inv.id in processed_ids: 
+                                continue
                             for acc in accommodations:
                                 if assign_invitation(g_inv, acc):
                                     processed_ids.add(g_inv.id)
                                     break
 
+                # Count unassigned (excluding pinned and not_coming)
                 unassigned_count = Person.objects.filter(
                     invitation__status=Invitation.Status.CONFIRMED,
                     invitation__accommodation_requested=True,
+                    invitation__accommodation_pinned=False,  # Exclude pinned
                     assigned_room__isnull=True,
                     not_coming=False
                 ).count()
 
-                occupied_rooms = Room.objects.filter(assigned_guests__isnull=False, assigned_guests__not_coming=False).distinct()
+                # Calculate wasted beds (only in occupied rooms)
+                occupied_rooms = Room.objects.filter(
+                    assigned_guests__isnull=False, 
+                    assigned_guests__not_coming=False
+                ).distinct()
                 for r in occupied_rooms:
                     slots = r.available_slots()
                     wasted_beds += slots['total_free']

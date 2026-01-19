@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Euro, Users, Home, Bus, TrendingUp, AlertCircle } from 'lucide-react';
+import { Euro, Users, Home, Bus, TrendingUp, AlertCircle, FileText, Send, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
 
@@ -38,6 +38,15 @@ const Dashboard = () => {
     { name: t('admin.dashboard.guest_categories.adults_pending'), value: stats.guests.adults_pending, color: '#9CA3AF' },
     { name: t('admin.dashboard.guest_categories.children_pending'), value: stats.guests.children_pending, color: '#D1D5DB' },
     { name: t('admin.dashboard.guest_categories.declined'), value: stats.guests.adults_declined + stats.guests.children_declined, color: '#EF4444' },
+  ].filter(d => d.value > 0);
+
+  // 2. Invitation Status Data (NEW)
+  const invitationStatusData = [
+    { name: t('admin.invitations.status.created'), value: stats.invitations?.created || 0, color: '#9CA3AF', icon: FileText },
+    { name: t('admin.invitations.status.sent'), value: stats.invitations?.sent || 0, color: '#3B82F6', icon: Send },
+    { name: t('admin.invitations.status.read'), value: stats.invitations?.read || 0, color: '#6366F1', icon: Eye },
+    { name: t('admin.invitations.status.confirmed'), value: stats.invitations?.confirmed || 0, color: '#10B981', icon: CheckCircle },
+    { name: t('admin.invitations.status.declined'), value: stats.invitations?.declined || 0, color: '#EF4444', icon: XCircle },
   ].filter(d => d.value > 0);
 
   const StatCard = ({ title, value, subValue, icon: Icon, colorClass, bgClass }) => (
@@ -125,7 +134,41 @@ const Dashboard = () => {
           </div>
         </div>
 
-        {/* CHART 2: LOGISTICS & FINANCIAL DETAIL TABLE */}
+        {/* CHART 2: INVITATION STATUS (NEW) */}
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.invitation_status')}</h3>
+          <div className="space-y-3">
+            {invitationStatusData.map((status, idx) => {
+              const Icon = status.icon;
+              const totalInvitations = invitationStatusData.reduce((sum, s) => sum + s.value, 0);
+              const percentage = totalInvitations > 0 ? Math.round((status.value / totalInvitations) * 100) : 0;
+              
+              return (
+                <div key={idx} className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 w-32">
+                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }}></div>
+                    <span className="text-sm font-medium text-gray-600">{status.name}</span>
+                  </div>
+                  <div className="flex-1">
+                    <div className="w-full bg-gray-100 rounded-full h-2">
+                      <div 
+                        className="h-2 rounded-full transition-all" 
+                        style={{ width: `${percentage}%`, backgroundColor: status.color }}
+                      ></div>
+                    </div>
+                  </div>
+                  <div className="text-sm font-bold text-gray-800 w-16 text-right">
+                    {status.value} <span className="text-xs text-gray-400">({percentage}%)</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* LOGISTICS & FINANCIAL DETAIL TABLE */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.logistics_costs')}</h3>
           

@@ -15,7 +15,7 @@ const handleResponse = async (response) => {
   }
 
   if (!response.ok) {
-    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
+    const errorMessage = data.detail || data.error || data.name || JSON.stringify(data) || `Errore ${response.status}: ${response.statusText}`;
     const error = new Error(errorMessage);
     error.status = response.status;
     triggerGlobalError(error);
@@ -38,9 +38,49 @@ const safeFetch = async (url, options) => {
 };
 
 export const api = {
+  // --- INVITATION LABELS ---
+  fetchInvitationLabels: async () => {
+    const response = await safeFetch(`${API_BASE_URL}/invitation-labels/`);
+    return handleResponse(response);
+  },
+
+  createInvitationLabel: async (data) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitation-labels/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  updateInvitationLabel: async (id, data) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitation-labels/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    return handleResponse(response);
+  },
+
+  deleteInvitationLabel: async (id) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitation-labels/${id}/`, {
+      method: 'DELETE',
+    });
+    if (response.status === 204) return true;
+    return handleResponse(response);
+  },
+
   // --- INVITATIONS ---
-  fetchInvitations: async () => {
-    const response = await safeFetch(`${API_BASE_URL}/invitations/`);
+  fetchInvitations: async (filters = {}) => {
+    // Build query string from filters
+    const queryParams = new URLSearchParams();
+    if (filters.status) queryParams.append('status', filters.status);
+    if (filters.label) queryParams.append('label', filters.label);
+    if (filters.search) queryParams.append('search', filters.search);
+    if (filters.ordering) queryParams.append('ordering', filters.ordering);
+    
+    const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
+    const response = await safeFetch(`${API_BASE_URL}/invitations/${queryString}`);
     return handleResponse(response);
   },
 
@@ -72,6 +112,28 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}) // Empty body for action
+    });
+    return handleResponse(response);
+  },
+  
+  bulkSendInvitations: async (invitationIds) => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/bulk-send/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ invitation_ids: invitationIds })
+    });
+    return handleResponse(response);
+  },
+
+  bulkManageLabels: async (invitationIds, labelIds, action = 'add') => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/bulk-labels/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        invitation_ids: invitationIds,
+        label_ids: labelIds,
+        action: action
+      })
     });
     return handleResponse(response);
   },

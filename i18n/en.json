@@ -12,6 +12,8 @@
     "next": "Next",
     "submit": "Submit",
     "understood": "Got it, close",
+    "error_occurred": "An error occurred",
+    "confirm": "Confirm",
     "error_modal": {
       "title": "Oops! Something went wrong",
       "title_alt": "Something went wrong",
@@ -19,7 +21,8 @@
       "default_user_message": "We couldn't complete the requested operation.",
       "hide_technical_data": "Hide technical details",
       "show_technical_data": "Show error details"
-    }
+    },
+    "error_loading_data": "Error loading data"
   },
   "invitation": {
     "errors": {
@@ -82,7 +85,7 @@
     },
     "status": {
       "pending": {
-        "emoji": "⏳",
+        "emoji": "⌛",
         "text": "What are you waiting for? Confirm now!"
       },
       "confirmed": {
@@ -179,6 +182,7 @@
         "dashboard": "Dashboard",
         "invitations": "Invitations",
         "accommodations": "Accommodations",
+        "labels": "Labels",
         "whatsapp": "WhatsApp",
         "configuration": "Configuration"
       },
@@ -255,25 +259,20 @@
       }
     },
     "dashboard": {
+      "title": "Dashboard",
       "page_title": "Dashboard",
-      "page_subtitle": "Wedding status overview",
-      "loading": "Loading dashboard...",
-      "error": "Unable to load statistics.",
+      "page_subtitle": "Event overview",
+      "loading": "Loading data...",
+      "error": "Error loading data",
       "kpi": {
         "confirmed_guests": "Confirmed Guests",
         "confirmed_guests_subtitle": "of which {{count}} children",
-        "estimated_budget": "Estimated Budget (Max)",
-        "estimated_budget_subtitle": "If all pending accept",
-        "current_cost": "Current Cost (Actual)",
+        "estimated_budget": "Estimated Budget",
+        "estimated_budget_subtitle": "Total expected",
+        "current_cost": "Current Cost",
         "current_cost_subtitle": "Confirmed only",
         "pending": "Pending",
-        "pending_subtitle": "Missing responses"
-      },
-      "charts": {
-        "guests_status": "Guest Status",
-        "logistics_costs": "Logistics & Costs Detail",
-        "cost_breakdown": "Cost Breakdown (Confirmed)",
-        "current_total": "Current Total"
+        "pending_subtitle": "Unconfirmed guests"
       },
       "guest_categories": {
         "adults_confirmed": "Confirmed Adults",
@@ -282,15 +281,22 @@
         "children_pending": "Pending Children",
         "declined": "Declined"
       },
+      "charts": {
+        "guests_status": "Guest Status",
+        "invitation_status": "Invitation Status",
+        "logistics_costs": "Logistics & Costs",
+        "cost_breakdown": "Cost Breakdown",
+        "current_total": "Current Total"
+      },
       "logistics": {
         "accommodation": "Accommodation",
-        "accommodation_subtitle": "Beds requested",
-        "transfer": "Transfer",
-        "transfer_subtitle": "Bus seats requested"
+        "accommodation_subtitle": "Guests with accommodation",
+        "transfer": "Shuttle",
+        "transfer_subtitle": "Guests with transportation"
       },
       "costs": {
-        "adult_meals": "Adult Meals ({{count}})",
-        "child_meals": "Child Meals ({{count}})"
+        "adult_meals": "{{count}} Adults",
+        "child_meals": "{{count}} Children"
       }
     },
     "analytics": {
@@ -321,24 +327,51 @@
       }
     },
     "invitations": {
-      "page_title": "Invitations Census",
-      "page_subtitle": "Manage guest list and access codes",
+      "page_title": "Invitation Management",
+      "page_subtitle": "Manage guests and send WhatsApp messages",
       "loading": "Loading invitations...",
-      "no_invitations": "No invitations yet",
+      "no_invitations": "No invitations found",
       "no_invitations_subtitle": "Create your first invitation",
       "buttons": {
         "import_contacts": "Import Contacts",
         "new_invitation": "New Invitation",
-        "deselect_all": "Deselect",
+        "deselect_all": "Deselect All",
         "verify_contacts": "Verify Contacts",
-        "send_whatsapp": "Send WhatsApp"
+        "send_whatsapp": "Send WhatsApp",
+        "send_invitations": "Send Invitations",
+        "manage_labels": "Manage Labels"
       },
       "bulk_action": {
-        "selected": "{{count}} Selected"
+        "selected": "{{count}} selected"
+      },
+      "bulk_send_confirm": {
+        "title": "Send Selected Invitations",
+        "subtitle": "This action will trigger the automatic welcome message for valid contacts",
+        "ready_to_send": "Ready to send",
+        "missing_contact": "No contact",
+        "exclusion_warning": "Some invitations will be excluded",
+        "exclusion_details": "{{count}} invitations allow no valid phone number and will be skipped.",
+        "recipient_list": "Recipients",
+        "no_valid_contacts": "No valid contacts selected.",
+        "confirm_action": "Confirm Send"
+      },
+      "bulk_labels": {
+        "title": "Bulk Label Management",
+        "subtitle": "Edit labels for {{count}} selected invitations",
+        "action_label": "Action",
+        "action_add": "Add Labels (keep existing)",
+        "action_remove": "Remove Labels (if present)",
+        "labels_select": "Select Labels"
+      },
+      "filters": {
+        "title": "Filters",
+        "search_placeholder": "Search by name...",
+        "all_statuses": "All statuses",
+        "all_labels": "All labels"
       },
       "table": {
         "headers": {
-          "name_origin": "Name & Origin",
+          "name_origin": "Name & Side",
           "contact": "Contact",
           "guests": "Guests",
           "status": "Status",
@@ -350,109 +383,101 @@
         "created": "Created",
         "sent": "Sent",
         "read": "Read",
-        "confirmed": "Accepted",
+        "confirmed": "Confirmed",
         "declined": "Declined",
         "unknown": "Unknown"
       },
       "verification": {
-        "ok": "Verified (OK)",
-        "not_present": "Not in contacts",
-        "not_exist": "Doesn't exist on WhatsApp",
-        "not_valid": "To verify / Invalid format",
+        "ok": "OK",
+        "not_present": "Not present",
+        "not_exist": "Doesn't exist",
+        "not_valid": "Invalid",
         "verifying": "Verifying...",
         "click_to_verify": "Click to verify"
       },
       "contact": {
-        "no_contact": "No Contact"
+        "no_contact": "No contact"
       },
       "origin": {
-        "bride": "Bride's Side",
-        "groom": "Groom's Side"
+        "bride": "Bride",
+        "groom": "Groom"
       },
       "actions": {
-        "send": "Send",
-        "send_whatsapp": "Send WhatsApp",
-        "contact_missing": "Contact missing or invalid",
+        "send": "Mark as Sent",
+        "send_whatsapp": "Send WhatsApp Message",
+        "contact_missing": "Missing or invalid contact",
         "interaction_log": "Interaction Log",
-        "copy_link": "Copy Public Link",
+        "copy_link": "Copy Invitation Link",
         "link_copied": "Link Copied!",
-        "preview": "Open Secure Preview",
+        "preview": "Invitation Preview",
         "edit": "Edit",
         "delete": "Delete"
       },
       "services": {
         "accommodation": "Accommodation",
-        "transfer": "Transfer"
+        "transfer": "Shuttle"
       },
       "alerts": {
-        "no_valid_contacts": "None of the selected invitations have a valid number.",
-        "some_invalid": "{{count}} out of {{total}} invitations don't have a valid number and will be skipped. Proceed?",
-        "invalid_contact": "Invalid number for this contact.",
-        "verify_failed": "Error verifying contact.",
-        "bulk_verify_complete": "Verification completed for {{count}} invitations.",
-        "bulk_verify_failed": "Some verifications failed. Check the console.",
-        "delete_failed": "Unable to delete invitation"
+        "verify_failed": "Verification failed",
+        "bulk_verify_complete": "Verification completed for {{count}} contacts",
+        "bulk_verify_failed": "Bulk verification failed",
+        "no_valid_contacts": "No valid contacts selected",
+        "some_invalid": "{{count}} out of {{total}} contacts are invalid. Continue with valid ones only?",
+        "invalid_contact": "Contact is invalid for WhatsApp sending",
+        "delete_failed": "Deletion failed"
       },
       "delete_modal": {
         "title": "Delete Invitation",
-        "message": "Are you sure you want to delete this invitation? This action will remove all associated guests.",
-        "confirm": "Yes, delete",
+        "message": "Are you sure you want to delete this invitation? This action is irreversible.",
+        "confirm": "Delete",
         "cancel": "Cancel"
       },
       "create_modal": {
-        "title": "New Invitation",
+        "title": "Create New Invitation",
         "step_of": "Step {{step}} of {{total}}",
         "steps": {
           "details": {
-            "title": "Invitation Details",
-            "origin_label": "Origin",
+            "title": "Main Details",
             "side_groom": "Groom's Side",
             "side_bride": "Bride's Side",
             "display_name": "Display Name",
             "display_name_placeholder": "e.g., Rossi Family",
-            "unique_code": "Unique Code (Slug)",
-            "unique_code_placeholder": "e.g., rossi-family",
-            "phone_number": "Reference Phone Number",
-            "phone_placeholder": "+39 333 1234567",
-            "phone_hint": "Used for automated WhatsApp sending (include international prefix)",
+            "unique_code": "Unique Code",
+            "unique_code_placeholder": "e.g., ROSSI2024",
+            "phone_number": "Phone Number",
+            "phone_placeholder": "e.g., +39 333 1234567",
+            "phone_hint": "Required for WhatsApp sending",
             "offered_options": "Offered Options",
-            "accommodation_offered": "Accommodation included",
-            "transfer_offered": "Transfer included",
+            "accommodation_offered": "Accommodation Offered",
+            "transfer_offered": "Shuttle Offered",
+            "labels": "Labels",
+            "no_labels": "No labels available. Create them from label management.",
             "validation": {
               "name_code_required": "Name and Code are required"
             }
           },
           "guests": {
-            "title": "Add Guests",
-            "subtitle": "Indicate the members of this invited group",
+            "title": "Guest List",
+            "add_guest": "Add Guest",
             "name_label": "First Name",
             "name_placeholder": "First Name",
             "lastname_label": "Last Name",
             "lastname_placeholder": "Last Name",
-            "child_checkbox": "Child",
-            "add_guest": "Add Guest",
+            "child_checkbox": "Child (0-10)",
             "validation": {
-              "min_one": "You must add at least one guest!"
+              "min_one": "Add at least one first name for each guest"
             }
           },
           "review": {
-            "title": "Summary & Confirmation",
-            "subtitle": "Review data before creating the invitation",
-            "family_name": "Family Name",
-            "code": "Code",
-            "origin": "Origin",
-            "phone": "Phone",
-            "services": "Offered Services",
-            "none": "None",
-            "guests": "Guests ({{count}})",
+            "title": "Table Affinity",
+            "no_other_invites": "There are no other invitations yet to create affinity with.",
             "affinity_title": "Affinity (Seat Together)",
-            "non_affinity_title": "Non-Affinity (Keep Apart)",
-            "no_other_invites": "There are no other invitations yet to create affinities with."
+            "non_affinity_title": "Non-Affinity (Keep Apart)"
           }
         },
         "buttons": {
-          "next": "Next",
           "back": "Back",
+          "next": "Next",
           "create": "Create Invitation",
           "saving": "Saving..."
         }
@@ -494,6 +519,28 @@
         "selected_contacts": "Selected Contacts",
         "processing": "Processing...",
         "cancel_selection": "Cancel selection"
+      }
+    },
+    "labels": {
+      "title": "Label Management",
+      "subtitle": "Organize invitees with custom tags",
+      "new_label": "New Label",
+      "no_labels": "No labels found",
+      "create_title": "New Label",
+      "edit_title": "Edit Label",
+      "table": {
+        "preview": "Preview",
+        "name": "Name",
+        "color": "Color Code",
+        "actions": "Actions"
+      },
+      "form": {
+        "name": "Label Name",
+        "color": "Color"
+      },
+      "delete_modal": {
+        "title": "Delete Label",
+        "message": "Are you sure? This action will remove the label from all associated invitations."
       }
     },
     "whatsapp_config": {
@@ -613,8 +660,8 @@
     },
     "whatsapp": {
       "common": {
-        "groom_label": "Groom (Sposo)",
-        "bride_label": "Bride (Sposa)"
+        "groom_label": "Groom",
+        "bride_label": "Bride"
       },
       "edit_modal": {
         "title": "Edit Message",
@@ -629,7 +676,7 @@
         "processing": "Processing {{current}} of {{total}}",
         "sent_count": "{{count}} Sent",
         "failed_count": "{{count}} Failed",
-        "recipients_label": "Recipients:",
+        "recipients_label": "Recipients",
         "select_template": "Select Template",
         "choose_message": "-- Choose a message --",
         "preview_message": "Message Preview",
@@ -660,48 +707,55 @@
     },
     "accommodations": {
       "page_title": "Accommodation Management",
-      "page_subtitle": "Configure lodging facilities and assign guests.",
+      "page_subtitle": "Organize guest accommodations",
       "buttons": {
-        "auto_assign": "Auto Assign (Arena)",
+        "auto_assign": "Auto Assignment",
         "new_accommodation": "New Accommodation"
       },
       "success": {
-        "created": "Accommodation created successfully!",
-        "deleted": "Accommodation deleted.",
-        "assigned": "Assignment completed! {{count}} invitations assigned with the chosen strategy."
+        "created": "Accommodation created successfully",
+        "updated": "Accommodation updated successfully",
+        "deleted": "Accommodation deleted",
+        "assigned": "{{count}} guests assigned automatically",
+        "pinned": "Assignment locked",
+        "unpinned": "Assignment unlocked"
       },
       "alerts": {
         "delete_confirm": "Are you sure you want to delete this accommodation?",
-        "unassigned_warning": "Warning: {{count}} unassigned groups/invitations",
-        "adults": "Adults",
-        "children": "Children"
+        "unassigned_warning": "{{count}} invitations without assigned accommodation",
+        "adults": "adults",
+        "children": "children"
       },
       "close_success": "Close",
       "list": {
         "no_accommodations": "No accommodations configured",
-        "no_accommodations_subtitle": "Add a facility to start managing assignments.",
-        "total_capacity": "Total Facility Capacity",
-        "rooms_title": "Rooms & Assignments Detail",
-        "capacity_label": "Capacity",
+        "no_accommodations_subtitle": "Create your first facility",
+        "total_capacity": "Total Capacity",
+        "rooms_title": "Rooms",
+        "capacity_label": "Cap.",
         "adults_short": "A",
         "children_short": "C",
         "free_slots": "Free",
         "assigned_guests": "Assigned Guests",
-        "empty_room": "Empty room"
+        "empty_room": "Empty room",
+        "edit": "Edit",
+        "delete": "Delete",
+        "pin": "Lock assignment",
+        "unpin": "Unlock assignment"
       },
       "create_modal": {
-        "title": "New Accommodation",
-        "step_of": "Step {{step}} of 2",
+        "title": "Create New Facility",
+        "step_of": "Step {{step}} of {{total}}",
         "step1": {
           "structure_name": "Facility Name",
-          "structure_placeholder": "e.g., Paradise Hotel",
+          "structure_placeholder": "e.g., Rossi Hotel",
           "address_label": "Address",
-          "address_placeholder": "e.g., Via Roma 123, Cagliari"
+          "address_placeholder": "Via Roma, 1"
         },
         "step2": {
-          "info_message": "Define the available rooms in this facility. You can add as many as you want.",
-          "room_name": "Name/Number",
-          "room_placeholder": "e.g., 101",
+          "info_message": "Define rooms with their respective capacities (adults and children).",
+          "room_name": "Room",
+          "room_placeholder": "101",
           "adults_label": "Adults",
           "children_label": "Children",
           "add_room": "Add Room"
@@ -709,7 +763,30 @@
         "buttons": {
           "next": "Next",
           "back": "Back",
-          "save": "Save Accommodation"
+          "save": "Save"
+        }
+      },
+      "edit_modal": {
+        "title": "Edit Accommodation",
+        "step_of": "Step {{step}} of {{total}}",
+        "step1": {
+          "structure_name": "Facility Name",
+          "structure_placeholder": "e.g., Rossi Hotel",
+          "address_label": "Address",
+          "address_placeholder": "Via Roma, 1"
+        },
+        "step2": {
+          "info_message": "Edit existing rooms or add new ones.",
+          "room_name": "Room",
+          "room_placeholder": "101",
+          "adults_label": "Adults",
+          "children_label": "Children",
+          "add_room": "Add Room"
+        },
+        "buttons": {
+          "next": "Next",
+          "back": "Back",
+          "save": "Save Changes"
         }
       },
       "auto_assign_modal": {

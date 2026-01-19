@@ -1,8 +1,8 @@
 import React from 'react';
-import { Trash2, Users, Home, User, Baby, Bed } from 'lucide-react';
+import { Trash2, Users, Home, User, Baby, Bed, Edit2, Pin, PinOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-const AccommodationList = ({ accommodations, onDelete }) => {
+const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) => {
     const { t } = useTranslation();
     
     if (!accommodations || accommodations.length === 0) {
@@ -33,13 +33,24 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                     <span role="img" aria-label="pin">📍</span> {acc.address}
                                 </p>
                             </div>
-                            <button 
-                                onClick={() => onDelete(acc.id)}
-                                className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                aria-label="Delete"
-                            >
-                                <Trash2 size={20} />
-                            </button>
+                            <div className="flex gap-2">
+                                <button 
+                                    onClick={() => onEdit(acc)}
+                                    className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                                    aria-label="Edit"
+                                    title={t('admin.accommodations.list.edit')}
+                                >
+                                    <Edit2 size={20} />
+                                </button>
+                                <button 
+                                    onClick={() => onDelete(acc.id)}
+                                    className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                    aria-label="Delete"
+                                    title={t('admin.accommodations.list.delete')}
+                                >
+                                    <Trash2 size={20} />
+                                </button>
+                            </div>
                         </div>
 
                         {/* Capacity Bar - Struttura Totale */}
@@ -116,17 +127,31 @@ const AccommodationList = ({ accommodations, onDelete }) => {
                                                 <p className="text-xs font-semibold text-gray-500 mb-2">{t('admin.accommodations.list.assigned_guests')}:</p>
                                                 <div className="flex flex-wrap gap-2">
                                                     {room.assigned_guests.map((guest, idx) => (
-                                                        <span 
-                                                            key={idx}
-                                                            className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${
-                                                                guest.is_child 
-                                                                ? 'bg-pink-50 text-pink-700 border-pink-200' 
-                                                                : 'bg-blue-50 text-blue-700 border-blue-200'
-                                                            }`}
-                                                        >
-                                                            {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
-                                                            {guest.first_name} {guest.last_name || ''}
-                                                        </span>
+                                                        <div key={idx} className="flex items-center gap-1">
+                                                            <span 
+                                                                className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${
+                                                                    guest.is_child 
+                                                                    ? 'bg-pink-50 text-pink-700 border-pink-200' 
+                                                                    : 'bg-blue-50 text-blue-700 border-blue-200'
+                                                                }`}
+                                                            >
+                                                                {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
+                                                                {guest.first_name} {guest.last_name || ''}
+                                                            </span>
+                                                            {guest.invitation_id && onTogglePin && (
+                                                                <button
+                                                                    onClick={() => onTogglePin(guest.invitation_id, !guest.is_pinned)}
+                                                                    className={`p-1 rounded transition-all ${
+                                                                        guest.is_pinned 
+                                                                        ? 'text-pink-600 hover:bg-pink-50' 
+                                                                        : 'text-gray-400 hover:bg-gray-100'
+                                                                    }`}
+                                                                    title={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
+                                                                >
+                                                                    {guest.is_pinned ? <Pin size={14} /> : <PinOff size={14} />}
+                                                                </button>
+                                                            )}
+                                                        </div>
                                                     ))}
                                                 </div>
                                             </div>

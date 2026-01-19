@@ -51,7 +51,7 @@ describe('Dashboard Component', () => {
   it('renders loading state initially', () => {
     api.getDashboardStats.mockReturnValue(new Promise(() => {}));
     render(<Dashboard />);
-    expect(screen.getByText('Caricamento dashboard...')).toBeInTheDocument();
+    expect(screen.getByText('Caricamento dati...')).toBeInTheDocument();
   });
 
   it('renders dashboard with stats and charts after data load', async () => {
@@ -88,7 +88,7 @@ describe('Dashboard Component', () => {
     expect(alloggiTexts.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('15')).toBeInTheDocument(); 
 
-    const transferTexts = screen.getAllByText(/Transfer/i);
+    const transferTexts = screen.getAllByText(/Navetta/i);
     expect(transferTexts.length).toBeGreaterThanOrEqual(1);
     expect(screen.getByText('10')).toBeInTheDocument();
   });
@@ -101,6 +101,6 @@ describe('Dashboard Component', () => {
       expect(screen.queryByText('Caricamento dashboard...')).not.toBeInTheDocument();
     });
 
-    expect(screen.getByText('Impossibile caricare le statistiche.')).toBeInTheDocument();
+    expect(screen.getByText('Errore nel caricamento dei dati')).toBeInTheDocument();
   });
 });
