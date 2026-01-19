@@ -8,6 +8,7 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
 import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
+import BulkLabelModal from '../components/invitations/BulkLabelModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -38,6 +39,7 @@ const InvitationList = () => {
   
   // Bulk Send Modal State
   const [isBulkSendModalOpen, setIsBulkSendModalOpen] = useState(false);
+  const [isBulkLabelModalOpen, setIsBulkLabelModalOpen] = useState(false);
 
   // Action States
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
@@ -190,6 +192,11 @@ const InvitationList = () => {
       setIsBulkSendModalOpen(true);
   };
 
+  const handleBulkLabels = () => {
+      if (selectedIds.length === 0) return;
+      setIsBulkLabelModalOpen(true);
+  };
+
   const handleWABulkSend = () => {
     if (openingWABulk || isWAModalOpen) return;
     setOpeningWABulk(true);
@@ -242,6 +249,11 @@ const InvitationList = () => {
   };
   
   const handleBulkSendSuccess = () => {
+      setSelectedIds([]);
+      fetchInvitations();
+  };
+
+  const handleBulkLabelSuccess = () => {
       setSelectedIds([]);
       fetchInvitations();
   };
@@ -417,8 +429,16 @@ const InvitationList = () => {
               {verifyingContacts ? <Loader size={16} className="animate-spin mr-2"/> : <RefreshCw size={16} className="mr-2"/>}
               {t('admin.invitations.buttons.verify_contacts')}
             </button>
+            
+            <button
+               onClick={handleBulkLabels}
+               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+            >
+               <Tag size={16} className="mr-2" />
+               {t('admin.invitations.buttons.manage_labels') || "Gestisci Etichette"}
+            </button>
 
-             {/* NUOVO PULSANTE BULK SEND INVITATIONS */}
+             {/* PULSANTE BULK SEND INVITATIONS */}
             <button
                onClick={handleBulkSendInvitations}
                className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
@@ -949,6 +969,15 @@ const InvitationList = () => {
            invitations={invitations}
            onSuccess={handleBulkSendSuccess}
         />
+      )}
+      
+      {isBulkLabelModalOpen && (
+         <BulkLabelModal
+            open={isBulkLabelModalOpen}
+            onClose={() => setIsBulkLabelModalOpen(false)}
+            selectedIds={selectedIds}
+            onSuccess={handleBulkLabelSuccess}
+         />
       )}
 
       {interactionInvitation && (
