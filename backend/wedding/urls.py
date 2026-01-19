@@ -5,6 +5,7 @@ from core.views import (
     # Admin Views
     InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet, 
     WhatsAppTemplateViewSet, ConfigurableTextViewSet, AdminGoogleFontsProxyView,
+    InvitationLabelViewSet,
     # Public Views
     PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
@@ -23,6 +24,7 @@ def health_check(request):
 # ========================================
 admin_router = DefaultRouter(trailing_slash=True)  # Forza trailing slash
 admin_router.register(r'invitations', InvitationViewSet, basename='admin-invitation')
+admin_router.register(r'invitation-labels', InvitationLabelViewSet, basename='admin-invitation-label')
 admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-accommodation')
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
 admin_router.register(r'whatsapp-templates', WhatsAppTemplateViewSet, basename='admin-whatsapp-templates')
