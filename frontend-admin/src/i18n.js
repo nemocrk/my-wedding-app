@@ -16,7 +16,45 @@ const resources = {
       },
       admin: {
         dashboard: {
-            title: "Dashboard"
+            title: "Dashboard",
+            page_title: "Dashboard",
+            page_subtitle: "Panoramica generale dell'evento",
+            loading: "Caricamento dati...",
+            error: "Errore nel caricamento dei dati",
+            kpi: {
+                confirmed_guests: "Ospiti Confermati",
+                confirmed_guests_subtitle: "di cui {{count}} bambini",
+                estimated_budget: "Budget Stimato",
+                estimated_budget_subtitle: "Totale previsto",
+                current_cost: "Costo Attuale",
+                current_cost_subtitle: "Solo confermati",
+                pending: "In Attesa",
+                pending_subtitle: "Ospiti non confermati"
+            },
+            guest_categories: {
+                adults_confirmed: "Adulti Confermati",
+                children_confirmed: "Bambini Confermati",
+                adults_pending: "Adulti Pending",
+                children_pending: "Bambini Pending",
+                declined: "Rifiutati"
+            },
+            charts: {
+                guests_status: "Stato Ospiti",
+                invitation_status: "Stato Inviti",
+                logistics_costs: "Logistica e Costi",
+                cost_breakdown: "Dettaglio Costi",
+                current_total: "Totale Attuale"
+            },
+            logistics: {
+                accommodation: "Alloggio",
+                accommodation_subtitle: "Ospiti con alloggio",
+                transfer: "Navetta",
+                transfer_subtitle: "Ospiti con trasporto"
+            },
+            costs: {
+                adult_meals: "{{count}} Adulti",
+                child_meals: "{{count}} Bambini"
+            }
         },
         invitations: {
             page_title: "Gestione Inviti",
@@ -174,6 +212,91 @@ const resources = {
             delete_modal: {
                 title: "Elimina Etichetta",
                 message: "Sei sicuro? Questa azione rimuoverà l'etichetta da tutti gli inviti associati."
+            }
+        },
+        accommodations: {
+            page_title: "Gestione Alloggi",
+            page_subtitle: "Organizza le sistemazioni degli ospiti",
+            buttons: {
+                new_accommodation: "Nuovo Alloggio",
+                auto_assign: "Assegnazione Automatica"
+            },
+            list: {
+                no_accommodations: "Nessun alloggio configurato",
+                no_accommodations_subtitle: "Crea la prima struttura",
+                total_capacity: "Capacità Totale",
+                rooms_title: "Camere",
+                capacity_label: "Cap.",
+                adults_short: "A",
+                children_short: "B",
+                free_slots: "Liberi",
+                assigned_guests: "Ospiti Assegnati",
+                empty_room: "Camera vuota",
+                edit: "Modifica",
+                delete: "Elimina",
+                pin: "Blocca assegnazione",
+                unpin: "Sblocca assegnazione"
+            },
+            alerts: {
+                unassigned_warning: "{{count}} inviti senza alloggio assegnato",
+                adults: "adulti",
+                children: "bambini",
+                delete_confirm: "Sei sicuro di voler eliminare questo alloggio?"
+            },
+            success: {
+                created: "Alloggio creato con successo",
+                updated: "Alloggio aggiornato con successo",
+                deleted: "Alloggio eliminato",
+                assigned: "{{count}} ospiti assegnati automaticamente",
+                pinned: "Assegnazione bloccata",
+                unpinned: "Assegnazione sbloccata"
+            },
+            close_success: "Chiudi",
+            create_modal: {
+                title: "Crea Nuova Struttura",
+                step_of: "Passo {{step}} di {{total}}",
+                step1: {
+                    structure_name: "Nome Struttura",
+                    structure_placeholder: "es. Hotel Rossi",
+                    address_label: "Indirizzo",
+                    address_placeholder: "Via Roma, 1"
+                },
+                step2: {
+                    info_message: "Definisci le camere con le rispettive capacità (adulti e bambini).",
+                    room_name: "Camera",
+                    room_placeholder: "101",
+                    adults_label: "Adulti",
+                    children_label: "Bambini",
+                    add_room: "Aggiungi Camera"
+                },
+                buttons: {
+                    next: "Avanti",
+                    back: "Indietro",
+                    save: "Salva"
+                }
+            },
+            edit_modal: {
+                title: "Modifica Alloggio",
+                step_of: "Passo {{step}} di {{total}}",
+                step1: {
+                    structure_name: "Nome Struttura",
+                    structure_placeholder: "es. Hotel Rossi",
+                    address_label: "Indirizzo",
+                    address_placeholder: "Via Roma, 1"
+                },
+                step2: {
+                    info_message: "Modifica le camere esistenti o aggiungi nuove camere.",
+                    room_name: "Camera",
+                    room_placeholder: "101",
+                    adults_label: "Adulti",
+                    children_label: "Bambini",
+                    add_room: "Aggiungi Camera"
+                },
+                buttons: {
+                    next: "Avanti",
+                    back: "Indietro",
+                    save: "Salva Modifiche"
+                }
             }
         }
       }
