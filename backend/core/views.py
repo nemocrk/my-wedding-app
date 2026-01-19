@@ -556,11 +556,11 @@ class InvitationViewSet(viewsets.ModelViewSet):
         """
         Bulk handle labels action.
         Body: {"invitation_ids": [1, 2, 3], "label_ids": [1, 3], "action": 'add' | 'remove'}
-        Effetto: Imposta label per tutti gli inviti specificati.
+        Effetto: Aggiunge o rimuove label per tutti gli inviti specificati.
         """
         invitation_ids = request.data.get('invitation_ids', [])
         label_ids = request.data.get('label_ids', [])
-        action = request.data.get('action', "na")
+        action_type = request.data.get('action', "add")
         
         if not invitation_ids:
             return Response(
@@ -572,51 +572,37 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 {'error': 'label_ids array is required'}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
-        if not action or action not in ['add','remove']:
+        if action_type not in ['add', 'remove']:
             return Response(
                 {'error': 'action must be \'add\' or \'remove\''}, 
                 status=status.HTTP_400_BAD_REQUEST
             )
         
-        # Validazione: verifica che tutti gli ID esistano
         invitations = Invitation.objects.filter(id__in=invitation_ids)
-        found_ids = set(invitations.values_list('id', flat=True))
-        missing_ids = set(invitation_ids) - found_ids
-        
-        if missing_ids:
-            return Response(
-                {
-                    'error': 'Some invitation IDs not found',
-                    'missing_ids': list(missing_ids)
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
-        
-        # Validazione: verifica che tutti gli ID esistano
+        if not invitations.exists():
+            return Response({'error': 'No valid invitations found'}, status=status.HTTP_404_NOT_FOUND)
+            
         labels = InvitationLabel.objects.filter(id__in=label_ids)
-        found_label_ids = set(labels.values_list('id', flat=True))
-        missing_label_ids = set(label_ids) - found_label_ids
+        if not labels.exists():
+             return Response({'error': 'No valid labels found'}, status=status.HTTP_404_NOT_FOUND)
         
-        if missing_label_ids:
-            return Response(
-                {
-                    'error': 'Some label IDs not found',
-                    'missing_ids': list(missing_label_ids)
-                },
-                status=status.HTTP_404_NOT_FOUND
-            )
+        updated_count = 0
+        with transaction.atomic():
+            if action_type == 'add':
+                for inv in invitations:
+                    inv.labels.add(*labels)
+                updated_count = invitations.count()
+            elif action_type == 'remove':
+                for inv in invitations:
+                    inv.labels.remove(*labels)
+                updated_count = invitations.count()
         
-        # Bulk update (atomic)
-        if action == 'add':
-            updated_count = invitations.update(status=Invitation.Status.SENT)
-        
-        
-        logger.info(f"📤 Bulk-send: {updated_count} invitations marked as SENT")
+        logger.info(f"🏷️ Bulk-labels: {action_type} labels for {updated_count} invitations")
         
         return Response({
             'success': True,
             'updated_count': updated_count,
-            'message': f'{updated_count} inviti segnati come Inviati'
+            'message': f'Etichette aggiornate per {updated_count} inviti'
         })
 
     @action(detail=True, methods=['post'], url_path='mark-as-read')
