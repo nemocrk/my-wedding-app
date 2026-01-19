@@ -138,6 +138,6 @@ class TestEndpointSmoke:
         assert response.status_code in [200, 401]
     
     def test_configurable_text_endpoint(self, api_client):
-        """Test GET /api/admin/configurable-texts/"""
-        response = api_client.get('/api/admin/configurable-texts/')
+        """Test GET /api/admin/texts/"""
+        response = api_client.get('/api/admin/texts/')
         assert response.status_code in [200, 401]
