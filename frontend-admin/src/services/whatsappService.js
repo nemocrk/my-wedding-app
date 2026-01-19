@@ -10,7 +10,7 @@ const handleResponse = async (response) => {
   }
 
   if (!response.ok) {
-    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
+    const errorMessage = data.detail || data.error || data.name || JSON.stringify(data) || `Errore ${response.status}: ${response.statusText}`;
     throw new Error(errorMessage);
   }
 

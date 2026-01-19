@@ -81,6 +81,16 @@ export class ApiHelper {
   // --- NEW FEATURES HELPER METHODS ---
 
   async createLabel(name: string, color: string) {
+    const search = await this.request.get(`${ADMIN_API}/invitation-labels/?search=${name}`);
+    if (!search.ok()) {
+      throw new Error(`Failed to search label: ${await search.text()}`);
+    }
+
+    const foundLabels = (await search.json());
+
+    if(foundLabels.filter((lab: {id: number; name: string; color: string;}) => lab.name === name).length)
+      await this.request.delete(`${ADMIN_API}/invitation-labels/${foundLabels.filter((lab: {id: number; name: string; color: string;}) => lab.name === name)[0].id}/`);
+
     const response = await this.request.post(`${ADMIN_API}/invitation-labels/`, {
       data: { name, color }
     });

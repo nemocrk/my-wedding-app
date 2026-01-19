@@ -336,10 +336,22 @@
         "new_invitation": "New Invitation",
         "deselect_all": "Deselect All",
         "verify_contacts": "Verify Contacts",
-        "send_whatsapp": "Send WhatsApp"
+        "send_whatsapp": "Send WhatsApp",
+        "send_invitations": "Send Invitations"
       },
       "bulk_action": {
         "selected": "{{count}} selected"
+      },
+      "bulk_send_confirm": {
+        "title": "Send Selected Invitations",
+        "subtitle": "This action will trigger the automatic welcome message for valid contacts",
+        "ready_to_send": "Ready to send",
+        "missing_contact": "No contact",
+        "exclusion_warning": "Some invitations will be excluded",
+        "exclusion_details": "{{count}} invitations allow no valid phone number and will be skipped.",
+        "recipient_list": "Recipients",
+        "no_valid_contacts": "No valid contacts selected.",
+        "confirm_action": "Confirm Send"
       },
       "filters": {
         "title": "Filters",
