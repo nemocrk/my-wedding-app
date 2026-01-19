@@ -7,6 +7,7 @@ import PhonebookImportModal from '../components/invitations/PhonebookImportModal
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import InteractionsModal from '../components/analytics/InteractionsModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
+import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -34,6 +35,9 @@ const InvitationList = () => {
   // WhatsApp Modal State
   const [isWAModalOpen, setIsWAModalOpen] = useState(false);
   const [waRecipients, setWaRecipients] = useState([]);
+  
+  // Bulk Send Modal State
+  const [isBulkSendModalOpen, setIsBulkSendModalOpen] = useState(false);
 
   // Action States
   const [generatingLinkFor, setGeneratingLinkFor] = useState(null);
@@ -180,6 +184,12 @@ const InvitationList = () => {
     }
   };
 
+  const handleBulkSendInvitations = () => {
+      // Opens the confirmation modal for bulk sending invitations
+      if (selectedIds.length === 0) return;
+      setIsBulkSendModalOpen(true);
+  };
+
   const handleWABulkSend = () => {
     if (openingWABulk || isWAModalOpen) return;
     setOpeningWABulk(true);
@@ -229,6 +239,11 @@ const InvitationList = () => {
   const handleWASuccess = () => {
     setSelectedIds([]);
     fetchInvitations();
+  };
+  
+  const handleBulkSendSuccess = () => {
+      setSelectedIds([]);
+      fetchInvitations();
   };
 
   // --- SINGLE ACTIONS ---
@@ -360,11 +375,11 @@ const InvitationList = () => {
               className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
           >
               <option value="">{t('admin.invitations.filters.all_statuses') || "Tutti gli stati"}</option>
-              <option value="created">statusConfig['created'].label</option>
-              <option value="sent">statusConfig['sent'].label</option>
-              <option value="read">statusConfig['read'].label</option>
-              <option value="confirmed">statusConfig['confirmed'].label</option>
-              <option value="declined">statusConfig['declined'].label</option>
+              <option value="created">{t('admin.invitations.status.created')}</option>
+              <option value="sent">{t('admin.invitations.status.sent')}</option>
+              <option value="read">{t('admin.invitations.status.read')}</option>
+              <option value="confirmed">{t('admin.invitations.status.confirmed')}</option>
+              <option value="declined">{t('admin.invitations.status.declined')}</option>
           </select>
 
           {labels.length > 0 && (
@@ -383,7 +398,7 @@ const InvitationList = () => {
 
       {/* BULK ACTION BAR */}
       {selectedIds.length > 0 && (
-        <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn">
+        <div className="bg-white border-l-4 border-pink-600 shadow-md rounded-r-lg p-4 mb-6 flex items-center justify-between animate-fadeIn flex-wrap gap-4">
           <div className="flex items-center">
             <span className="font-semibold text-gray-800 mr-4">{t('admin.invitations.bulk_action.selected', { count: selectedIds.length })}</span>
             <button
@@ -402,6 +417,16 @@ const InvitationList = () => {
               {verifyingContacts ? <Loader size={16} className="animate-spin mr-2"/> : <RefreshCw size={16} className="mr-2"/>}
               {t('admin.invitations.buttons.verify_contacts')}
             </button>
+
+             {/* NUOVO PULSANTE BULK SEND INVITATIONS */}
+            <button
+               onClick={handleBulkSendInvitations}
+               className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+            >
+               <Send size={16} className="mr-2" />
+               {t('admin.invitations.buttons.send_invitations') || "Invia Inviti"}
+            </button>
+            
             <button
               onClick={handleWABulkSend}
               disabled={openingWABulk}
@@ -891,6 +916,7 @@ const InvitationList = () => {
         )}
       </div>
 
+      {/* --- MODALS --- */}
       {isModalOpen && (
         <CreateInvitationModal
           onClose={() => setIsModalOpen(false)}
@@ -912,6 +938,16 @@ const InvitationList = () => {
           onClose={() => setIsWAModalOpen(false)}
           onSuccess={handleWASuccess}
           recipients={waRecipients}
+        />
+      )}
+      
+      {isBulkSendModalOpen && (
+        <BulkSendConfirmModal
+           isOpen={isBulkSendModalOpen}
+           onClose={() => setIsBulkSendModalOpen(false)}
+           selectedIds={selectedIds}
+           invitations={invitations}
+           onSuccess={handleBulkSendSuccess}
         />
       )}
 
