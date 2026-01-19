@@ -15,7 +15,7 @@ const handleResponse = async (response) => {
   }
 
   if (!response.ok) {
-    const errorMessage = data.detail || data.error || data.name || JSON.stringify(data) || `Errore ${response.status}: ${response.statusText}`;
+    const errorMessage = data.detail || data.error || `Errore ${response.status}: ${response.statusText}`;
     const error = new Error(errorMessage);
     error.status = response.status;
     triggerGlobalError(error);
@@ -121,6 +121,19 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ invitation_ids: invitationIds })
+    });
+    return handleResponse(response);
+  },
+
+  bulkManageLabels: async (invitationIds, labelIds, action = 'add') => {
+    const response = await safeFetch(`${API_BASE_URL}/invitations/bulk-labels/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        invitation_ids: invitationIds,
+        label_ids: labelIds,
+        action: action
+      })
     });
     return handleResponse(response);
   },
