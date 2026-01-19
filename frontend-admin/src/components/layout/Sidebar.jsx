@@ -2,6 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Hotel, Settings, LogOut, MessageCircle, Tag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import LanguageSwitcher from '../LanguageSwitcher';
 
 const Sidebar = () => {
   const { t } = useTranslation();

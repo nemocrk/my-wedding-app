@@ -1,6 +1,6 @@
 // frontend-admin/src/components/layout/Header.jsx
 import React, { useState } from 'react';
-import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, MessageCircle } from 'lucide-react';
+import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, Tag, MessageCircle } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import LanguageSwitcher from '../LanguageSwitcher';
 import { useTranslation } from 'react-i18next';
@@ -16,6 +16,7 @@ const Header = () => {
         { path: '/invitations', title: t('admin.sidebar.nav.invitations'), icon: <Users size={20} /> },
         { path: '/accommodations', title: t('admin.sidebar.nav.accommodations'), icon: <Home size={20} /> },
         { path: '/whatsapp', title: t('admin.sidebar.nav.whatsapp'), icon: <MessageCircle size={20} /> },
+        { path: '/labels', title: t('admin.sidebar.nav.labels'), icon: <Tag size={20} />}, 
         { path: '/config', title: t('admin.sidebar.nav.configuration'), icon: <Settings size={20} /> }
   ];
 
