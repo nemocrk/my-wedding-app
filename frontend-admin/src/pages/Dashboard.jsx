@@ -3,6 +3,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recha
 import { Euro, Users, Home, Bus, TrendingUp, AlertCircle, FileText, Send, Eye, CheckCircle, XCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
+import DynamicPieChart from '../components/DynamicPieChart';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -167,6 +168,9 @@ const Dashboard = () => {
           </div>
         </div>
       </div>
+
+      {/* DYNAMIC PIE CHART (NEW) */}
+      <DynamicPieChart />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LOGISTICS & FINANCIAL DETAIL TABLE */}
