@@ -69,7 +69,7 @@ fi
 
 if [ "$CLEAN_ONLY" = false ]; then
     # Avviare il progetto in dev mode con hot-reload
-    if [ "$DEBUG_BACKEND" = false ]; then
+    if [ "$DEBUG_BACKEND" = true ]; then
         COMPOSE_CMD+="  -f docker-compose.debug.yml"
     fi
     COMPOSE_CMD+=" up --build "
