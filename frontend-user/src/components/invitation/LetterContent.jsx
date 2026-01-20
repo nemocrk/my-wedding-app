@@ -1,22 +1,22 @@
-import React, { useState, useEffect, useRef } from 'react';
+import { AnimatePresence, motion, useAnimation } from 'framer-motion';
+import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
-import { motion, useAnimation, AnimatePresence } from 'framer-motion';
 import { useTranslation } from 'react-i18next';
-import { useConfigurableText } from '../../contexts/TextContext';
-import { submitRSVP } from '../../services/api';
-import { logInteraction, heatmapTracker } from '../../services/analytics';
-import Fab from '../common/Fab';
-import './LetterContent.css';
-import letterBg from '../../assets/illustrations/LetterBackground.png';
-import waxImg from '../../assets/illustrations/wax.png';
-import homeIcon from '../../assets/illustrations/home.png';
-import vanIcon from '../../assets/illustrations/van.png';
-import archIcon from '../../assets/illustrations/arch.png';
-import dressIcon from '../../assets/illustrations/dress.png';
-import chestIcon from '../../assets/illustrations/chest.png';
-import questionsIcon from '../../assets/illustrations/questions.png';
 import { FaWhatsapp } from 'react-icons/fa';
+import archIcon from '../../assets/illustrations/arch.png';
+import chestIcon from '../../assets/illustrations/chest.png';
+import dressIcon from '../../assets/illustrations/dress.png';
+import homeIcon from '../../assets/illustrations/home.png';
+import letterBg from '../../assets/illustrations/LetterBackground.png';
+import questionsIcon from '../../assets/illustrations/questions.png';
+import vanIcon from '../../assets/illustrations/van.png';
+import waxImg from '../../assets/illustrations/wax.png';
+import { useConfigurableText } from '../../contexts/TextContext';
+import { heatmapTracker, logInteraction } from '../../services/analytics';
+import { submitRSVP } from '../../services/api';
+import Fab from '../common/Fab';
 import PaperModal from '../layout/PaperModal';
+import './LetterContent.css';
 
 const LetterContent = ({ data }) => {
   const { t } = useTranslation();
@@ -29,23 +29,23 @@ const LetterContent = ({ data }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [expandedCard, setExpandedCard] = useState(null);
   const isReplayMode = useRef(window.self !== window.top); // Ref to track replay mode without re-rendering for logic checks
-  
+
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
   const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
-  
+
   // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
   const [editedGuests, setEditedGuests] = useState({});
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
-  
+
   // Step 2: Contatto
   const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
   const [editingPhone, setEditingPhone] = useState(false);
   const [tempPhoneNumber, setTempPhoneNumber] = useState('');
   const [phoneError, setPhoneError] = useState('');
-  
+
   // Step 3: Viaggio
   const [travelInfo, setTravelInfo] = useState(data.travel_info || {
     transport_type: '', // 'traghetto' | 'aereo'
@@ -53,12 +53,12 @@ const LetterContent = ({ data }) => {
     car_option: 'none', // 'noleggio' | 'proprio' | false
     carpool_interest: false
   });
-  
+
   // Step 4: Alloggio
   const [accommodationChoice, setAccommodationChoice] = useState(accommodationRequested);
 
   const sealControls = useAnimation();
-  
+
   const waNumber = data.whatsapp.whatsapp_number;
   const waName = data.whatsapp.whatsapp_name;
 
@@ -70,14 +70,14 @@ const LetterContent = ({ data }) => {
   };
 
   const getWaLink = (number, customMessage) => {
-    const msg = customMessage || t('whatsapp.default_message', {guest_name:data.name});
+    const msg = customMessage || t('whatsapp.default_message', { guest_name: data.name });
     safeLogInteraction('whatsapp_link_generated', { recipient: waName, has_custom_message: !!customMessage });
     return `https://wa.me/${number.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(msg)}`;
   };
 
   // RSVP Status Messages
   const getRSVPStatusMessageCompact = () => {
-    switch(rsvpStatus) {
+    switch (rsvpStatus) {
       case 'created':
       case 'sent':
       case 'read':
@@ -94,7 +94,7 @@ const LetterContent = ({ data }) => {
 
   // Wizard Step Titles
   const getStepTitle = () => {
-    switch(rsvpStep) {
+    switch (rsvpStep) {
       case 'summary': return t('rsvp.steps.summary.title');
       case 'guests': return t('rsvp.steps.guests.title');
       case 'contact': return t('rsvp.steps.contact.title');
@@ -108,11 +108,11 @@ const LetterContent = ({ data }) => {
   // Guest Management
   const toggleGuestExclusion = (guestIndex) => {
     const isExcluding = !excludedGuests.includes(guestIndex);
-    setExcludedGuests(prev => 
+    setExcludedGuests(prev =>
       prev.includes(guestIndex) ? prev.filter(idx => idx !== guestIndex) : [...prev, guestIndex]
     );
-    safeLogInteraction('toggle_guest_exclusion', { 
-      guestIndex, 
+    safeLogInteraction('toggle_guest_exclusion', {
+      guestIndex,
       action: isExcluding ? 'exclude' : 'include',
       guest_name: data.guests[guestIndex].first_name
     });
@@ -124,7 +124,7 @@ const LetterContent = ({ data }) => {
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
     setTempLastName(edited.last_name || '');
-    safeLogInteraction('start_edit_guest', { 
+    safeLogInteraction('start_edit_guest', {
       guestIndex,
       original_name: `${guest.first_name} ${guest.last_name || ''}`
     });
@@ -134,7 +134,7 @@ const LetterContent = ({ data }) => {
     const originalGuest = data.guests[guestIndex];
     setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
     setEditingGuestIndex(null);
-    safeLogInteraction('save_edit_guest', { 
+    safeLogInteraction('save_edit_guest', {
       guestIndex,
       original_name: `${originalGuest.first_name} ${originalGuest.last_name || ''}`,
       new_name: `${tempFirstName} ${tempLastName}`
@@ -183,7 +183,7 @@ const LetterContent = ({ data }) => {
     setPhoneNumber(trimmed);
     setEditingPhone(false);
     setPhoneError('');
-    safeLogInteraction('save_edit_phone', { 
+    safeLogInteraction('save_edit_phone', {
       original_phone: phoneNumber,
       new_phone: trimmed
     });
@@ -214,15 +214,15 @@ const LetterContent = ({ data }) => {
     // Validazione Step Contact
     else if (rsvpStep === 'contact') {
       if (!phoneNumber || !validatePhoneNumber(phoneNumber)) {
-        if(editingPhone){
+        if (editingPhone) {
           const trimmed = tempPhoneNumber.trim();
           if (!trimmed) {
-            setMessage({ type: 'error', text: t('rsvp.validation.phone_required')});
+            setMessage({ type: 'error', text: t('rsvp.validation.phone_required') });
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_empty' });
             return;
           }
           if (!validatePhoneNumber(trimmed)) {
-            setMessage({ type: 'error', text: t('rsvp.validation.phone_invalid')});
+            setMessage({ type: 'error', text: t('rsvp.validation.phone_invalid') });
             safeLogInteraction('rsvp_validation_error', { step: 'contact', error: 'phone_invalid' });
             return;
           }
@@ -243,8 +243,8 @@ const LetterContent = ({ data }) => {
     else if (rsvpStep === 'travel') {
       if (!travelInfo.transport_type || !travelInfo.schedule) {
         setMessage({ type: 'error', text: t('rsvp.validation.travel_incomplete') });
-        safeLogInteraction('rsvp_validation_error', { 
-          step: 'travel', 
+        safeLogInteraction('rsvp_validation_error', {
+          step: 'travel',
           error: 'incomplete_fields',
           missing_transport: !travelInfo.transport_type,
           missing_schedule: !travelInfo.schedule
@@ -268,7 +268,7 @@ const LetterContent = ({ data }) => {
     setMessage(null);
     let fromStep = rsvpStep;
     let toStep = '';
-    
+
     if (rsvpStep === 'contact') {
       toStep = 'guests';
       setRsvpStep('guests');
@@ -285,7 +285,7 @@ const LetterContent = ({ data }) => {
       toStep = data.accommodation_offered ? 'accommodation' : 'travel';
       setRsvpStep(toStep);
     }
-    
+
     safeLogInteraction('rsvp_back_step', { from: fromStep, to: toStep });
   };
 
@@ -298,7 +298,7 @@ const LetterContent = ({ data }) => {
   const handleRSVP = async (status) => {
     setSubmitting(true);
     setMessage(null);
-    safeLogInteraction('click_rsvp_submit', { 
+    safeLogInteraction('click_rsvp_submit', {
       status_chosen: status,
       previous_status: rsvpStatus,
       active_guests: getActiveGuests().length,
@@ -321,8 +321,8 @@ const LetterContent = ({ data }) => {
       );
 
       if (result.success) {
-        safeLogInteraction('rsvp_submit_success', { 
-          status, 
+        safeLogInteraction('rsvp_submit_success', {
+          status,
           active_guests: getActiveGuests().length,
           travel_type: travelInfo.transport_type,
           car_option: travelInfo.car_option,
@@ -373,7 +373,7 @@ const LetterContent = ({ data }) => {
   // Accommodation Handler with Analytics
   const handleAccommodationChange = (requested) => {
     setAccommodationChoice(requested);
-    safeLogInteraction('accommodation_choice_toggle', { 
+    safeLogInteraction('accommodation_choice_toggle', {
       requested,
       was_previously_requested: accommodationRequested
     });
@@ -384,11 +384,11 @@ const LetterContent = ({ data }) => {
     // Check if we are in an iframe and if the parent context suggests replay mode
     // (This is a safety check, but the main driver is the message event)
     const isInsideIframe = window.self !== window.top;
-    
+
     // Only start tracker if NOT in replay mode (default assumption is normal mode unless told otherwise)
     if (!isReplayMode.current) {
       heatmapTracker.start();
-      logInteraction('view_letter', { 
+      logInteraction('view_letter', {
         status: rsvpStatus,
         has_phone: !!data.phone_number,
         guests_count: data.guests.length,
@@ -399,14 +399,14 @@ const LetterContent = ({ data }) => {
     const handleReplayMessage = (event) => {
       if (!event?.data) return;
       const { type, payload } = event.data;
-      
+
       // If we receive ANY replay message, we confirm we are in replay mode
-      if (['REPLAY_START', 'REPLAY_RESET','REPLAY_ACTION'].includes(type)) {
-         if (!isReplayMode.current) {
-            isReplayMode.current = true;
-            heatmapTracker.stop(); // Stop heatmap immediately if we detect replay activity
-            console.log("Replay Mode Activated: Analytics disabled");
-         }
+      if (['REPLAY_START', 'REPLAY_RESET', 'REPLAY_ACTION'].includes(type)) {
+        if (!isReplayMode.current) {
+          isReplayMode.current = true;
+          heatmapTracker.stop(); // Stop heatmap immediately if we detect replay activity
+          console.log("Replay Mode Activated: Analytics disabled");
+        }
       }
 
       // REPLAY SIMULATOR: Handle mapped analytics events
@@ -426,7 +426,7 @@ const LetterContent = ({ data }) => {
           setMessage(null);
           break;
         case 'REPLAY_ACTION':
-          switch (payload?.action){
+          switch (payload?.action) {
 
             case 'card_flip':
               if (payload?.details?.flipped !== undefined) setIsFlipped(payload.details.flipped);
@@ -449,7 +449,7 @@ const LetterContent = ({ data }) => {
 
             case 'toggle_guest_exclusion':
               if (payload?.details?.guestIndex !== undefined) {
-                setExcludedGuests(prev => 
+                setExcludedGuests(prev =>
                   prev.includes(payload.details.guestIndex) ? prev.filter(idx => idx !== payload.details.guestIndex) : [...prev, payload.details.guestIndex]
                 );
               }
@@ -490,7 +490,7 @@ const LetterContent = ({ data }) => {
               setEditingPhone(true);
               setTempPhoneNumber(phoneNumber);
               break;
-              
+
             case 'save_edit_phone':
               setPhoneNumber(tempPhoneNumber);
               setEditingPhone(false);
@@ -538,32 +538,32 @@ const LetterContent = ({ data }) => {
                 setMessage({ type: 'success', text: 'RSVP simulato con successo!' });
               }
               break;
-          
+
             default:
               break;
           }
           break;
-          
+
         default:
           break;
       }
     };
 
     const onSealReturn = () => {
-        sealControls.start({
-            rotate: 0,
-            transition: { 
-                duration: 0.6, 
-                ease: "easeOut",
-                type: "spring",
-                bounce: 0.3
-            }
-        });
+      sealControls.start({
+        rotate: 0,
+        transition: {
+          duration: 0.6,
+          ease: "easeOut",
+          type: "spring",
+          bounce: 0.3
+        }
+      });
     };
 
     window.addEventListener('message', handleReplayMessage);
     window.addEventListener('wax-seal:return', onSealReturn);
-    const timer = setTimeout(() => sealControls.start({ opacity: 1}), 500);
+    const timer = setTimeout(() => sealControls.start({ opacity: 1 }), 500);
 
     return () => {
       heatmapTracker.stop();
@@ -624,10 +624,10 @@ const LetterContent = ({ data }) => {
       case 'alloggio':
         return decorateDefaultCardContent(cardId,
           data.accommodation_offered ? (
-               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_offered') }} />
-            ) : (
-               <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_general') }} />
-            )
+            <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_offered') }} />
+          ) : (
+            <div dangerouslySetInnerHTML={{ __html: getText('card.alloggio.content_not_offered') }} />
+          )
         );
       case 'viaggio':
         return decorateDefaultCardContent(cardId,
@@ -654,10 +654,10 @@ const LetterContent = ({ data }) => {
             {(waNumber) && (
               <div className="whatsapp-section">
                 <div className="whatsapp-buttons">
-                  <a 
-                    href={getWaLink(waNumber)} 
-                    target="_blank" 
-                    rel="noreferrer" 
+                  <a
+                    href={getWaLink(waNumber)}
+                    target="_blank"
+                    rel="noreferrer"
                     className="whatsapp-link"
                     onClick={() => handleWhatsAppClick(waName)}
                   >
@@ -757,21 +757,21 @@ const LetterContent = ({ data }) => {
                 {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
                   <div className="whatsapp-alert">
                     <p>{t('whatsapp.alert_modify_confirmed')}</p>
-                      {(waNumber) && (
-                        <div className="whatsapp-section">
-                          <div className="whatsapp-buttons">
-                            <a 
-                              href={getWaLink(waNumber)} 
-                              target="_blank" 
-                              rel="noreferrer" 
-                              className="whatsapp-link"
-                              onClick={() => handleWhatsAppClick(waName)}
-                            >
-                              <FaWhatsapp size={20} /> {waName}
-                            </a>
-                          </div>
+                    {(waNumber) && (
+                      <div className="whatsapp-section">
+                        <div className="whatsapp-buttons">
+                          <a
+                            href={getWaLink(waNumber)}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="whatsapp-link"
+                            onClick={() => handleWhatsAppClick(waName)}
+                          >
+                            <FaWhatsapp size={20} /> {waName}
+                          </a>
                         </div>
-                      )}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -920,10 +920,10 @@ const LetterContent = ({ data }) => {
                       {(waNumber) && (
                         <div className="whatsapp-section">
                           <div className="whatsapp-buttons">
-                            <a 
-                              href={getWaLink(waNumber)} 
-                              target="_blank" 
-                              rel="noreferrer" 
+                            <a
+                              href={getWaLink(waNumber)}
+                              target="_blank"
+                              rel="noreferrer"
                               className="whatsapp-link"
                               onClick={() => handleWhatsAppClick(waName)}
                             >
@@ -961,10 +961,10 @@ const LetterContent = ({ data }) => {
                     {(waNumber) && (
                       <div className="whatsapp-section">
                         <div className="whatsapp-buttons">
-                          <a 
-                            href={getWaLink(waNumber)} 
-                            target="_blank" 
-                            rel="noreferrer" 
+                          <a
+                            href={getWaLink(waNumber)}
+                            target="_blank"
+                            rel="noreferrer"
                             className="whatsapp-link"
                             onClick={() => handleWhatsAppClick(waName)}
                           >
@@ -975,25 +975,25 @@ const LetterContent = ({ data }) => {
                     )}
                   </div>
                 )
-                :
-                (<div className="button-group">
-                  {!['confirmed','declined'].includes(rsvpStatus) && (
-                    <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
-                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
-                    </button>
+                  :
+                  (<div className="button-group">
+                    {!['confirmed', 'declined'].includes(rsvpStatus) && (
+                      <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
+                        {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
+                      </button>
+                    )}
+                    {['confirmed', 'declined'].includes(rsvpStatus) && (
+                      <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
+                        {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.save_changes')}`}
+                      </button>
+                    )}
+                    {rsvpStatus !== 'declined' && (
+                      <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
+                        {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.decline')}`}
+                      </button>
+                    )}
+                  </div>
                   )}
-                  {['confirmed','declined'].includes(rsvpStatus) && (
-                    <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
-                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.save_changes')}`}
-                    </button>
-                  )}
-                  {rsvpStatus !== 'declined' && (
-                    <button className="rsvp-button decline" onClick={() => handleRSVP('declined')} disabled={submitting}>
-                      {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.decline')}`}
-                    </button>
-                  )}
-                </div>
-                )}
                 <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
@@ -1017,7 +1017,7 @@ const LetterContent = ({ data }) => {
               <div className="front-content">
                 <div className="spacer-top"></div>
                 {/* Dynamically render Front Face content from configurable text */}
-                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content',"Domenico & Loredana") }} />
+                <div className="dynamic-front-content" dangerouslySetInnerHTML={{ __html: getText('envelope.front.content', "Domenico & Loredana") }} />
               </div>
               <motion.div className="wax-seal" initial={{ rotate: -30 }} animate={sealControls}>
                 <img src={waxImg} alt="Seal" style={{ width: '100%', height: '100%' }} />
