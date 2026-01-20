@@ -42,6 +42,7 @@ const Dashboard = () => {
 
   // 2. Invitation Status Data (NEW)
   const invitationStatusData = [
+    { name: t('admin.invitations.status.imported'), value: stats.invitations?.imported || 0, color: '#ffffff', icon: FileText },
     { name: t('admin.invitations.status.created'), value: stats.invitations?.created || 0, color: '#9CA3AF', icon: FileText },
     { name: t('admin.invitations.status.sent'), value: stats.invitations?.sent || 0, color: '#3B82F6', icon: Send },
     { name: t('admin.invitations.status.read'), value: stats.invitations?.read || 0, color: '#6366F1', icon: Eye },

@@ -1034,7 +1034,7 @@ class DashboardStatsView(APIView):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
         confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
-        pending_invitations = Invitation.objects.filter(status__in=[Invitation.Status.SENT, Invitation.Status.READ])
+        pending_invitations = Invitation.objects.filter(status__in=[Invitation.Status.IMPORTED, Invitation.Status.CREATED, Invitation.Status.SENT, Invitation.Status.READ])
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
         
         # CRITICAL: Exclude not_coming guests from all counts
@@ -1054,6 +1054,15 @@ class DashboardStatsView(APIView):
             'children_pending': children_pending,
             'adults_declined': adults_declined,
             'children_declined': children_declined,
+        }
+
+        stats_invitations = {
+            'imported': Invitation.objects.filter(status=Invitation.Status.IMPORTED).count(),
+            'created': Invitation.objects.filter(status=Invitation.Status.CREATED).count(),
+            'sent': Invitation.objects.filter(status=Invitation.Status.SENT).count(),
+            'read': Invitation.objects.filter(status=Invitation.Status.READ).count(),
+            'confirmed': Invitation.objects.filter(status=Invitation.Status.CONFIRMED).count(),
+            'declined': Invitation.objects.filter(status=Invitation.Status.DECLINED).count(),
         }
 
         acc_confirmed_adults = 0
@@ -1111,6 +1120,7 @@ class DashboardStatsView(APIView):
 
         return Response({
             'guests': stats_guests,
+            'invitations': stats_invitations,
             'logistics': {
                 'accommodation': {
                     'confirmed_adults': acc_confirmed_adults,
