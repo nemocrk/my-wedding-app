@@ -598,10 +598,10 @@ const LetterContent = ({ data }) => {
   };
 
   const cards = {
-    'alloggio': { title: t('cards.alloggio.title'), icon: homeIcon },
-    'viaggio': { title: t('cards.viaggio.title'), icon: vanIcon },
     'evento': { title: t('cards.evento.title'), icon: archIcon },
     'dresscode': { title: t('cards.dresscode.title'), icon: dressIcon },
+    'alloggio': { title: t('cards.alloggio.title'), icon: homeIcon },
+    'viaggio': { title: t('cards.viaggio.title'), icon: vanIcon },
     'bottino': { title: t('cards.bottino.title'), icon: chestIcon },
     'cosaltro': { title: t('cards.cosaltro.title'), icon: questionsIcon },
   };
