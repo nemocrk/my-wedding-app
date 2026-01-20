@@ -1,3 +1,47 @@
+/* Contenitore dello scroll */
+.custom-scrollbar {
+  /* Per Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+  transition: scrollbar-color 0.3s ease;
+}
+
+/* Mostra la scrollbar su Firefox quando passi sopra col mouse */
+.custom-scrollbar:hover {
+  scrollbar-color: #cbd5e1 transparent;
+  /* Colore grigio slate-300 */
+}
+
+/* Per Chrome, Edge e Safari */
+.custom-scrollbar::-webkit-scrollbar {
+  height: 5px;
+  /* Altezza della scrollbar orizzontale */
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  /* Binario invisibile */
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  /* Invisibile di default */
+  border-radius: 20px;
+  transition: background-color 0.3s ease;
+}
+
+/* La scrollbar diventa visibile quando l'utente passa sopra al div */
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: #cbd5e1;
+  /* Colore slate-300 */
+}
+
+/* Opzionale: un colore più scuro quando l'utente trascina la scrollbar */
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: #94a3b8;
+  /* Colore slate-400 */
+}
+
 #root {
   max-width: 1280px;
   margin: 0 auto;
@@ -10,9 +54,11 @@
   will-change: filter;
   transition: filter 300ms;
 }
+
 .logo:hover {
   filter: drop-shadow(0 0 2em #646cffaa);
 }
+
 .logo.react:hover {
   filter: drop-shadow(0 0 2em #61dafbaa);
 }
@@ -21,6 +67,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }

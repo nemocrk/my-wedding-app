@@ -1,0 +1,21 @@
+# Docker Compose Override per Debug Remoto
+# Uso: docker-compose -f docker-compose.yml -f docker-compose.debug.yml up
+
+services:
+  backend:
+    # Override del comando per lanciare debugpy
+    command: python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client manage.py runserver 0.0.0.0:8000
+
+    # Espone la porta del debugger all'host
+    ports:
+      - "5678:5678" # Debugpy
+    networks:
+      - backend_debug_network
+    # Disabilita healthcheck per evitare conflitti durante il debug
+    healthcheck:
+      # Or simply use the 'true' binary if available in your image
+      test: [ "CMD", "true" ]
+networks:
+  # Rete database - completamente isolata da Internet
+  backend_debug_network:
+    driver: bridge

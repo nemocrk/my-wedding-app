@@ -24,6 +24,7 @@ Il sistema offre un'esperienza utente unica (apertura busta animata) e una conso
 | [**09-FRONTEND-ADMIN.md**](docs/09-FRONTEND-ADMIN-COMPONENTS.md) | Componenti e Logica Dashboard Gestionale |
 | [**USER_GUIDE_TEXT.md**](docs/USER_GUIDE_TEXT_CUSTOMIZATION.md) | **NUOVO**: Guida utente per modifica testi |
 | [**I18N_GUIDE.md**](docs/I18N_GUIDE.md) | **NUOVO**: Guida sviluppatori per traduzioni |
+| [**REMOTE_DEBUGGING.md**](docs/REMOTE_DEBUGGING.md) | **🔥 NUOVO**: Debug remoto Python con VS Code |
 | [**PGBOUNCER.md**](docs/PGBOUNCER.md) | Connection Pooling PostgreSQL con pgBouncer |
 | [**CHECKLIST.md**](docs/CHECKLIST_TEXT_CUSTOMIZATION_I18N.md) | Tracking feature i18n |
 
@@ -48,7 +49,7 @@ Il progetto è strutturato come monorepo dockerizzato con i seguenti servizi:
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                     INTERNET                            │
-└─────────────┬─────────────────────────────────────────┘
+└───────────────┬─────────────────────────────────────────┘
               │ :80/:443
               ▼
       ┌───────────────┐
@@ -182,6 +183,50 @@ docker-compose ps
 docker-compose logs -f
 ```
 
+## 🐞 Debug Remoto (VS Code)
+
+Per eseguire il debug step-by-step del backend Python in esecuzione dentro Docker:
+
+### Quick Start Debug
+
+```bash
+# 1. Rendi eseguibile lo script helper
+chmod +x debug.sh
+
+# 2. Avvia lo stack in modalità debug
+./debug.sh start
+
+# 3. In VS Code, premi F5 e seleziona "Python: Remote Attach (Backend Container)"
+```
+
+Lo script `debug.sh` gestisce automaticamente:
+- Avvio Docker Compose con configurazione debug
+- Esposizione porta debugger (5678)
+- Lancio di `debugpy` in modalità wait-for-client
+
+### Comandi Helper Disponibili
+
+```bash
+./debug.sh start      # Avvia debug stack
+./debug.sh stop       # Ferma debug stack
+./debug.sh restart    # Riavvia backend
+./debug.sh logs       # Mostra logs backend
+./debug.sh rebuild    # Rebuilda backend (dopo cambio requirements)
+./debug.sh shell      # Apri shell nel container
+./debug.sh test       # Esegui test Django
+./debug.sh migrate    # Esegui migrazioni
+./debug.sh status     # Mostra stato stack e porte
+```
+
+### Debugging Workflow Completo
+
+1. **Inserisci Breakpoint**: Clicca sulla linea desiderata in un file `.py` dentro `backend/`
+2. **Avvia Debug**: Premi `F5` in VS Code
+3. **Triggera l'Endpoint**: Fai una richiesta HTTP all'API
+4. **Step Through**: Usa `F10` (step over), `F11` (step into), `Shift+F11` (step out)
+
+Per una guida completa, consulta [**docs/REMOTE_DEBUGGING.md**](docs/REMOTE_DEBUGGING.md).
+
 ## Accesso Database (Adminer)
 
 Adminer è disponibile su `http://localhost:8081`.
@@ -292,11 +337,18 @@ my-wedding-app/
 │   ├── 01-ARCHITECTURE.md
 │   ├── 02-DATABASE.md
 │   ├── PGBOUNCER.md       # Connection pooling guide
+│   ├── REMOTE_DEBUGGING.md # Debug remoto Python
 │   └── ...
+├── .vscode/               # Configurazioni VS Code
+│   ├── launch.json        # Debug configurations
+│   ├── tasks.json         # Automated tasks
+│   └── settings.json      # Workspace settings
 ├── tests/                 # Test suite monorepo
 │   └── load_test_connections.py  # pgBouncer load test
 ├── docker-compose.yml     # Orchestrazione servizi
 ├── docker-compose.dev.yml # Override per sviluppo locale
+├── docker-compose.debug.yml # Override per debug remoto
+├── debug.sh               # Helper script per debug workflow
 ├── .env.example           # Template variabili ambiente
 ├── AI_RULES.md            # Regole sviluppo AI (Test, Log, Errori)
 └── README.md             # Questo file

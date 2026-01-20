@@ -13,6 +13,7 @@ from core.views import (
 )
 # Importa WhatsApp ViewSet dal modulo corretto
 from whatsapp.views import WhatsAppMessageQueueViewSet, WhatsAppMessageEventViewSet
+from core.dashboard import DynamicDashboardStatsView
 
 from django.http import HttpResponse
 
@@ -52,6 +53,7 @@ urlpatterns = [
     # ========================================
     path('api/admin/', include(admin_router.urls)),
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
+    path('api/admin/dashboard/dynamic-stats/', DynamicDashboardStatsView.as_view(), name='admin-dashboard-dynamic-stats'),
     # 6. Lingue Disponibili (pubblico)
     path('api/admin/languages/', PublicLanguagesView.as_view(), name='public-languages'),
     

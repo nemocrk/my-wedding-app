@@ -6,27 +6,32 @@
 
 set -e # Interrompe l'esecuzione se un comando fallisce
 
+COMPOSE_CMD="docker-compose -f docker-compose.yml -f docker-compose.dev.yml"
+COMPOSE_OTHER=""
 # Default values
 CLEAN_ONLY=false
 DETACH=false
+DEBUG_BACKEND=false
 
 # Parse arguments
 for arg in "$@"
 do
     case $arg in
         --clean_only)
-        CLEAN_ONLY=true
-        shift
-        ;;
-    esac
-    case $arg in
-        --detach)
-        DETACH=true
-        shift
-        ;;
+            CLEAN_ONLY=true
+            shift
+            ;;
+        --debug-backend)
+            DETACH=true
+            shift
+            ;;
+        *)
+            COMPOSE_OTHER="$COMPOSE_OTHER $1"
+            shift
+            ;;
     esac
 done
-
+COMPOSE_OTHER=$(echo $COMPOSE_OTHER | xargs)
 # Pulire tutti i container docker
 echo "--------------------------------------------------------"
 echo "  [1/4] Killo eventuali Container Attivi..."
@@ -64,12 +69,14 @@ fi
 
 if [ "$CLEAN_ONLY" = false ]; then
     # Avviare il progetto in dev mode con hot-reload
+    if [ "$DEBUG_BACKEND" = false ]; then
+        COMPOSE_CMD+="  -f docker-compose.debug.yml"
+    fi
+    COMPOSE_CMD+=" up --build "
+    COMPOSE_CMD+=$COMPOSE_OTHER
     echo "--------------------------------------------------------"
     echo "  [4/4] Avvio il progetto in dev mode con hot-reload..."
+    echo "  "$COMPOSE_CMD
     echo "--------------------------------------------------------"
-    if [ "$DETACH" = false ]; then
-        docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
-    else
-        docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build --detach
-    fi
+    $COMPOSE_CMD
 fi

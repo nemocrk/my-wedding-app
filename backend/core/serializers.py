@@ -249,6 +249,11 @@ class InvitationSerializer(serializers.ModelSerializer):
         # Remove nested labels
         validated_data.pop('labels', None)
         
+        # Check if is imported
+        if instance.status == Invitation.Status.IMPORTED:
+            # Reset verification status if phone changes
+            instance.status = Invitation.Status.CREATED
+
         # Check if phone number is changing
         new_phone = validated_data.get('phone_number')
         if new_phone is not None and new_phone != instance.phone_number:

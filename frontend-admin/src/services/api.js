@@ -178,6 +178,12 @@ export const api = {
     return handleResponse(response);
   },
 
+  getDynamicDashboardStats: async (filters) => {
+    const queryString = filters.join(',');
+    const response = await safeFetch(`${API_BASE_URL}/dashboard/dynamic-stats/?filters=${queryString}`);
+    return handleResponse(response);
+  },
+
   // --- CONFIG (System) ---
   getConfig: async () => {
     const response = await safeFetch(`${API_BASE_URL}/config/`);
