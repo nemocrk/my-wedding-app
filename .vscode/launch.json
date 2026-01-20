@@ -1,13 +1,40 @@
 {
-    "version": "0.2.0",
-    "configurations": [
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Python: Remote Attach (Backend Container)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
         {
-            "name": "Python Debugger: Python File",
-            "type": "debugpy",
-            "request": "launch",
-            "purpose": ["debug-test"],
-            "program": "${file}",
-            "console": "integratedTerminal",
+          "localRoot": "${workspaceFolder}/backend",
+          "remoteRoot": "/app"
         }
-    ]
+      ],
+      "justMyCode": false,
+      "django": true,
+      "preLaunchTask": "docker-compose-debug-up"
+    },
+    {
+      "name": "Python: Remote Attach (NO preLaunchTask)",
+      "type": "debugpy",
+      "request": "attach",
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}/backend",
+          "remoteRoot": "/app"
+        }
+      ],
+      "justMyCode": false,
+      "django": true
+    }
+  ]
 }
