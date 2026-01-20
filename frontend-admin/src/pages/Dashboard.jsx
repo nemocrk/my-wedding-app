@@ -1,9 +1,8 @@
-import React, { useEffect, useState } from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { Euro, Users, Home, Bus, TrendingUp, AlertCircle, FileText, Send, Eye, CheckCircle, XCircle } from 'lucide-react';
+import { AlertCircle, Bus, CheckCircle, Euro, Eye, FileText, Home, Send, TrendingUp, Users, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../services/api';
 import DynamicPieChart from '../components/DynamicPieChart';
+import { api } from '../services/api';
 
 const Dashboard = () => {
   const { t } = useTranslation();
@@ -75,32 +74,32 @@ const Dashboard = () => {
 
       {/* KPI CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard 
-          title={t('admin.dashboard.kpi.confirmed_guests')} 
+        <StatCard
+          title={t('admin.dashboard.kpi.confirmed_guests')}
           value={stats.guests.adults_confirmed + stats.guests.children_confirmed}
           subValue={t('admin.dashboard.kpi.confirmed_guests_subtitle', { count: stats.guests.children_confirmed })}
           icon={Users}
           bgClass="bg-green-50"
           colorClass="text-green-600"
         />
-        <StatCard 
-          title={t('admin.dashboard.kpi.estimated_budget')} 
+        <StatCard
+          title={t('admin.dashboard.kpi.estimated_budget')}
           value={`€ ${stats.financials.estimated_total.toLocaleString()}`}
           subValue={t('admin.dashboard.kpi.estimated_budget_subtitle')}
           icon={TrendingUp}
           bgClass="bg-orange-50"
           colorClass="text-orange-600"
         />
-        <StatCard 
-          title={t('admin.dashboard.kpi.current_cost')} 
+        <StatCard
+          title={t('admin.dashboard.kpi.current_cost')}
           value={`€ ${stats.financials.confirmed.toLocaleString()}`}
           subValue={t('admin.dashboard.kpi.current_cost_subtitle')}
           icon={Euro}
           bgClass="bg-blue-50"
           colorClass="text-blue-600"
         />
-        <StatCard 
-          title={t('admin.dashboard.kpi.pending')} 
+        <StatCard
+          title={t('admin.dashboard.kpi.pending')}
           value={stats.guests.adults_pending + stats.guests.children_pending}
           subValue={t('admin.dashboard.kpi.pending_subtitle')}
           icon={AlertCircle}
@@ -110,79 +109,22 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* CHART 1: GUESTS */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.guests_status')}</h3>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={guestsData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {guestsData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend verticalAlign="bottom" height={36}/>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
 
         {/* CHART 2: INVITATION STATUS (NEW) */}
-        <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.invitation_status')}</h3>
-          <div className="space-y-3">
-            {invitationStatusData.map((status, idx) => {
-              const Icon = status.icon;
-              const totalInvitations = invitationStatusData.reduce((sum, s) => sum + s.value, 0);
-              const percentage = totalInvitations > 0 ? Math.round((status.value / totalInvitations) * 100) : 0;
-              
-              return (
-                <div key={idx} className="flex items-center gap-3">
-                  <div className="flex items-center gap-2 w-32">
-                    <div className="w-2 h-2 rounded-full" style={{ backgroundColor: status.color }}></div>
-                    <span className="text-sm font-medium text-gray-600">{status.name}</span>
-                  </div>
-                  <div className="flex-1">
-                    <div className="w-full bg-gray-100 rounded-full h-2">
-                      <div 
-                        className="h-2 rounded-full transition-all" 
-                        style={{ width: `${percentage}%`, backgroundColor: status.color }}
-                      ></div>
-                    </div>
-                  </div>
-                  <div className="text-sm font-bold text-gray-800 w-16 text-right">
-                    {status.value} <span className="text-xs text-gray-400">({percentage}%)</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
+        <DynamicPieChart />
 
-      {/* DYNAMIC PIE CHART (NEW) */}
-      <DynamicPieChart />
+        {/* DYNAMIC PIE CHART (NEW) */}
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* LOGISTICS & FINANCIAL DETAIL TABLE */}
         <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col">
           <h3 className="text-lg font-bold text-gray-800 mb-4">{t('admin.dashboard.charts.logistics_costs')}</h3>
-          
+
           <div className="flex-1 space-y-6">
             {/* Logistics Grid */}
             <div className="grid grid-cols-2 gap-4">
               <div className="p-4 bg-blue-50 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <Home size={18} className="text-blue-600 mr-2"/>
+                  <Home size={18} className="text-blue-600 mr-2" />
                   <span className="font-semibold text-blue-900">{t('admin.dashboard.logistics.accommodation')}</span>
                 </div>
                 <div className="text-2xl font-bold text-blue-700">{stats.logistics.accommodation.total_confirmed}</div>
@@ -191,7 +133,7 @@ const Dashboard = () => {
 
               <div className="p-4 bg-purple-50 rounded-lg">
                 <div className="flex items-center mb-2">
-                  <Bus size={18} className="text-purple-600 mr-2"/>
+                  <Bus size={18} className="text-purple-600 mr-2" />
                   <span className="font-semibold text-purple-900">{t('admin.dashboard.logistics.transfer')}</span>
                 </div>
                 <div className="text-2xl font-bold text-purple-700">{stats.logistics.transfer.confirmed}</div>
@@ -205,9 +147,9 @@ const Dashboard = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
                   <span className="text-gray-600">{t('admin.dashboard.costs.adult_meals', { count: stats.guests.adults_confirmed })}</span>
-                  <span className="font-medium">--- €</span> 
+                  <span className="font-medium">--- €</span>
                 </li>
-                 <li className="flex justify-between">
+                <li className="flex justify-between">
                   <span className="text-gray-600">{t('admin.dashboard.costs.child_meals', { count: stats.guests.children_confirmed })}</span>
                   <span className="font-medium">--- €</span>
                 </li>

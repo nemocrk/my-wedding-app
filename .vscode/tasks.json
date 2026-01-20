@@ -4,7 +4,7 @@
     {
       "label": "docker-compose-debug-up",
       "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.debug.yml up -d backend",
+      "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.debug.yml up -d backend",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -15,7 +15,7 @@
     {
       "label": "docker-compose-debug-down",
       "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.debug.yml down",
+      "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.debug.yml down",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -26,7 +26,7 @@
     {
       "label": "docker-compose-debug-restart-backend",
       "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.debug.yml restart backend",
+      "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.debug.yml restart backend",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -37,7 +37,7 @@
     {
       "label": "docker-compose-debug-logs-backend",
       "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.debug.yml logs -f backend",
+      "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.dev.yml -f docker-compose.debug.yml logs -f backend",
       "group": "build",
       "presentation": {
         "reveal": "always",
@@ -49,7 +49,7 @@
     {
       "label": "docker-compose-rebuild-backend",
       "type": "shell",
-      "command": "docker-compose -f docker-compose.yml -f docker-compose.debug.yml up -d --build backend",
+      "command": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml -f docker-compose.debug.yml up -d --build backend",
       "group": "build",
       "presentation": {
         "reveal": "always",

@@ -4,21 +4,18 @@
 services:
   backend:
     # Override del comando per lanciare debugpy
-    command: python -m debugpy --listen 0.0.0.0:5678 --wait-for-client manage.py runserver 0.0.0.0:8000
-    
+    command: python -Xfrozen_modules=off -m debugpy --listen 0.0.0.0:5678 --wait-for-client manage.py runserver 0.0.0.0:8000
+
     # Espone la porta del debugger all'host
     ports:
-      - "5678:5678"  # Debugpy
-      - "8000:8000"  # Django dev server (opzionale, per accesso diretto)
-    
-    # Override environment per abilitare DEBUG
-    environment:
-      DEBUG: "True"
-      DJANGO_SETTINGS_MODULE: wedding.settings
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
-      SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0}
-    
+      - "5678:5678" # Debugpy
+    networks:
+      - backend_debug_network
     # Disabilita healthcheck per evitare conflitti durante il debug
     healthcheck:
-      disable: true
+      # Or simply use the 'true' binary if available in your image
+      test: [ "CMD", "true" ]
+networks:
+  # Rete database - completamente isolata da Internet
+  backend_debug_network:
+    driver: bridge

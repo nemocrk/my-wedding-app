@@ -13,7 +13,7 @@ from core.views import (
 )
 # Importa WhatsApp ViewSet dal modulo corretto
 from whatsapp.views import WhatsAppMessageQueueViewSet, WhatsAppMessageEventViewSet
-from core.views.dashboard import DynamicDashboardStatsView
+from core.dashboard import DynamicDashboardStatsView
 
 from django.http import HttpResponse
 
