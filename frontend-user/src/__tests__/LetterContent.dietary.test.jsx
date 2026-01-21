@@ -16,7 +16,10 @@ vi.mock('react-i18next', () => ({
         'rsvp.buttons.next': 'Avanti',
         'rsvp.buttons.confirm_presence': 'Conferma Presenza',
         'rsvp.labels.guests': 'Ospiti',
-        'rsvp.title': 'Form'
+        'rsvp.title': 'Form',
+        'rsvp.options.ferry': 'Traghetto',
+        'rsvp.options.plane': 'Aereo',
+        'rsvp.labels.schedule_placeholder': 'Es. Partenza ore 10:00 da Civitavecchia'
       };
       return translations[key] || key;
     }
@@ -123,17 +126,18 @@ describe('LetterContent - Dietary Requirements', () => {
     fireEvent.click(screen.getByText('Avanti')); // Guests -> Contact
 
     // Contact Step
-    const phoneInput = screen.getByText('✏️');
-    fireEvent.click(phoneInput);
+    const phoneEditButtons = screen.getAllByText('✏️');
+    fireEvent.click(phoneEditButtons[0]);
     const phoneField = screen.getByPlaceholderText('+39 333 1234567');
     fireEvent.change(phoneField, { target: { value: '+393331234567' } });
-    fireEvent.click(screen.getByText('✓'));
+    const phoneSaveButton = screen.getByText('✓');
+    fireEvent.click(phoneSaveButton);
     fireEvent.click(screen.getByText('Avanti')); // Contact -> Travel
 
-    // Travel Step
-    const ferryOption = screen.getByLabelText(/traghetto/i); // Assumendo key translation fallback
+    // Travel Step: Usa getByRole per radio button
+    const ferryOption = screen.getByRole('radio', { name: /Traghetto/i });
     fireEvent.click(ferryOption);
-    const scheduleInput = screen.getByPlaceholderText(/schedule/i);
+    const scheduleInput = screen.getByPlaceholderText(/Es. Partenza ore 10:00 da Civitavecchia/i);
     fireEvent.change(scheduleInput, { target: { value: '10:00' } });
     fireEvent.click(screen.getByText('Avanti')); // Travel -> Final
 
