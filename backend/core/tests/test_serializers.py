@@ -157,17 +157,17 @@ class TestInvitationSerializer:
 
     def test_phone_number_change_resets_verification(self, db):
         """
-        Test: Changing phone_number should reset verification_status
+        Test: Changing phone_number should reset contact_verified
         This is existing behavior, ensuring it still works after PR #62
         """
         inv = Invitation.objects.create(
             code='phone-test',
             name='Phone Test',
             phone_number='+393331111111',
-            verification_status='verified'
+            contact_verified='ok'
         )
         
-        assert inv.verification_status == 'verified'
+        assert inv.contact_verified == 'ok'
         
         # Update phone number
         payload = {'phone_number': '+393332222222'}
@@ -177,8 +177,8 @@ class TestInvitationSerializer:
         updated_inv = serializer.save()
         
         # Verification status should be reset
-        assert updated_inv.verification_status == 'unverified', \
-            "Verification status should be reset when phone number changes"
+        assert updated_inv.contact_verified == 'not_valid', \
+            "Contact verified should be reset when phone number changes"
 
 
 @pytest.mark.django_db
