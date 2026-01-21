@@ -27,12 +27,14 @@ class DynamicDashboardStatsView(APIView):
         labels = InvitationLabel.objects.values_list('name', flat=True)
         origins = [c[0] for c in Invitation.Origin.choices]
         statuses = [c[0] for c in Invitation.Status.choices]
-
         
+        total_count = queryset.count()
+
         return Response({
             "levels": [] if levels is None else levels,
             "meta": {
-                "total": queryset.count(),
+                "total": total_count,
+                "filtered_count": total_count,
                 "available_filters": origins + statuses + list(labels)
             }
         })

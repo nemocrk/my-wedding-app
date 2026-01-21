@@ -407,12 +407,12 @@ Authorization: Token <token>
 
 **Response (204 No Content)**
 
-### 11. Statistiche Dashboard
+### 11. Statistiche Dashboard (KPI) 🆕
 
-Ottiene le statistiche aggregate per la dashboard admin.
+Ottiene le statistiche aggregate per i KPI della dashboard (Conteggi, Logistica, Finanziari).
 
 ```http
-GET /api/admin/stats/
+GET /api/admin/dashboard/stats/
 Authorization: Token <token>
 ```
 
@@ -420,37 +420,77 @@ Authorization: Token <token>
 
 ```json
 {
-  "total_guests": 150,
-  "total_invited_seats": 300,
-  "total_responses": 120,
-  "total_confirmed": 100,
-  "total_declined": 20,
-  "confirmed_attendees": 185,
-  "response_rate": 80.0,
-  "groups": {
-    "Family": {
-      "total": 50,
-      "responded": 45,
-      "confirmed": 42
+  "guests": {
+    "total_adults": 150,
+    "total_children": 10,
+    "adults_confirmed": 100,
+    "children_confirmed": 5,
+    "adults_pending": 45,
+    "children_pending": 5,
+    "adults_declined": 5,
+    "children_declined": 0
+  },
+  "invitations": {
+    "total": 80,
+    "sent": 75,
+    "confirmed": 50,
+    "declined": 5,
+    "imported": 10,
+    "created": 5,
+    "read": 60
+  },
+  "logistics": {
+    "accommodation": {
+      "total_confirmed": 25,
+      "confirmed_adults": 20,
+      "confirmed_children": 5
     },
-    "Friends": {
-      "total": 100,
-      "responded": 75,
-      "confirmed": 58
+    "transfer": {
+      "confirmed": 15
     }
   },
-  "timeline": [
-    {
-      "date": "2025-01-01",
-      "responses": 15,
-      "confirmed": 12,
-      "declined": 3
-    }
-  ]
+  "financials": {
+    "estimated_total": 15000.00,
+    "confirmed": 8000.00
+  }
 }
 ```
 
-### 12. Heatmap Data
+### 12. Statistiche Dinamiche (Grafici) 🆕
+
+Ottiene dati nidificati per i grafici a torta dinamici (Dynamic Pie Chart).
+
+```http
+GET /api/admin/dashboard/dynamic-stats/?filters=groom,confirmed
+Authorization: Token <token>
+```
+
+**Query Parameters:**
+
+- `filters` (string): Lista separata da virgola di filtri attivi (es. "groom,bride,confirmed").
+
+**Response (200):**
+
+```json
+{
+  "levels": [
+    [
+      { "name": "groom", "field": "origin", "value": 60, "ids": [1,2,3], "parent_idx": null },
+      { "name": "bride", "field": "origin", "value": 40, "ids": [4,5], "parent_idx": null }
+    ],
+    [
+      { "name": "confirmed", "field": "status", "value": 50, "ids": [1,2,4], "parent_idx": 0 },
+      { "name": "pending", "field": "status", "value": 10, "ids": [3], "parent_idx": 0 }
+    ]
+  ],
+  "meta": {
+    "total": 100,
+    "available_filters": ["groom", "bride", "sent", "confirmed", "declined"]
+  }
+}
+```
+
+### 13. Heatmap Data
 
 Ottiene i dati per la heatmap delle interazioni (per ora/giorno).
 
@@ -487,7 +527,7 @@ Authorization: Token <token>
 }
 ```
 
-### 13. Esporta Dati
+### 14. Esporta Dati
 
 Esporta la lista invitati in formato CSV/Excel.
 
@@ -517,7 +557,7 @@ John,Smith,john@example.com,+1234567890,SMITH-JOHN-001,Friends,2,Yes,Yes,2
 
 ## 🆕 Nuovi Endpoints: Gestione Etichette (Labels)
 
-### 14. Lista Etichette Invito
+### 15. Lista Etichette Invito
 
 Ottiene tutte le etichette disponibili per categorizzare gli inviti.
 
@@ -547,7 +587,7 @@ Authorization: Token <token>
 ]
 ```
 
-### 15. Creare Etichetta
+### 16. Creare Etichetta
 
 ```http
 POST /api/admin/invitation-labels/
@@ -579,7 +619,7 @@ Authorization: Token <token>
 }
 ```
 
-### 16. Aggiornare Etichetta
+### 17. Aggiornare Etichetta
 
 ```http
 PATCH /api/admin/invitation-labels/{id}/
@@ -602,7 +642,7 @@ Authorization: Token <token>
 }
 ```
 
-### 17. Eliminare Etichetta
+### 18. Eliminare Etichetta
 
 ```http
 DELETE /api/admin/invitation-labels/{id}/
@@ -617,7 +657,7 @@ Authorization: Token <token>
 
 ## 🆕 Nuovi Endpoints: Azioni Bulk
 
-### 18. Bulk Send WhatsApp
+### 19. Bulk Send WhatsApp
 
 Invia messaggi WhatsApp a più inviti contemporaneamente.
 
@@ -657,7 +697,7 @@ Authorization: Token <token>
 }
 ```
 
-### 19. Bulk Verify Contacts
+### 20. Bulk Verify Contacts
 
 Verifica la validità dei numeri WhatsApp per più inviti.
 
@@ -694,7 +734,7 @@ Authorization: Token <token>
 }
 ```
 
-### 20. Bulk Apply Labels
+### 21. Bulk Apply Labels
 
 Applica o rimuove etichette da più inviti.
 
@@ -732,7 +772,7 @@ Authorization: Token <token>
 
 ## 🆕 Nuovi Endpoints: Gestione Alloggi Avanzata
 
-### 21. Pin/Unpin Accommodation
+### 22. Pin/Unpin Accommodation
 
 Blocca o sblocca l'assegnazione alloggio per un invito specifico (impedisce riassegnazione automatica).
 
@@ -756,7 +796,7 @@ Authorization: Token <token>
 }
 ```
 
-### 22. Edit Accommodation
+### 23. Edit Accommodation
 
 Modifica i dettagli di una struttura alloggio esistente.
 
@@ -902,4 +942,4 @@ L'interfaccia interattiva ti permette di testare tutti gli endpoint.
 ---
 
 ## Legenda Simboli 🆕
-- 🆕 = Nuovi endpoint introdotti nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi`.
+- 🆕 = Nuovi endpoint introdotti nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi` e issue #62 `dashboard-stats`.
