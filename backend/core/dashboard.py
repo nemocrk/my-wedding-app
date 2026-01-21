@@ -33,6 +33,7 @@ class DynamicDashboardStatsView(APIView):
             "levels": [] if levels is None else levels,
             "meta": {
                 "total": queryset.count(),
+                "filtered_count": queryset.count(),
                 "available_filters": origins + statuses + list(labels)
             }
         })
