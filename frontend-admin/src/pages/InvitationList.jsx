@@ -1,6 +1,6 @@
 // frontend-admin/src/pages/InvitationList.jsx
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone, Tag, Filter, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone, Tag, Filter, Utensils } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
@@ -597,9 +597,9 @@ const InvitationList = () => {
                             {guest.first_name}
                             {/* Alert intolleranze */}
                             {guest.dietary_requirements && (
-                              <AlertTriangle 
+                              <Utensils 
                                 size={12} 
-                                className="ml-1 text-amber-500 cursor-help" 
+                                className="ml-1 text-red-500 cursor-help" 
                                 title={guest.dietary_requirements}
                               />
                             )}
@@ -850,9 +850,9 @@ const InvitationList = () => {
                         {g.first_name}
                         {/* Alert intolleranze mobile */}
                         {g.dietary_requirements && (
-                          <AlertTriangle 
+                          <Utensils 
                             size={10} 
-                            className="ml-1 text-amber-500" 
+                            className="ml-1 text-red-500" 
                           />
                         )}
                       </span>
