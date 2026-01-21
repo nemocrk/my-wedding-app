@@ -15,7 +15,8 @@ vi.mock('react-i18next', () => ({
         'rsvp.labels.dietary_placeholder': 'Inserisci allergie o intolleranze...',
         'rsvp.buttons.next': 'Avanti',
         'rsvp.buttons.confirm_presence': 'Conferma Presenza',
-        'rsvp.labels.guests': 'Ospiti'
+        'rsvp.labels.guests': 'Ospiti',
+        'rsvp.title': 'Form'
       };
       return translations[key] || key;
     }
@@ -71,7 +72,7 @@ describe('LetterContent - Dietary Requirements', () => {
     render(<LetterContent data={mockData} />);
 
     // Apri la card RSVP
-    const rsvpCard = screen.getByText('RSVP');
+    const rsvpCard = screen.getByText(/RSVP/i);
     fireEvent.click(rsvpCard);
 
     // Verifica che Luigi abbia il badge
@@ -84,7 +85,7 @@ describe('LetterContent - Dietary Requirements', () => {
     render(<LetterContent data={mockData} />);
 
     // Apri RSVP
-    fireEvent.click(screen.getByText('RSVP'));
+    fireEvent.click(screen.getByText(/RSVP/i));
 
     // Clicca edit su Mario (primo ospite, indice 0)
     const editButtons = screen.getAllByText('✏️');
@@ -107,7 +108,7 @@ describe('LetterContent - Dietary Requirements', () => {
     render(<LetterContent data={mockData} />);
 
     // Apri RSVP
-    fireEvent.click(screen.getByText('RSVP'));
+    fireEvent.click(screen.getByText(/RSVP/i));
 
     // Step 1: Modifica intolleranza Mario
     const editButtons = screen.getAllByText('✏️');
