@@ -1,12 +1,13 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import LetterContent from '../components/invitation/LetterContent';
 import { useConfigurableText } from '../contexts/TextContext';
 import { submitRSVP } from '../services/api';
 import { logInteraction } from '../services/analytics';
 
 // Mock delle dipendenze
-jest.mock('react-i18next', () => ({
+vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key) => {
       const translations = {
@@ -21,28 +22,28 @@ jest.mock('react-i18next', () => ({
   })
 }));
 
-jest.mock('../contexts/TextContext', () => ({
-  useConfigurableText: jest.fn()
+vi.mock('../contexts/TextContext', () => ({
+  useConfigurableText: vi.fn()
 }));
 
-jest.mock('../services/api', () => ({
-  submitRSVP: jest.fn()
+vi.mock('../services/api', () => ({
+  submitRSVP: vi.fn()
 }));
 
-jest.mock('../services/analytics', () => ({
-  logInteraction: jest.fn(),
-  heatmapTracker: { start: jest.fn(), stop: jest.fn() }
+vi.mock('../services/analytics', () => ({
+  logInteraction: vi.fn(),
+  heatmapTracker: { start: vi.fn(), stop: vi.fn() }
 }));
 
 // Mock di immagini
-jest.mock('../assets/illustrations/arch.png', () => 'arch.png');
-jest.mock('../assets/illustrations/chest.png', () => 'chest.png');
-jest.mock('../assets/illustrations/dress.png', () => 'dress.png');
-jest.mock('../assets/illustrations/home.png', () => 'home.png');
-jest.mock('../assets/illustrations/LetterBackground.png', () => 'LetterBackground.png');
-jest.mock('../assets/illustrations/questions.png', () => 'questions.png');
-jest.mock('../assets/illustrations/van.png', () => 'van.png');
-jest.mock('../assets/illustrations/wax.png', () => 'wax.png');
+vi.mock('../assets/illustrations/arch.png', () => 'arch.png');
+vi.mock('../assets/illustrations/chest.png', () => 'chest.png');
+vi.mock('../assets/illustrations/dress.png', () => 'dress.png');
+vi.mock('../assets/illustrations/home.png', () => 'home.png');
+vi.mock('../assets/illustrations/LetterBackground.png', () => 'LetterBackground.png');
+vi.mock('../assets/illustrations/questions.png', () => 'questions.png');
+vi.mock('../assets/illustrations/van.png', () => 'van.png');
+vi.mock('../assets/illustrations/wax.png', () => 'wax.png');
 
 describe('LetterContent - Dietary Requirements', () => {
   const mockData = {
