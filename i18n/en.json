@@ -115,6 +115,8 @@
       "schedule_placeholder": "e.g., Departure 10:00, Arrival 14:00",
       "name_placeholder": "First Name",
       "lastname_placeholder": "Last Name",
+      "dietary_requirements": "Allergies/Intolerances",
+      "dietary_placeholder": "E.g. Lactose intolerant, celiac disease, nut allergy",
       "loading": "Loading..."
     },
     "buttons": {
