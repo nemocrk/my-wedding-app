@@ -263,11 +263,37 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
 
       // In current implementation car_option defaults to 'none' (truthy), so this checkbox is rendered.
       expect(screen.queryByLabelText(/Sarebbe carino organizzarmi/i)).toBeInTheDocument();
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByLabelText(/Noleggerò un'auto/i));
+      });
+
+      // Car_option setted, so this checkbox is not rendered.
+      expect(screen.queryByLabelText(/Sarebbe carino organizzarmi/i)).not.toBeInTheDocument();
+
+    });
+
+    it('validates travel fields before advancing', async () => {
+      render(<LetterContent data={mockData} />);
+
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+      fireEvent.click(screen.getByText(/Avanti →/i));
+      fireEvent.click(screen.getByText(/Avanti →/i));
+
+      await waitFor(() => {
+        const nextBtn = screen.getByText(/Avanti →/i);
+        fireEvent.click(nextBtn);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Compila tutti i campi del viaggio/i)).toBeInTheDocument();
+      });
     });
   });
 
   describe('Wizard Step 4 - Accommodation', () => {
-    it('renders accommodation request field if offered', async () => {
+    it('shows accommodation step if offered', async () => {
+      const user = userEvent.setup();
       render(<LetterContent data={mockData} />);
 
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
@@ -275,54 +301,181 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByText(/Avanti →/i));
 
       await waitFor(() => {
-        fireEvent.click(screen.getByText(/Avanti →/i));
+        fireEvent.click(screen.getByLabelText('Aereo'));
       });
 
+      const scheduleInput = screen.getByPlaceholderText(/Partenza/i);
+      await user.type(scheduleInput, 'Partenza 10:00');
+
+      fireEvent.click(screen.getByText(/Avanti →/i));
+
       await waitFor(() => {
-        expect(screen.getByText(/Richiesta di Alloggio/i)).toBeInTheDocument();
-        expect(screen.getByLabelText('Sì, desidero alloggio')).toBeInTheDocument();
-        expect(screen.getByLabelText('No, grazie')).toBeInTheDocument();
+        // 'Alloggio' appears twice: as card title (h3) and modal title (h2)
+        // Check for modal title (h2)
+        expect(screen.getByRole('heading', { name: 'Alloggio', level: 2 })).toBeInTheDocument();
+        expect(screen.getByLabelText(/Sì, richiedo l'alloggio/i)).toBeInTheDocument();
       });
     });
 
     it('skips accommodation step if not offered', async () => {
-      const dataNoAccom = { ...mockData, accommodation_offered: false };
-      render(<LetterContent data={dataNoAccom} />);
+      const user = userEvent.setup();
+      const dataNoAccommodation = { ...mockData, accommodation_offered: false };
+      render(<LetterContent data={dataNoAccommodation} />);
 
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
       fireEvent.click(screen.getByText(/Avanti →/i));
       fireEvent.click(screen.getByText(/Avanti →/i));
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByLabelText('Aereo'));
+      });
+
+      const scheduleInput = screen.getByPlaceholderText(/Partenza/i);
+      await user.type(scheduleInput, 'Partenza 10:00');
+
       fireEvent.click(screen.getByText(/Avanti →/i));
 
-      // Should go straight to summary (Step 5)
       await waitFor(() => {
-        expect(screen.getByText(/Riepilogo/i)).toBeInTheDocument();
+        expect(screen.getByText('Conferma Finale')).toBeInTheDocument();
       });
     });
   });
 
-  describe('Wizard Step 5 - Summary & Submit', () => {
-    it('shows summary and allows RSVP submission', async () => {
-      apiService.submitRSVP.mockResolvedValue({ success: true });
+  describe('Wizard Step 5 - Final Confirmation', () => {
+    it('shows final summary with all data', async () => {
+      const user = userEvent.setup();
+      const {container } = render(<LetterContent data={mockData} />);
+
+      // Navigate through all steps
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+      fireEvent.click(screen.getByText(/Avanti →/i)); // guests
+      fireEvent.click(screen.getByText(/Avanti →/i)); // contact
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByLabelText('Traghetto'));
+      });
+
+      const scheduleInput = screen.getByPlaceholderText(/Partenza/i);
+      await user.type(scheduleInput, 'Partenza 10:00');
+
+      fireEvent.click(screen.getByLabelText('Auto al seguito'));
+      fireEvent.click(screen.getByText(/Avanti →/i)); // travel
+      fireEvent.click(screen.getByText(/Avanti →/i)); // accommodation
+            
+      await waitFor(() => {
+        expect(screen.getByText('Conferma Finale')).toBeInTheDocument();
+        expect(screen.getByText(/Trasporto:/i)).toBeInTheDocument();
+        expect(screen.getByText(/traghetto/i)).toBeInTheDocument();
+      });
+    });
+
+    it('submits RSVP with complete payload', async () => {
+      const user = userEvent.setup();
+      apiService.submitRSVP.mockResolvedValue({ success: true, message: 'Grazie!' });
 
       render(<LetterContent data={mockData} />);
 
-      // Navigate to summary
+      // Navigate to final step
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
       fireEvent.click(screen.getByText(/Avanti →/i));
       fireEvent.click(screen.getByText(/Avanti →/i));
-      fireEvent.click(screen.getByText(/Avanti →/i));
-      fireEvent.click(screen.getByText(/Avanti →/i));
 
       await waitFor(() => {
-        expect(screen.getByText(/Riepilogo/i)).toBeInTheDocument();
+        fireEvent.click(screen.getByLabelText('Aereo'));
       });
 
-      const submitBtn = screen.getByText(/Conferma RSVP/i);
-      fireEvent.click(submitBtn);
+      const scheduleInput = screen.getByPlaceholderText(/Partenza/i);
+      await user.type(scheduleInput, 'Partenza 14:00');
+
+      fireEvent.click(screen.getByText(/Avanti →/i));
 
       await waitFor(() => {
-        expect(apiService.submitRSVP).toHaveBeenCalled();
+        fireEvent.click(screen.getByLabelText(/Sì, richiedo l'alloggio/i));
+      });
+
+      fireEvent.click(screen.getByText(/Avanti →/i));
+
+      await waitFor(() => {
+        const confirmBtn = screen.getByText(/✔️ Conferma Presenza/i);
+        fireEvent.click(confirmBtn);
+      });
+
+      await waitFor(() => {
+        expect(apiService.submitRSVP).toHaveBeenCalledWith(
+          'confirmed',
+          true,
+          false,
+          expect.objectContaining({
+            phone_number: '+39 333 1234567',
+            travel_info: expect.objectContaining({
+              transport_type: 'aereo',
+              schedule: 'Partenza 14:00',
+            }),
+          })
+        );
+      });
+    });
+  });
+
+  describe('Already Confirmed - Summary Page', () => {
+    it('shows summary page with modify button if already confirmed', async () => {
+      const confirmedData = { ...mockData, status: 'confirmed' };
+      render(<LetterContent data={confirmedData} />);
+
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+
+      await waitFor(() => {
+        expect(screen.getByText('Il tuo RSVP')).toBeInTheDocument();
+        expect(screen.getByText(/Hai già confermato/i)).toBeInTheDocument();
+        expect(screen.getByText('Modifica Risposta')).toBeInTheDocument();
+      });
+    });
+
+    it('allows modification from summary page', async () => {
+      const confirmedData = { ...mockData, status: 'confirmed' };
+      render(<LetterContent data={confirmedData} />);
+
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+
+      await waitFor(() => {
+        const modifyBtn = screen.getByText('Modifica Risposta');
+        fireEvent.click(modifyBtn);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Conferma Ospiti')).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Error Handling', () => {
+    it('handles API errors gracefully', async () => {
+      const user = userEvent.setup();
+      apiService.submitRSVP.mockRejectedValue(new Error('Network Error'));
+
+      render(<LetterContent data={mockData} />);
+
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+      fireEvent.click(screen.getByText(/Avanti →/i));
+      fireEvent.click(screen.getByText(/Avanti →/i));
+
+      await waitFor(() => {
+        fireEvent.click(screen.getByLabelText('Aereo'));
+      });
+
+      const scheduleInput = screen.getByPlaceholderText(/Partenza/i);
+      await user.type(scheduleInput, 'Test');
+
+      fireEvent.click(screen.getByText(/Avanti →/i));
+      fireEvent.click(screen.getByText(/Avanti →/i));
+
+      await waitFor(() => {
+        const confirmBtn = screen.getByText(/✔️ Conferma Presenza/i);
+        fireEvent.click(confirmBtn);
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText(/Network Error/i)).toBeInTheDocument();
       });
     });
   });
