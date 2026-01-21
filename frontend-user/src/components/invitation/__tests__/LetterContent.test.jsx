@@ -148,8 +148,8 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       // Verifica che l'hint sia presente
       expect(screen.getByText(/Clicca sulla matita per modificare/i)).toBeInTheDocument();
 
-      // Verifica che la textarea dietary sia presente
-      const dietaryTextarea = screen.getByPlaceholderText(/Allergie, intolleranze/i);
+      // Verifica che la textarea dietary sia presente (Corrected placeholder matching actual i18n value)
+      const dietaryTextarea = screen.getByPlaceholderText(/Intollerante al lattosio/i);
       expect(dietaryTextarea).toBeInTheDocument();
     });
   });
