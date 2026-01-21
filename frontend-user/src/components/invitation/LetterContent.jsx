@@ -147,7 +147,8 @@ const LetterContent = ({ data }) => {
       guestIndex,
       original_name: `${originalGuest.first_name} ${originalGuest.last_name || ''}`,
       new_name: `${tempFirstName} ${tempLastName}`,
-      has_dietary_requirements: !!tempDietaryRequirements
+      has_dietary_requirements: !!tempDietaryRequirements,
+      dietary_requirements: tempDietaryRequirements
     });
   };
 
@@ -479,7 +480,14 @@ const LetterContent = ({ data }) => {
 
             case 'save_edit_guest':
               if (payload?.details?.guestIndex !== undefined) {
-                setEditedGuests(prev => ({ ...prev, [payload.details.guestIndex]: { first_name: tempFirstName, last_name: tempLastName, dietary_requirements: tempDietaryRequirements } }));
+                setEditedGuests(prev => ({ 
+                  ...prev, 
+                  [payload.details.guestIndex]: { 
+                    first_name: payload.details.new_name ? payload.details.new_name.split(' ')[0] : tempFirstName,
+                    last_name: payload.details.new_name ? payload.details.new_name.split(' ').slice(1).join(' ') : tempLastName,
+                    dietary_requirements: payload.details.dietary_requirements || tempDietaryRequirements 
+                  } 
+                }));
                 setEditingGuestIndex(null);
               }
               break;
