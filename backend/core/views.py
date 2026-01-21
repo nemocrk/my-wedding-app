@@ -1,4 +1,4 @@
-from rest_framework import viewsets, status, filters
+from rest_framework import viewsets, status, filters, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
@@ -31,6 +31,8 @@ class PublicLanguagesView(APIView):
     Endpoint pubblico per recuperare le lingue disponibili.
     Legge dal file generato automaticamente 'core/fixtures/languages.json'.
     """
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request):
         fixture_path = os.path.join(settings.BASE_DIR, 'core/fixtures/languages.json')
         try:
@@ -53,6 +55,8 @@ class PublicConfigurableTextView(APIView):
     Endpoint pubblico per recuperare i testi configurati.
     Supporta filtro lingua (?lang=en). Fallback a 'it' se non trovato.
     """
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request):
         lang = request.query_params.get('lang', 'it')
         
@@ -79,6 +83,8 @@ class PublicConfigurableTextView(APIView):
         return Response(data)
 
 class PublicInvitationAuthView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         code = request.data.get('code')
         token = request.data.get('token')
@@ -101,6 +107,8 @@ class PublicInvitationAuthView(APIView):
             return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicInvitationView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def get(self, request):
         invitation_id = request.session.get('invitation_id')
         stored_code = request.session.get('invitation_code')
@@ -128,6 +136,8 @@ class PublicRSVPView(APIView):
     - excluded_guests: list [guest_indices] → sets Person.not_coming=True
     - travel_info: dict {transport_type, schedule, car_option, carpool_interest} → persisted to Invitation.travel_*
     """
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id:
@@ -281,6 +291,8 @@ def _auto_mark_as_read_if_first_visit(invitation):
         invitation.save(update_fields=['status', 'updated_at'])
 
 class PublicLogInteractionView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -300,6 +312,8 @@ class PublicLogInteractionView(APIView):
         return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class PublicLogHeatmapView(APIView):
+    permission_classes = [permissions.AllowAny]
+
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -333,6 +347,8 @@ class AdminGoogleFontsProxyView(APIView):
     Proxy sicuro per Google Fonts → OFFLINE MODE.
     Legge dal file statico backend/assets/fontInfo.json invece di chiamare l'API.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
     def get(self, request):
         font_file_path = os.path.join(settings.BASE_DIR, 'assets', 'fontInfo.json')
         
@@ -372,6 +388,7 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
     CRUD completo per i testi configurabili.
     Supporta ricerca per key e filtro per language.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = ConfigurableText.objects.all().order_by('key')
     serializer_class = ConfigurableTextSerializer
     filter_backends = [filters.SearchFilter]
@@ -432,6 +449,7 @@ class InvitationLabelViewSet(viewsets.ModelViewSet):
     CRUD per le etichette degli inviti.
     Permette di creare, modificare, eliminare etichette personalizzate.
     """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = InvitationLabel.objects.all().order_by('name')
     serializer_class = InvitationLabelSerializer
     filter_backends = [filters.SearchFilter]
@@ -439,6 +457,7 @@ class InvitationLabelViewSet(viewsets.ModelViewSet):
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = Invitation.objects.all().order_by('-created_at')
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'code']
@@ -683,6 +702,8 @@ class InvitationViewSet(viewsets.ModelViewSet):
         return Response(sorted_sessions)
 
 class GlobalConfigViewSet(viewsets.ViewSet):
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+    
     def list(self, request):
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config)
@@ -698,11 +719,13 @@ class GlobalConfigViewSet(viewsets.ViewSet):
 
 class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
     """CRUD for WhatsApp Templates"""
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
     serializer_class = WhatsAppTemplateSerializer
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     """CRUD completo per Alloggi (solo admin)"""
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
@@ -1030,6 +1053,8 @@ class AccommodationViewSet(viewsets.ModelViewSet):
 
 class DashboardStatsView(APIView):
     """Statistiche dashboard (solo admin) - UPDATED to exclude not_coming guests"""
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
+
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
@@ -1138,21 +1163,121 @@ class DashboardStatsView(APIView):
             }
         })
 
-class GlobalConfigViewSet(viewsets.ViewSet):
-    def list(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config)
-        return Response(serializer.data)
+class DynamicDashboardStatsView(APIView):
+    """
+    Endpoint for dynamic dashboard statistics with filtering.
+    Supports filtering by origin, status, and labels.
+    Calculates breakdown for sunburst/treemap visualizations.
+    """
+    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
 
-    def create(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    def get(self, request):
+        filters_str = request.query_params.get('filters', '')
+        # Parse filters: "groom,confirmed,Label1" -> clean list
+        active_filters = [f.strip() for f in filters_str.split(',') if f.strip()]
+        
+        # Base QuerySet
+        qs = Invitation.objects.all().prefetch_related('labels')
+        
+        # 1. Calculate Total (unfiltered)
+        total_invitations = qs.count()
+        
+        # 2. Extract Available Filters (for UI)
+        # Origins
+        available_filters = ['groom', 'bride']
+        # Statuses
+        available_filters.extend([s.value for s in Invitation.Status])
+        # Labels
+        label_names = list(InvitationLabel.objects.values_list('name', flat=True))
+        available_filters.extend(label_names)
+        
+        # 3. Apply Filters
+        if active_filters:
+            q_objects = Q()
+            for f in active_filters:
+                # Origin match
+                if f in ['groom', 'bride']:
+                    q_objects |= Q(origin=f)
+                # Status match
+                elif f in [s.value for s in Invitation.Status]:
+                    q_objects |= Q(status=f)
+                # Label match
+                else:
+                    q_objects |= Q(labels__name=f)
+            
+            # If we have filters, we want invitations that match ANY of them? 
+            # OR logic is standard for "tags". 
+            # If logic should be AND, we would chain .filter()
+            # Requirement says "filters=groom,sent" -> usually means Union (OR) in simple dashboards,
+            # but let's assume OR for now based on implementation pattern above.
+            qs = qs.filter(q_objects).distinct()
 
-class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
-    """CRUD for WhatsApp Templates"""
-    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
-    serializer_class = WhatsAppTemplateSerializer
+        # 4. Build Hierarchical Data (Sunburst/Treemap structure)
+        # Level 1: Origin (Groom/Bride)
+        # Level 2: Status
+        # Level 3: Labels (top label only to avoid explosion)
+        
+        hierarchy = []
+        
+        # Group by Origin
+        origins = ['groom', 'bride']
+        for origin in origins:
+            origin_qs = qs.filter(origin=origin)
+            origin_count = origin_qs.count()
+            
+            if origin_count > 0:
+                origin_node = {
+                    "name": origin.capitalize(),
+                    "value": origin_count,
+                    "field": "origin",
+                    "children": []
+                }
+                
+                # Group by Status within Origin
+                statuses = origin_qs.values('status').annotate(count=Count('id'))
+                for stat in statuses:
+                    s_val = stat['status']
+                    s_count = stat['count']
+                    
+                    status_node = {
+                        "name": s_val.capitalize(),
+                        "value": s_count,
+                        "field": "status",
+                        "children": []
+                    }
+                    
+                    # Group by Label (Optional - pick top label or "No Label")
+                    # This is expensive N+1 if not careful. 
+                    # Optimization: Get IDs for this slice and aggregate labels
+                    slice_ids = origin_qs.filter(status=s_val).values_list('id', flat=True)
+                    labels = InvitationLabel.objects.filter(invitations__in=slice_ids).annotate(count=Count('invitations'))
+                    
+                    if labels:
+                        for lbl in labels:
+                             status_node["children"].append({
+                                "name": lbl.name,
+                                "value": lbl.count,
+                                "field": "label"
+                             })
+                    else:
+                         status_node["children"].append({
+                                "name": "No Label",
+                                "value": s_count,
+                                "field": "label"
+                         })
+                    
+                    origin_node["children"].append(status_node)
+                
+                hierarchy.append(origin_node)
+        
+        # If no hierarchy (empty result), ensure valid empty structure
+        # but if we have data, format for frontend (array of root nodes)
+        
+        return Response({
+            'meta': {
+                'total': total_invitations,
+                'available_filters': available_filters,
+                'filtered_count': qs.count()
+            },
+            'levels': hierarchy
+        })
