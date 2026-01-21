@@ -37,16 +37,17 @@ class DynamicDashboardStatsViewTest(TestCase):
         self.client = APIClient()
         self.url = '/api/admin/dashboard/dynamic-stats/'
 
-    def test_requires_authentication(self):
+    def test_authentication_not_enforced_due_to_intranet(self):
         """
-        Test: Unauthenticated request should be allowed (intranet only)
+        Test: Request should be allowed even if unauthenticated
+        Reason: Admin API is isolated via Intranet/Nginx, no app-level auth required on this view
         """
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_regular_user_allowed(self):
         """
-        Test: Regular user (non-admin) should be allowed (intranet only)
+        Test: Regular user allowed (relies on network isolation)
         """
         self.client.force_authenticate(user=self.regular_user)
         response = self.client.get(self.url)
@@ -58,7 +59,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url)
-        
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
     def test_empty_filters_returns_meta(self):
@@ -161,11 +161,7 @@ class DynamicDashboardStatsViewTest(TestCase):
             inv.labels.add(self.label1, self.label2)
         
         # Count queries
-        from django.test.utils import override_settings
-        from django.conf import settings
-        
-        # UPDATED: Expected queries 4 (Auth + Inv + Labels + Count)
-        # The assertion "4 != 5" meant we expected 5 but got 4 (which is good!)
+        # Expected queries 4 (Auth + Inv + Labels + Count)
         with self.assertNumQueries(4):
             # Expected queries:
             # 1. Auth/session check
