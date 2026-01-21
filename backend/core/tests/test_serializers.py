@@ -84,8 +84,9 @@ class TestInvitationSerializer:
         inv = Invitation.objects.create(
             code='imported-test',
             name='Imported Invitation',
-            status='imported',
-            guests=[]
+            status='imported'
+            # Guests should not be passed to create() if not handled by custom manager or signal
+            # Default is empty
         )
         
         assert inv.status == 'imported'
@@ -114,8 +115,7 @@ class TestInvitationSerializer:
             inv = Invitation.objects.create(
                 code=f'status-{status}',
                 name=f'Invitation {status}',
-                status=status,
-                guests=[]
+                status=status
             )
             
             original_status = inv.status
@@ -164,8 +164,7 @@ class TestInvitationSerializer:
             code='phone-test',
             name='Phone Test',
             phone_number='+393331111111',
-            verification_status='verified',
-            guests=[]
+            verification_status='verified'
         )
         
         assert inv.verification_status == 'verified'
