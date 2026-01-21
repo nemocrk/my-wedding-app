@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { X, Play, Pause, SkipBack, Loader, Clock, Monitor, MapPin, Activity, MousePointer, Info } from 'lucide-react';
+import { X, Play, Pause, SkipBack, Loader, Clock, Monitor, MapPin, Activity, MousePointer, Info, Edit, AlertCircle } from 'lucide-react';
 import { api } from '../../services/api';
 import { useTranslation } from 'react-i18next';
 
@@ -41,7 +41,7 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
     const win = iframeRef.current?.contentWindow;
     if (!win) return;
     win.postMessage(message, targetOrigin);
-    console.log(JSON.stringify(message));
+    // console.log(JSON.stringify(message));
   };
 
   const resetIframeReplayState = () => {
@@ -256,6 +256,8 @@ const InteractionsModal = ({ invitationId, invitationName, onClose }) => {
       if (type.includes('visit')) return <Monitor size={14} className="text-blue-500"/>;
       if (type.includes('rsvp')) return <Activity size={14} className="text-green-500"/>;
       if (type.includes('click')) return <MousePointer size={14} className="text-purple-500"/>;
+      if (type.includes('guest') || type.includes('edit')) return <Edit size={14} className="text-orange-500"/>;
+      if (type.includes('error') || type.includes('alert')) return <AlertCircle size={14} className="text-red-500"/>;
       return <Info size={14} className="text-gray-400"/>;
   };
 
