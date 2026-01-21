@@ -4,7 +4,7 @@ import requests
 from django.db.models.signals import pre_save, post_save
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import Invitation, WhatsAppTemplate, WhatsAppMessageQueue, GlobalConfig, Person
+from .models import Invitation, InvitationLabel, WhatsAppTemplate, WhatsAppMessageQueue, GlobalConfig, Person
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +25,51 @@ def track_invitation_changes(sender, instance, **kwargs):
     else:
         instance._previous_status = None
         instance._previous_phone = None
+
+@receiver(post_save, sender=Person)
+def auto_assign_dietary_label(sender, instance, created, **kwargs):
+    """
+    Auto-assegna l'etichetta 'Intolleranze' all'invito quando un ospite 
+    compila il campo dietary_requirements.
+    """
+    # Evita loop se update_fields contiene solo campi non rilevanti
+    # Se update_fields è None, processa tutto. Se è una lista, controlla se c'è dietary_requirements.
+    if kwargs.get('update_fields') is not None and 'dietary_requirements' not in kwargs['update_fields']:
+        return
+    
+    invitation = instance.invitation
+    
+    # Se il campo dietary_requirements è valorizzato (non None e non stringa vuota)
+    if instance.dietary_requirements and instance.dietary_requirements.strip():
+        # Crea o recupera l'etichetta
+        label, _ = InvitationLabel.objects.get_or_create(
+            name="Intolleranze",
+            defaults={'color': '#FF6B6B'}  # Rosso per visibilità
+        )
+        
+        # Aggiungi all'invito se non c'è già
+        if not invitation.labels.filter(pk=label.pk).exists():
+            invitation.labels.add(label)
+            logger.info(f"🍽️ Auto-assigned 'Intolleranze' label to {invitation.name}")
+    
+    # Logica di rimozione (se il campo è stato svuotato o se l'etichetta c'era già ma va verificata)
+    else:
+        # Controlla se altri ospiti dell'invito hanno intolleranze
+        # Escludiamo l'istanza corrente nel controllo (anche se qui ha già il valore aggiornato, è più sicuro queryare il DB o la relazione)
+        # Nota: post_save, quindi instance è già salvata col nuovo valore vuoto.
+        
+        has_dietary = invitation.guests.filter(
+            dietary_requirements__isnull=False
+        ).exclude(dietary_requirements='').exists()
+        
+        if not has_dietary:
+            try:
+                label = InvitationLabel.objects.get(name="Intolleranze")
+                if invitation.labels.filter(pk=label.pk).exists():
+                    invitation.labels.remove(label)
+                    logger.info(f"❌ Removed 'Intolleranze' label from {invitation.name}")
+            except InvitationLabel.DoesNotExist:
+                pass
 
 @receiver(post_save, sender=Invitation)
 def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
