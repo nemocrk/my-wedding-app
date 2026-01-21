@@ -2,34 +2,29 @@ from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from django.shortcuts import get_object_or_404
-from django.db.models import Count, Q
+from django.db.models import Sum, Count, Q
+from django.contrib.sessions.models import Session
+from django.db import transaction
 from django.conf import settings
-import os
-import json
 from .models import (
-    ConfigurableText, 
-    Invitation, 
-    Person, 
-    InvitationLabel, 
-    WhatsAppTemplate,
-    Accommodation,
-    GlobalConfig
+    Invitation, GlobalConfig, Person, Accommodation, Room, 
+    GuestInteraction, GuestHeatmap, WhatsAppTemplate,
+    ConfigurableText, InvitationLabel
 )
 from .serializers import (
-    ConfigurableTextSerializer, 
-    InvitationSerializer, 
-    PersonSerializer, 
-    InvitationLabelSerializer,
-    WhatsAppTemplateSerializer,
-    AccommodationSerializer,
-    GlobalConfigSerializer
+    InvitationSerializer, InvitationListSerializer, GlobalConfigSerializer, 
+    AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer,
+    ConfigurableTextSerializer, InvitationLabelSerializer
 )
-from .utils import get_font_info
+import logging
+import os
+import json
 
-# ==========================================
-# PUBLIC API (No Auth Required)
-# ==========================================
+logger = logging.getLogger(__name__)
+
+# ========================================
+# PUBLIC API (Internet - Session Based)
+# ========================================
 
 class PublicLanguagesView(APIView):
     """
@@ -39,11 +34,19 @@ class PublicLanguagesView(APIView):
     def get(self, request):
         fixture_path = os.path.join(settings.BASE_DIR, 'core/fixtures/languages.json')
         try:
-            with open(fixture_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            return Response(data)
-        except FileNotFoundError:
-            return Response({'error': 'Languages file not found'}, status=status.HTTP_404_NOT_FOUND)
+            if os.path.exists(fixture_path):
+                with open(fixture_path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                return Response(data)
+            else:
+                # Fallback se il file non è stato generato
+                return Response([
+                    {"code": "it", "label": "Italiano", "flag": "🇮🇹"},
+                    {"code": "en", "label": "English", "flag": "🇬🇧"}
+                ])
+        except Exception as e:
+            logger.error(f"Error reading languages fixture: {e}")
+            return Response([{"code": "it", "label": "Italiano", "flag": "🇮🇹"}])
 
 class PublicConfigurableTextView(APIView):
     """
@@ -53,268 +56,277 @@ class PublicConfigurableTextView(APIView):
     def get(self, request):
         lang = request.query_params.get('lang', 'it')
         
-        # 1. Recupera tutti i testi
-        all_texts = ConfigurableText.objects.all()
+        # Recupera tutti i testi
+        texts = ConfigurableText.objects.all()
+        
+        # Costruisce dizionario con fallback logic:
+        # Prima carica 'it' (default), poi sovrascrive con la lingua richiesta
+        # Questo assicura che se manca una chiave in 'en', si veda quella 'it'
+        
         data = {}
         
-        for text in all_texts:
-            # 2. Cerca traduzione nella lingua richiesta
-            translation = text.translations.filter(language=lang).first()
-            if translation:
-                data[text.key] = translation.value
-            else:
-                # 3. Fallback: cerca italiano
-                fallback = text.translations.filter(language='it').first()
-                if fallback:
-                    data[text.key] = fallback.value
-                else:
-                    # 4. Fallback estremo: stringa vuota o chiave stessa
-                    data[text.key] = ""
-
+        # 1. Base Layer (Italiano/Default)
+        base_texts = texts.filter(language='it')
+        for t in base_texts:
+            data[t.key] = t.content
+            
+        # 2. Override Layer (Requested Language)
+        if lang != 'it':
+            lang_texts = texts.filter(language=lang)
+            for t in lang_texts:
+                data[t.key] = t.content # Override
+        
         return Response(data)
 
 class PublicInvitationAuthView(APIView):
     def post(self, request):
         code = request.data.get('code')
         token = request.data.get('token')
-        
-        # Caso 1: Accesso tramite Token (QR Code / Link diretto)
-        if token:
-            try:
-                # Decodifica token base64 se necessario, o usa uuid diretto
-                # Qui assumiamo che il token sia l'UUID dell'invito per semplicità
-                invitation = Invitation.objects.get(id=token)
-                request.session['invitation_id'] = str(invitation.id)
-                request.session['invitation_code'] = invitation.code
-                return Response({'status': 'authenticated', 'role': 'guest'})
-            except (Invitation.DoesNotExist, ValueError):
-                pass # Fallback a codice manuale
-
-        # Caso 2: Accesso manuale tramite Codice
-        config = GlobalConfig.objects.first()
-        if code and config and code == config.guest_password:
-             return Response({'status': 'require_name_search'}, status=status.HTTP_200_OK)
-
-        # Caso 3: Accesso specifico invito tramite codice personale (opzionale)
-        if code:
-            try:
-                invitation = Invitation.objects.get(code=code)
-                request.session['invitation_id'] = str(invitation.id)
-                return Response({'status': 'authenticated', 'role': 'guest'})
-            except Invitation.DoesNotExist:
-                pass
-
-        if config:
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        if not code or not token:
+            return Response({'valid': False, 'message': 'Parametri mancanti'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            invitation = Invitation.objects.get(code=code)
+            if not invitation.verify_token(token, config.invitation_link_secret):
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
+            if not invitation.status in [Invitation.Status.SENT, Invitation.Status.READ, Invitation.Status.CONFIRMED, Invitation.Status.DECLINED ]:
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
+            request.session['invitation_code'] = code
+            request.session['invitation_token'] = token
+            request.session['invitation_id'] = invitation.id
+            request.session.save()
+            serializer = PublicInvitationSerializer(invitation, context={'config': config})
+            return Response({'valid': True, 'invitation': serializer.data})
+        except Invitation.DoesNotExist:
             return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
-        return Response({'valid': False}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicInvitationView(APIView):
     def get(self, request):
         invitation_id = request.session.get('invitation_id')
         stored_code = request.session.get('invitation_code')
-        
-        if not invitation_id and not stored_code:
-            # Tentativo di recupero da query param (per sviluppo/test)
-            code = request.query_params.get('code')
-            if code:
-                try:
-                    invitation = Invitation.objects.get(code=code)
-                    request.session['invitation_id'] = str(invitation.id)
-                except Invitation.DoesNotExist:
-                    return Response(status=status.HTTP_401_UNAUTHORIZED)
-            else:
-                return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
+        stored_token = request.session.get('invitation_token')
+        if not all([invitation_id, stored_code, stored_token]):
+            return Response({'valid': False, 'message': 'Sessione non valida'}, status=status.HTTP_401_UNAUTHORIZED)
         try:
-            # Priorità a ID di sessione
-            if invitation_id:
-                invitation = Invitation.objects.get(id=invitation_id)
-            else:
-                invitation = Invitation.objects.get(code=stored_code)
-
-            serializer = InvitationSerializer(invitation)
-            
-            # Logica "First View": se stato è 'sent' o 'created', passa a 'read'
-            if invitation.status in ['created', 'sent', 'imported']:
-                invitation.status = 'read'
-                invitation.save()
-                
-            return Response(serializer.data)
+            invitation = Invitation.objects.get(id=invitation_id, code=stored_code)
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+            if not invitation.verify_token(stored_token, config.invitation_link_secret):
+                request.session.flush()
+                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
+            serializer = PublicInvitationSerializer(invitation, context={'config': config})
+            return Response({'valid': True, 'invitation': serializer.data})
         except Invitation.DoesNotExist:
-            return Response(status=status.HTTP_404_NOT_FOUND)
+            request.session.flush()
+            config, _ = GlobalConfig.objects.get_or_create(pk=1)
+            return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicRSVPView(APIView):
     """
-    Endpoint pubblico per l'invio della risposta (RSVP).
-    Accetta:
-    - guests: list of objects [{id, is_coming, dietary_requirements, etc.}]
+    Enhanced RSVP Endpoint supporting Multi-Step Wizard payload:
+    - phone_number: str (tracks old/new)
+    - guest_updates: dict {guest_index: {first_name, last_name}}
     - excluded_guests: list [guest_indices] → sets Person.not_coming=True
     - travel_info: dict {transport_type, schedule, car_option, carpool_interest} → persisted to Invitation.travel_*
     """
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id:
-            return Response(status=status.HTTP_401_UNAUTHORIZED)
-            
-        invitation = get_object_or_404(Invitation, id=invitation_id)
-        data = request.data
+            return Response({'success': False, 'message': 'Sessione scaduta'}, status=status.HTTP_401_UNAUTHORIZED)
         
-        # 1. Update Guests (Person)
-        guests_data = data.get('guests', [])
-        for guest_info in guests_data:
-            try:
-                person = Person.objects.get(id=guest_info.get('id'), invitation=invitation)
+        try:
+            with transaction.atomic():
+                invitation = Invitation.objects.select_for_update().get(id=invitation_id)
                 
-                # Update participation fields
-                if 'is_coming' in guest_info:
-                    person.not_coming = not guest_info['is_coming']
+                # Metadata logging container
+                metadata = {
+                    'payload_received': request.data.copy()
+                }
                 
-                if 'dietary_requirements' in guest_info:
-                    person.dietary_requirements = guest_info['dietary_requirements']
+                # 1. Validate Status
+                new_status = request.data.get('status')
+                if new_status not in ['confirmed', 'declined']:
+                    return Response({'success': False, 'message': 'Stato non valido'}, status=status.HTTP_400_BAD_REQUEST)
                 
-                if 'menu_choice' in guest_info:
-                    person.menu_choice = guest_info['menu_choice']
+                # 2. Update Phone Number (Track Changes)
+                phone_number = request.data.get('phone_number')
+                if phone_number:
+                    old_phone = invitation.phone_number
+                    if old_phone != phone_number:
+                        invitation.phone_number = phone_number
+                        metadata['phone_number_old'] = old_phone
+                        metadata['phone_number_new'] = phone_number
+                        metadata['phone_number_changed'] = True
+                        logger.info(f"Phone updated for {invitation.code}: {old_phone} → {phone_number}")
+                    else:
+                        metadata['phone_number_changed'] = False
+                
+                # 3. Apply Guest Updates (Edit Names)
+                guest_updates = request.data.get('guest_updates', {})
+                if guest_updates:
+                    guests = list(invitation.guests.all())
+                    updated_guests = []
+                    for idx_str, updates in guest_updates.items():
+                        try:
+                            idx = int(idx_str)
+                            if 0 <= idx < len(guests):
+                                guest = guests[idx]
+                                old_name = f"{guest.first_name} {guest.last_name or ''}".strip()
+                                if 'first_name' in updates:
+                                    guest.first_name = updates['first_name']
+                                if 'last_name' in updates:
+                                    guest.last_name = updates['last_name']
+                                guest.save()
+                                new_name = f"{guest.first_name} {guest.last_name or ''}".strip()
+                                updated_guests.append({'idx': idx, 'old': old_name, 'new': new_name})
+                                logger.info(f"Guest name updated: {old_name} → {new_name}")
+                        except (ValueError, IndexError) as e:
+                            logger.warning(f"Invalid guest update index {idx_str}: {e}")
+                    metadata['updated_guests'] = updated_guests
+                
+                # 4. Handle Excluded Guests (Hard Flag: not_coming=True)
+                excluded_guests = request.data.get('excluded_guests', [])
+                if excluded_guests:
+                    guests = list(invitation.guests.all())
+                    excluded_ids = []
+                    for idx in excluded_guests:
+                        try:
+                            if 0 <= idx < len(guests):
+                                guest = guests[idx]
+                                # Set not_coming flag
+                                guest.not_coming = True
+                                # Clear room assignment for consistency
+                                guest.assigned_room = None
+                                guest.save()
+                                excluded_ids.append(guest.id)
+                                logger.info(f"Guest excluded (not_coming=True): {guest.first_name} {guest.last_name or ''}")
+                        except IndexError as e:
+                            logger.warning(f"Invalid excluded guest index {idx}: {e}")
+                    metadata['excluded_guests_ids'] = excluded_ids
+                
+                # 5. Persist Travel Info to Invitation Fields
+                travel_info = request.data.get('travel_info')
+                if travel_info:
+                    invitation.travel_transport_type = travel_info.get('transport_type')  # 'traghetto' or 'aereo'
+                    invitation.travel_schedule = travel_info.get('schedule')  # free-text
+                    invitation.travel_car_with = travel_info.get('car_option')  # bool nullable
+                    invitation.travel_carpool_interest = travel_info.get('carpool_interest')  # bool nullable
                     
-                if 'notes' in guest_info:
-                    person.notes = guest_info['notes']
-                    
-                person.save()
-            except Person.DoesNotExist:
-                continue
+                    metadata['travel_info'] = {
+                        'transport': invitation.travel_transport_type,
+                        'has_schedule': bool(invitation.travel_schedule),
+                        'car_with': invitation.travel_car_with,
+                        'carpool_interest': invitation.travel_carpool_interest
+                    }
+                    logger.info(f"Travel info saved for {invitation.code}: {metadata['travel_info']}")
                 
-        # 2. Handle explicitly excluded guests (from UI "remove" action)
-        excluded_indices = data.get('excluded_guests', [])
-        # This assumes frontend passes indices relative to the sorted list, 
-        # but better to pass IDs. If passing IDs:
-        excluded_ids = data.get('excluded_guest_ids', [])
-        if excluded_ids:
-            Person.objects.filter(id__in=excluded_ids, invitation=invitation).update(not_coming=True)
-            
-        # 3. Update Travel Info (Invitation level)
-        travel_info = data.get('travel_info', {})
-        if travel_info:
-            if 'transport_type' in travel_info:
-                invitation.travel_transport_type = travel_info['transport_type']
-            if 'schedule' in travel_info:
-                invitation.travel_arrival_time = travel_info['schedule'] # Simplified mapping
-            if 'carpool_interest' in travel_info:
-                invitation.travel_carpool_offered = travel_info['carpool_interest'] == 'offer'
-                invitation.travel_carpool_requested = travel_info['carpool_interest'] == 'request'
+                # 6. Update RSVP Status & Logistics
+                invitation.status = new_status
+                if new_status == 'confirmed':
+                    invitation.accommodation_requested = request.data.get('accommodation_requested', False)
+                    # transfer_requested deprecated but kept for backward compatibility
+                    invitation.transfer_requested = request.data.get('transfer_requested', False)
+                else:
+                    # If declined, reset logistics
+                    invitation.accommodation_requested = False
+                    invitation.transfer_requested = False
                 
-        # 4. Update Status
-        # Se tutti hanno risposto, setta a 'confirmed' o 'declined'
-        all_guests = invitation.guests.all()
-        # Logic: se almeno uno viene -> confirmed. Se tutti declinano -> declined.
-        any_coming = any(not p.not_coming for p in all_guests)
-        
-        if any_coming:
-            invitation.status = 'confirmed'
-        else:
-            invitation.status = 'declined'
-            
-        invitation.save()
-        
-        return Response({'status': 'success', 'invitation_status': invitation.status})
-
-class PublicGuestSearchView(APIView):
-    """
-    Ricerca invito per nome/cognome (per chi non ha QR code).
-    Restituisce lista parziale per conferma.
-    """
-    def post(self, request):
-        query = request.data.get('name', '').strip()
-        if len(query) < 3:
-            return Response({'error': 'Digitare almeno 3 caratteri'}, status=status.HTTP_400_BAD_REQUEST)
-            
-        # Cerca tra i main guest (Invitation name) o singole persone
-        # Strategia: Cerca persone che matchano, raggruppa per invito
-        people = Person.objects.filter(
-            Q(first_name__icontains=query) | Q(last_name__icontains=query)
-        ).select_related('invitation')
-        
-        results = []
-        seen_invitations = set()
-        
-        for person in people:
-            inv = person.invitation
-            if inv.id not in seen_invitations:
-                results.append({
-                    'id': inv.id, # Non esporre ID incrementale se non sicuro, usare UUID
-                    'name': inv.name, # "Famiglia Rossi"
-                    'main_guest': f"{person.first_name} {person.last_name}"
+                invitation.save()
+                
+                # 7. Log Interaction with Enhanced Metadata
+                _log_interaction(request, invitation, 'rsvp_submit', metadata=metadata)
+                
+                return Response({
+                    'success': True, 
+                    'message': 'Risposta registrata con successo!'
                 })
-                seen_invitations.add(inv.id)
                 
-        return Response(results)
+        except Invitation.DoesNotExist:
+            return Response({'success': False, 'message': 'Invito non trovato'}, status=status.HTTP_404_NOT_FOUND)
+        except Exception as e:
+            logger.error(f"Error processing RSVP: {e}", exc_info=True)
+            return Response({'success': False, 'message': 'Errore interno. Riprova.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-class PublicSelectInvitationView(APIView):
-    """
-    Seleziona un invito dalla lista di ricerca e imposta la sessione.
-    Richiede un secondo step di verifica (es. data di nascita o altro)?
-    Per ora semplificato: selezione diretta.
-    """
-    def post(self, request):
-        inv_id = request.data.get('invitation_id')
-        invitation = get_object_or_404(Invitation, id=inv_id)
-        
-        request.session['invitation_id'] = str(invitation.id)
-        
-        # Logica "Mark as read"
-        _auto_mark_as_read_if_first_visit(invitation)
-        
-        return Response({'status': 'authenticated'})
+def _log_interaction(request, invitation, event_type, metadata=None):
+    user_agent = request.META.get('HTTP_USER_AGENT', '')
+    x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+    ip = x_forwarded_for.split(',')[0] if x_forwarded_for else request.META.get('REMOTE_ADDR')
+    device_type = 'desktop'
+    if 'mobile' in user_agent.lower(): device_type = 'mobile'
+    elif 'tablet' in user_agent.lower(): device_type = 'tablet'
+    geo_country = None
+    geo_city = None
+    if metadata and 'geo' in metadata:
+        geo_data = metadata['geo']
+        geo_country = geo_data.get('country_name') or geo_data.get('country')
+        geo_city = geo_data.get('city')
+    GuestInteraction.objects.create(
+        invitation=invitation,
+        event_type=event_type,
+        ip_address=ip,
+        user_agent=user_agent,
+        device_type=device_type,
+        geo_country=geo_country,
+        geo_city=geo_city,
+        metadata=metadata or {}
+    )
 
 def _auto_mark_as_read_if_first_visit(invitation):
-    if invitation.status in ['created', 'imported', 'sent']:
-        invitation.status = 'read'
+    """
+    Auto-trigger status transition sent -> read on first analytics interaction.
+    Called internally when logging 'visit' events.
+    """
+    if invitation.status == Invitation.Status.SENT:
+        logger.info(f"📬 Auto-marking invitation {invitation.code} as READ (first visit detected)")
+        invitation.status = Invitation.Status.READ
         invitation.save(update_fields=['status', 'updated_at'])
 
 class PublicLogInteractionView(APIView):
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
         event_type = request.data.get('event_type')
         metadata = request.data.get('metadata', {})
-        
-        # Qui potremmo salvare su un modello 'InvitationInteraction'
-        # Per ora stampiamo o passiamo
-        # InvitationInteraction.objects.create(invitation_id=invitation_id, type=event_type, ...)
-        
-        return Response({'status': 'logged'})
-
-class PublicConfigView(APIView):
-    """Restituisce configurazione pubblica (es. feature flags, date evento)"""
-    def get(self, request):
-        config = GlobalConfig.objects.first()
-        data = {
-            'event_date': '2025-06-15', # Hardcoded o da DB
-            'rsvp_deadline': '2025-05-01',
-            'wedding_list_enabled': True,
-            'maps_api_key': settings.GOOGLE_MAPS_API_KEY if hasattr(settings, 'GOOGLE_MAPS_API_KEY') else ''
-        }
-        if config:
-            data.update({
-                'event_date': config.event_date,
-                'rsvp_deadline': config.rsvp_deadline
-            })
-        return Response(data)
+        if event_type:
+            try:
+                invitation = Invitation.objects.get(pk=invitation_id)
+                
+                # Auto-trigger mark_as_read on first visit
+                _auto_mark_as_read_if_first_visit(invitation)
+                
+                _log_interaction(request, invitation, event_type, metadata)
+                return Response({"logged": True})
+            except Invitation.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
 
 class PublicLogHeatmapView(APIView):
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
-        
-        # Riceve array di coordinate o eventi
-        # { "clicks": [{x,y, time}, ...], "scroll_depth": 80 }
-        
-        # Salva su DB (modello HeatmapData da creare)
-        return Response({'status': 'saved'})
+        mouse_data = request.data.get('mouse_data', [])
+        screen_w = request.data.get('screen_width', 0)
+        screen_h = request.data.get('screen_height', 0)
+        session_id = request.data.get('session_id', 'unknown')
+        if mouse_data:
+            try:
+                invitation = Invitation.objects.get(pk=invitation_id)
+                _auto_mark_as_read_if_first_visit(invitation)
+                GuestHeatmap.objects.create(
+                    invitation_id=invitation_id,
+                    session_id=session_id,
+                    mouse_data=mouse_data,
+                    screen_width=screen_w,
+                    screen_height=screen_h
+                )
+                return Response({"logged": True})
+            except Invitation.DoesNotExist:
+                return Response(status=status.HTTP_404_NOT_FOUND)
+        return Response({"logged": False}, status=status.HTTP_400_BAD_REQUEST)
 
 
-# ==========================================
-# ADMIN API (IsAuthenticated & IsAdminUser)
-# ==========================================
+# ========================================
+# ADMIN API (Intranet Only)
+# ========================================
 
 class AdminGoogleFontsProxyView(APIView):
     """
@@ -324,20 +336,36 @@ class AdminGoogleFontsProxyView(APIView):
     def get(self, request):
         font_file_path = os.path.join(settings.BASE_DIR, 'assets', 'fontInfo.json')
         
+        if not os.path.exists(font_file_path):
+            logger.error(f"Font info file not found at {font_file_path}")
+            return Response(
+                {'error': 'Font database not available'}, 
+                status=status.HTTP_503_SERVICE_UNAVAILABLE
+            )
+        
         try:
             with open(font_file_path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-            return Response(data)
-        except FileNotFoundError:
-            # Fallback minimale se il file non esiste ancora (dovrebbe essere generato al build time)
-            return Response({
-                "items": [
-                    {"family": "Roboto", "category": "sans-serif"},
-                    {"family": "Open Sans", "category": "sans-serif"},
-                    {"family": "Lato", "category": "sans-serif"},
-                    {"family": "Montserrat", "category": "sans-serif"},
-                ]
-            })
+                fonts_data = json.load(f)
+            
+            # Trasforma la struttura locale nel formato che il frontend si aspetta (Google API format)
+            items = []
+            for font in fonts_data:
+                items.append({
+                    'family': font.get('name'),
+                    'category': font.get('category', 'sans-serif'),
+                    'variants': font.get('variants', []),
+                    'subsets': font.get('subsets', [])
+                })
+            
+            # Restituisce nel formato Google API standard per compatibilità
+            return Response({'items': items})
+            
+        except (json.JSONDecodeError, IOError) as e:
+            logger.error(f"Error reading font info file: {e}")
+            return Response(
+                {'error': 'Failed to load font database'}, 
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class ConfigurableTextViewSet(viewsets.ModelViewSet):
     """
@@ -347,34 +375,57 @@ class ConfigurableTextViewSet(viewsets.ModelViewSet):
     queryset = ConfigurableText.objects.all().order_by('key')
     serializer_class = ConfigurableTextSerializer
     filter_backends = [filters.SearchFilter]
-    search_fields = ['key', 'description', 'translations__value']
+    search_fields = ['key', 'content']
+    lookup_field = 'key' 
+    lookup_value_regex = '[^/]+' 
 
-    @action(detail=False, methods=['post'])
-    def bulk_update_translations(self, request):
+    def get_queryset(self):
+        qs = super().get_queryset()
+        lang = self.request.query_params.get('lang')
+        if lang:
+            qs = qs.filter(language=lang)
+        return qs
+
+    def retrieve(self, request, key=None, *args, **kwargs):
         """
-        Aggiornamento massivo traduzioni.
-        Input: [{ "key": "welcome_msg", "lang": "en", "value": "Hello" }, ...]
+        Custom retrieve that tries to find the text by key AND language.
         """
-        data = request.data
-        updated_count = 0
+        lang = request.query_params.get('lang', 'it')
+        try:
+            instance = ConfigurableText.objects.get(key=key, language=lang)
+            serializer = self.get_serializer(instance)
+            return Response(serializer.data)
+        except ConfigurableText.DoesNotExist:
+            return Response({'error': 'Not Found', 'key': key, 'language': lang}, status=status.HTTP_404_NOT_FOUND)
+
+    def update(self, request, *args, **kwargs):
+        """
+        Create or Update logic hidden behind PUT/PATCH on the 'key'.
+        """
+        key = kwargs.get('key')
+        lang = request.query_params.get('lang', 'it')
+        partial = kwargs.pop('partial', False)
         
-        for item in data:
-            key = item.get('key')
-            lang = item.get('lang')
-            val = item.get('value')
+        instance, created = ConfigurableText.objects.get_or_create(
+            key=key, 
+            language=lang,
+            defaults={'content': request.data.get('content', '')}
+        )
+        
+        if not created:
+            serializer = self.get_serializer(instance, data=request.data, partial=partial)
+            serializer.is_valid(raise_exception=True)
+            self.perform_update(serializer)
+            return Response(serializer.data)
+        else:
+            if 'content' in request.data:
+                serializer = self.get_serializer(instance, data=request.data, partial=partial)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+            else:
+                serializer = self.get_serializer(instance)
             
-            try:
-                conf_text = ConfigurableText.objects.get(key=key)
-                # Usa related manager o metodo custom se esiste
-                # Qui assumiamo un modello TextTranslation collegato
-                translation, created = conf_text.translations.get_or_create(language=lang)
-                translation.value = val
-                translation.save()
-                updated_count += 1
-            except ConfigurableText.DoesNotExist:
-                continue
-                
-        return Response({'updated': updated_count})
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
 
 class InvitationLabelViewSet(viewsets.ModelViewSet):
     """
@@ -392,148 +443,243 @@ class InvitationViewSet(viewsets.ModelViewSet):
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'code']
     ordering_fields = ['created_at', 'status', 'name']
-
+    
     def get_serializer_class(self):
-        # Potremmo avere serializer diverso per list vs detail
+        if self.action == 'list':
+            return InvitationListSerializer
         return InvitationSerializer
 
-    @action(detail=True, methods=['post'])
-    def send_whatsapp(self, request,pk=None):
-        """Invia messaggio WhatsApp (simulato o via provider)"""
+    def get_queryset(self):
+        """
+        Supporto filtri query params:
+        - ?status=confirmed
+        - ?label=<label_id>
+        - ?origin=groom|bride
+        - ?accommodation_pinned=true|false
+        """
+        qs = super().get_queryset()
+        
+        # Filtro per status
+        status_filter = self.request.query_params.get('status')
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        
+        # Filtro per label_id
+        label_filter = self.request.query_params.get('label')
+        if label_filter:
+            qs = qs.filter(labels__id=label_filter)
+        
+        # Filtro per origin
+        origin_filter = self.request.query_params.get('origin')
+        if origin_filter:
+            qs = qs.filter(origin=origin_filter)
+        
+        # Filtro per accommodation_pinned
+        pinned_filter = self.request.query_params.get('accommodation_pinned')
+        if pinned_filter is not None:
+            pinned_bool = pinned_filter.lower() == 'true'
+            qs = qs.filter(accommodation_pinned=pinned_bool)
+        
+        return qs
+
+    @action(detail=False, methods=['get'])
+    def search(self, request):
+        code = request.query_params.get('code', None)
+        if not code:
+            return Response({'error': 'Code parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            invitation = Invitation.objects.get(code=code)
+            serializer = InvitationSerializer(invitation)
+            return Response(serializer.data)
+        except Invitation.DoesNotExist:
+            return Response({'error': 'Invitation not found'}, status=status.HTTP_404_NOT_FOUND)
+    
+    @action(detail=True, methods=['get'])
+    def generate_link(self, request, pk=None):
         invitation = self.get_object()
-        # Logica integrazione Twilio/Meta API
-        invitation.status = 'sent'
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
+        token = invitation.generate_verification_token(config.invitation_link_secret)
+        frontend_url = os.environ.get('FRONTEND_PUBLIC_URL', 'http://localhost')
+        public_url = f"{frontend_url}?code={invitation.code}&token={token}"
+        return Response({'code': invitation.code, 'token': token, 'url': public_url})
+
+    @action(detail=True, methods=['post'], url_path='mark-as-sent')
+    def mark_as_sent(self, request, pk=None):
+        """Mark invitation as manually sent"""
+        invitation = self.get_object()
+        invitation.status = Invitation.Status.SENT
         invitation.save()
-        return Response({'status': 'sent', 'timestamp': '2025-01-20T10:00:00Z'})
+        return Response({'status': 'sent', 'message': f'Invito {invitation.name} segnato come Inviato'})
 
-    @action(detail=False, methods=['post'])
-    def bulk_create(self, request):
-        """Importazione massiva da CSV/Excel (passato come JSON list)"""
-        items = request.data.get('items', [])
-        created_count = 0
-        errors = []
+    @action(detail=False, methods=['post'], url_path='bulk-send')
+    def bulk_send(self, request):
+        """
+        Bulk mark-as-sent action.
+        Body: {"invitation_ids": [1, 2, 3]}
+        Effetto: Imposta status='sent' per tutti gli inviti specificati.
+        Identico a chiamare mark-as-sent su ogni singolo invito.
+        """
+        invitation_ids = request.data.get('invitation_ids', [])
         
-        for idx, item in enumerate(items):
-            serializer = InvitationSerializer(data=item)
-            if serializer.is_valid():
-                serializer.save()
-                created_count += 1
-            else:
-                errors.append({'index': idx, 'error': serializer.errors})
-                
-        return Response({'created': created_count, 'errors': errors})
-
-    @action(detail=False, methods=['post'])
-    def bulk_delete(self, request):
-        """Eliminazione massiva inviti"""
-        ids = request.data.get('ids', [])
-        deleted, _ = Invitation.objects.filter(id__in=ids).delete()
-        return Response({'deleted': deleted})
-
-    @action(detail=False, methods=['post'])
-    def bulk_whatsapp(self, request):
-        """Invio massivo WhatsApp"""
-        ids = request.data.get('ids', [])
-        # In background task (Celery) sarebbe meglio
-        count = Invitation.objects.filter(id__in=ids).update(status='sent')
-        return Response({'queued': count})
+        if not invitation_ids:
+            return Response(
+                {'error': 'invitation_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-    @action(detail=False, methods=['post'])
-    def bulk_verify_contacts(self, request):
-        """
-        Verifica validità numeri di telefono per lista ID.
-        Simula verifica esterna (es. Twilio Lookup).
-        """
-        ids = request.data.get('ids', [])
-        invitations = Invitation.objects.filter(id__in=ids)
+        # Validazione: verifica che tutti gli ID esistano
+        invitations = Invitation.objects.filter(id__in=invitation_ids)
+        found_ids = set(invitations.values_list('id', flat=True))
+        missing_ids = set(invitation_ids) - found_ids
         
-        results = []
-        for inv in invitations:
-            # Simulazione logica verifica
-            is_valid = len(str(inv.phone_number)) > 5 if inv.phone_number else False
-            inv.verification_status = 'verified' if is_valid else 'invalid'
-            inv.save(update_fields=['verification_status'])
-            results.append({'id': inv.id, 'status': inv.verification_status})
-            
-        return Response({'results': results})
-
-    @action(detail=False, methods=['post'])
-    def bulk_assign_labels(self, request):
+        if missing_ids:
+            return Response(
+                {
+                    'error': 'Some invitation IDs not found',
+                    'missing_ids': list(missing_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        # Bulk update (atomic)
+        updated_count = invitations.update(status=Invitation.Status.SENT)
+        
+        logger.info(f"📤 Bulk-send: {updated_count} invitations marked as SENT")
+        
+        return Response({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'{updated_count} inviti segnati come Inviati'
+        })
+    @action(detail=False, methods=['post'], url_path='bulk-labels')
+    def bulk_labels(self, request):
         """
-        Assegna o rimuove etichette in bulk.
-        Action: 'add' | 'remove' | 'set'
+        Bulk handle labels action.
+        Body: {"invitation_ids": [1, 2, 3], "label_ids": [1, 3], "action": 'add' | 'remove'}
+        Effetto: Aggiunge o rimuove label per tutti gli inviti specificati.
         """
-        ids = request.data.get('ids', [])
+        invitation_ids = request.data.get('invitation_ids', [])
         label_ids = request.data.get('label_ids', [])
-        action_type = request.data.get('action', 'add')
+        action_type = request.data.get('action', "na")
         
-        invitations = Invitation.objects.filter(id__in=ids)
-        labels = InvitationLabel.objects.filter(id__in=label_ids)
+        if not invitation_ids:
+            return Response(
+                {'error': 'invitation_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if not label_ids:
+            return Response(
+                {'error': 'label_ids array is required'}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        if action_type not in ['add', 'remove']:
+            return Response(
+                {'error': 'action must be \'add\' or \'remove\''}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
         
-        count = 0
-        for inv in invitations:
-            if action_type == 'add':
-                inv.labels.add(*labels)
-            elif action_type == 'remove':
-                inv.labels.remove(*labels)
-            elif action_type == 'set':
-                inv.labels.set(labels)
-            count += 1
+        invitations = Invitation.objects.filter(id__in=invitation_ids)
+        found_ids = set(invitations.values_list('id', flat=True))
+        missing_ids = set(invitation_ids) - found_ids
+        
+        if missing_ids:
+            return Response(
+                {
+                    'error': 'Some invitation IDs not found',
+                    'missing_ids': list(missing_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
             
-        return Response({'updated': count})
-
-    @action(detail=True, methods=['post'])
-    def pin_accommodation(self, request, pk=None):
-        """Fissa l'alloggio manualmente (impedisce override automatico)"""
-        invitation = self.get_object()
-        acc_id = request.data.get('accommodation_id')
+        # Validazione: verifica che tutti gli ID esistano
+        labels = InvitationLabel.objects.filter(id__in=label_ids)
+        found_label_ids = set(labels.values_list('id', flat=True))
+        missing_label_ids = set(label_ids) - found_label_ids
         
-        if acc_id:
-            try:
-                acc = Accommodation.objects.get(id=acc_id)
-                invitation.assigned_accommodation = acc
-                invitation.is_accommodation_pinned = True
-                invitation.save()
-                return Response({'status': 'pinned', 'accommodation': acc.name})
-            except Accommodation.DoesNotExist:
-                return Response({'error': 'Accommodation not found'}, status=status.HTTP_404_NOT_FOUND)
+        if missing_label_ids:
+            return Response(
+                {
+                    'error': 'Some label IDs not found',
+                    'missing_ids': list(missing_label_ids)
+                },
+                status=status.HTTP_404_NOT_FOUND
+            )
+        
+        updated_count = 0
+        with transaction.atomic():
+            if action_type == 'add':
+                for inv in invitations:
+                    inv.labels.add(*labels)
+                updated_count = invitations.count()
+            elif action_type == 'remove':
+                for inv in invitations:
+                    inv.labels.remove(*labels)
+                updated_count = invitations.count()
+        
+        logger.info(f"🏷️ Bulk-labels: {action_type} labels for {updated_count} invitations")
+        
+        return Response({
+            'success': True,
+            'updated_count': updated_count,
+            'message': f'Etichette aggiornate per {updated_count} inviti'
+        })
+
+    @action(detail=True, methods=['post'], url_path='mark-as-read')
+    def mark_as_read(self, request, pk=None):
+        """
+        Mark invitation as read (sent -> read transition).
+        Idempotent: safe to call multiple times.
+        Usually triggered automatically by analytics, but can be called manually.
+        """
+        invitation = self.get_object()
+        
+        # Idempotency check: only transition if currently 'sent'
+        if invitation.status == Invitation.Status.SENT:
+            invitation.status = Invitation.Status.READ
+            invitation.save(update_fields=['status', 'updated_at'])
+            logger.info(f"📬 Manual mark_as_read: {invitation.code} -> READ")
+            return Response({
+                'status': 'read', 
+                'message': f'Invito {invitation.name} segnato come Letto',
+                'transition': 'sent -> read'
+            })
         else:
-            # Unpin
-            invitation.is_accommodation_pinned = False
-            invitation.save()
-            return Response({'status': 'unpinned'})
+            # Already read or in different state
+            return Response({
+                'status': invitation.status,
+                'message': f'Invito già in stato {invitation.get_status_display()}',
+                'transition': 'none'
+            })
+
+    @action(detail=True, methods=['get'])
+    def heatmaps(self, request, pk=None):
+        invitation = self.get_object()
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation).order_by('-timestamp')
+        data = [{'id': h.id, 'session_id': h.session_id, 'timestamp': h.timestamp, 'mouse_data': h.mouse_data, 'screen_width': h.screen_width, 'screen_height': h.screen_height} for h in heatmaps]
+        return Response(data)
 
     @action(detail=True, methods=['get'])
     def interactions(self, request, pk=None):
-        """Ritorna storico interazioni per timeline"""
-        # Mock data o query reale su modello InvitationInteraction
-        # Struttura: [{date, action, metadata}, ...]
-        mock_data = [
-            {"date": "2025-01-10T09:00:00Z", "action": "sent", "details": "WhatsApp sent"},
-            {"date": "2025-01-10T09:05:00Z", "action": "read", "details": "Opened link"},
-            {"date": "2025-01-12T18:30:00Z", "action": "rsvp", "details": "Confirmed 2 guests"}
-        ]
-        return Response(mock_data)
-        
-    @action(detail=True, methods=['get'])
-    def sessions(self, request, pk=None):
-        """
-        Ritorna sessioni utente (log accessi).
-        Richiede integrazione con django-user-agents o similare se tracciato.
-        """
-        sessions = [
-            {"ip": "192.168.1.1", "device": "Mobile", "last_seen": "2025-01-12T18:30:00Z", "location": "Milan, IT"}
-        ]
-        
-        # Se abbiamo heatmaps, possiamo aggregare dati
-        # Se c'è un modello SessionLog:
-        # logs = SessionLog.objects.filter(invitation_id=pk)
-        # serializer = SessionLogSerializer(logs, many=True)
-        # return Response(serializer.data)
-        
-        # Per ora ritorniamo la lista statica o vuota se non implementato
-        # Ordinamento per data decrescente
-        sorted_sessions = sorted(sessions, key=lambda x: x['last_seen'], reverse=True)
+        invitation = self.get_object()
+        interactions = GuestInteraction.objects.filter(invitation=invitation).order_by('timestamp')
+        heatmaps = GuestHeatmap.objects.filter(invitation=invitation)
+        sessions_map = {}
+        for hm in heatmaps:
+            sid = hm.session_id
+            if sid not in sessions_map:
+                sessions_map[sid] = {'session_id': sid, 'start_time': hm.timestamp, 'heatmap': {'id': hm.id, 'mouse_data': hm.mouse_data, 'screen_width': hm.screen_width, 'screen_height': hm.screen_height}, 'events': [], 'device_info': 'Unknown'}
+            else:
+                sessions_map[sid]['heatmap']['mouse_data'].extend(hm.mouse_data)
+        for evt in interactions:
+            meta = evt.metadata or {}
+            sid = meta.get('session_id')
+            if not sid: sid = f"unknown_{evt.ip_address}"
+            if sid not in sessions_map:
+                sessions_map[sid] = {'session_id': sid, 'start_time': evt.timestamp, 'heatmap': None, 'events': [], 'device_info': f"{evt.device_type} ({evt.geo_country or '?'})"}
+            if sessions_map[sid]['device_info'] == 'Unknown' or sessions_map[sid]['device_info'].startswith('Unknown'):
+                 sessions_map[sid]['device_info'] = f"{evt.device_type} ({evt.geo_country or '?'})"
+            sessions_map[sid]['events'].append({'type': evt.event_type, 'timestamp': evt.timestamp, 'details': meta})
+        sorted_sessions = sorted(sessions_map.values(), key=lambda x: x['start_time'], reverse=True)
         return Response(sorted_sessions)
 
 class GlobalConfigViewSet(viewsets.ViewSet):
@@ -560,344 +706,453 @@ class AccommodationViewSet(viewsets.ModelViewSet):
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
-    @action(detail=False, methods=['post'])
+    @action(detail=False, methods=['get'], url_path='unassigned-invitations')
+    def unassigned_invitations(self, request):
+        """Fetch confirmed invitations requesting accommodation with unassigned guests (excluding not_coming)"""
+        unassigned = Invitation.objects.filter(
+            status=Invitation.Status.CONFIRMED,
+            accommodation_requested=True,
+            guests__assigned_room__isnull=True,
+            guests__not_coming=False  # Exclude deselected guests
+        ).distinct().prefetch_related('guests')
+        data = []
+        for inv in unassigned:
+            # Count only guests who are coming
+            adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            children = inv.guests.filter(is_child=True, not_coming=False).count()
+            data.append({'id': inv.id, 'name': inv.name, 'code': inv.code, 'adults_count': adults, 'children_count': children, 'total_guests': adults + children})
+        return Response(data)
+
+    @action(detail=False, methods=['post'], url_path='auto-assign')
     def auto_assign(self, request):
         """
-        Algoritmo assegnazione automatica alloggi.
-        Logica semplice: riempi prima quelli prioritari/vicini.
+        Auto-assignment algorithm with accommodation_pinned support.
+        
+        CRITICAL: Invitations with accommodation_pinned=True are EXCLUDED from:
+        1. Reset operation (if reset_previous=True)
+        2. Assignment algorithm execution
+        
+        Their rooms are considered occupied and unavailable for new assignments.
         """
-        # 1. Trova inviti con accommodation_requested=True e !is_accommodation_pinned
-        pending = Invitation.objects.filter(
-            accommodation_requested=True, 
-            is_accommodation_pinned=False,
-            assigned_accommodation__isnull=True
-        )
+        strategy_code = request.data.get('strategy', 'SIMULATION')
+        is_simulation = strategy_code == 'SIMULATION'
         
-        # 2. Loop e assegna (simulato)
-        assigned_count = 0
-        accommodations = list(Accommodation.objects.filter(total_rooms__gt=0)) # Filtra quelli con spazio
-        
-        if not accommodations:
-             return Response({'error': 'No accommodations available'}, status=status.HTTP_400_BAD_REQUEST)
+        strategies = {
+            'STANDARD': {
+                'name': 'Standard (Default)',
+                'description': 'Processa prima i gruppi affini, stanze ordinate per capienza decrescente.',
+                'invitation_sort': lambda i: i.id,
+                'room_sort': lambda r: -r.total_capacity(),
+                'group_affinity': True
+            },
+            'SPACE_OPTIMIZER': {
+                'name': 'Space Optimizer (Tetris)',
+                'description': 'Priorità ai gruppi numerosi su stanze "Best Fit" (piccole ma sufficienti).',
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count()),
+                'room_sort': lambda r: r.total_capacity(),
+                'group_affinity': True
+            },
+            'CHILDREN_FIRST': {
+                'name': 'Children First',
+                'description': 'Priorità alle famiglie con bambini per occupare slot specifici.',
+                'invitation_sort': lambda i: -(i.guests.filter(is_child=True, not_coming=False).count()),
+                'room_sort': lambda r: -(r.capacity_children),
+                'group_affinity': True
+            },
+            'PERFECT_MATCH': {
+                'name': 'Perfect Match Only',
+                'description': 'Cerca di riempire le stanze al 100% della capienza.',
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count()),
+                'room_sort': lambda r: r.total_capacity(),
+                'group_affinity': False,
+                'perfect_match_only': True
+            },
+            'SMALLEST_FIRST': {
+                'name': 'Smallest First',
+                'description': 'Riempimento dal basso (coppie e singoli prima).',
+                'invitation_sort': lambda i: i.guests.filter(not_coming=False).count(),
+                'room_sort': lambda r: r.total_capacity(),
+                'group_affinity': False
+            },
+            'AFFINITY_CLUSTER': {
+                'name': 'Affinity Cluster',
+                'description': 'Massimizza la coesione dei gruppi affini trattandoli come blocchi unici.',
+                'invitation_sort': lambda i: -(i.guests.filter(not_coming=False).count() + sum(a.guests.filter(not_coming=False).count() for a in i.affinities.all())),
+                'room_sort': lambda r: -r.total_capacity(),
+                'group_affinity': True,
+                'force_cluster': True
+            }
+        }
 
-        for inv in pending:
-            # Logica greedy: assegna al primo con spazio
-            # Necessiterebbe gestione 'occupied_rooms' su Accommodation
-            target = accommodations[0] 
-            inv.assigned_accommodation = target
-            inv.save()
-            assigned_count += 1
+        def run_strategy(strategy_key, strategy_params, dry_run=True):
+            sid = transaction.savepoint()
             
-        return Response({'assigned': assigned_count})
+            try:
+                # CRITICAL: Reset ONLY non-pinned invitations
+                if request.data.get('reset_previous', False):
+                    # Reset only guests belonging to NON-PINNED invitations
+                    Person.objects.filter(
+                        assigned_room__isnull=False,
+                        invitation__accommodation_pinned=False
+                    ).update(assigned_room=None)
+                    
+                    Invitation.objects.filter(
+                        accommodation__isnull=False,
+                        accommodation_pinned=False
+                    ).update(accommodation=None)
+                    
+                    logger.info("🔄 Reset completed (pinned invitations preserved)")
 
-    @action(detail=True, methods=['get'])
-    def occupancy(self, request, pk=None):
-        """Ritorna stato occupazione per singola struttura"""
-        acc = self.get_object()
-        assigned_invitations = acc.assigned_invitations.all()
-        
-        total_guests = 0
-        rooms_used = assigned_invitations.count() # Approssimazione: 1 invito = 1 stanza
-        
-        for inv in assigned_invitations:
-            total_guests += inv.guests.filter(not_coming=False).count()
+                # CRITICAL: Fetch only NON-PINNED invitations for assignment
+                invitations = list(Invitation.objects.filter(
+                    status=Invitation.Status.CONFIRMED,
+                    accommodation_requested=True,
+                    accommodation_pinned=False,  # EXCLUDE PINNED
+                    guests__assigned_room__isnull=True,
+                    guests__not_coming=False
+                ).distinct().prefetch_related('guests', 'affinities', 'non_affinities'))
+
+                accommodations = list(Accommodation.objects.prefetch_related(
+                    'rooms__assigned_guests__invitation',
+                    'assigned_invitations__non_affinities'
+                ).all())
+                
+                assigned_count = 0
+                wasted_beds = 0
+                assignment_log = []
+
+                def get_room_owner(room):
+                    """
+                    CRITICAL: Query LIVE (not prefetched) to avoid stale data.
+                    Returns:
+                    - None: room is empty
+                    - int: invitation_id (single owner)
+                    - -1: multiple owners (violation, should never happen)
+                    """
+                    owner_ids = list(Person.objects.filter(
+                        assigned_room=room, 
+                        not_coming=False
+                    ).values_list('invitation_id', flat=True).distinct())
+                    
+                    if not owner_ids: 
+                        return None
+                    if len(owner_ids) > 1: 
+                        return -1  # Multi-owner violation
+                    return owner_ids[0]
+
+                def is_accommodation_compatible(acc, inv):
+                    """Check if invitation can coexist with current occupants (affinity check)"""
+                    non_affine_ids = set(inv.non_affinities.values_list('id', flat=True))
+                    existing_inv_ids = set(Person.objects.filter(
+                        assigned_room__accommodation=acc,
+                        not_coming=False
+                    ).values_list('invitation_id', flat=True))
+                    
+                    if non_affine_ids.intersection(existing_inv_ids):
+                        return False
+                    return True
+
+                def can_fit(room, person, inv_id):
+                    """Check if person can be assigned to room (capacity + ownership rules)"""
+                    owner = get_room_owner(room)
+                    if owner == -1: 
+                        return False  # Room corrupted
+                    if owner is not None and owner != inv_id: 
+                        return False  # Room owned by another invitation
+                    
+                    slots = room.available_slots()
+                    if person.is_child:
+                        return (slots['child_slots_free'] > 0) or (slots['adult_slots_free'] > 0)
+                    else:
+                        return slots['adult_slots_free'] > 0
+
+                def assign_invitation(inv, acc):
+                    """Attempt to assign all guests of invitation to accommodation (atomic)"""
+                    nonlocal assigned_count, wasted_beds
+                    
+                    if strategy_params.get('perfect_match_only', False):
+                        if acc.available_capacity() < inv.guests.filter(not_coming=False).count(): 
+                            return False
+
+                    if not is_accommodation_compatible(acc, inv): 
+                        return False
+
+                    persons = list(inv.guests.filter(assigned_room__isnull=True, not_coming=False))
+                    if not persons: 
+                        return True  # Already assigned
+
+                    rooms = list(acc.rooms.all())
+                    rooms.sort(key=strategy_params['room_sort'])
+
+                    temp_assignments = []
+                    sid_inv = transaction.savepoint()
+                    
+                    all_assigned = True
+                    for p in persons:
+                        assigned = False
+                        for r in rooms:
+                            if can_fit(r, p, inv.id):
+                                p.assigned_room = r
+                                p.save()
+                                temp_assignments.append((p, r))
+                                assigned = True
+                                break
+                        if not assigned:
+                            all_assigned = False
+                            break
+                    
+                    if all_assigned:
+                        transaction.savepoint_commit(sid_inv)
+                        inv.accommodation = acc
+                        inv.save()
+                        assigned_count += len(temp_assignments)
+                        for p, r in temp_assignments:
+                            assignment_log.append({
+                                'person': str(p),
+                                'room': str(r),
+                                'invitation': inv.name
+                            })
+                        return True
+                    else:
+                        transaction.savepoint_rollback(sid_inv)
+                        return False
+
+                invitations.sort(key=strategy_params['invitation_sort'])
+                processed_ids = set()
+
+                for inv in invitations:
+                    if inv.id in processed_ids: 
+                        continue
+                    
+                    group = [inv]
+                    if strategy_params.get('group_affinity', True):
+                        affinities = list(inv.affinities.filter(
+                            status=Invitation.Status.CONFIRMED,
+                            accommodation_requested=True,
+                            accommodation_pinned=False  # EXCLUDE PINNED from affinity groups
+                        ).exclude(id__in=processed_ids))
+                        group.extend(affinities)
+                    
+                    assigned_group = False
+                    accommodations.sort(key=lambda a: a.available_capacity(), reverse=True)
+
+                    for acc in accommodations:
+                        sid_group = transaction.savepoint()
+                        group_success = True
+                        
+                        for g_inv in group:
+                            if not assign_invitation(g_inv, acc):
+                                group_success = False
+                                break
+                        
+                        if group_success:
+                            transaction.savepoint_commit(sid_group)
+                            for g_inv in group: 
+                                processed_ids.add(g_inv.id)
+                            assigned_group = True
+                            break
+                        else:
+                            transaction.savepoint_rollback(sid_group)
+                    
+                    if not assigned_group and not strategy_params.get('force_cluster', False):
+                         for g_inv in group:
+                            if g_inv.id in processed_ids: 
+                                continue
+                            for acc in accommodations:
+                                if assign_invitation(g_inv, acc):
+                                    processed_ids.add(g_inv.id)
+                                    break
+
+                # Count unassigned (excluding pinned and not_coming)
+                unassigned_count = Person.objects.filter(
+                    invitation__status=Invitation.Status.CONFIRMED,
+                    invitation__accommodation_requested=True,
+                    invitation__accommodation_pinned=False,  # Exclude pinned
+                    assigned_room__isnull=True,
+                    not_coming=False
+                ).count()
+
+                # Calculate wasted beds (only in occupied rooms)
+                occupied_rooms = Room.objects.filter(
+                    assigned_guests__isnull=False, 
+                    assigned_guests__not_coming=False
+                ).distinct()
+                for r in occupied_rooms:
+                    slots = r.available_slots()
+                    wasted_beds += slots['total_free']
+
+                results = {
+                    'strategy_code': strategy_key,
+                    'strategy_name': strategy_params['name'],
+                    'assigned_guests': assigned_count,
+                    'unassigned_guests': unassigned_count,
+                    'wasted_beds': wasted_beds,
+                    'assignment_log': assignment_log
+                }
+
+            except Exception as e:
+                logger.error(f"Strategy {strategy_key} failed: {e}", exc_info=True)
+                results = {'error': str(e)}
             
-        return Response({
-            'name': acc.name,
-            'total_rooms': acc.total_rooms,
-            'occupied_rooms': rooms_used,
-            'available_rooms': acc.total_rooms - rooms_used,
-            'guests_count': total_guests
-        })
+            finally:
+                if dry_run:
+                    transaction.savepoint_rollback(sid)
+                else:
+                    transaction.savepoint_commit(sid)
+            
+            return results
 
-# ==========================================
-# INTERNAL UTILS / ALGORITHMS
-# ==========================================
-
-def assign_invitation(inv, acc):
-    # Funzione helper per logica assegnazione
-    pass
+        if is_simulation:
+            simulation_results = []
+            for key, params in strategies.items():
+                logger.info(f"🧪 Simulating Strategy: {key}")
+                res = run_strategy(key, params, dry_run=True)
+                simulation_results.append(res)
+            
+            simulation_results.sort(key=lambda x: (-x.get('assigned_guests', 0), x.get('wasted_beds', 9999)))
+            
+            return Response({
+                'mode': 'SIMULATION',
+                'results': simulation_results,
+                'best_strategy': simulation_results[0]['strategy_code'] if simulation_results else None
+            })
+        
+        else:
+            if strategy_code not in strategies:
+                return Response({'error': 'Invalid Strategy'}, status=status.HTTP_400_BAD_REQUEST)
+            
+            logger.info(f"🚀 Executing Strategy: {strategy_code}")
+            result = run_strategy(strategy_code, strategies[strategy_code], dry_run=False)
+            return Response({
+                'mode': 'EXECUTION',
+                'result': result
+            })
 
 class DashboardStatsView(APIView):
     """Statistiche dashboard (solo admin) - UPDATED to exclude not_coming guests"""
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
-        # Base stats - counting INVITATIONS
-        total_invitations = Invitation.objects.count()
-        inv_by_status = Invitation.objects.values('status').annotate(count=Count('id'))
+        confirmed_invitations = Invitation.objects.filter(status=Invitation.Status.CONFIRMED)
+        pending_invitations = Invitation.objects.filter(status__in=[Invitation.Status.IMPORTED, Invitation.Status.CREATED, Invitation.Status.SENT, Invitation.Status.READ])
+        declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
         
-        # Guest stats - using Person model
-        # Filter out not_coming=True for all "confirmed" counts
+        # CRITICAL: Exclude not_coming guests from all counts
+        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False, not_coming=False).count()
+        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True, not_coming=False).count()
         
-        # Total potential guests (all stored persons)
-        total_guests_db = Person.objects.count()
+        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False, not_coming=False).count()
+        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True, not_coming=False).count()
         
-        # Confirmed guests (status=confirmed AND not_coming=False)
-        confirmed_adults = Person.objects.filter(
-            invitation__status='confirmed', 
-            is_child=False,
-            not_coming=False
-        ).count()
-        
-        confirmed_children = Person.objects.filter(
-            invitation__status='confirmed', 
-            is_child=True,
-            not_coming=False
-        ).count()
-        
-        # Pending guests (status IN [sent, read, created, imported])
-        # Note: for pending, we count everyone linked to the invitation 
-        # because we don't know yet if they are coming or not.
-        # But if not_coming is already marked (e.g. pre-excluded), we exclude them.
-        pending_statuses = ['sent', 'read', 'created', 'imported']
-        pending_adults = Person.objects.filter(
-            invitation__status__in=pending_statuses,
-            is_child=False,
-            not_coming=False
-        ).count()
-        
-        pending_children = Person.objects.filter(
-            invitation__status__in=pending_statuses,
-            is_child=True,
-            not_coming=False
-        ).count()
-        
-        # Declined guests (either invitation declined OR person marked not_coming in confirmed inv)
-        # 1. People in declined invitations
-        declined_inv_people = Person.objects.filter(invitation__status='declined').count()
-        # 2. People marked not_coming in non-declined invitations
-        not_coming_people = Person.objects.exclude(invitation__status='declined').filter(not_coming=True).count()
-        
-        total_declined_guests = declined_inv_people + not_coming_people
-        
-        # Breakdown declined adults/children is harder with mixed logic, keeping simple for now
-        # Or let's try to be precise:
-        declined_adults = Person.objects.filter(
-            Q(invitation__status='declined', is_child=False) | 
-            Q(not_coming=True, is_child=False)
-        ).count()
-        
-        # Logistics
-        # Accommodation: Count PEOPLE in confirmed invitations with acc_requested
-        acc_confirmed_adults = Person.objects.filter(
-            invitation__status='confirmed',
-            invitation__accommodation_requested=True,
-            is_child=False,
-            not_coming=False
-        ).count()
-        
-        acc_confirmed_children = Person.objects.filter(
-            invitation__status='confirmed',
-            invitation__accommodation_requested=True,
-            is_child=True,
-            not_coming=False
-        ).count()
-        
-        # Transfer
-        transfer_confirmed = Person.objects.filter(
-            invitation__status='confirmed',
-            invitation__transfer_requested=True,
-            not_coming=False
-        ).count()
-        
-        # Financials
-        # Confirmed Cost
-        cost_meals = (confirmed_adults * config.price_adult_meal) + (confirmed_children * config.price_child_meal)
-        cost_acc = (acc_confirmed_adults * config.price_accommodation_adult) + (acc_confirmed_children * config.price_accommodation_child)
-        cost_trans = transfer_confirmed * config.price_transfer
-        total_confirmed_cost = cost_meals + cost_acc + cost_trans
-        
-        # Estimated Cost (Confirmed + Pending)
-        # We assume pending will all confirm (optimistic) or use average. 
-        # Let's use simple sum of pending + confirmed
-        # Need to check pending accommodation/transfer requests?
-        # If invitation is pending, we assume flags are indicative of intent if set, 
-        # or defaults if not. For now, let's just add pending meals.
-        
-        pending_cost_meals = (pending_adults * config.price_adult_meal) + (pending_children * config.price_child_meal)
-        
-        # For pending logistics, we check the invitation flags
-        pending_acc_adults = Person.objects.filter(
-            invitation__status__in=pending_statuses,
-            invitation__accommodation_requested=True, # Or offered? usually requested is set by guest
-            is_child=False,
-            not_coming=False
-        ).count()
-        
-        # Using 'accommodation_offered' might be better for estimation if 'requested' is not set yet
-        # But let's stick to what we have. If requested is False (default), maybe we under-estimate.
-        # Alternative: Use 'accommodation_offered' for pending invitations as "Potential"
-        
-        # Let's use 'accommodation_requested' as it reflects user intent or default
-        pending_acc_children = Person.objects.filter(
-            invitation__status__in=pending_statuses,
-            invitation__accommodation_requested=True,
-            is_child=True,
-            not_coming=False
-        ).count()
-        
-        pending_trans = Person.objects.filter(
-            invitation__status__in=pending_statuses,
-            invitation__transfer_requested=True,
-            not_coming=False
-        ).count()
-        
-        pending_cost_acc = (pending_acc_adults * config.price_accommodation_adult) + (pending_acc_children * config.price_accommodation_child)
-        pending_cost_trans = pending_trans * config.price_transfer
-        
-        estimated_total_cost = total_confirmed_cost + pending_cost_meals + pending_cost_acc + pending_cost_trans
+        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False, not_coming=False).count()
+        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True, not_coming=False).count()
+
+        stats_guests = {
+            'adults_confirmed': adults_confirmed,
+            'children_confirmed': children_confirmed,
+            'adults_pending': adults_pending,
+            'children_pending': children_pending,
+            'adults_declined': adults_declined,
+            'children_declined': children_declined,
+        }
+
+        stats_invitations = {
+            'imported': Invitation.objects.filter(status=Invitation.Status.IMPORTED).count(),
+            'created': Invitation.objects.filter(status=Invitation.Status.CREATED).count(),
+            'sent': Invitation.objects.filter(status=Invitation.Status.SENT).count(),
+            'read': Invitation.objects.filter(status=Invitation.Status.READ).count(),
+            'confirmed': Invitation.objects.filter(status=Invitation.Status.CONFIRMED).count(),
+            'declined': Invitation.objects.filter(status=Invitation.Status.DECLINED).count(),
+        }
+
+        acc_confirmed_adults = 0
+        acc_confirmed_children = 0
+        trans_confirmed = 0
+
+        for inv in confirmed_invitations:
+            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
+            
+            if inv.accommodation_requested:
+                acc_confirmed_adults += inv_adults
+                acc_confirmed_children += inv_children
+            
+            if inv.transfer_requested:
+                trans_confirmed += (inv_adults + inv_children)
+
+        def calculate_cost(adults, children, acc_adults, acc_children, transfers):
+            total = 0
+            total += float(adults) * float(config.price_adult_meal)
+            total += float(children) * float(config.price_child_meal)
+            total += float(acc_adults) * float(config.price_accommodation_adult)
+            total += float(acc_children) * float(config.price_accommodation_child)
+            total += float(transfers) * float(config.price_transfer)
+            return total
+
+        cost_confirmed = calculate_cost(
+            adults_confirmed, children_confirmed,
+            acc_confirmed_adults, acc_confirmed_children,
+            trans_confirmed
+        )
+
+        est_acc_adults = acc_confirmed_adults
+        est_acc_children = acc_confirmed_children
+        est_trans = trans_confirmed
+
+        for inv in pending_invitations:
+            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
+            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
+            
+            if inv.accommodation_offered:
+                est_acc_adults += inv_adults
+                est_acc_children += inv_children
+            
+            if inv.transfer_offered:
+                est_trans += (inv_adults + inv_children)
+
+        cost_total_estimated = calculate_cost(
+            adults_confirmed + adults_pending,
+            children_confirmed + children_pending,
+            est_acc_adults,
+            est_acc_children,
+            est_trans
+        )
 
         return Response({
-            'guests': {
-                'total_adults': Person.objects.filter(is_child=False).count(),
-                'total_children': Person.objects.filter(is_child=True).count(),
-                'adults_confirmed': confirmed_adults,
-                'children_confirmed': confirmed_children,
-                'adults_pending': pending_adults,
-                'children_pending': pending_children,
-                'adults_declined': declined_adults,
-                'children_declined': total_declined_guests - declined_adults # approx
-            },
-            'invitations': {
-                'total': total_invitations,
-                'sent': Invitation.objects.filter(status='sent').count(),
-                'confirmed': Invitation.objects.filter(status='confirmed').count(),
-                'declined': Invitation.objects.filter(status='declined').count(),
-                'imported': Invitation.objects.filter(status='imported').count(),
-                'created': Invitation.objects.filter(status='created').count(),
-                'read': Invitation.objects.filter(status='read').count(),
-            },
+            'guests': stats_guests,
+            'invitations': stats_invitations,
             'logistics': {
                 'accommodation': {
-                    'total_confirmed': acc_confirmed_adults + acc_confirmed_children,
                     'confirmed_adults': acc_confirmed_adults,
-                    'confirmed_children': acc_confirmed_children
+                    'confirmed_children': acc_confirmed_children,
+                    'total_confirmed': acc_confirmed_adults + acc_confirmed_children
                 },
                 'transfer': {
-                    'confirmed': transfer_confirmed
+                    'confirmed': trans_confirmed
                 }
             },
             'financials': {
-                'estimated_total': estimated_total_cost,
-                'confirmed': total_confirmed_cost,
-                'currency': 'EUR'
+                'confirmed': cost_confirmed,
+                'estimated_total': cost_total_estimated,
+                'currency': '€'
             }
         })
 
-class DynamicDashboardStatsView(APIView):
-    """
-    Endpoint for dynamic dashboard statistics with filtering.
-    Supports filtering by origin, status, and labels.
-    Calculates breakdown for sunburst/treemap visualizations.
-    """
-    def get(self, request):
-        filters_str = request.query_params.get('filters', '')
-        # Parse filters: "groom,confirmed,Label1" -> clean list
-        active_filters = [f.strip() for f in filters_str.split(',') if f.strip()]
-        
-        # Base QuerySet
-        qs = Invitation.objects.all().prefetch_related('labels')
-        
-        # 1. Calculate Total (unfiltered)
-        total_invitations = qs.count()
-        
-        # 2. Extract Available Filters (for UI)
-        # Origins
-        available_filters = ['groom', 'bride']
-        # Statuses
-        available_filters.extend([s.value for s in Invitation.Status])
-        # Labels
-        label_names = list(InvitationLabel.objects.values_list('name', flat=True))
-        available_filters.extend(label_names)
-        
-        # 3. Apply Filters
-        if active_filters:
-            q_objects = Q()
-            for f in active_filters:
-                # Origin match
-                if f in ['groom', 'bride']:
-                    q_objects |= Q(origin=f)
-                # Status match
-                elif f in [s.value for s in Invitation.Status]:
-                    q_objects |= Q(status=f)
-                # Label match
-                else:
-                    q_objects |= Q(labels__name=f)
-            
-            # If we have filters, we want invitations that match ANY of them? 
-            # OR logic is standard for "tags". 
-            # If logic should be AND, we would chain .filter()
-            # Requirement says "filters=groom,sent" -> usually means Union (OR) in simple dashboards,
-            # but let's assume OR for now based on implementation pattern above.
-            qs = qs.filter(q_objects).distinct()
+class GlobalConfigViewSet(viewsets.ViewSet):
+    def list(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config)
+        return Response(serializer.data)
 
-        # 4. Build Hierarchical Data (Sunburst/Treemap structure)
-        # Level 1: Origin (Groom/Bride)
-        # Level 2: Status
-        # Level 3: Labels (top label only to avoid explosion)
-        
-        hierarchy = []
-        
-        # Group by Origin
-        origins = ['groom', 'bride']
-        for origin in origins:
-            origin_qs = qs.filter(origin=origin)
-            origin_count = origin_qs.count()
-            
-            if origin_count > 0:
-                origin_node = {
-                    "name": origin.capitalize(),
-                    "value": origin_count,
-                    "field": "origin",
-                    "children": []
-                }
-                
-                # Group by Status within Origin
-                statuses = origin_qs.values('status').annotate(count=Count('id'))
-                for stat in statuses:
-                    s_val = stat['status']
-                    s_count = stat['count']
-                    
-                    status_node = {
-                        "name": s_val.capitalize(),
-                        "value": s_count,
-                        "field": "status",
-                        "children": []
-                    }
-                    
-                    # Group by Label (Optional - pick top label or "No Label")
-                    # This is expensive N+1 if not careful. 
-                    # Optimization: Get IDs for this slice and aggregate labels
-                    slice_ids = origin_qs.filter(status=s_val).values_list('id', flat=True)
-                    labels = InvitationLabel.objects.filter(invitations__in=slice_ids).annotate(count=Count('invitations'))
-                    
-                    if labels:
-                        for lbl in labels:
-                             status_node["children"].append({
-                                "name": lbl.name,
-                                "value": lbl.count,
-                                "field": "label"
-                             })
-                    else:
-                         status_node["children"].append({
-                                "name": "No Label",
-                                "value": s_count,
-                                "field": "label"
-                         })
-                    
-                    origin_node["children"].append(status_node)
-                
-                hierarchy.append(origin_node)
-        
-        # If no hierarchy (empty result), ensure valid empty structure
-        # but if we have data, format for frontend (array of root nodes)
-        
-        return Response({
-            'meta': {
-                'total': total_invitations,
-                'available_filters': available_filters,
-                'filtered_count': qs.count()
-            },
-            'levels': hierarchy
-        })
+    def create(self, request):
+        config, created = GlobalConfig.objects.get_or_create(pk=1)
+        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
+    """CRUD for WhatsApp Templates"""
+    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
+    serializer_class = WhatsAppTemplateSerializer
