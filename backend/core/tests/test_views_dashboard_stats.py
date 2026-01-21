@@ -81,12 +81,12 @@ class DashboardStatsViewTest(TestCase):
         self.client.force_authenticate(user=self.admin_user)
         
         # Create invitations in various statuses
-        Invitation.objects.create(code='i1', name='I1', status='imported', guests=[])
-        Invitation.objects.create(code='i2', name='I2', status='created', guests=[])
-        Invitation.objects.create(code='i3', name='I3', status='sent', guests=[])
-        Invitation.objects.create(code='i4', name='I4', status='read', guests=[])
-        Invitation.objects.create(code='i5', name='I5', status='confirmed', guests=[])
-        Invitation.objects.create(code='i6', name='I6', status='declined', guests=[])
+        Invitation.objects.create(code='i1', name='I1', status='imported')
+        Invitation.objects.create(code='i2', name='I2', status='created')
+        Invitation.objects.create(code='i3', name='I3', status='sent')
+        Invitation.objects.create(code='i4', name='I4', status='read')
+        Invitation.objects.create(code='i5', name='I5', status='confirmed')
+        Invitation.objects.create(code='i6', name='I6', status='declined')
         
         response = self.client.get(self.url)
         data = response.json()
