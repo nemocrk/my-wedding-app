@@ -220,6 +220,7 @@ describe('Dashboard Component', () => {
   it('loads chart data when filters are selected', async () => {
     const user = userEvent.setup();
     api.getDashboardStats.mockResolvedValue(mockStats);
+    // Setup mock for initial load (empty filters)
     api.getDynamicDashboardStats.mockResolvedValue(mockDynamicStats);
     
     render(<Dashboard />);
@@ -229,9 +230,9 @@ describe('Dashboard Component', () => {
     });
 
     // Initially, dynamic stats is called once to get available filters
-    // The previous test expectation failed here: expected "vi.fn()" to be called with arguments: [ [] ]
-    // This implies that on mount, it's called with an empty array.
-    expect(api.getDynamicDashboardStats).toHaveBeenCalledWith([]);
+    await waitFor(() => {
+        expect(api.getDynamicDashboardStats).toHaveBeenCalledWith([]);
+    });
 
     // Click a filter
     const filterButton = await screen.findByText('test_filter');
