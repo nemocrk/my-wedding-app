@@ -39,6 +39,7 @@ const LetterContent = ({ data }) => {
   const [editedGuests, setEditedGuests] = useState({});
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
+  const [tempDietaryRequirements, setTempDietaryRequirements] = useState('');
 
   // Step 2: Contatto
   const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
@@ -124,6 +125,7 @@ const LetterContent = ({ data }) => {
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
     setTempLastName(edited.last_name || '');
+    setTempDietaryRequirements(edited.dietary_requirements || '');
     safeLogInteraction('start_edit_guest', {
       guestIndex,
       original_name: `${guest.first_name} ${guest.last_name || ''}`
@@ -132,12 +134,21 @@ const LetterContent = ({ data }) => {
 
   const handleSaveEdit = (guestIndex) => {
     const originalGuest = data.guests[guestIndex];
-    setEditedGuests(prev => ({ ...prev, [guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
+    setEditedGuests(prev => ({ 
+      ...prev, 
+      [guestIndex]: { 
+        first_name: tempFirstName, 
+        last_name: tempLastName,
+        dietary_requirements: tempDietaryRequirements
+      } 
+    }));
     setEditingGuestIndex(null);
     safeLogInteraction('save_edit_guest', {
       guestIndex,
       original_name: `${originalGuest.first_name} ${originalGuest.last_name || ''}`,
-      new_name: `${tempFirstName} ${tempLastName}`
+      new_name: `${tempFirstName} ${tempLastName}`,
+      has_dietary_requirements: !!tempDietaryRequirements,
+      dietary_requirements: tempDietaryRequirements
     });
   };
 
@@ -146,6 +157,7 @@ const LetterContent = ({ data }) => {
     setEditingGuestIndex(null);
     setTempFirstName('');
     setTempLastName('');
+    setTempDietaryRequirements('');
   };
 
   const getGuestDisplayName = (guestIndex) => {
@@ -462,12 +474,20 @@ const LetterContent = ({ data }) => {
                 setEditingGuestIndex(payload.details.guestIndex);
                 setTempFirstName(edited.first_name);
                 setTempLastName(edited.last_name || '');
+                setTempDietaryRequirements(edited.dietary_requirements || '');
               }
               break;
 
             case 'save_edit_guest':
               if (payload?.details?.guestIndex !== undefined) {
-                setEditedGuests(prev => ({ ...prev, [payload.details.guestIndex]: { first_name: tempFirstName, last_name: tempLastName } }));
+                setEditedGuests(prev => ({ 
+                  ...prev, 
+                  [payload.details.guestIndex]: { 
+                    first_name: payload.details.new_name ? payload.details.new_name.split(' ')[0] : tempFirstName,
+                    last_name: payload.details.new_name ? payload.details.new_name.split(' ').slice(1).join(' ') : tempLastName,
+                    dietary_requirements: payload.details.dietary_requirements || tempDietaryRequirements 
+                  } 
+                }));
                 setEditingGuestIndex(null);
               }
               break;
@@ -476,6 +496,7 @@ const LetterContent = ({ data }) => {
               setEditingGuestIndex(null);
               setTempFirstName('');
               setTempLastName('');
+              setTempDietaryRequirements('');
               break;
 
             case 'rsvp_next_step':
@@ -571,7 +592,7 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('wax-seal:return', onSealReturn);
       clearTimeout(timer);
     };
-  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus, editingGuestIndex, tempFirstName, tempLastName, tempPhoneNumber, phoneNumber, editingPhone, travelInfo, accommodationChoice, editedGuests, excludedGuests]);
+  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus, editingGuestIndex, tempFirstName, tempLastName, tempDietaryRequirements, tempPhoneNumber, phoneNumber, editingPhone, travelInfo, accommodationChoice, editedGuests, excludedGuests]);
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
@@ -729,6 +750,14 @@ const LetterContent = ({ data }) => {
                                   onChange={(e) => setTempLastName(e.target.value)}
                                   placeholder={t('rsvp.labels.lastname_placeholder')}
                                 />
+                                <textarea
+                                  className="guest-textarea"
+                                  value={tempDietaryRequirements}
+                                  onChange={(e) => setTempDietaryRequirements(e.target.value)}
+                                  placeholder={t('rsvp.labels.dietary_placeholder')}
+                                  rows={2}
+                                  style={{ width: '100%', marginTop: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
+                                />
                               </div>
                               <div className="guest-actions">
                                 <button className="guest-action-btn save" onClick={() => handleSaveEdit(idx)}>✓</button>
@@ -737,10 +766,17 @@ const LetterContent = ({ data }) => {
                             </>
                           ) : (
                             <>
-                              <span className="guest-name">
-                                {displayGuest.first_name} {displayGuest.last_name || ''}
-                                {displayGuest.is_child && <span className="badge">{t('badges.child')}</span>}
-                              </span>
+                              <div className="guest-info">
+                                <span className="guest-name">
+                                  {displayGuest.first_name} {displayGuest.last_name || ''}
+                                  {displayGuest.is_child && <span className="badge">{t('badges.child')}</span>}
+                                </span>
+                                {displayGuest.dietary_requirements && (
+                                  <span className="guest-dietary" style={{ display: 'block', fontSize: '0.85rem', color: '#666', marginTop: '0.25rem' }}>
+                                    {t('rsvp.labels.dietary_requirements')}: {displayGuest.dietary_requirements}
+                                  </span>
+                                )}
+                              </div>
                               <div className="guest-actions">
                                 <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
                                 <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(idx)}>✕</button>

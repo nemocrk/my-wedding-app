@@ -25,6 +25,11 @@ Il corpo principale dell'invito.
 - **Form Gestione**: Include i controlli per accettare/declinare e specificare note/allergie, completamente localizzati (i18n).
 - **Integrazione CMS**: Recupera i testi configurati nell'admin panel tramite `TextContext`.
 
+**Nuova Feature: Dietary Requirements (Wizard Step 2)**
+- **Intolleranze**: Aggiunto campo testuale per ogni ospite per specificare allergie.
+- **Badge**: Visualizzazione immediata di un warning (⚠️) accanto al nome dell'ospite nella lista.
+- **Integrazione**: Dati salvati nel payload RSVP e visibili lato admin.
+
 ### ErrorModal (`ErrorModal.jsx`)
 Sistema centralizzato per la gestione degli errori.
 - **Utilizzo**: Invocato automaticamente via `useApiErrorModal` hook quando una chiamata API fallisce.
