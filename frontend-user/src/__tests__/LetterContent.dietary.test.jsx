@@ -35,15 +35,15 @@ vi.mock('../services/analytics', () => ({
   heatmapTracker: { start: vi.fn(), stop: vi.fn() }
 }));
 
-// Mock di immagini
-vi.mock('../assets/illustrations/arch.png', () => 'arch.png');
-vi.mock('../assets/illustrations/chest.png', () => 'chest.png');
-vi.mock('../assets/illustrations/dress.png', () => 'dress.png');
-vi.mock('../assets/illustrations/home.png', () => 'home.png');
-vi.mock('../assets/illustrations/LetterBackground.png', () => 'LetterBackground.png');
-vi.mock('../assets/illustrations/questions.png', () => 'questions.png');
-vi.mock('../assets/illustrations/van.png', () => 'van.png');
-vi.mock('../assets/illustrations/wax.png', () => 'wax.png');
+// Mock di immagini (ESM compatible format for Vitest)
+vi.mock('../assets/illustrations/arch.png', () => ({ default: 'arch.png' }));
+vi.mock('../assets/illustrations/chest.png', () => ({ default: 'chest.png' }));
+vi.mock('../assets/illustrations/dress.png', () => ({ default: 'dress.png' }));
+vi.mock('../assets/illustrations/home.png', () => ({ default: 'home.png' }));
+vi.mock('../assets/illustrations/LetterBackground.png', () => ({ default: 'LetterBackground.png' }));
+vi.mock('../assets/illustrations/questions.png', () => ({ default: 'questions.png' }));
+vi.mock('../assets/illustrations/van.png', () => ({ default: 'van.png' }));
+vi.mock('../assets/illustrations/wax.png', () => ({ default: 'wax.png' }));
 
 describe('LetterContent - Dietary Requirements', () => {
   const mockData = {
