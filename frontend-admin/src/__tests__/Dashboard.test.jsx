@@ -229,6 +229,8 @@ describe('Dashboard Component', () => {
     });
 
     // Initially, dynamic stats is called once to get available filters
+    // The previous test expectation failed here: expected "vi.fn()" to be called with arguments: [ [] ]
+    // This implies that on mount, it's called with an empty array.
     expect(api.getDynamicDashboardStats).toHaveBeenCalledWith([]);
 
     // Click a filter
@@ -344,8 +346,8 @@ describe('Dashboard Component', () => {
     // API should be called with both filters
     await waitFor(() => {
       const lastCall = api.getDynamicDashboardStats.mock.calls.slice(-1)[0];
-      expect(lastCall[0]).toContain('test_filter');
-      expect(lastCall[0]).toContain('test2');
+      // Order might vary, check both contained
+      expect(lastCall[0]).toEqual(expect.arrayContaining(['test_filter', 'test2']));
     });
   });
 
