@@ -115,6 +115,8 @@
       "schedule_placeholder": "es: Partenza 10:00, Arrivo 14:00",
       "name_placeholder": "Nome",
       "lastname_placeholder": "Cognome",
+      "dietary_requirements": "Allergie/Intolleranze",
+      "dietary_placeholder": "Es. Intollerante al lattosio, celiachia, allergia alle noci",
       "loading": "Caricamento..."
     },
     "buttons": {
