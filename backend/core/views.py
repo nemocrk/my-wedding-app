@@ -1,12 +1,10 @@
-from rest_framework import viewsets, status, filters, permissions
+from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.db.models import Count, Q
 from django.conf import settings
-from django.contrib.auth import authenticate
-from rest_framework.authtoken.models import Token
 import os
 import json
 from .models import (
@@ -38,8 +36,6 @@ class PublicLanguagesView(APIView):
     Endpoint pubblico per recuperare le lingue disponibili.
     Legge dal file generato automaticamente 'core/fixtures/languages.json'.
     """
-    permission_classes = [permissions.AllowAny]
-
     def get(self, request):
         fixture_path = os.path.join(settings.BASE_DIR, 'core/fixtures/languages.json')
         try:
@@ -54,8 +50,6 @@ class PublicConfigurableTextView(APIView):
     Endpoint pubblico per recuperare i testi configurati.
     Supporta filtro lingua (?lang=en). Fallback a 'it' se non trovato.
     """
-    permission_classes = [permissions.AllowAny]
-
     def get(self, request):
         lang = request.query_params.get('lang', 'it')
         
@@ -80,8 +74,6 @@ class PublicConfigurableTextView(APIView):
         return Response(data)
 
 class PublicInvitationAuthView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         code = request.data.get('code')
         token = request.data.get('token')
@@ -117,8 +109,6 @@ class PublicInvitationAuthView(APIView):
         return Response({'valid': False}, status=status.HTTP_404_NOT_FOUND)
 
 class PublicInvitationView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def get(self, request):
         invitation_id = request.session.get('invitation_id')
         stored_code = request.session.get('invitation_code')
@@ -161,8 +151,6 @@ class PublicRSVPView(APIView):
     - excluded_guests: list [guest_indices] → sets Person.not_coming=True
     - travel_info: dict {transport_type, schedule, car_option, carpool_interest} → persisted to Invitation.travel_*
     """
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id:
@@ -233,8 +221,6 @@ class PublicGuestSearchView(APIView):
     Ricerca invito per nome/cognome (per chi non ha QR code).
     Restituisce lista parziale per conferma.
     """
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         query = request.data.get('name', '').strip()
         if len(query) < 3:
@@ -267,8 +253,6 @@ class PublicSelectInvitationView(APIView):
     Richiede un secondo step di verifica (es. data di nascita o altro)?
     Per ora semplificato: selezione diretta.
     """
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         inv_id = request.data.get('invitation_id')
         invitation = get_object_or_404(Invitation, id=inv_id)
@@ -286,8 +270,6 @@ def _auto_mark_as_read_if_first_visit(invitation):
         invitation.save(update_fields=['status', 'updated_at'])
 
 class PublicLogInteractionView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -303,8 +285,6 @@ class PublicLogInteractionView(APIView):
 
 class PublicConfigView(APIView):
     """Restituisce configurazione pubblica (es. feature flags, date evento)"""
-    permission_classes = [permissions.AllowAny]
-
     def get(self, request):
         config = GlobalConfig.objects.first()
         data = {
@@ -321,8 +301,6 @@ class PublicConfigView(APIView):
         return Response(data)
 
 class PublicLogHeatmapView(APIView):
-    permission_classes = [permissions.AllowAny]
-
     def post(self, request):
         invitation_id = request.session.get('invitation_id')
         if not invitation_id: return Response(status=status.HTTP_401_UNAUTHORIZED)
@@ -343,8 +321,6 @@ class AdminGoogleFontsProxyView(APIView):
     Proxy sicuro per Google Fonts → OFFLINE MODE.
     Legge dal file statico backend/assets/fontInfo.json invece di chiamare l'API.
     """
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-
     def get(self, request):
         font_file_path = os.path.join(settings.BASE_DIR, 'assets', 'fontInfo.json')
         
@@ -363,24 +339,11 @@ class AdminGoogleFontsProxyView(APIView):
                 ]
             })
 
-class AdminLoginView(APIView):
-    permission_classes = [permissions.AllowAny]
-
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user:
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({'token': token.key})
-        return Response({'error': 'Invalid Credentials'}, status=status.HTTP_400_BAD_REQUEST)
-
 class ConfigurableTextViewSet(viewsets.ModelViewSet):
     """
     CRUD completo per i testi configurabili.
     Supporta ricerca per key e filtro per language.
     """
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = ConfigurableText.objects.all().order_by('key')
     serializer_class = ConfigurableTextSerializer
     filter_backends = [filters.SearchFilter]
@@ -418,7 +381,6 @@ class InvitationLabelViewSet(viewsets.ModelViewSet):
     CRUD per le etichette degli inviti.
     Permette di creare, modificare, eliminare etichette personalizzate.
     """
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = InvitationLabel.objects.all().order_by('name')
     serializer_class = InvitationLabelSerializer
     filter_backends = [filters.SearchFilter]
@@ -426,7 +388,6 @@ class InvitationLabelViewSet(viewsets.ModelViewSet):
 
 class InvitationViewSet(viewsets.ModelViewSet):
     """CRUD completo inviti (solo admin)"""
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = Invitation.objects.all().order_by('-created_at')
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
     search_fields = ['name', 'code']
@@ -576,8 +537,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
         return Response(sorted_sessions)
 
 class GlobalConfigViewSet(viewsets.ViewSet):
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-    
     def list(self, request):
         config, created = GlobalConfig.objects.get_or_create(pk=1)
         serializer = GlobalConfigSerializer(config)
@@ -593,13 +552,11 @@ class GlobalConfigViewSet(viewsets.ViewSet):
 
 class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
     """CRUD for WhatsApp Templates"""
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
     serializer_class = WhatsAppTemplateSerializer
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     """CRUD completo per Alloggi (solo admin)"""
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
     queryset = Accommodation.objects.all()
     serializer_class = AccommodationSerializer
 
@@ -663,8 +620,6 @@ def assign_invitation(inv, acc):
 
 class DashboardStatsView(APIView):
     """Statistiche dashboard (solo admin) - UPDATED to exclude not_coming guests"""
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
         
@@ -836,8 +791,6 @@ class DynamicDashboardStatsView(APIView):
     Supports filtering by origin, status, and labels.
     Calculates breakdown for sunburst/treemap visualizations.
     """
-    permission_classes = [permissions.IsAuthenticated, permissions.IsAdminUser]
-
     def get(self, request):
         filters_str = request.query_params.get('filters', '')
         # Parse filters: "groom,confirmed,Label1" -> clean list
