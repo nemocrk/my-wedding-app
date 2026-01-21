@@ -68,12 +68,16 @@ describe('LetterContent - Dietary Requirements', () => {
     logInteraction.mockClear();
   });
 
+  const openRSVP = () => {
+    // Cerchiamo l'heading specifico della card RSVP per evitare ambiguità
+    const rsvpTitle = screen.getByRole('heading', { name: /RSVP - Form/i });
+    fireEvent.click(rsvpTitle);
+  };
+
   it('dovrebbe mostrare il badge intolleranze se presente', async () => {
     render(<LetterContent data={mockData} />);
 
-    // Apri la card RSVP
-    const rsvpCard = screen.getByText(/RSVP/i);
-    fireEvent.click(rsvpCard);
+    openRSVP();
 
     // Verifica che Luigi abbia il badge
     await waitFor(() => {
@@ -84,8 +88,7 @@ describe('LetterContent - Dietary Requirements', () => {
   it('dovrebbe permettere di modificare le intolleranze di un ospite', async () => {
     render(<LetterContent data={mockData} />);
 
-    // Apri RSVP
-    fireEvent.click(screen.getByText(/RSVP/i));
+    openRSVP();
 
     // Clicca edit su Mario (primo ospite, indice 0)
     const editButtons = screen.getAllByText('✏️');
@@ -107,8 +110,7 @@ describe('LetterContent - Dietary Requirements', () => {
   it('dovrebbe includere dietary_requirements nel payload di submit', async () => {
     render(<LetterContent data={mockData} />);
 
-    // Apri RSVP
-    fireEvent.click(screen.getByText(/RSVP/i));
+    openRSVP();
 
     // Step 1: Modifica intolleranza Mario
     const editButtons = screen.getAllByText('✏️');
