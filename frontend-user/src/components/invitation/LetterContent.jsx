@@ -1,3 +1,4 @@
+// frontend-user/src/components/invitation/LetterContent.jsx
 import { AnimatePresence, motion, useAnimation } from 'framer-motion';
 import { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
@@ -724,6 +725,9 @@ const LetterContent = ({ data }) => {
               <>
                 <div className="guests-list-editable">
                   <h3>{t('rsvp.labels.guests')}</h3>
+                  <p className="helper-text" style={{ fontSize: '0.85rem', color: '#666', marginBottom: '0.75rem', fontStyle: 'italic' }}>
+                    <small>* {t('rsvp.hints.edit_guest_hint')}</small>
+                  </p>
                   <ul>
                     {data.guests.map((guest, idx) => {
                       const displayGuest = getGuestDisplayName(idx);
@@ -756,7 +760,6 @@ const LetterContent = ({ data }) => {
                                   onChange={(e) => setTempDietaryRequirements(e.target.value)}
                                   placeholder={t('rsvp.labels.dietary_placeholder')}
                                   rows={2}
-                                  style={{ width: '100%', marginTop: '0.5rem', padding: '0.5rem', borderRadius: '4px', border: '1px solid #ccc' }}
                                 />
                               </div>
                               <div className="guest-actions">

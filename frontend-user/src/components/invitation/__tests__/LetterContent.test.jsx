@@ -133,6 +133,25 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
         expect(screen.getByText('Giuseppe Rossi')).toBeInTheDocument();
       });
     });
+
+    // NUOVO TEST INCREMENTALE PER ISSUE #71
+    it('displays dietary requirements hint and textarea when editing', async () => {
+      render(<LetterContent data={mockData} />);
+
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
+
+      await waitFor(() => {
+        const editButtons = screen.getAllByText('✏️');
+        fireEvent.click(editButtons[0]);
+      });
+
+      // Verifica che l'hint sia presente
+      expect(screen.getByText(/Clicca sulla matita per modificare/i)).toBeInTheDocument();
+
+      // Verifica che la textarea dietary sia presente (Corrected placeholder matching actual i18n value)
+      const dietaryTextarea = screen.getByPlaceholderText(/Intollerante al lattosio/i);
+      expect(dietaryTextarea).toBeInTheDocument();
+    });
   });
 
   describe('Wizard Step 2 - Contact', () => {

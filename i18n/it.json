@@ -150,6 +150,9 @@
       "declined": "Hai declinato l'invito.",
       "submitting": "Invio...",
       "not_specified": "Non specificato"
+    },
+    "hints": {
+      "edit_guest_hint": "Clicca sulla matita per modificare il nome o aggiungere intolleranze/allergie alimentari."
     }
   },
   "fab": {

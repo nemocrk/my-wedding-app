@@ -475,6 +475,44 @@
   font-weight: bold;
 }
 
+/* ========== NUOVE CLASSI DIETARY UX (Issue #71) ========== */
+.guest-hint {
+  font-size: 0.85rem;
+  color: #666;
+  margin-bottom: 0.75rem;
+  font-style: italic;
+  text-align: left;
+}
+
+.guest-dietary-label {
+  display: block;
+  font-size: 0.85rem;
+  color: #d35400;
+  margin-top: 0.25rem;
+  font-style: italic;
+}
+
+.guest-textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border: 1px solid #c9a581;
+  border-radius: 4px;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9rem;
+  min-height: 60px;
+  resize: vertical;
+  box-sizing: border-box;
+  background: transparent;
+  color: #333;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.guest-textarea:focus {
+  border-color: #8b7355;
+}
+/* ========== FINE NUOVE CLASSI DIETARY UX ========== */
+
 /* ========== GUEST ACTIONS (Edit + Exclude Buttons) ========== */
 .guest-actions {
   display: flex;
@@ -526,6 +564,7 @@
 /* ========== GUEST EDIT INPUTS ========== */
 .guest-edit-inputs {
   display: flex;
+  flex-direction: column;
   gap: 0.5rem;
   flex: 1;
 }
@@ -1230,6 +1269,11 @@
     .guest-input {
         font-size: 0.9rem;
     }
+    
+    .guest-textarea {
+        font-size: 0.85rem;
+        min-height: 50px;
+    }
 
     /* RSVP Next Button Mobile */
     .rsvp-next-btn {
@@ -1433,6 +1477,10 @@
 
     .guest-input {
         font-size: 0.85rem;
+    }
+    
+    .guest-textarea {
+        font-size: 0.8rem;
     }
 
     .rsvp-next-btn {

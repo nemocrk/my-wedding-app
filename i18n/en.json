@@ -150,6 +150,9 @@
       "declined": "You have declined the invitation.",
       "submitting": "Submitting...",
       "not_specified": "Not specified"
+    },
+    "hints": {
+      "edit_guest_hint": "Click on the pencil to edit the name or add food allergies/intolerances."
     }
   },
   "fab": {
