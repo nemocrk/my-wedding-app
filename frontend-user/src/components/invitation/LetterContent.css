@@ -526,8 +526,10 @@
 /* ========== GUEST EDIT INPUTS ========== */
 .guest-edit-inputs {
   display: flex;
+  flex-direction: column; /* FIX: stack verticale */
   gap: 0.5rem;
   flex: 1;
+  width: 100%;
 }
 
 .guest-input {
@@ -541,7 +543,7 @@
   color: #333;
   outline: none;
   transition: border-color 0.2s;
-  flex: 1;
+  width: 100%; /* FIX: larghezza piena */
   min-width: 0;
 }
 
