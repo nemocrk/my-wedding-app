@@ -1,24 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { MessageCircle, RotateCcw, Trash2, Send, Edit2, Clock, CheckCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import Tooltip from '../common/Tooltip';
 
 const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, onEdit }) => {
   const { t } = useTranslation();
-  const [tooltip, setTooltip] = useState({ show: false, x: 0, y: 0, content: '' });
-
-  const handleMouseEnter = (e, content) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setTooltip({
-      show: true,
-      x: rect.left + rect.width / 2,
-      y: rect.top,
-      content
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setTooltip(prev => ({ ...prev, show: false }));
-  };
 
   const getStatusBadge = (msg) => {
     const chatId = `${msg.recipient_number}@c.us`;
@@ -114,13 +100,11 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
                   {msg.session_type}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-center">
-                    <div 
-                      className="flex justify-center items-center cursor-help p-2"
-                      onMouseEnter={(e) => handleMouseEnter(e, msg.message_body)}
-                      onMouseLeave={handleMouseLeave}
-                    >
-                        <MessageCircle className="w-5 h-5 text-gray-400 hover:text-indigo-500" />
+                  <Tooltip content={msg.message_body} position="top">
+                    <div className="flex justify-center items-center cursor-help p-2">
+                      <MessageCircle className="w-5 h-5 text-gray-400 hover:text-indigo-500" />
                     </div>
+                  </Tooltip>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
                   {getStatusBadge(msg)}
@@ -203,30 +187,6 @@ const QueueTable = ({ messages, realtimeStatus, onRetry, onForceSend, onDelete, 
           </div>
         ))}
       </div>
-
-      {/* Fixed Position Tooltip (Desktop only - LG+) */}
-      {tooltip.show && (
-        <div 
-          className="fixed z-[9999] w-64 p-3 bg-gray-900 text-white text-xs rounded-lg shadow-2xl pointer-events-none hidden lg:block"
-          style={{ 
-            top: tooltip.y - 10,
-            left: tooltip.x,
-            transform: 'translate(-50%, -100%)'
-          }}
-        >
-          <div className="break-words">{tooltip.content}</div>
-          <div 
-            className="absolute top-full left-1/2 transform -translate-x-1/2" 
-            style={{ 
-                width: 0, 
-                height: 0, 
-                borderLeft: '6px solid transparent', 
-                borderRight: '6px solid transparent', 
-                borderTop: '6px solid #111827' 
-            }}
-          ></div>
-        </div>
-      )}
     </div>
   );
 };

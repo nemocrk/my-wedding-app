@@ -1,0 +1,17 @@
+.git
+.gitignore
+.env
+.env.example
+.vscode
+.idea
+.github
+
+# Ignore heavy directories in subfolders to speed up root context transfer
+# (used by nginx build which has context: .)
+*/node_modules
+*/venv
+*/.venv
+*/__pycache__
+*/coverage
+*/build
+*/dist

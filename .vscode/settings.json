@@ -87,5 +87,17 @@
     "**/__pycache__": true,
     "**/*.pyc": true,
     "**/.pytest_cache": true
-  }
+  },
+  "git.autofetch": true,
+  "git.autoStash": true,
+  "git.branchProtection": [
+    "main"
+  ],
+  "git.fetchOnPull": true,
+  "git.postCommitCommand": "push",
+  "git.pruneOnFetch": true,
+  "git.pullBeforeCheckout": true,
+  "git.showPushSuccessNotification": true,
+  "git.timeline.showUncommitted": true,
+  "git.useCommitInputAsStashMessage": true
 }
