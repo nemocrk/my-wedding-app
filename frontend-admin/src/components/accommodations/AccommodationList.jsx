@@ -1,6 +1,7 @@
 import React from 'react';
 import { Trash2, Users, Home, User, Baby, Bed, Edit2, Pin, PinOff } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import Tooltip from '../common/Tooltip';
 
 const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) => {
     const { t } = useTranslation();
@@ -34,20 +35,24 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                 </p>
                             </div>
                             <div className="flex gap-2">
-                                <button 
-                                    onClick={() => onEdit(acc)}
-                                    className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
-                                    aria-label="Edit"
-                                >
-                                    <Edit2 size={20} />
-                                </button>
-                                <button 
-                                    onClick={() => onDelete(acc.id)}
-                                    className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
-                                    aria-label="Delete"
-                                >
-                                    <Trash2 size={20} />
-                                </button>
+                                <Tooltip content={t('admin.accommodations.list.edit')} position="top">
+                                    <button 
+                                        onClick={() => onEdit(acc)}
+                                        className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
+                                        aria-label="Edit"
+                                    >
+                                        <Edit2 size={20} />
+                                    </button>
+                                </Tooltip>
+                                <Tooltip content={t('admin.accommodations.list.delete')} position="top">
+                                    <button 
+                                        onClick={() => onDelete(acc.id)}
+                                        className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                        aria-label="Delete"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </Tooltip>
                             </div>
                         </div>
 
@@ -137,17 +142,22 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                                 {guest.first_name} {guest.last_name || ''}
                                                             </span>
                                                             {guest.invitation_id && onTogglePin && (
-                                                                <button
-                                                                    onClick={() => onTogglePin(guest.invitation_id, !guest.is_pinned)}
-                                                                    className={`p-1 rounded transition-all ${
-                                                                        guest.is_pinned 
-                                                                        ? 'text-pink-600 hover:bg-pink-50' 
-                                                                        : 'text-gray-400 hover:bg-gray-100'
-                                                                    }`}
-                                                                    title={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
+                                                                <Tooltip 
+                                                                    content={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')} 
+                                                                    position="top"
                                                                 >
-                                                                    {guest.is_pinned ? <Pin size={14} /> : <PinOff size={14} />}
-                                                                </button>
+                                                                    <button
+                                                                        onClick={() => onTogglePin(guest.invitation_id, !guest.is_pinned)}
+                                                                        className={`p-1 rounded transition-all ${
+                                                                            guest.is_pinned 
+                                                                            ? 'text-pink-600 hover:bg-pink-50' 
+                                                                            : 'text-gray-400 hover:bg-gray-100'
+                                                                        }`}
+                                                                        aria-label={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
+                                                                    >
+                                                                        {guest.is_pinned ? <Pin size={14} /> : <PinOff size={14} />}
+                                                                    </button>
+                                                                </Tooltip>
                                                             )}
                                                         </div>
                                                     ))}
