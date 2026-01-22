@@ -203,8 +203,9 @@ jobs:
       # The 'load: true' is essential to load the built images into the local docker daemon
       # so 'docker compose up' can use them immediately.
       - name: 🍰 Bake services with GHA Cache
-        uses: docker/bake-action@v4
+        uses: docker/bake-action@v6.9.0
         with:
+          source: .
           files: docker-compose.yml
           load: true
           set: |
