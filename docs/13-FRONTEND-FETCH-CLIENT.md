@@ -2,7 +2,7 @@
 
 ## Overview
 
-Il modulo `fetchClient.js` centralizza tutta la logica di gestione delle richieste HTTP nel frontend-admin, eliminando duplicazioni presenti in `api.js` e `accommodationService.js` e garantendo un comportamento uniforme per:
+Il modulo `fetchClient.js` centralizza tutta la logica di gestione delle richieste HTTP nel frontend-admin, eliminando duplicazioni presenti in **`api.js`**, **`accommodationService.js`** e **`whatsappService.js`** garantendo un comportamento uniforme per:
 
 - **Network errors** (DNS, CORS, timeout)
 - **HTTP errors** (4xx, 5xx)
@@ -12,10 +12,11 @@ Il modulo `fetchClient.js` centralizza tutta la logica di gestione delle richies
 ## Architecture
 
 ```
-┌─────────────────────────────────────────────┐
-│         Service Layer                       │
-│  (api.js, accommodationService.js, etc.)   │
-└────────────────┬────────────────────────────┘
+┌───────────────────────────────────────────────────────┐
+│              Service Layer                            │
+│  (api.js, accommodationService.js,                   │
+│   whatsappService.js, etc.)                          │
+└────────────────┬──────────────────────────────────────┘
                  │
                  ▼
 ┌─────────────────────────────────────────────┐
@@ -208,11 +209,21 @@ export const api = {
 };
 ```
 
+### Migration Stats
+
+| Service | Methods Migrated | LOC Before | LOC After | Reduction |
+|---------|------------------|------------|-----------|----------|
+| **api.js** | 35/35 | 321 | 230 | -91 (-28%) |
+| **accommodationService.js** | 5/5 | 90 | 30 | -60 (-67%) |
+| **whatsappService.js** | 9/9 | 110 | 62 | -48 (-44%) |
+| **TOTAL** | **49/49** | **521** | **322** | **-199 (-38%)** |
+
 **Benefits:**
-- ✅ **Riduzione codice**: -50 righe per file (eliminato boilerplate)
+- ✅ **Riduzione codice**: **-199 righe** totali (38% reduction)
 - ✅ **Manutenibilità**: Single source of truth per error handling
 - ✅ **Testabilità**: Mock di `fetchClient` invece di mocking `fetch` + helpers
-- ✅ **Consistenza**: Stessa UX per errori in tutti i servizi
+- ✅ **Consistenza**: Stessa UX per errori in **tutti** i servizi
+- ✅ **Duplicazioni eliminate**: **9 funzioni** (3 funzioni × 3 file)
 
 ---
 
@@ -330,15 +341,12 @@ export const addRequestInterceptor = (fn) => interceptors.request.push(fn);
 export const addResponseInterceptor = (fn) => interceptors.response.push(fn);
 ```
 
-### 4. Migrazione whatsappService.js
-**Post Issue #80**, migrare anche `whatsappService.js` a usare `fetchClient` per completare l'unificazione.
-
 ---
 
 ## Related Issues
 
 - **#82**: Introdurre fetchClient.js condiviso (questo documento)
-- **#80**: Standardizzazione whatsappService (prerequisito per migrazione)
+- **#80**: Standardizzazione whatsappService (prerequisito completato ✅)
 - **#81**: Eliminazione Alert JS (beneficia di error handling unificato)
 
 ---
