@@ -22,7 +22,7 @@ do
             shift
             ;;
         --debug-backend)
-            DETACH=true
+            DEBUG_BACKEND=true
             shift
             ;;
         *)
