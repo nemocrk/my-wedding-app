@@ -193,24 +193,30 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # OPTIMIZATION: Cache Docker layers to speed up builds
-      - name: ⚡ Cache Docker layers
-        uses: satackey/action-docker-layer-caching@v0.0.11
-        continue-on-error: true
-        with:
-          key: docker-layer-cache-{hash}
-          restore-keys: |
-            docker-layer-cache-
-
+      # Setup Docker Buildx to handle advanced building and caching
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # Pre-requisite for E2E: Stack must be up (Script assumes this, CI must ensure it)
-      - name: Build and Start Stack
+      # EXPOSE GITHUB CACHE TO DOCKER
+      # This uses docker buildx bake to build all services defined in docker-compose.yml
+      # injecting cache-from and cache-to configurations automatically.
+      # The 'load: true' is essential to load the built images into the local docker daemon
+      # so 'docker compose up' can use them immediately.
+      - name: 🍰 Bake services with GHA Cache
+        uses: docker/bake-action@v4
+        with:
+          files: docker-compose.yml
+          load: true
+          set: |
+            *.cache-from=type=gha
+            *.cache-to=type=gha,mode=max
+
+      # Pre-requisite for E2E: Stack must be up
+      # Note: We use --no-build because we just baked the images with cache
+      - name: Start Stack
         run: |
           if [ -f .env.example ]; then cp .env.example .env; fi
-          # Force rebuilding pgbouncer to ensure latest config
-          docker compose up -d --build
+          docker compose up -d --no-build
           
       - name: Wait for Stack Health
         run: |
