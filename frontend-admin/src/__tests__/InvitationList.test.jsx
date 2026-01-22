@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor, within  } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, within  } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import InvitationList from '../pages/InvitationList';
 
@@ -148,7 +148,7 @@ describe('InvitationList', () => {
     const labelOption = screen.getByRole('option', { name: 'Tutte le etichette' });
     // Risali alla select (il "combobox" genitore)
     const labelSelect = labelOption.closest('select');
-    fireEvent.change(labelSelect, { target: { value: '1' } });
+    fireEvent.change(labelSelect, { target: { value: '1' });
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?label=1', undefined);
     });
