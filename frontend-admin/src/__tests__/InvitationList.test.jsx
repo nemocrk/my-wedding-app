@@ -1,6 +1,6 @@
-import { render, screen, fireEvent, waitFor, within  } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InvitationList from '../pages/InvitationList';
+import { fireEvent, render, screen, waitFor, within } from '../test-utils';
 
 describe('InvitationList', () => {
   const mockInvitations = [
@@ -68,8 +68,8 @@ describe('InvitationList', () => {
     render(<InvitationList />);
 
     await waitFor(() => {
-      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
-      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      const desktopContainer = document.querySelector('.hidden.lg\\:block');
+      expect(within(desktopContainer).getByText('Famiglia Rossi', { selector: 'div:not(.lg\\:hidden) *' })).toBeInTheDocument();
       expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
     });
 
@@ -84,8 +84,8 @@ describe('InvitationList', () => {
   it('supports bulk selection and triggers bulk actions', async () => {
     render(<InvitationList />);
     await waitFor(() => {
-      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
-      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      const desktopContainer = document.querySelector('.hidden.lg\\:block');
+      expect(within(desktopContainer).getByText('Famiglia Rossi', { selector: 'div:not(.lg\\:hidden) *' })).toBeInTheDocument();
       expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
     });
 
@@ -108,7 +108,7 @@ describe('InvitationList', () => {
             "Content-Type": "application/json",
           },
           // Il body deve essere una stringa JSON, non un oggetto
-          body: JSON.stringify({ invitation_ids: [1] }), 
+          body: JSON.stringify({ invitation_ids: [1] }),
         })
       );
     });
@@ -116,7 +116,7 @@ describe('InvitationList', () => {
     // Reset selection (assuming automatic or manual - simplifying for test)
     // Here we verify other actions exist/call APIs if buttons are present
     // Assuming buttons exist for Verify and Labels based on issue description
-    
+
     // Trigger Bulk Verify (if button exists)
     // const verifyBtn = screen.queryByText('Verifica Numeri');
     // if (verifyBtn) {
@@ -128,8 +128,8 @@ describe('InvitationList', () => {
   it('applies filters by status and label', async () => {
     render(<InvitationList />);
     await waitFor(() => {
-      const desktopContainer = document.querySelector('.hidden.lg\\:block'); 
-      expect(within(desktopContainer).getByText('Famiglia Rossi',{selector:'div:not(.lg\\:hidden) *'})).toBeInTheDocument();
+      const desktopContainer = document.querySelector('.hidden.lg\\:block');
+      expect(within(desktopContainer).getByText('Famiglia Rossi', { selector: 'div:not(.lg\\:hidden) *' })).toBeInTheDocument();
       expect(within(desktopContainer).getByText('Famiglia Bianchi')).toBeInTheDocument();
     });
     // Trova l'opzione specifica
@@ -141,7 +141,7 @@ describe('InvitationList', () => {
     await waitFor(() => {
       expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?status=sent', undefined);
     });
-    
+
     fireEvent.change(statusSelect, { target: { value: '' } });
 
     // Trova l'opzione specifica

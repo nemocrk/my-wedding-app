@@ -2,10 +2,12 @@ import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext';
+import { ToastProvider } from './contexts/ToastContext';
 
 /**
  * Custom render function che wrappa il componente con tutti i provider necessari.
  * Usa questo al posto di render() di RTL per testare componenti che usano:
+ * - useToast() hook
  * - useConfirm() hook
  * - react-router hooks (useNavigate, useLocation, etc.)
  * - i18next (già mockato in setupTests.tsx)
@@ -17,9 +19,11 @@ interface AllTheProvidersProps {
 const AllTheProviders = ({ children }: AllTheProvidersProps) => {
   return (
     <MemoryRouter>
-      <ConfirmDialogProvider>
-        {children}
-      </ConfirmDialogProvider>
+      <ToastProvider>
+        <ConfirmDialogProvider>
+          {children}
+        </ConfirmDialogProvider>
+      </ToastProvider>
     </MemoryRouter>
   );
 };
