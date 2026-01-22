@@ -139,7 +139,7 @@ describe('InvitationList', () => {
 
     fireEvent.change(statusSelect, { target: { value: 'sent' } });
     await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?status=sent', undefined);
+      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?status=sent', {});
     });
 
     fireEvent.change(statusSelect, { target: { value: '' } });
@@ -150,7 +150,7 @@ describe('InvitationList', () => {
     const labelSelect = labelOption.closest('select');
     fireEvent.change(labelSelect, { target: { value: '1' } });
     await waitFor(() => {
-      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?label=1', undefined);
+      expect(globalThis.fetch).toHaveBeenCalledWith('api/admin/invitations/?label=1', {});
     });
   });
 });
