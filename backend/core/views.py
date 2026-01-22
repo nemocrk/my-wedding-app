@@ -175,10 +175,12 @@ class PublicRSVPView(APIView):
                                     guest.first_name = updates['first_name']
                                 if 'last_name' in updates:
                                     guest.last_name = updates['last_name']
+                                if 'dietary_requirements' in updates:
+                                    guest.dietary_requirements = updates['dietary_requirements']
                                 guest.save()
-                                new_name = f"{guest.first_name} {guest.last_name or ''}".strip()
+                                new_name = f"{guest.first_name} {guest.last_name or ''} [{guest.dietary_requirements or ''}]".strip()
                                 updated_guests.append({'idx': idx, 'old': old_name, 'new': new_name})
-                                logger.info(f"Guest name updated: {old_name} → {new_name}")
+                                logger.info(f"Guest updated: {old_name} → {new_name}")
                         except (ValueError, IndexError) as e:
                             logger.warning(f"Invalid guest update index {idx_str}: {e}")
                     metadata['updated_guests'] = updated_guests
