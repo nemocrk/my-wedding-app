@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Home, Sparkles, AlertCircle, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '../contexts/ConfirmDialogContext';
 import AccommodationList from '../components/accommodations/AccommodationList';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
 import EditAccommodationModal from '../components/accommodations/EditAccommodationModal';
@@ -10,6 +11,7 @@ import ErrorModal from '../components/common/ErrorModal';
 
 const AccommodationsPage = () => {
     const { t } = useTranslation();
+    const { confirm } = useConfirm();
     const [accommodations, setAccommodations] = useState([]);
     const [unassignedInvitations, setUnassignedInvitations] = useState([]);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -69,7 +71,16 @@ const AccommodationsPage = () => {
     };
 
     const handleDelete = async (id) => {
-        if (!window.confirm(t('admin.accommodations.alerts.delete_confirm'))) return;
+        const isConfirmed = await confirm({
+            title: t('admin.accommodations.alerts.delete_title'),
+            message: t('admin.accommodations.alerts.delete_confirm'),
+            confirmText: t('common.delete'),
+            cancelText: t('common.cancel'),
+            isDangerous: true
+        });
+        
+        if (!isConfirmed) return;
+        
         try {
             await api.deleteAccommodation(id);
             setSuccessMsg(t('admin.accommodations.success.deleted'));
