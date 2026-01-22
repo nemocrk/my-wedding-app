@@ -4,15 +4,20 @@ import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InteractionsModal from '../components/analytics/InteractionsModal';
 import ConfirmationModal from '../components/common/ConfirmationModal';
+import Tooltip from '../components/common/Tooltip';
 import BulkLabelModal from '../components/invitations/BulkLabelModal';
 import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
+import { useConfirm } from '../contexts/ConfirmDialogContext';
+import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 
 const InvitationList = () => {
   const { t } = useTranslation();
+  const toast = useToast();
+  const { confirm } = useConfirm();
   const [invitations, setInvitations] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -87,7 +92,7 @@ const InvitationList = () => {
   useEffect(() => {
     fetchLabels();
     fetchInvitations();
-  }, [activeLabelFilter, activeStatusFilter]); // Refetch on filter change
+  }, [activeLabelFilter, activeStatusFilter]);
 
   // Debounced search
   useEffect(() => {
@@ -161,9 +166,6 @@ const InvitationList = () => {
     try {
       await api.verifyContact(invitation.id);
       await fetchInvitations();
-    } catch (error) {
-      console.error('Failed to verify contact', error);
-      alert(t('admin.invitations.alerts.verify_failed'));
     } finally {
       setVerifyingSingleFor(null);
     }
@@ -177,17 +179,13 @@ const InvitationList = () => {
       await Promise.all(promises);
       await fetchInvitations();
       setSelectedIds([]);
-      alert(t('admin.invitations.alerts.bulk_verify_complete', { count: selectedIds.length }));
-    } catch (error) {
-      console.error('Bulk verify failed', error);
-      alert(t('admin.invitations.alerts.bulk_verify_failed'));
+      toast.success(t('admin.invitations.alerts.bulk_verify_complete', { count: selectedIds.length }));
     } finally {
       setVerifyingContacts(false);
     }
   };
 
   const handleBulkSendInvitations = () => {
-    // Opens the confirmation modal for bulk sending invitations
     if (selectedIds.length === 0) return;
     setIsBulkSendModalOpen(true);
   };
@@ -197,7 +195,7 @@ const InvitationList = () => {
     setIsBulkLabelModalOpen(true);
   };
 
-  const handleWABulkSend = () => {
+  const handleWABulkSend = async () => {
     if (openingWABulk || isWAModalOpen) return;
     setOpeningWABulk(true);
 
@@ -207,14 +205,18 @@ const InvitationList = () => {
       const invalidCount = selected.length - valid.length;
 
       if (valid.length === 0) {
-        alert(t('admin.invitations.alerts.no_valid_contacts'));
+        toast.warning(t('admin.invitations.alerts.no_valid_contacts'));
         return;
       }
 
       if (invalidCount > 0) {
-        if (!window.confirm(t('admin.invitations.alerts.some_invalid', { count: invalidCount, total: selected.length }))) {
-          return;
-        }
+        const isConfirmed = await confirm({
+          title: t('admin.invitations.confirmation.title'),
+          message: t('admin.invitations.alerts.some_invalid', { count: invalidCount, total: selected.length }),
+          confirmText: t('common.confirm'),
+          cancelText: t('common.cancel'),
+        });
+        if (!isConfirmed) return;
       }
 
       setWaRecipients(valid);
@@ -232,7 +234,7 @@ const InvitationList = () => {
 
     try {
       if (!isContactValid(invitation)) {
-        alert(t('admin.invitations.alerts.invalid_contact'));
+        toast.warning(t('admin.invitations.alerts.invalid_contact'));
         return;
       }
 
@@ -438,7 +440,6 @@ const InvitationList = () => {
               {t('admin.invitations.buttons.manage_labels')}
             </button>
 
-            {/* PULSANTE BULK SEND INVITATIONS */}
             <button
               onClick={handleBulkSendInvitations}
               className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
@@ -532,15 +533,16 @@ const InvitationList = () => {
                       </td>
                       <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <span className="text-2xl mr-2" title={invitation.origin === 'bride' ? t('admin.invitations.origin.bride') : t('admin.invitations.origin.groom')}>
-                            {invitation.origin === 'bride' ? '👰' : '🤵'}
-                          </span>
+                          <Tooltip content={invitation.origin === 'bride' ? t('admin.invitations.origin.bride') : t('admin.invitations.origin.groom')} position="top">
+                            <span className="text-2xl mr-2">
+                              {invitation.origin === 'bride' ? '👰' : '🤵'}
+                            </span>
+                          </Tooltip>
                           <div>
                             <div className="text-sm font-bold text-gray-900">{invitation.name}</div>
                             <code className="text-xs text-pink-600 font-mono bg-gray-100 px-1 rounded border border-gray-200">
                               {invitation.code}
                             </code>
-                            {/* LABELS BADGES */}
                             {invitation.labels && invitation.labels.length > 0 && (
                               <div className="flex flex-wrap gap-1 mt-1">
                                 {invitation.labels.map(label => (
@@ -561,15 +563,15 @@ const InvitationList = () => {
                       <td className="px-6 py-4">
                         {invitation.phone_number ? (
                           <div className="flex items-center">
-                            <button
-                              onClick={() => handleVerifyContact(invitation)}
-                              disabled={isVerifying || invitation.contact_verified === 'ok'}
-                              className={`p-1.5 rounded-full mr-2 transition-all ${verifyInfo.color} ${invitation.contact_verified !== 'ok' ? 'hover:scale-110 cursor-pointer shadow-sm hover:shadow' : 'cursor-default'
-                                }`}
-                              title={isVerifying ? t('admin.invitations.verification.verifying') : `${verifyInfo.title} - ${t('admin.invitations.verification.click_to_verify')}`}
-                            >
-                              {isVerifying ? <Loader size={14} className="animate-spin" /> : verifyInfo.icon}
-                            </button>
+                            <Tooltip content={isVerifying ? t('admin.invitations.verification.verifying') : `${verifyInfo.title} - ${t('admin.invitations.verification.click_to_verify')}`} position="top">
+                              <button
+                                onClick={() => handleVerifyContact(invitation)}
+                                disabled={isVerifying || invitation.contact_verified === 'ok'}
+                                className={`p-1.5 rounded-full mr-2 transition-all ${verifyInfo.color} ${invitation.contact_verified !== 'ok' ? 'hover:scale-110 cursor-pointer shadow-sm hover:shadow' : 'cursor-default'}`}
+                              >
+                                {isVerifying ? <Loader size={14} className="animate-spin" /> : verifyInfo.icon}
+                              </button>
+                            </Tooltip>
                             <span className="text-sm text-gray-600 font-mono">{invitation.phone_number}</span>
                           </div>
                         ) : (
@@ -588,18 +590,14 @@ const InvitationList = () => {
                                 ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
                                 : guest.is_child
                                   ? 'bg-pink-50 text-pink-700 border-pink-100'
-                                  : 'bg-slate-50 text-slate-700 border-slate-200'
-                                }`}
+                                  : 'bg-slate-50 text-slate-700 border-slate-200'}`}
                             >
                               {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
                               {guest.first_name}
-                              {/* Alert intolleranze */}
                               {guest.dietary_requirements && (
-                                <Utensils
-                                  size={12}
-                                  className="ml-1 text-red-500 cursor-help"
-                                  title={guest.dietary_requirements}
-                                />
+                                <Tooltip content={guest.dietary_requirements} position="top">
+                                  <Utensils size={12} className="ml-1 text-red-500 cursor-help" />
+                                </Tooltip>
                               )}
                             </span>
                           ))}
@@ -648,105 +646,79 @@ const InvitationList = () => {
                         <div className="flex justify-end space-x-2">
 
                           {invitation.status === 'created' && (
-                            <button
-                              onClick={() => handleMarkAsSent(invitation.id)}
-                              disabled={markingSentFor === invitation.id}
-                              className={`p-1.5 rounded-md transition-colors ${markingSentFor === invitation.id
-                                ? 'bg-yellow-50 text-yellow-600 cursor-wait'
-                                : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                                }`}
-                              title={t('admin.invitations.actions.send')}
-                            >
-                              {markingSentFor === invitation.id ? (
-                                <Loader size={18} className="animate-spin" />
-                              ) : (
-                                <Send size={18} />
-                              )}
-                            </button>
+                            <Tooltip content={t('admin.invitations.actions.send')} position="top">
+                              <button
+                                onClick={() => handleMarkAsSent(invitation.id)}
+                                disabled={markingSentFor === invitation.id}
+                                className={`p-1.5 rounded-md transition-colors ${markingSentFor === invitation.id ? 'bg-yellow-50 text-yellow-600 cursor-wait' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                              >
+                                {markingSentFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
+                              </button>
+                            </Tooltip>
                           )}
 
-                          <button
-                            onClick={() => handleSingleSend(invitation)}
-                            disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
-                            className={`p-1.5 rounded-md transition-colors ${!isContactValid(invitation)
-                              ? 'text-gray-300 cursor-not-allowed'
-                              : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                              }`}
-                            title={isContactValid(invitation) ? t('admin.invitations.actions.send_whatsapp') : t('admin.invitations.actions.contact_missing')}
-                          >
-                            {openingWASingleFor === invitation.id ? (
-                              <Loader size={18} className="animate-spin" />
-                            ) : (
-                              <MessageCircle size={18} />
-                            )}
-                          </button>
+                          <Tooltip content={isContactValid(invitation) ? t('admin.invitations.actions.send_whatsapp') : t('admin.invitations.actions.contact_missing')} position="top">
+                            <button
+                              onClick={() => handleSingleSend(invitation)}
+                              disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
+                              className={`p-1.5 rounded-md transition-colors ${!isContactValid(invitation) ? 'text-gray-300 cursor-not-allowed' : 'text-gray-400 hover:text-green-600 hover:bg-green-50'}`}
+                            >
+                              {openingWASingleFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <MessageCircle size={18} />}
+                            </button>
+                          </Tooltip>
 
                           {!['imported', 'created', 'sent'].includes(invitation.status) && (
-                            <button
-                              onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
-                              className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                              title={t('admin.invitations.actions.interaction_log')}
-                            >
-                              <Activity size={18} />
-                            </button>
+                            <Tooltip content={t('admin.invitations.actions.interaction_log')} position="top">
+                              <button
+                                onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
+                                className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                              >
+                                <Activity size={18} />
+                              </button>
+                            </Tooltip>
                           )}
 
                           {!['imported', 'created'].includes(invitation.status) && (
-                            <div className="relative">
+                            <Tooltip content={generatedLink?.id === invitation.id ? t('admin.invitations.actions.link_copied') : t('admin.invitations.actions.copy_link')} position="top">
                               <button
                                 onClick={() => handleGenerateLink(invitation.id)}
-                                className={`p-1.5 rounded-md transition-all ${generatedLink?.id === invitation.id
-                                  ? 'bg-green-100 text-green-700'
-                                  : generatingLinkFor === invitation.id
-                                    ? 'bg-yellow-50 text-yellow-600 cursor-wait'
-                                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                                  }`}
-                                title={generatedLink?.id === invitation.id ? t('admin.invitations.actions.link_copied') : t('admin.invitations.actions.copy_link')}
+                                className={`p-1.5 rounded-md transition-all ${generatedLink?.id === invitation.id ? 'bg-green-100 text-green-700' : generatingLinkFor === invitation.id ? 'bg-yellow-50 text-yellow-600 cursor-wait' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
                                 disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
                               >
-                                {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
-                                  <Loader size={18} className="animate-spin" />
-                                ) : generatedLink?.id === invitation.id ? (
-                                  <CheckCircle size={18} />
-                                ) : (
-                                  <Copy size={18} />
-                                )}
+                                {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? <Loader size={18} className="animate-spin" /> : generatedLink?.id === invitation.id ? <CheckCircle size={18} /> : <Copy size={18} />}
                               </button>
-                            </div>
+                            </Tooltip>
                           )}
 
                           {!['imported', 'created'].includes(invitation.status) && (
-                            <button
-                              onClick={() => handleOpenPreview(invitation.id)}
-                              className={`p-1.5 rounded-md transition-colors ${openingPreviewFor === invitation.id
-                                ? 'bg-yellow-50 text-yellow-600 cursor-wait'
-                                : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'
-                                }`}
-                              title={t('admin.invitations.actions.preview')}
-                              disabled={openingPreviewFor === invitation.id}
-                            >
-                              {openingPreviewFor === invitation.id ? (
-                                <Loader size={18} className="animate-spin" />
-                              ) : (
-                                <ExternalLink size={18} />
-                              )}
-                            </button>
+                            <Tooltip content={t('admin.invitations.actions.preview')} position="top">
+                              <button
+                                onClick={() => handleOpenPreview(invitation.id)}
+                                className={`p-1.5 rounded-md transition-colors ${openingPreviewFor === invitation.id ? 'bg-yellow-50 text-yellow-600 cursor-wait' : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'}`}
+                                disabled={openingPreviewFor === invitation.id}
+                              >
+                                {openingPreviewFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <ExternalLink size={18} />}
+                              </button>
+                            </Tooltip>
                           )}
 
-                          <button
-                            onClick={() => handleEdit(invitation.id)}
-                            className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                            title={t('admin.invitations.actions.edit')}
-                          >
-                            <Edit2 size={18} />
-                          </button>
-                          <button
-                            onClick={() => handleDeleteClick(invitation.id)}
-                            className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                            title={t('admin.invitations.actions.delete')}
-                          >
-                            <Trash2 size={18} />
-                          </button>
+                          <Tooltip content={t('admin.invitations.actions.edit')} position="top">
+                            <button
+                              onClick={() => handleEdit(invitation.id)}
+                              className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            >
+                              <Edit2 size={18} />
+                            </button>
+                          </Tooltip>
+
+                          <Tooltip content={t('admin.invitations.actions.delete')} position="top">
+                            <button
+                              onClick={() => handleDeleteClick(invitation.id)}
+                              className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            >
+                              <Trash2 size={18} />
+                            </button>
+                          </Tooltip>
                         </div>
                       </td>
                     </tr>
@@ -780,10 +752,7 @@ const InvitationList = () => {
             return (
               <div
                 key={invitation.id}
-                className={`bg-white p-4 rounded-xl shadow-sm border ${selectedIds.includes(invitation.id)
-                  ? 'border-pink-500 ring-2 ring-pink-500'
-                  : 'border-gray-200'
-                  }`}
+                className={`bg-white p-4 rounded-xl shadow-sm border ${selectedIds.includes(invitation.id) ? 'border-pink-500 ring-2 ring-pink-500' : 'border-gray-200'}`}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
@@ -799,7 +768,6 @@ const InvitationList = () => {
                         <span className="text-lg">{invitation.origin === 'bride' ? '👰' : '🤵'}</span>
                       </div>
                       <div className="text-xs text-gray-500 font-mono">{invitation.code}</div>
-                      {/* MOBILE LABELS */}
                       {invitation.labels && invitation.labels.length > 0 && (
                         <div className="flex flex-wrap gap-1 mt-1">
                           {invitation.labels.map(label => (
@@ -842,13 +810,7 @@ const InvitationList = () => {
                       >
                         {g.is_child ? <Baby size={10} className="mr-1" /> : <User size={10} className="mr-1" />}
                         {g.first_name}
-                        {/* Alert intolleranze mobile */}
-                        {g.dietary_requirements && (
-                          <Utensils
-                            size={10}
-                            className="ml-1 text-red-500"
-                          />
-                        )}
+                        {g.dietary_requirements && <Utensils size={10} className="ml-1 text-red-500" />}
                       </span>
                     ))}
                   </div>
@@ -876,28 +838,16 @@ const InvitationList = () => {
                         onClick={() => handleMarkAsSent(invitation.id)}
                         disabled={markingSentFor === invitation.id}
                         className="p-2 rounded-lg transition-colors bg-blue-50 text-blue-600 hover:bg-blue-100"
-                        title={t('admin.invitations.actions.send')}
                       >
-                        {markingSentFor === invitation.id ? (
-                          <Loader size={18} className="animate-spin" />
-                        ) : (
-                          <Send size={18} />
-                        )}
+                        {markingSentFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <Send size={18} />}
                       </button>
                     )}
                     <button
                       onClick={() => handleSingleSend(invitation)}
                       disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
-                      className={`p-2 rounded-lg transition-colors ${!isContactValid(invitation)
-                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                        : 'bg-green-50 text-green-600 hover:bg-green-100'
-                        }`}
+                      className={`p-2 rounded-lg transition-colors ${!isContactValid(invitation) ? 'bg-gray-100 text-gray-300 cursor-not-allowed' : 'bg-green-50 text-green-600 hover:bg-green-100'}`}
                     >
-                      {openingWASingleFor === invitation.id ? (
-                        <Loader size={18} className="animate-spin" />
-                      ) : (
-                        <MessageCircle size={18} />
-                      )}
+                      {openingWASingleFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <MessageCircle size={18} />}
                     </button>
                     {!['imported', 'created'].includes(invitation.status) && (
                       <button
@@ -905,13 +855,7 @@ const InvitationList = () => {
                         disabled={generatingLinkFor === invitation.id}
                         className="p-2 bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100"
                       >
-                        {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
-                          <Loader size={18} className="animate-spin" />
-                        ) : generatedLink?.id === invitation.id ? (
-                          <CheckCircle size={18} />
-                        ) : (
-                          <Copy size={18} />
-                        )}
+                        {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? <Loader size={18} className="animate-spin" /> : generatedLink?.id === invitation.id ? <CheckCircle size={18} /> : <Copy size={18} />}
                       </button>
                     )}
                     {!['imported', 'created'].includes(invitation.status) && (
