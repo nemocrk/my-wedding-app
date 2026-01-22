@@ -4,9 +4,11 @@ import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ErrorModal from '../components/common/ErrorModal';
+import { useToast } from '../contexts/ToastContext';
 
 const LabelManager = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [labels, setLabels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -85,7 +87,7 @@ const LabelManager = () => {
       fetchLabels();
     } catch (error) {
       console.error('Save failed', error);
-      alert(t('common.error_occurred'));
+      toast.error(t('common.error_occurred'));
     } finally {
       setSaving(false);
     }
