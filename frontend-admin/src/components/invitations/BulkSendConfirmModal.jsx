@@ -3,9 +3,11 @@ import React, { useState, useMemo } from 'react';
 import { X, Send, CheckCircle, AlertCircle, Phone, ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../../services/api';
+import { useToast } from '../../contexts/ToastContext';
 
 const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuccess }) => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [isSending, setIsSending] = useState(false);
 
   // Filter selected invitations
@@ -58,7 +60,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
     } catch (error) {
       console.error("Bulk send failed", error);
       setIsSending(false);
-      alert(t('admin.invitations.alerts.bulk_send_failed'));
+      toast.error(t('admin.invitations.alerts.bulk_send_failed'));
     }
   };
 
