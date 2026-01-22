@@ -227,7 +227,7 @@ docker-compose exec backend pytest whatsapp/tests.py::TestWhatsAppWorker -v
 - Event persistence
 - API endpoints (status, queue, events)
 
-### Frontend (Jest/RTL)
+### Frontend (Vitest/RTL)
 
 ```bash
 cd frontend-admin

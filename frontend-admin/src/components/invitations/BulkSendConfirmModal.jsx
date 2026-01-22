@@ -1,9 +1,9 @@
 // frontend-admin/src/components/invitations/BulkSendConfirmModal.jsx
-import React, { useState, useMemo } from 'react';
-import { X, Send, CheckCircle, AlertCircle, Phone, ArrowRight } from 'lucide-react';
+import { AlertCircle, CheckCircle, Phone, Send, X } from 'lucide-react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../../services/api';
 import { useToast } from '../../contexts/ToastContext';
+import { api } from '../../services/api';
 
 const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuccess }) => {
   const { t } = useTranslation();
@@ -19,7 +19,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
   const { valid, invalid } = useMemo(() => {
     const valid = [];
     const invalid = [];
-    
+
     selectedInvitations.forEach(inv => {
       // Logic: Contact is valid if it has a phone number
       // We might also check if it's already sent, but the API handles idempotency usually.
@@ -30,18 +30,18 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
         invalid.push(inv);
       }
     });
-    
+
     return { valid, invalid };
   }, [selectedInvitations]);
 
   const handleConfirm = async () => {
     if (isSending) return;
     setIsSending(true);
-    
+
     try {
       // Only send valid IDs to the API
       const validIds = valid.map(inv => inv.id);
-      
+
       if (validIds.length === 0) {
         // Should not happen due to button disabled state, but safety first
         onClose();
@@ -49,18 +49,17 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
       }
 
       await api.bulkSendInvitations(validIds);
-      
+
       // Artificial delay for UX
       setTimeout(() => {
         setIsSending(false);
         onSuccess();
         onClose();
       }, 500);
-      
+
     } catch (error) {
       console.error("Bulk send failed", error);
       setIsSending(false);
-      toast.error(t('admin.invitations.alerts.bulk_send_failed'));
     }
   };
 
@@ -95,7 +94,7 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
 
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6">
-          
+
           {/* Stats Grid */}
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-green-50 border border-green-200 rounded-lg p-4">
@@ -163,10 +162,10 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
               </div>
             </div>
           ) : (
-             <div className="text-center py-8 text-gray-500">
-                <AlertCircle size={48} className="mx-auto text-gray-300 mb-2" />
-                <p>{t('admin.invitations.bulk_send_confirm.no_valid_contacts')}</p>
-             </div>
+            <div className="text-center py-8 text-gray-500">
+              <AlertCircle size={48} className="mx-auto text-gray-300 mb-2" />
+              <p>{t('admin.invitations.bulk_send_confirm.no_valid_contacts')}</p>
+            </div>
           )}
         </div>
 
@@ -184,8 +183,8 @@ const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuc
               onClick={handleConfirm}
               disabled={valid.length === 0 || isSending}
               className={`px-6 py-2.5 rounded-lg font-medium transition-all flex items-center justify-center text-white shadow-sm
-                ${valid.length === 0 || isSending 
-                  ? 'bg-blue-400 cursor-not-allowed' 
+                ${valid.length === 0 || isSending
+                  ? 'bg-blue-400 cursor-not-allowed'
                   : 'bg-blue-600 hover:bg-blue-700 hover:shadow-md'
                 }`}
             >

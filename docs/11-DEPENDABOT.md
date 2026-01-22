@@ -87,7 +87,7 @@ Ogni PR Dependabot esegue automaticamente:
 
 1. **Linting**: ESLint (frontend), Flake8/Black (backend)
 2. **Type Checking**: TypeScript (frontend)
-3. **Unit Tests**: pytest (backend), Jest/RTL (frontend)
+3. **Unit Tests**: pytest (backend), Vitest/RTL (frontend)
 4. **E2E Tests**: Playwright su stack Docker completo
 5. **Build Verification**: Docker build di tutte le immagini
 

@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Tag, X, Save } from 'lucide-react';
+import { Edit2, Plus, Save, Tag, Trash2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { api } from '../services/api';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import ErrorModal from '../components/common/ErrorModal';
 import { useToast } from '../contexts/ToastContext';
+import { api } from '../services/api';
 
 const LabelManager = () => {
   const { t } = useTranslation();
@@ -13,7 +12,7 @@ const LabelManager = () => {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLabel, setEditingLabel] = useState(null);
-  
+
   // Delete handling
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState(null);
@@ -24,8 +23,8 @@ const LabelManager = () => {
 
   // Predefined colors
   const colorPalette = [
-    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981', 
-    '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899', 
+    '#EF4444', '#F97316', '#F59E0B', '#84CC16', '#10B981',
+    '#06B6D4', '#3B82F6', '#6366F1', '#8B5CF6', '#EC4899',
     '#64748B', '#000000'
   ];
 
@@ -85,9 +84,6 @@ const LabelManager = () => {
       }
       setIsModalOpen(false);
       fetchLabels();
-    } catch (error) {
-      console.error('Save failed', error);
-      toast.error(t('common.error_occurred'));
     } finally {
       setSaving(false);
     }
@@ -112,7 +108,7 @@ const LabelManager = () => {
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-600 mx-auto"></div>
           </div>
         ) : labels.length === 0 ? (
           <div className="p-12 text-center text-gray-500">
@@ -128,13 +124,13 @@ const LabelManager = () => {
                     {t('admin.labels.table.preview')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                     {t('admin.labels.table.name')}
+                    {t('admin.labels.table.name')}
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                     {t('admin.labels.table.color')}
+                    {t('admin.labels.table.color')}
                   </th>
                   <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                     {t('admin.labels.table.actions')}
+                    {t('admin.labels.table.actions')}
                   </th>
                 </tr>
               </thead>
@@ -142,7 +138,7 @@ const LabelManager = () => {
                 {labels.map((label) => (
                   <tr key={label.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-6 py-4">
-                      <span 
+                      <span
                         className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-sm"
                         style={{ backgroundColor: label.color }}
                       >
@@ -190,7 +186,7 @@ const LabelManager = () => {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1" for="nome-label">
@@ -201,7 +197,7 @@ const LabelManager = () => {
                   type="text"
                   required
                   value={formData.name}
-                  onChange={(e) => setFormData({...formData, name: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 outline-none"
                   placeholder="es. VIP, Colleghi..."
                 />
@@ -209,14 +205,14 @@ const LabelManager = () => {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                   {t('admin.labels.form.color')}
+                  {t('admin.labels.form.color')}
                 </label>
                 <div className="flex flex-wrap gap-2 mb-3">
                   {colorPalette.map(c => (
                     <button
                       key={c}
                       type="button"
-                      onClick={() => setFormData({...formData, color: c})}
+                      onClick={() => setFormData({ ...formData, color: c })}
                       className={`w-8 h-8 rounded-full border-2 transition-transform hover:scale-110 ${formData.color === c ? 'border-gray-900 scale-110' : 'border-transparent'}`}
                       style={{ backgroundColor: c }}
                     />
@@ -226,13 +222,13 @@ const LabelManager = () => {
                   <input
                     type="color"
                     value={formData.color}
-                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="h-9 w-14 p-0 border-0 rounded cursor-pointer"
                   />
                   <input
                     type="text"
                     value={formData.color}
-                    onChange={(e) => setFormData({...formData, color: e.target.value})}
+                    onChange={(e) => setFormData({ ...formData, color: e.target.value })}
                     className="flex-1 px-4 py-2 border border-gray-300 rounded-lg font-mono text-sm uppercase"
                     maxLength={7}
                   />
@@ -245,7 +241,7 @@ const LabelManager = () => {
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg transition-colors"
                 >
-                   {t('common.cancel')}
+                  {t('common.cancel')}
                 </button>
                 <button
                   type="submit"

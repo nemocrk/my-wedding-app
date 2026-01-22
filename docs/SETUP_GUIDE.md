@@ -413,7 +413,7 @@ docker-compose exec backend python manage.py collectstatic --noinput
 # Installa dipendenze (già fatto in build)
 docker-compose exec frontend-user npm install
 
-# Esegui test Jest
+# Esegui test Vitest
 docker-compose exec frontend-user npm test
 
 # Lint codice
