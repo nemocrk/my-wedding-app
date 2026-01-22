@@ -1,11 +1,12 @@
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { vi, describe, it, expect, beforeEach } from 'vitest';
 import Tooltip from '../components/common/Tooltip';
 
 describe('Tooltip Component', () => {
   beforeEach(() => {
     // Mock getBoundingClientRect for position calculations
-    Element.prototype.getBoundingClientRect = jest.fn(() => ({
+    Element.prototype.getBoundingClientRect = vi.fn(() => ({
       left: 100,
       top: 100,
       right: 150,
