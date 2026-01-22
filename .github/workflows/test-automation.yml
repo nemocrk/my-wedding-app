@@ -197,17 +197,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # BAKE WITH EXPLICIT IMAGE TAGS
-      # Using docker-bake.hcl ensures images get proper tags that docker compose can reference
+      # BAKE WITH EXPLICIT IMAGE TAGS & SCOPED CACHE (Defined in docker-bake.hcl)
       - name: 🍰 Bake services with GHA Cache
-        uses: docker/bake-action@v6.9.0
+        uses: docker/bake-action@v6
         with:
           source: .
           files: docker-bake.hcl
           load: true
-          set: |
-            *.cache-from=type=gha
-            *.cache-to=type=gha,mode=max
+          # REMOVED GENERIC SET BLOCK to allow docker-bake.hcl specific scopes to take precedence
 
       # Pre-requisite for E2E: Stack must be up
       # Note: We use --no-build because we just baked the images with cache
