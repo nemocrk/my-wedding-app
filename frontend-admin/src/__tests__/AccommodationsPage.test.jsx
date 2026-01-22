@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '../test-utils';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import AccommodationsPage from '../pages/AccommodationsPage';
 import { api } from '../services/api';
@@ -120,23 +120,27 @@ describe('AccommodationsPage', () => {
     });
   });
 
-  it('handles delete workflow', async () => {
+  it('handles delete workflow with confirm dialog', async () => {
     render(<AccommodationsPage />);
     await waitFor(() => screen.getByTestId('acc-item-1'));
     
-    // Mock confirm
-    const confirmSpy = vi.spyOn(window, 'confirm').mockImplementation(() => true);
     api.deleteAccommodation.mockResolvedValue({});
     
+    // Click delete button
     fireEvent.click(screen.getByText('Delete'));
     
+    // Wait for ConfirmDialog to appear
     await waitFor(() => {
-        expect(confirmSpy).toHaveBeenCalled();
+      expect(screen.getByText('Elimina')).toBeInTheDocument(); // Confirm button in dialog
+    });
+    
+    // Click confirm in dialog
+    fireEvent.click(screen.getByText('Elimina'));
+    
+    await waitFor(() => {
         expect(api.deleteAccommodation).toHaveBeenCalledWith(1);
         expect(screen.getByText('Alloggio eliminato')).toBeInTheDocument();
     });
-    
-    confirmSpy.mockRestore();
   });
 
   it('handles pin toggling', async () => {
