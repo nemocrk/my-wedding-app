@@ -10,6 +10,7 @@ import LabelManager from './pages/LabelManager';
 import ErrorModal from './components/common/ErrorModal';
 import useApiErrorModal from './hooks/useApiErrorModal';
 import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext';
+import { ToastProvider } from './contexts/ToastContext';
 import './App.css';
 
 function App() {
@@ -17,27 +18,29 @@ function App() {
 
   return (
     <ConfirmDialogProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
-          <ErrorModal 
-            isOpen={isOpen} 
-            onClose={clearError} 
-            errorDetails={error?.message || error?.detail || error} 
-          />
-          
-          <Routes>
-            <Route path="/" element={<Layout />}>
-              <Route index element={<Navigate to="/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="invitations" element={<InvitationList />} />
-              <Route path="accommodations" element={<AccommodationsPage />} />
-              <Route path="labels" element={<LabelManager />} /> 
-              <Route path="config" element={<Configuration />} />
-              <Route path="whatsapp" element={<WhatsAppConfig />} />
-            </Route>
-          </Routes>
-        </div>
-      </Router>
+      <ToastProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
+            <ErrorModal 
+              isOpen={isOpen} 
+              onClose={clearError} 
+              errorDetails={error?.message || error?.detail || error} 
+            />
+            
+            <Routes>
+              <Route path="/" element={<Layout />}>
+                <Route index element={<Navigate to="/dashboard" replace />} />
+                <Route path="dashboard" element={<Dashboard />} />
+                <Route path="invitations" element={<InvitationList />} />
+                <Route path="accommodations" element={<AccommodationsPage />} />
+                <Route path="labels" element={<LabelManager />} /> 
+                <Route path="config" element={<Configuration />} />
+                <Route path="whatsapp" element={<WhatsAppConfig />} />
+              </Route>
+            </Routes>
+          </div>
+        </Router>
+      </ToastProvider>
     </ConfirmDialogProvider>
   );
 }
