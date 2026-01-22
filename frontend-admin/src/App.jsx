@@ -16,8 +16,8 @@ function App() {
   const { error, clearError, isOpen } = useApiErrorModal();
 
   return (
-    <ConfirmDialogProvider>
-      <Router>
+    <Router>
+      <ConfirmDialogProvider>
         <div className="min-h-screen bg-gray-100 font-sans text-gray-900">
           <ErrorModal 
             isOpen={isOpen} 
@@ -37,8 +37,8 @@ function App() {
             </Route>
           </Routes>
         </div>
-      </Router>
-    </ConfirmDialogProvider>
+      </ConfirmDialogProvider>
+    </Router>
   );
 }
 
