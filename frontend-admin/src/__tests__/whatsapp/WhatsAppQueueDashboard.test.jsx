@@ -1,8 +1,7 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsAppQueueDashboard from '../../components/whatsapp/WhatsAppQueueDashboard';
 import { whatsappService } from '../../services/whatsappService';
+import { fireEvent, render, screen, waitFor } from '../../test-utils';
 
 // Mock del service
 vi.mock('../../services/whatsappService', () => ({
@@ -78,7 +77,7 @@ describe('WhatsAppQueueDashboard', () => {
 
   it('shows empty state when no messages', async () => {
     whatsappService.getQueue.mockResolvedValueOnce({ results: [] });
-    
+
     render(<WhatsAppQueueDashboard />);
 
     await waitFor(() => expect(screen.getByText('Nessun messaggio in coda.')).toBeInTheDocument());
