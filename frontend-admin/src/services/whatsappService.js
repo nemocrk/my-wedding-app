@@ -1,5 +1,11 @@
 const API_BASE_URL = 'api/admin';
 
+// Global error event emitter (consistent with api.js)
+const triggerGlobalError = (error) => {
+  const event = new CustomEvent('api-error', { detail: error });
+  window.dispatchEvent(event);
+};
+
 const handleResponse = async (response) => {
   let data;
   const contentType = response.headers.get("content-type");
@@ -11,10 +17,25 @@ const handleResponse = async (response) => {
 
   if (!response.ok) {
     const errorMessage = data.detail || data.error || data.name || JSON.stringify(data) || `Errore ${response.status}: ${response.statusText}`;
-    throw new Error(errorMessage);
+    const error = new Error(errorMessage);
+    error.status = response.status;
+    triggerGlobalError(error); // Emit global event
+    throw error;
   }
 
   return data;
+};
+
+// Wrapper per fetch con gestione network error
+const safeFetch = async (url, options) => {
+  try {
+    const response = await fetch(url, options);
+    return response;
+  } catch (err) {
+    const error = new Error("Impossibile contattare il server. Controlla la tua connessione.");
+    triggerGlobalError(error); // Emit global event for network errors
+    throw error;
+  }
 };
 
 export const whatsappService = {
@@ -22,12 +43,12 @@ export const whatsappService = {
   getQueue: async (params = {}) => {
     const queryString = new URLSearchParams(params).toString();
     const url = `${API_BASE_URL}/whatsapp-queue/${queryString ? '?' + queryString : ''}`;
-    const response = await fetch(url);
+    const response = await safeFetch(url);
     return handleResponse(response);
   },
 
   updateMessage: async (id, data) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -36,7 +57,7 @@ export const whatsappService = {
   },
 
   deleteMessage: async (id) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/${id}/`, {
         method: 'DELETE',
     });
     if (response.status === 204) return true;
@@ -44,7 +65,7 @@ export const whatsappService = {
   },
 
   retryFailed: async () => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/retry-failed/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/retry-failed/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -52,7 +73,7 @@ export const whatsappService = {
   },
 
   forceSend: async (messageId) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp-queue/${messageId}/force-send/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-queue/${messageId}/force-send/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -60,18 +81,18 @@ export const whatsappService = {
   },
 
   getEvents: async (queueMessageId) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp-events/?queue_message=${queueMessageId}`);
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp-events/?queue_message=${queueMessageId}`);
     return handleResponse(response);
   },
 
   // Session Management
   getStatus: async (sessionType) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/status/`);
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${sessionType}/status/`);
     return handleResponse(response);
   },
 
   logout: async (sessionType) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/logout/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${sessionType}/logout/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
@@ -79,7 +100,7 @@ export const whatsappService = {
   },
 
   refresh: async (sessionType) => {
-    const response = await fetch(`${API_BASE_URL}/whatsapp/${sessionType}/refresh/`, {
+    const response = await safeFetch(`${API_BASE_URL}/whatsapp/${sessionType}/refresh/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
     });
