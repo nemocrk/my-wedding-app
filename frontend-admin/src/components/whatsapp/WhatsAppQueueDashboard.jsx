@@ -5,9 +5,12 @@ import QueueTable from './QueueTable';
 import EditMessageModal from './EditMessageModal';
 import { RefreshCw, Activity } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '../../hooks/useConfirm';
+import Tooltip from '../common/Tooltip';
 
 const WhatsAppQueueDashboard = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -36,22 +39,35 @@ const WhatsAppQueueDashboard = () => {
     try {
         await whatsappService.retryFailed();
         fetchQueue();
-    } catch (e) { alert(t('admin.whatsapp.dashboard.alert.retry_failed')); }
+    } catch (e) {
+        // Error handled by global error management
+    }
   };
 
   const handleForceSend = async (id) => {
     try {
         await whatsappService.forceSend(id);
         fetchQueue();
-    } catch (e) { alert(t('admin.whatsapp.dashboard.alert.force_failed')); }
+    } catch (e) {
+        // Error handled by global error management
+    }
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm(t('admin.whatsapp.dashboard.confirm.delete'))) {
-        try {
-            await whatsappService.deleteMessage(id);
-            setMessages(messages.filter(m => m.id !== id));
-        } catch (e) { alert(t('admin.whatsapp.dashboard.alert.delete_failed')); }
+    const confirmed = await confirm({
+        title: t('admin.whatsapp.dashboard.confirmation.delete_title'),
+        message: t('admin.whatsapp.dashboard.confirmation.delete_message'),
+        confirmText: t('common.delete'),
+        cancelText: t('common.cancel')
+    });
+    
+    if (!confirmed) return;
+    
+    try {
+        await whatsappService.deleteMessage(id);
+        setMessages(messages.filter(m => m.id !== id));
+    } catch (e) {
+        // Error handled by global error management
     }
   };
 
@@ -66,7 +82,9 @@ const WhatsAppQueueDashboard = () => {
         setIsEditModalOpen(false);
         setEditingMessage(null);
         fetchQueue();
-    } catch (e) { alert(t('admin.whatsapp.dashboard.alert.update_failed')); }
+    } catch (e) {
+        // Error handled by global error management
+    }
   };
 
   return (
@@ -81,13 +99,14 @@ const WhatsAppQueueDashboard = () => {
         </div>
         
         <div className="flex gap-2">
-            <button 
-               onClick={fetchQueue} 
-               className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
-               title={t('admin.whatsapp.dashboard.refresh_tooltip')}
-             >
-               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-             </button>
+            <Tooltip content={t('admin.whatsapp.dashboard.refresh_tooltip')}>
+                <button 
+                   onClick={fetchQueue} 
+                   className="p-2 border border-gray-300 rounded-md hover:bg-gray-50 text-gray-700"
+                 >
+                   <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                 </button>
+            </Tooltip>
             <button
                 onClick={handleRetry}
                 className="px-4 py-2 bg-indigo-600 text-white rounded-md text-sm font-medium hover:bg-indigo-700"
