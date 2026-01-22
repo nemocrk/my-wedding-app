@@ -1,14 +1,14 @@
 // frontend-admin/src/pages/InvitationList.jsx
-import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Users, ExternalLink, Baby, User, Home, Bus, CheckCircle, HelpCircle, XCircle, ArrowRight, Copy, Loader, Activity, Send, FileText, Eye, Phone, RefreshCw, MessageCircle, UserX, AlertCircle, Smartphone, Tag, Filter, Utensils } from 'lucide-react';
+import { Activity, AlertCircle, ArrowRight, Baby, Bus, CheckCircle, Copy, Edit2, ExternalLink, Eye, FileText, Filter, HelpCircle, Home, Loader, MessageCircle, Plus, RefreshCw, Send, Smartphone, Tag, Trash2, User, Users, UserX, Utensils, XCircle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import InteractionsModal from '../components/analytics/InteractionsModal';
+import ConfirmationModal from '../components/common/ConfirmationModal';
+import BulkLabelModal from '../components/invitations/BulkLabelModal';
+import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
 import PhonebookImportModal from '../components/invitations/PhonebookImportModal';
-import ConfirmationModal from '../components/common/ConfirmationModal';
-import InteractionsModal from '../components/analytics/InteractionsModal';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
-import BulkSendConfirmModal from '../components/invitations/BulkSendConfirmModal';
-import BulkLabelModal from '../components/invitations/BulkLabelModal';
 import { api } from '../services/api';
 
 const InvitationList = () => {
@@ -36,7 +36,7 @@ const InvitationList = () => {
   // WhatsApp Modal State
   const [isWAModalOpen, setIsWAModalOpen] = useState(false);
   const [waRecipients, setWaRecipients] = useState([]);
-  
+
   // Bulk Send Modal State
   const [isBulkSendModalOpen, setIsBulkSendModalOpen] = useState(false);
   const [isBulkLabelModalOpen, setIsBulkLabelModalOpen] = useState(false);
@@ -47,7 +47,7 @@ const InvitationList = () => {
   const [generatedLink, setGeneratedLink] = useState(null);
   const [markingSentFor, setMarkingSentFor] = useState(null);
   const [verifyingContacts, setVerifyingContacts] = useState(false);
-  
+
   // Single verification loading state
   const [verifyingSingleFor, setVerifyingSingleFor] = useState(null);
 
@@ -76,12 +76,12 @@ const InvitationList = () => {
   };
 
   const fetchLabels = async () => {
-      try {
-          const data = await api.fetchInvitationLabels();
-          setLabels(data.results || data);
-      } catch (error) {
-          console.error("Failed to load labels", error);
-      }
+    try {
+      const data = await api.fetchInvitationLabels();
+      setLabels(data.results || data);
+    } catch (error) {
+      console.error("Failed to load labels", error);
+    }
   };
 
   useEffect(() => {
@@ -91,12 +91,12 @@ const InvitationList = () => {
 
   // Debounced search
   useEffect(() => {
-      const delayDebounceFn = setTimeout(() => {
-          if (searchTerm !== '') {
-            fetchInvitations();
-          }
-      }, 500);
-      return () => clearTimeout(delayDebounceFn);
+    const delayDebounceFn = setTimeout(() => {
+      if (searchTerm !== '') {
+        fetchInvitations();
+      }
+    }, 500);
+    return () => clearTimeout(delayDebounceFn);
   }, [searchTerm]);
 
 
@@ -127,13 +127,13 @@ const InvitationList = () => {
     declined: { icon: XCircle, label: t('admin.invitations.status.declined'), color: 'bg-red-100 text-red-800' },
   };
   const getStatusBadge = (status) => {
-    
+
     const config = statusConfig[status] || { icon: HelpCircle, label: t('admin.invitations.status.unknown'), color: 'bg-gray-100 text-gray-600' };
     const Icon = config.icon;
-    
+
     return (
       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${config.color}`}>
-        <Icon size={12} className="mr-1"/> {config.label}
+        <Icon size={12} className="mr-1" /> {config.label}
       </span>
     );
   };
@@ -141,22 +141,22 @@ const InvitationList = () => {
   const isContactValid = (inv) => {
     return inv.phone_number && inv.phone_number.length > 5;
   };
-  
+
   const getVerificationIcon = (status) => {
     const verificationConfig = {
       ok: { icon: <CheckCircle size={14} />, color: 'bg-green-100 text-green-600', title: t('admin.invitations.verification.ok') },
       not_present: { icon: <UserX size={14} />, color: 'bg-yellow-100 text-yellow-600', title: t('admin.invitations.verification.not_present') },
       not_exist: { icon: <XCircle size={14} />, color: 'bg-red-100 text-red-600', title: t('admin.invitations.verification.not_exist') },
     };
-    
+
     return verificationConfig[status] || { icon: <AlertCircle size={14} />, color: 'bg-gray-100 text-gray-500', title: t('admin.invitations.verification.not_valid') };
   };
 
   // --- ACTIONS ---
-  
+
   const handleVerifyContact = async (invitation) => {
     if (invitation.contact_verified === 'ok' || verifyingSingleFor === invitation.id) return;
-    
+
     setVerifyingSingleFor(invitation.id);
     try {
       await api.verifyContact(invitation.id);
@@ -173,28 +173,28 @@ const InvitationList = () => {
   const handleBulkVerify = async () => {
     setVerifyingContacts(true);
     try {
-        const promises = selectedIds.map(id => api.verifyContact(id));
-        await Promise.all(promises);
-        await fetchInvitations();
-        setSelectedIds([]);
-        alert(t('admin.invitations.alerts.bulk_verify_complete', { count: selectedIds.length }));
+      const promises = selectedIds.map(id => api.verifyContact(id));
+      await Promise.all(promises);
+      await fetchInvitations();
+      setSelectedIds([]);
+      alert(t('admin.invitations.alerts.bulk_verify_complete', { count: selectedIds.length }));
     } catch (error) {
-        console.error('Bulk verify failed', error);
-        alert(t('admin.invitations.alerts.bulk_verify_failed'));
+      console.error('Bulk verify failed', error);
+      alert(t('admin.invitations.alerts.bulk_verify_failed'));
     } finally {
-        setVerifyingContacts(false);
+      setVerifyingContacts(false);
     }
   };
 
   const handleBulkSendInvitations = () => {
-      // Opens the confirmation modal for bulk sending invitations
-      if (selectedIds.length === 0) return;
-      setIsBulkSendModalOpen(true);
+    // Opens the confirmation modal for bulk sending invitations
+    if (selectedIds.length === 0) return;
+    setIsBulkSendModalOpen(true);
   };
 
   const handleBulkLabels = () => {
-      if (selectedIds.length === 0) return;
-      setIsBulkLabelModalOpen(true);
+    if (selectedIds.length === 0) return;
+    setIsBulkLabelModalOpen(true);
   };
 
   const handleWABulkSend = () => {
@@ -247,15 +247,15 @@ const InvitationList = () => {
     setSelectedIds([]);
     fetchInvitations();
   };
-  
+
   const handleBulkSendSuccess = () => {
-      setSelectedIds([]);
-      fetchInvitations();
+    setSelectedIds([]);
+    fetchInvitations();
   };
 
   const handleBulkLabelSuccess = () => {
-      setSelectedIds([]);
-      fetchInvitations();
+    setSelectedIds([]);
+    fetchInvitations();
   };
 
   // --- SINGLE ACTIONS ---
@@ -368,44 +368,44 @@ const InvitationList = () => {
 
       {/* FILTERS BAR */}
       <div className="bg-white p-4 rounded-lg shadow-sm border border-gray-100 mb-6 flex flex-wrap gap-4 items-center">
-          <div className="flex items-center text-gray-500">
-             <Filter size={18} className="mr-2" />
-             <span className="text-sm font-medium">{t('admin.invitations.filters.title')}:</span>
-          </div>
+        <div className="flex items-center text-gray-500">
+          <Filter size={18} className="mr-2" />
+          <span className="text-sm font-medium">{t('admin.invitations.filters.title')}:</span>
+        </div>
 
-          <input
-             type="text"
-             placeholder={t('admin.invitations.filters.search_placeholder')}
-             value={searchTerm}
-             onChange={(e) => setSearchTerm(e.target.value)}
-             className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none min-w-[200px]"
-          />
+        <input
+          type="text"
+          placeholder={t('admin.invitations.filters.search_placeholder')}
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none min-w-[200px]"
+        />
 
+        <select
+          value={activeStatusFilter}
+          onChange={(e) => setActiveStatusFilter(e.target.value)}
+          className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+        >
+          <option value="">{t('admin.invitations.filters.all_statuses')}</option>
+          <option value="created">{t('admin.invitations.status.created')}</option>
+          <option value="sent">{t('admin.invitations.status.sent')}</option>
+          <option value="read">{t('admin.invitations.status.read')}</option>
+          <option value="confirmed">{t('admin.invitations.status.confirmed')}</option>
+          <option value="declined">{t('admin.invitations.status.declined')}</option>
+        </select>
+
+        {labels.length > 0 && (
           <select
-              value={activeStatusFilter}
-              onChange={(e) => setActiveStatusFilter(e.target.value)}
-              className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
+            value={activeLabelFilter}
+            onChange={(e) => setActiveLabelFilter(e.target.value)}
+            className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
           >
-              <option value="">{t('admin.invitations.filters.all_statuses')}</option>
-              <option value="created">{t('admin.invitations.status.created')}</option>
-              <option value="sent">{t('admin.invitations.status.sent')}</option>
-              <option value="read">{t('admin.invitations.status.read')}</option>
-              <option value="confirmed">{t('admin.invitations.status.confirmed')}</option>
-              <option value="declined">{t('admin.invitations.status.declined')}</option>
+            <option value="">{t('admin.invitations.filters.all_labels')}</option>
+            {labels.map(l => (
+              <option key={l.id} value={l.id}>{l.name}</option>
+            ))}
           </select>
-
-          {labels.length > 0 && (
-             <select
-                value={activeLabelFilter}
-                onChange={(e) => setActiveLabelFilter(e.target.value)}
-                className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
-             >
-                <option value="">{t('admin.invitations.filters.all_labels')}</option>
-                {labels.map(l => (
-                    <option key={l.id} value={l.id}>{l.name}</option>
-                ))}
-             </select>
-          )}
+        )}
       </div>
 
       {/* BULK ACTION BAR */}
@@ -426,33 +426,33 @@ const InvitationList = () => {
               disabled={verifyingContacts}
               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
-              {verifyingContacts ? <Loader size={16} className="animate-spin mr-2"/> : <RefreshCw size={16} className="mr-2"/>}
+              {verifyingContacts ? <Loader size={16} className="animate-spin mr-2" /> : <RefreshCw size={16} className="mr-2" />}
               {t('admin.invitations.buttons.verify_contacts')}
             </button>
-            
+
             <button
-               onClick={handleBulkLabels}
-               className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
+              onClick={handleBulkLabels}
+              className="flex items-center px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm font-medium transition-colors"
             >
-               <Tag size={16} className="mr-2" />
-               {t('admin.invitations.buttons.manage_labels')}
+              <Tag size={16} className="mr-2" />
+              {t('admin.invitations.buttons.manage_labels')}
             </button>
 
-             {/* PULSANTE BULK SEND INVITATIONS */}
+            {/* PULSANTE BULK SEND INVITATIONS */}
             <button
-               onClick={handleBulkSendInvitations}
-               className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+              onClick={handleBulkSendInvitations}
+              className="flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
             >
-               <Send size={16} className="mr-2" />
-               {t('admin.invitations.buttons.send_invitations')}
+              <Send size={16} className="mr-2" />
+              {t('admin.invitations.buttons.send_invitations')}
             </button>
-            
+
             <button
               onClick={handleWABulkSend}
               disabled={openingWABulk}
               className="flex items-center px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
             >
-              {openingWABulk ? <Loader size={16} className="animate-spin mr-2"/> : <MessageCircle size={16} className="mr-2"/>}
+              {openingWABulk ? <Loader size={16} className="animate-spin mr-2" /> : <MessageCircle size={16} className="mr-2" />}
               {t('admin.invitations.buttons.send_whatsapp')}
             </button>
           </div>
@@ -516,247 +516,242 @@ const InvitationList = () => {
                 invitations.map((invitation) => {
                   const verifyInfo = getVerificationIcon(invitation.contact_verified);
                   const isVerifying = verifyingSingleFor === invitation.id;
-                  
+
                   return (
-                  <tr
-                    key={invitation.id}
-                    className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(invitation.id) ? 'bg-pink-50' : ''}`}
-                  >
-                    <td className="px-4 py-4">
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.includes(invitation.id)}
-                        onChange={() => toggleSelectOne(invitation.id)}
-                        className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
-                      />
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center">
-                        <span className="text-2xl mr-2" title={invitation.origin === 'bride' ? t('admin.invitations.origin.bride') : t('admin.invitations.origin.groom')}>
-                          {invitation.origin === 'bride' ? '👰' : '🤵'}
-                        </span>
-                        <div>
-                          <div className="text-sm font-bold text-gray-900">{invitation.name}</div>
-                          <code className="text-xs text-pink-600 font-mono bg-gray-100 px-1 rounded border border-gray-200">
-                            {invitation.code}
-                          </code>
-                          {/* LABELS BADGES */}
-                          {invitation.labels && invitation.labels.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {invitation.labels.map(label => (
-                                    <span 
-                                        key={label.id} 
-                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                                        style={{ backgroundColor: label.color }}
-                                    >
-                                        {label.name}
-                                    </span>
-                                ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4">
-                      {invitation.phone_number ? (
+                    <tr
+                      key={invitation.id}
+                      className={`hover:bg-gray-50 transition-colors ${selectedIds.includes(invitation.id) ? 'bg-pink-50' : ''}`}
+                    >
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedIds.includes(invitation.id)}
+                          onChange={() => toggleSelectOne(invitation.id)}
+                          className="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500"
+                        />
+                      </td>
+                      <td className="px-6 py-4">
                         <div className="flex items-center">
-                          <button
-                            onClick={() => handleVerifyContact(invitation)}
-                            disabled={isVerifying || invitation.contact_verified === 'ok'}
-                            className={`p-1.5 rounded-full mr-2 transition-all ${verifyInfo.color} ${
-                                invitation.contact_verified !== 'ok' ? 'hover:scale-110 cursor-pointer shadow-sm hover:shadow' : 'cursor-default'
-                            }`}
-                            title={isVerifying ? t('admin.invitations.verification.verifying') : `${verifyInfo.title} - ${t('admin.invitations.verification.click_to_verify')}`}
-                          >
-                             {isVerifying ? <Loader size={14} className="animate-spin" /> : verifyInfo.icon}
-                          </button>
-                          <span className="text-sm text-gray-600 font-mono">{invitation.phone_number}</span>
+                          <span className="text-2xl mr-2" title={invitation.origin === 'bride' ? t('admin.invitations.origin.bride') : t('admin.invitations.origin.groom')}>
+                            {invitation.origin === 'bride' ? '👰' : '🤵'}
+                          </span>
+                          <div>
+                            <div className="text-sm font-bold text-gray-900">{invitation.name}</div>
+                            <code className="text-xs text-pink-600 font-mono bg-gray-100 px-1 rounded border border-gray-200">
+                              {invitation.code}
+                            </code>
+                            {/* LABELS BADGES */}
+                            {invitation.labels && invitation.labels.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {invitation.labels.map(label => (
+                                  <span
+                                    key={label.id}
+                                    className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                                    style={{ backgroundColor: label.color }}
+                                  >
+                                    {label.name}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ) : (
-                        <span className="text-xs text-gray-400 italic flex items-center">
-                          <XCircle size={12} className="mr-1"/> {t('admin.invitations.contact.no_contact')}
-                        </span>
-                      )}
-                    </td>
+                      </td>
 
-                    <td className="px-6 py-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {invitation.guests?.map((guest, idx) => (
-                          <span
-                            key={guest.id || idx}
-                            className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${
-                              invitation.status === 'declined'
+                      <td className="px-6 py-4">
+                        {invitation.phone_number ? (
+                          <div className="flex items-center">
+                            <button
+                              onClick={() => handleVerifyContact(invitation)}
+                              disabled={isVerifying || invitation.contact_verified === 'ok'}
+                              className={`p-1.5 rounded-full mr-2 transition-all ${verifyInfo.color} ${invitation.contact_verified !== 'ok' ? 'hover:scale-110 cursor-pointer shadow-sm hover:shadow' : 'cursor-default'
+                                }`}
+                              title={isVerifying ? t('admin.invitations.verification.verifying') : `${verifyInfo.title} - ${t('admin.invitations.verification.click_to_verify')}`}
+                            >
+                              {isVerifying ? <Loader size={14} className="animate-spin" /> : verifyInfo.icon}
+                            </button>
+                            <span className="text-sm text-gray-600 font-mono">{invitation.phone_number}</span>
+                          </div>
+                        ) : (
+                          <span className="text-xs text-gray-400 italic flex items-center">
+                            <XCircle size={12} className="mr-1" /> {t('admin.invitations.contact.no_contact')}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-6 py-4">
+                        <div className="flex flex-wrap gap-1.5">
+                          {invitation.guests?.map((guest, idx) => (
+                            <span
+                              key={guest.id || idx}
+                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${invitation.status === 'declined'
                                 ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
                                 : guest.is_child
                                   ? 'bg-pink-50 text-pink-700 border-pink-100'
                                   : 'bg-slate-50 text-slate-700 border-slate-200'
-                            }`}
-                          >
-                            {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
-                            {guest.first_name}
-                            {/* Alert intolleranze */}
-                            {guest.dietary_requirements && (
-                              <Utensils 
-                                size={12} 
-                                className="ml-1 text-red-500 cursor-help" 
-                                title={guest.dietary_requirements}
-                              />
-                            )}
-                          </span>
-                        ))}
-                      </div>
-                    </td>
-
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      {getStatusBadge(invitation.status)}
-
-                      <div className="flex flex-col gap-1 mt-2">
-                        {invitation.accommodation_offered && (
-                          <div className="flex items-center text-xs">
-                            <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
-                              <Home size={10} className="mr-1"/>
+                                }`}
+                            >
+                              {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
+                              {guest.first_name}
+                              {/* Alert intolleranze */}
+                              {guest.dietary_requirements && (
+                                <Utensils
+                                  size={12}
+                                  className="ml-1 text-red-500 cursor-help"
+                                  title={guest.dietary_requirements}
+                                />
+                              )}
                             </span>
-                            {invitation.status === 'confirmed' && invitation.accommodation_requested && (
-                              <>
-                                <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                  <CheckCircle size={10} className="mr-1"/>
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )}
+                          ))}
+                        </div>
+                      </td>
 
-                        {invitation.transfer_offered && (
-                          <div className="flex items-center text-xs">
-                            <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
-                              <Bus size={10} className="mr-1"/>
-                            </span>
-                            {invitation.status === 'confirmed' && invitation.transfer_requested && (
-                              <>
-                                <ArrowRight size={10} className="mx-1 text-gray-400" />
-                                <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
-                                  <CheckCircle size={10} className="mr-1"/>
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        )}
-                      </div>
-                    </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        {getStatusBadge(invitation.status)}
 
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <div className="flex justify-end space-x-2">
+                        <div className="flex flex-col gap-1 mt-2">
+                          {invitation.accommodation_offered && (
+                            <div className="flex items-center text-xs">
+                              <span className="text-blue-600 bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex items-center">
+                                <Home size={10} className="mr-1" />
+                              </span>
+                              {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1" />
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          )}
 
-                        {invitation.status === 'created' && (
-                          <button
-                            onClick={() => handleMarkAsSent(invitation.id)}
-                            disabled={markingSentFor === invitation.id}
-                            className={`p-1.5 rounded-md transition-colors ${
-                              markingSentFor === invitation.id
+                          {invitation.transfer_offered && (
+                            <div className="flex items-center text-xs">
+                              <span className="text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100 flex items-center">
+                                <Bus size={10} className="mr-1" />
+                              </span>
+                              {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                                <>
+                                  <ArrowRight size={10} className="mx-1 text-gray-400" />
+                                  <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                                    <CheckCircle size={10} className="mr-1" />
+                                  </span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <div className="flex justify-end space-x-2">
+
+                          {invitation.status === 'created' && (
+                            <button
+                              onClick={() => handleMarkAsSent(invitation.id)}
+                              disabled={markingSentFor === invitation.id}
+                              className={`p-1.5 rounded-md transition-colors ${markingSentFor === invitation.id
                                 ? 'bg-yellow-50 text-yellow-600 cursor-wait'
                                 : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                            }`}
-                            title={t('admin.invitations.actions.send')}
-                          >
-                            {markingSentFor === invitation.id ? (
-                              <Loader size={18} className="animate-spin" />
-                            ) : (
-                              <Send size={18} />
-                            )}
-                          </button>
-                        )}
-                        
-                        <button
-                          onClick={() => handleSingleSend(invitation)}
-                          disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
-                          className={`p-1.5 rounded-md transition-colors ${
-                            !isContactValid(invitation)
+                                }`}
+                              title={t('admin.invitations.actions.send')}
+                            >
+                              {markingSentFor === invitation.id ? (
+                                <Loader size={18} className="animate-spin" />
+                              ) : (
+                                <Send size={18} />
+                              )}
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleSingleSend(invitation)}
+                            disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
+                            className={`p-1.5 rounded-md transition-colors ${!isContactValid(invitation)
                               ? 'text-gray-300 cursor-not-allowed'
                               : 'text-gray-400 hover:text-green-600 hover:bg-green-50'
-                          }`}
-                          title={isContactValid(invitation) ? t('admin.invitations.actions.send_whatsapp') : t('admin.invitations.actions.contact_missing')}
-                        >
-                          {openingWASingleFor === invitation.id ? (
-                            <Loader size={18} className="animate-spin" />
-                          ) : (
-                            <MessageCircle size={18} />
-                          )}
-                        </button>
-
-                        {!['imported','created','sent'].includes(invitation.status) && (
-                          <button
-                            onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
-                            className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
-                            title={t('admin.invitations.actions.interaction_log')}
+                              }`}
+                            title={isContactValid(invitation) ? t('admin.invitations.actions.send_whatsapp') : t('admin.invitations.actions.contact_missing')}
                           >
-                            <Activity size={18} />
-                          </button>
-                        )}
-
-                        {!['imported','created'].includes(invitation.status) && (
-                        <div className="relative">
-                          <button
-                            onClick={() => handleGenerateLink(invitation.id)}
-                            className={`p-1.5 rounded-md transition-all ${
-                              generatedLink?.id === invitation.id
-                                ? 'bg-green-100 text-green-700'
-                                : generatingLinkFor === invitation.id
-                                  ? 'bg-yellow-50 text-yellow-600 cursor-wait'
-                                  : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
-                            }`}
-                            title={generatedLink?.id === invitation.id ? t('admin.invitations.actions.link_copied') : t('admin.invitations.actions.copy_link')}
-                            disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
-                          >
-                            {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                            {openingWASingleFor === invitation.id ? (
                               <Loader size={18} className="animate-spin" />
-                            ) : generatedLink?.id === invitation.id ? (
-                              <CheckCircle size={18} />
                             ) : (
-                              <Copy size={18} />
+                              <MessageCircle size={18} />
                             )}
                           </button>
-                        </div>
-                        )}
 
-                        {!['imported','created'].includes(invitation.status) && (
-                        <button
-                          onClick={() => handleOpenPreview(invitation.id)}
-                          className={`p-1.5 rounded-md transition-colors ${
-                            openingPreviewFor === invitation.id
-                              ? 'bg-yellow-50 text-yellow-600 cursor-wait'
-                              : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'
-                          }`}
-                          title={t('admin.invitations.actions.preview')}
-                          disabled={openingPreviewFor === invitation.id}
-                        >
-                          {openingPreviewFor === invitation.id ? (
-                            <Loader size={18} className="animate-spin" />
-                          ) : (
-                            <ExternalLink size={18} />
+                          {!['imported', 'created', 'sent'].includes(invitation.status) && (
+                            <button
+                              onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
+                              className="p-1.5 rounded-md text-gray-400 hover:text-purple-600 hover:bg-purple-50 transition-colors"
+                              title={t('admin.invitations.actions.interaction_log')}
+                            >
+                              <Activity size={18} />
+                            </button>
                           )}
-                        </button>
-                        )}
 
-                        <button
-                          onClick={() => handleEdit(invitation.id)}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
-                          title={t('admin.invitations.actions.edit')}
-                        >
-                          <Edit2 size={18} />
-                        </button>
-                        <button
-                          onClick={() => handleDeleteClick(invitation.id)}
-                          className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
-                          title={t('admin.invitations.actions.delete')}
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                )})  
+                          {!['imported', 'created'].includes(invitation.status) && (
+                            <div className="relative">
+                              <button
+                                onClick={() => handleGenerateLink(invitation.id)}
+                                className={`p-1.5 rounded-md transition-all ${generatedLink?.id === invitation.id
+                                  ? 'bg-green-100 text-green-700'
+                                  : generatingLinkFor === invitation.id
+                                    ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                                    : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'
+                                  }`}
+                                title={generatedLink?.id === invitation.id ? t('admin.invitations.actions.link_copied') : t('admin.invitations.actions.copy_link')}
+                                disabled={generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id}
+                              >
+                                {generatingLinkFor === invitation.id && generatedLink?.id !== invitation.id ? (
+                                  <Loader size={18} className="animate-spin" />
+                                ) : generatedLink?.id === invitation.id ? (
+                                  <CheckCircle size={18} />
+                                ) : (
+                                  <Copy size={18} />
+                                )}
+                              </button>
+                            </div>
+                          )}
+
+                          {!['imported', 'created'].includes(invitation.status) && (
+                            <button
+                              onClick={() => handleOpenPreview(invitation.id)}
+                              className={`p-1.5 rounded-md transition-colors ${openingPreviewFor === invitation.id
+                                ? 'bg-yellow-50 text-yellow-600 cursor-wait'
+                                : 'text-gray-400 hover:text-pink-600 hover:bg-pink-50'
+                                }`}
+                              title={t('admin.invitations.actions.preview')}
+                              disabled={openingPreviewFor === invitation.id}
+                            >
+                              {openingPreviewFor === invitation.id ? (
+                                <Loader size={18} className="animate-spin" />
+                              ) : (
+                                <ExternalLink size={18} />
+                              )}
+                            </button>
+                          )}
+
+                          <button
+                            onClick={() => handleEdit(invitation.id)}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 transition-colors"
+                            title={t('admin.invitations.actions.edit')}
+                          >
+                            <Edit2 size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleDeleteClick(invitation.id)}
+                            className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50 transition-colors"
+                            title={t('admin.invitations.actions.delete')}
+                          >
+                            <Trash2 size={18} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>
@@ -785,11 +780,10 @@ const InvitationList = () => {
             return (
               <div
                 key={invitation.id}
-                className={`bg-white p-4 rounded-xl shadow-sm border ${
-                  selectedIds.includes(invitation.id)
-                    ? 'border-pink-500 ring-2 ring-pink-500'
-                    : 'border-gray-200'
-                }`}
+                className={`bg-white p-4 rounded-xl shadow-sm border ${selectedIds.includes(invitation.id)
+                  ? 'border-pink-500 ring-2 ring-pink-500'
+                  : 'border-gray-200'
+                  }`}
               >
                 <div className="flex justify-between items-start mb-3">
                   <div className="flex items-center gap-3">
@@ -806,19 +800,19 @@ const InvitationList = () => {
                       </div>
                       <div className="text-xs text-gray-500 font-mono">{invitation.code}</div>
                       {/* MOBILE LABELS */}
-                        {invitation.labels && invitation.labels.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mt-1">
-                                {invitation.labels.map(label => (
-                                    <span 
-                                        key={label.id} 
-                                        className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
-                                        style={{ backgroundColor: label.color }}
-                                    >
-                                        {label.name}
-                                    </span>
-                                ))}
-                            </div>
-                        )}
+                      {invitation.labels && invitation.labels.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {invitation.labels.map(label => (
+                            <span
+                              key={label.id}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium text-white"
+                              style={{ backgroundColor: label.color }}
+                            >
+                              {label.name}
+                            </span>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div>{getStatusBadge(invitation.status)}</div>
@@ -850,9 +844,9 @@ const InvitationList = () => {
                         {g.first_name}
                         {/* Alert intolleranze mobile */}
                         {g.dietary_requirements && (
-                          <Utensils 
-                            size={10} 
-                            className="ml-1 text-red-500" 
+                          <Utensils
+                            size={10}
+                            className="ml-1 text-red-500"
                           />
                         )}
                       </span>
@@ -876,7 +870,7 @@ const InvitationList = () => {
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-                  <div className="flex gap-2">                        
+                  <div className="flex gap-2">
                     {invitation.status === 'created' && (
                       <button
                         onClick={() => handleMarkAsSent(invitation.id)}
@@ -894,11 +888,10 @@ const InvitationList = () => {
                     <button
                       onClick={() => handleSingleSend(invitation)}
                       disabled={!isContactValid(invitation) || openingWASingleFor === invitation.id}
-                      className={`p-2 rounded-lg transition-colors ${
-                        !isContactValid(invitation)
-                          ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
-                          : 'bg-green-50 text-green-600 hover:bg-green-100'
-                      }`}
+                      className={`p-2 rounded-lg transition-colors ${!isContactValid(invitation)
+                        ? 'bg-gray-100 text-gray-300 cursor-not-allowed'
+                        : 'bg-green-50 text-green-600 hover:bg-green-100'
+                        }`}
                     >
                       {openingWASingleFor === invitation.id ? (
                         <Loader size={18} className="animate-spin" />
@@ -906,7 +899,7 @@ const InvitationList = () => {
                         <MessageCircle size={18} />
                       )}
                     </button>
-                    {!['imported','created'].includes(invitation.status) && (
+                    {!['imported', 'created'].includes(invitation.status) && (
                       <button
                         onClick={() => handleGenerateLink(invitation.id)}
                         disabled={generatingLinkFor === invitation.id}
@@ -921,7 +914,7 @@ const InvitationList = () => {
                         )}
                       </button>
                     )}
-                    {!['imported','created'].includes(invitation.status) && (
+                    {!['imported', 'created'].includes(invitation.status) && (
                       <button
                         onClick={() => setInteractionInvitation({ id: invitation.id, name: invitation.name })}
                         className="p-2 bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100"
@@ -975,24 +968,24 @@ const InvitationList = () => {
           recipients={waRecipients}
         />
       )}
-      
+
       {isBulkSendModalOpen && (
         <BulkSendConfirmModal
-           isOpen={isBulkSendModalOpen}
-           onClose={() => setIsBulkSendModalOpen(false)}
-           selectedIds={selectedIds}
-           invitations={invitations}
-           onSuccess={handleBulkSendSuccess}
+          isOpen={isBulkSendModalOpen}
+          onClose={() => setIsBulkSendModalOpen(false)}
+          selectedIds={selectedIds}
+          invitations={invitations}
+          onSuccess={handleBulkSendSuccess}
         />
       )}
-      
+
       {isBulkLabelModalOpen && (
-         <BulkLabelModal
-            open={isBulkLabelModalOpen}
-            onClose={() => setIsBulkLabelModalOpen(false)}
-            selectedIds={selectedIds}
-            onSuccess={handleBulkLabelSuccess}
-         />
+        <BulkLabelModal
+          open={isBulkLabelModalOpen}
+          onClose={() => setIsBulkLabelModalOpen(false)}
+          selectedIds={selectedIds}
+          onSuccess={handleBulkLabelSuccess}
+        />
       )}
 
       {interactionInvitation && (

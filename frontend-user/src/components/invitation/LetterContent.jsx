@@ -135,13 +135,13 @@ const LetterContent = ({ data }) => {
 
   const handleSaveEdit = (guestIndex) => {
     const originalGuest = data.guests[guestIndex];
-    setEditedGuests(prev => ({ 
-      ...prev, 
-      [guestIndex]: { 
-        first_name: tempFirstName, 
+    setEditedGuests(prev => ({
+      ...prev,
+      [guestIndex]: {
+        first_name: tempFirstName,
         last_name: tempLastName,
         dietary_requirements: tempDietaryRequirements
-      } 
+      }
     }));
     setEditingGuestIndex(null);
     safeLogInteraction('save_edit_guest', {
@@ -481,13 +481,13 @@ const LetterContent = ({ data }) => {
 
             case 'save_edit_guest':
               if (payload?.details?.guestIndex !== undefined) {
-                setEditedGuests(prev => ({ 
-                  ...prev, 
-                  [payload.details.guestIndex]: { 
+                setEditedGuests(prev => ({
+                  ...prev,
+                  [payload.details.guestIndex]: {
                     first_name: payload.details.new_name ? payload.details.new_name.split(' ')[0] : tempFirstName,
                     last_name: payload.details.new_name ? payload.details.new_name.split(' ').slice(1).join(' ') : tempLastName,
-                    dietary_requirements: payload.details.dietary_requirements || tempDietaryRequirements 
-                  } 
+                    dietary_requirements: payload.details.dietary_requirements || tempDietaryRequirements
+                  }
                 }));
                 setEditingGuestIndex(null);
               }
@@ -593,7 +593,7 @@ const LetterContent = ({ data }) => {
       window.removeEventListener('wax-seal:return', onSealReturn);
       clearTimeout(timer);
     };
-  }, [sealControls, data.phone_number, data.guests.length, rsvpStatus, editingGuestIndex, tempFirstName, tempLastName, tempDietaryRequirements, tempPhoneNumber, phoneNumber, editingPhone, travelInfo, accommodationChoice, editedGuests, excludedGuests]);
+  }, []);
 
   const handleFlip = (flipped) => {
     setIsFlipped(flipped);
