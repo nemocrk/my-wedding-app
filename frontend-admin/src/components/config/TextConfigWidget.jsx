@@ -3,9 +3,11 @@ import { api } from '../../services/api';
 import { Loader2, Globe } from 'lucide-react';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../contexts/ToastContext';
 
 const TextConfigWidget = () => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [allTexts, setAllTexts] = useState([]); // Store ALL texts for ALL languages
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -104,7 +106,7 @@ const TextConfigWidget = () => {
       
     } catch (err) {
       console.error(err);
-      alert(t('admin.config.text_editor.save_error') + ': ' + err.message);
+      toast.error(t('admin.config.text_editor.save_error') + ': ' + err.message);
     }
   };
 
