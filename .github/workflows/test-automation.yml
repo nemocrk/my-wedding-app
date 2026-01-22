@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     branches: [ "main" ]
-    types: [labeled, synchronize]
+    types: [labeled]
 
 # Cancella esecuzioni vecchie se ne parte una nuova sullo stesso branch
 concurrency:
@@ -199,7 +199,7 @@ jobs:
 
       # BAKE WITH EXPLICIT IMAGE TAGS & SCOPED CACHE (Defined in docker-bake.hcl)
       - name: 🍰 Bake services with GHA Cache
-        uses: docker/bake-action@v6.9.0
+        uses: docker/bake-action@v6
         with:
           source: .
           files: docker-bake.hcl
