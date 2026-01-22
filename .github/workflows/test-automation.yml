@@ -197,16 +197,13 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # EXPOSE GITHUB CACHE TO DOCKER
-      # This uses docker buildx bake to build all services defined in docker-compose.yml
-      # injecting cache-from and cache-to configurations automatically.
-      # The 'load: true' is essential to load the built images into the local docker daemon
-      # so 'docker compose up' can use them immediately.
+      # BAKE WITH EXPLICIT IMAGE TAGS
+      # Using docker-bake.hcl ensures images get proper tags that docker compose can reference
       - name: 🍰 Bake services with GHA Cache
-        uses: docker/bake-action@v6
+        uses: docker/bake-action@v6.9.0
         with:
           source: .
-          files: docker-compose.yml
+          files: docker-bake.hcl
           load: true
           set: |
             *.cache-from=type=gha
