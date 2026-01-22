@@ -1,11 +1,11 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../services/api';
 
 describe('API Service', () => {
   beforeEach(() => {
     // Setup global fetch mock if not already set by jsdom
-    global.fetch = vi.fn();
-    
+    globalThis.fetch = vi.fn();
+
     // Mock global event dispatcher
     window.dispatchEvent = vi.fn();
   });
@@ -40,7 +40,7 @@ describe('API Service', () => {
 
   it('should handle API errors gracefully', async () => {
     // Mock fetch error response
-    global.fetch.mockResolvedValueOnce({
+    globalThis.fetch.mockResolvedValueOnce({
       ok: false,
       status: 500,
       headers: { get: () => 'application/json' },
@@ -48,7 +48,7 @@ describe('API Service', () => {
     });
 
     await expect(api.fetchInvitations()).rejects.toThrow('Internal Server Error');
-    
+
     // Check if error event was dispatched
     expect(window.dispatchEvent).toHaveBeenCalledWith(expect.any(CustomEvent));
   });
@@ -67,7 +67,7 @@ describe('API Service', () => {
     });
 
     it('calls correct endpoint for dashboard stats', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => ({ guests: {}, invitations: {}, logistics: {}, financials: {} })
@@ -75,14 +75,14 @@ describe('API Service', () => {
 
       await api.getDashboardStats();
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/admin/dashboard/stats/',
-        undefined
+        {}
       );
     });
 
     it('encodes filters correctly in getDynamicDashboardStats', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => ({ levels: [], meta: { total: 0, available_filters: [] } })
@@ -90,14 +90,14 @@ describe('API Service', () => {
 
       await api.getDynamicDashboardStats(['groom', 'bride', 'sent']);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/admin/dashboard/dynamic-stats/?filters=groom,bride,sent',
-        undefined
+        {}
       );
     });
 
     it('handles empty filters array in getDynamicDashboardStats', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => ({ levels: [], meta: { total: 0, available_filters: [] } })
@@ -105,9 +105,9 @@ describe('API Service', () => {
 
       await api.getDynamicDashboardStats([]);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/admin/dashboard/dynamic-stats/?filters=',
-        undefined
+        {}
       );
     });
 
@@ -139,7 +139,7 @@ describe('API Service', () => {
         },
       };
 
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => mockStats
@@ -167,7 +167,7 @@ describe('API Service', () => {
         },
       };
 
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => mockDynamicStats
@@ -181,7 +181,7 @@ describe('API Service', () => {
     });
 
     it('handles error in getDashboardStats', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: false,
         status: 500,
         statusText: 'Internal Server Error',
@@ -194,7 +194,7 @@ describe('API Service', () => {
     });
 
     it('handles error in getDynamicDashboardStats', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: false,
         status: 400,
         statusText: 'Bad Request',
@@ -206,7 +206,7 @@ describe('API Service', () => {
     });
 
     it('properly encodes special characters in filters', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => ({ levels: [], meta: { total: 0, available_filters: [] } })
@@ -216,14 +216,14 @@ describe('API Service', () => {
 
       // Note: The current implementation uses simple join, not encodeURIComponent
       // This test documents current behavior. Consider fixing if needed.
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/admin/dashboard/dynamic-stats/?filters=Label with spaces,special&char',
-        undefined
+        {}
       );
     });
 
     it('handles network error in getDashboardStats', async () => {
-      global.fetch.mockRejectedValueOnce(new Error('Network failure'));
+      globalThis.fetch.mockRejectedValueOnce(new Error('Network failure'));
 
       await expect(api.getDashboardStats()).rejects.toThrow(
         'Impossibile contattare il server. Controlla la tua connessione.'
@@ -240,7 +240,7 @@ describe('API Service', () => {
         },
       };
 
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => emptyResponse
@@ -262,7 +262,7 @@ describe('API Service', () => {
     });
 
     it('calls correct endpoint for fetching labels', async () => {
-      global.fetch.mockResolvedValueOnce({
+      globalThis.fetch.mockResolvedValueOnce({
         ok: true,
         headers: { get: () => 'application/json' },
         json: async () => []
@@ -270,9 +270,9 @@ describe('API Service', () => {
 
       await api.fetchInvitationLabels();
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(globalThis.fetch).toHaveBeenCalledWith(
         'api/admin/invitation-labels/',
-        undefined
+        {}
       );
     });
   });
