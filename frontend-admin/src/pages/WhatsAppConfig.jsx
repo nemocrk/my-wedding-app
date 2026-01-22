@@ -3,9 +3,14 @@ import { RefreshCw, QrCode, CheckCircle, AlertTriangle, Phone, Loader, LogOut, S
 import { useTranslation } from 'react-i18next';
 import { api } from '../services/api';
 import WhatsAppQueueDashboard from '../components/whatsapp/WhatsAppQueueDashboard';
+import { useConfirm } from '../hooks/useConfirm';
+import { useToast } from '../hooks/useToast';
+import Tooltip from '../components/common/Tooltip';
 
 const WhatsAppConfig = () => {
   const { t } = useTranslation();
+  const confirm = useConfirm();
+  const toast = useToast();
   const [activeTab, setActiveTab] = useState('connection'); // connection | templates
   const [groomStatus, setGroomStatus] = useState({ state: 'loading' });
   const [brideStatus, setBrideStatus] = useState({ state: 'loading' });
@@ -130,24 +135,28 @@ const WhatsAppConfig = () => {
         fetchStatuses();
       } else {
         closeModal(sessionType);
-        alert(`${t('admin.whatsapp_config.connection.status.error')}: ${data.state}`);
         fetchStatuses();
       }
     } catch (error) {
       closeModal(sessionType);
-      alert(`${t('admin.whatsapp_config.connection.status.error')}: ${error.message}`);
+      // Error handled by global error management
     }
   };
 
   const handleLogout = async (sessionType) => {
-      if(!window.confirm(t('admin.whatsapp_config.connection.alerts.disconnect_confirm'))) return;
+      const confirmed = await confirm({
+          title: t('admin.whatsapp_config.confirmation.disconnect_title'),
+          message: t('admin.whatsapp_config.confirmation.disconnect_message'),
+          confirmText: t('common.confirm'),
+          cancelText: t('common.cancel')
+      });
+      
+      if (!confirmed) return;
       
       setLogoutLoading(sessionType);
       try {
           await api.logoutWhatsAppSession(sessionType);
           fetchStatuses(); 
-      } catch (error) {
-          alert(`${t('admin.whatsapp_config.connection.status.error')}: ${error.message}`);
       } finally {
           setLogoutLoading(null);
       }
@@ -157,9 +166,7 @@ const WhatsAppConfig = () => {
       setTestLoading(sessionType);
       try {
           const res = await api.sendWhatsAppTest(sessionType);
-          alert(t('admin.whatsapp_config.connection.alerts.test_success', { recipient: res.recipient }));
-      } catch (error) {
-          alert(`${t('admin.whatsapp_config.connection.alerts.test_error')} ${error.message}`);
+          toast.success(t('admin.whatsapp_config.connection.alerts.test_success', { recipient: res.recipient }));
       } finally {
           setTestLoading(null);
       }
@@ -211,7 +218,15 @@ const WhatsAppConfig = () => {
   };
 
   const handleDeleteTemplate = async (id) => {
-      if(!window.confirm(t('admin.whatsapp_config.templates.delete_confirm'))) return;
+      const confirmed = await confirm({
+          title: t('admin.whatsapp_config.confirmation.delete_template_title'),
+          message: t('admin.whatsapp_config.confirmation.delete_template_message'),
+          confirmText: t('common.delete'),
+          cancelText: t('common.cancel')
+      });
+      
+      if (!confirmed) return;
+      
       try {
           await api.deleteWhatsAppTemplate(id);
           fetchTemplates();
@@ -303,14 +318,15 @@ const WhatsAppConfig = () => {
                 </button>
                 
                 {isConnected && (
-                    <button
-                        onClick={() => handleLogout(type)}
-                        disabled={logoutLoading === type}
-                        className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
-                        title={t('admin.whatsapp_config.connection.buttons.disconnect')}
-                    >
-                        {logoutLoading === type ? <Loader className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
-                    </button>
+                    <Tooltip content={t('admin.whatsapp_config.connection.buttons.disconnect')}>
+                        <button
+                            onClick={() => handleLogout(type)}
+                            disabled={logoutLoading === type}
+                            className="flex items-center justify-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50"
+                        >
+                            {logoutLoading === type ? <Loader className="w-4 h-4 animate-spin" /> : <LogOut className="w-4 h-4" />}
+                        </button>
+                    </Tooltip>
                 )}
             </div>
 
