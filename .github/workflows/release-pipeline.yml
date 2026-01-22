@@ -162,7 +162,7 @@ jobs:
       - name: Build and Push (${{ matrix.service }})
         # L'IF FONDAMENTALE: esegue solo se 'src' è true
         if: steps.changes.outputs.src == 'true'
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v6.18.0
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
