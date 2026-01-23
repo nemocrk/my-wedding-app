@@ -1,9 +1,8 @@
+import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { render, screen, act } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import toast from 'react-hot-toast';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider, useToast } from './ToastContext';
-import { CheckCircle, XCircle, AlertCircle, Info } from 'lucide-react';
 
 // Mock Lucide icons
 vi.mock('lucide-react', () => ({
@@ -58,7 +57,7 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       expect(screen.getByText('Success')).toBeInTheDocument();
       expect(screen.getByText('Error')).toBeInTheDocument();
     });
@@ -69,15 +68,15 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Success').click();
-      
+
       expect(toast.custom).toHaveBeenCalled();
       const callArgs = toast.custom.mock.calls[0];
       // Render the passed component to verify props
       const RenderedToast = callArgs[0];
       const { container } = render(RenderedToast({}));
-      expect(container.querySelector('[class*="bg-green-500"]')).toBeInTheDocument(); // Progress bar color
+      expect(container.querySelector('[class*="border-green-200"]')).toBeInTheDocument(); // Progress bar color
     });
 
     it('should call toast.custom with correct type for error()', () => {
@@ -86,13 +85,13 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Error').click();
-      
+
       const callArgs = toast.custom.mock.calls[0];
       const RenderedToast = callArgs[0];
       const { container } = render(RenderedToast({}));
-      expect(container.querySelector('[class*="bg-red-500"]')).toBeInTheDocument();
+      expect(container.querySelector('[class*="border-red-200"]')).toBeInTheDocument();
     });
 
     it('should call toast.custom with correct type for warning()', () => {
@@ -101,13 +100,13 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Warning').click();
-      
+
       const callArgs = toast.custom.mock.calls[0];
       const RenderedToast = callArgs[0];
       const { container } = render(RenderedToast({}));
-      expect(container.querySelector('[class*="bg-yellow-500"]')).toBeInTheDocument();
+      expect(container.querySelector('[class*="border-yellow-200"]')).toBeInTheDocument();
     });
 
     it('should call toast.custom with correct type for info()', () => {
@@ -116,13 +115,13 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Info').click();
-      
+
       const callArgs = toast.custom.mock.calls[0];
       const RenderedToast = callArgs[0];
       const { container } = render(RenderedToast({}));
-      expect(container.querySelector('[class*="bg-blue-500"]')).toBeInTheDocument();
+      expect(container.querySelector('[class*="border-blue-200"]')).toBeInTheDocument();
     });
 
     it('should handle custom duration', () => {
@@ -152,7 +151,7 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Loading').click();
       expect(toast.loading).toHaveBeenCalledWith('Loading...', expect.any(Object));
     });
@@ -163,7 +162,7 @@ describe('ToastContext', () => {
           <TestComponent />
         </ToastProvider>
       );
-      
+
       screen.getByText('Dismiss').click();
       expect(toast.dismiss).toHaveBeenCalledWith('123');
     });
@@ -183,7 +182,7 @@ describe('ToastContext', () => {
           <TestPromise />
         </ToastProvider>
       );
-      
+
       screen.getByText('Run').click();
       expect(toast.promise).toHaveBeenCalledWith(
         expect.any(Promise),
@@ -196,7 +195,7 @@ describe('ToastContext', () => {
     // Helper to render the CustomToast component directly
     const renderToast = (type, message) => {
       let ToastComponent;
-      
+
       // We capture the component function passed to toast.custom
       const captureRender = (renderer) => {
         ToastComponent = renderer;

@@ -99,5 +99,10 @@
   "git.pullBeforeCheckout": true,
   "git.showPushSuccessNotification": true,
   "git.timeline.showUncommitted": true,
-  "git.useCommitInputAsStashMessage": true
+  "git.useCommitInputAsStashMessage": true,
+  "containers.containers.groupBy": "Compose Project Name",
+  "containers.containers.description": [
+    "ContainerName",
+    "Status"
+  ]
 }
