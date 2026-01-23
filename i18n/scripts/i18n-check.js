@@ -87,9 +87,9 @@ async function checkKeyAlignment() {
         // Se c'è un solo file, restituiscilo comunque per il controllo codice
         if (localeFiles.length === 1) {
              const content = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, localeFiles[0]), 'utf8'));
-             return Object.keys(flattenObject(content));
+             return { allKeys: Object.keys(flattenObject(content)), hasErrors: false };
         }
-        return [];
+        return { allKeys: [], hasErrors: false };
     }
 
     console.log(`File di traduzione trovati: ${localeFiles.join(', ')}\n`);
@@ -141,7 +141,7 @@ async function checkKeyAlignment() {
         console.log(`\n${colors.red}${colors.bold}Ci sono disallineamenti tra i file di traduzione.${colors.reset}\n`);
     }
 
-    return allKeys; // Restituisce tutte le chiavi valide conosciute per il controllo successivo
+    return { allKeys, hasErrors }; // allKeys servono per il controllo successivo
 }
 
 // ==========================================
@@ -152,7 +152,7 @@ async function findMissingKeys(validKeys) {
 
     if (!validKeys || validKeys.length === 0) {
         console.error("Nessuna chiave valida caricata dai file JSON. Salto controllo codice.");
-        return;
+        return { missingKeys: [] };
     }
 
     console.log(`Scansione directory sorgenti:`);
@@ -200,17 +200,34 @@ async function findMissingKeys(validKeys) {
     const unusedKeys = validKeys.filter(k => !usedKeys.has(k));
     console.log(`\n(Info) Chiavi definite ma apparentemente non usate (${unusedKeys.length}) - Nota: potrebbero essere usate dinamicamente.`);
     unusedKeys.sort().forEach(k => console.log(`  - ${k}`));
+
+    return { missingKeys };
 }
 
 // ==========================================
 // Esecuzione
 // ==========================================
 async function run() {
+    // Accumula gli errori, ma termina con exit code != 0 solo a fine elaborazione
+    let shouldFail = false;
+
     try {
-        const validKeys = await checkKeyAlignment();
-        await findMissingKeys(validKeys);
+        const { allKeys, hasErrors } = await checkKeyAlignment();
+        if (hasErrors) shouldFail = true;
+
+        const { missingKeys } = await findMissingKeys(allKeys);
+        if (missingKeys && missingKeys.length > 0) shouldFail = true;
     } catch (e) {
         console.error("Errore script:", e);
+        shouldFail = true;
+    } finally {
+        if (shouldFail) {
+            console.log(`\n${colors.red}${colors.bold}✘ i18n-check fallito: presenti errori.${colors.reset}\n`);
+            process.exitCode = 1;
+        } else {
+            console.log(`\n${colors.green}${colors.bold}✔ i18n-check OK.${colors.reset}\n`);
+            process.exitCode = 0;
+        }
     }
 }
 
