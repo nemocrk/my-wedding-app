@@ -10,6 +10,16 @@ afterEach(() => {
 });
 
 // ========================================
+// GLOBAL MOCKS: fetch & window.dispatchEvent
+// ========================================
+global.fetch = vi.fn();
+
+Object.defineProperty(window, 'dispatchEvent', {
+  value: vi.fn(),
+  writable: true,
+});
+
+// ========================================
 // TRADUZIONI COMPLETE DA i18n/it.json
 // ========================================
 import translations from '../../i18n/it.json';
