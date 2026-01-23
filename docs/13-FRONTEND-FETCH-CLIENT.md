@@ -236,8 +236,8 @@ import { fetchClient, fetchClientDelete, _internal } from './fetchClient.js';
 
 describe('fetchClient', () => {
   beforeEach(() => {
-    global.fetch = jest.fn();
-    global.window.dispatchEvent = jest.fn();
+    global.fetch = vi.fn();
+    global.window.dispatchEvent = vi.fn();
   });
 
   it('should parse JSON response for 200 OK', async () => {
@@ -285,7 +285,7 @@ describe('fetchClient', () => {
 import { api } from './services/api.js';
 import * as fetchClientModule from './services/fetchClient.js';
 
-jest.mock('./services/fetchClient.js');
+vi.mock('./services/fetchClient.js');
 
 describe('api.fetchInvitations', () => {
   it('should return invitations list', async () => {

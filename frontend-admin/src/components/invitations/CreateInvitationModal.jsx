@@ -4,9 +4,11 @@ import { X, ChevronRight, ChevronLeft, Save, UserPlus, Trash2, Home, Bus, Users,
 import { api } from '../../services/api';
 import ErrorModal from '../common/ErrorModal';
 import { useTranslation } from 'react-i18next';
+import { useToast } from '../../contexts/ToastContext';
 
 const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const { t } = useTranslation();
+  const toast = useToast();
   const [step, setStep] = useState(1);
   const totalSteps = 3;
   const [loading, setLoading] = useState(false);
@@ -159,14 +161,14 @@ const CreateInvitationModal = ({ onClose, onSuccess, initialData = null }) => {
   const handleNext = () => {
     if (step === 1) {
       if (!formData.name || !formData.code) {
-        alert(t('admin.invitations.create_modal.steps.details.validation.name_code_required')); 
+        toast.warning(t('admin.invitations.create_modal.steps.details.validation.name_code_required')); 
         return;
       }
     }
     if (step === 2) {
       const isValid = formData.guests.every(g => g.first_name);
       if (!isValid) {
-        alert(t('admin.invitations.create_modal.steps.guests.validation.min_one'));
+        toast.warning(t('admin.invitations.create_modal.steps.guests.validation.min_one'));
         return;
       }
     }

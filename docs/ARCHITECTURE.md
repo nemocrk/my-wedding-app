@@ -7,6 +7,7 @@
 ## Stack Tecnologico
 
 ### Backend
+
 - **Framework**: Django 5.1.4 + Django REST Framework (DRF) 3.15.2
 - **Database**: PostgreSQL (ultima versione stabile)
 - **Connection Pooler**: pgBouncer (transaction mode)
@@ -14,6 +15,7 @@
 - **Linguaggio**: Python 3.x
 
 ### Frontend User (Pubblico)
+
 - **Framework**: React 18+ con Vite
 - **UI Library**: Material-UI (MUI)
 - **Animazioni**: GSAP, React Spring
@@ -22,12 +24,14 @@
 - **Server**: Nginx (produzione) / Vite dev server (sviluppo)
 
 ### Frontend Admin (Intranet)
+
 - **Framework**: React 18+ con Vite
 - **UI Library**: Material-UI (MUI)
 - **Charts**: Recharts per analytics e heatmap
 - **Server**: Nginx (produzione) / Vite dev server (sviluppo)
 
 ### Infrastructure
+
 - **Orchestrazione**: Docker Compose
 - **Gateway**: Nginx (dual configuration: public + intranet)
 - **Networking**: Rete Docker isolata con esposizione selettiva delle porte
@@ -103,6 +107,7 @@ Django Workers (4×50=200 connessioni client)
 ```
 
 **Configurazione pgBouncer**:
+
 - **Pool Mode**: `transaction` - rilascia connessioni DB dopo ogni transazione SQL
 - **Max Client Connections**: 200 - limite client (worker Gunicorn + overhead)
 - **Default Pool Size**: 25 - connessioni effettive verso PostgreSQL
@@ -110,12 +115,14 @@ Django Workers (4×50=200 connessioni client)
 - **Server Idle Timeout**: 600s - chiusura connessioni idle dopo 10min
 
 **Vantaggi**:
+
 1. Riduce il carico su PostgreSQL (25 vs 200 connessioni)
 2. Elimina l'errore "too many clients"
 3. Migliora le performance sotto carico (connection reuse)
 4. Isola completamente il database nella rete `db_network`
 
 **Integrazione Django**:
+
 ```python
 # backend/wedding/settings.py
 DATABASES = {
@@ -170,6 +177,7 @@ Controllo tramite variabile `BUILD_TARGET` nel file `.env`.
 ### API-First Design
 
 Il backend espone un'API RESTful documentata (DRF Browsable API) con:
+
 - **Autenticazione**: Token-based (DRF Token Auth)
 - **Serialization**: JSON standard
 - **Validazione**: Django Forms + DRF Serializers
@@ -371,7 +379,7 @@ docker exec my-wedding-app-pgbouncer-1 psql -h 127.0.0.1 -p 5432 -U postgres -d 
 
 1. **Backend**: Creare model → serializer → view → URL
 2. **Frontend**: Creare service API → componente → routing
-3. **Tests**: Unit test backend + Jest/RTL frontend
+3. **Tests**: Unit test backend + Vitest/RTL frontend
 4. **Docs**: Aggiornare `API_DOCUMENTATION.md`
 
 ### Integrazioni Future

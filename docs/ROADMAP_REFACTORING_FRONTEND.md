@@ -230,7 +230,7 @@
 - **i18n Check:** `./i18n/scripts/scan_repo.sh` (zero warning obbligatorio)
 - **Build Verification:** `docker-compose build frontend-admin` (nessun errore)
 - **Smoke Test:** Testare manualmente le feature modificate
-- **Unit Test:** Nuovi componenti/hook devono avere test (Jest/RTL)
+- **Unit Test:** Nuovi componenti/hook devono avere test (Vitest/RTL)
 
 ### Dipendenze tra Milestone
 ```
