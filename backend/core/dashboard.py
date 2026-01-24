@@ -1,7 +1,7 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser
-from core.models import Invitation, InvitationLabel
+from core.models import Invitation, InvitationLabel, Person
 from core.analytics import DynamicPieChartEngine
 
 class DynamicDashboardStatsView(APIView):
@@ -28,13 +28,20 @@ class DynamicDashboardStatsView(APIView):
         origins = [c[0] for c in Invitation.Origin.choices]
         statuses = [c[0] for c in Invitation.Status.choices]
         
-        total_count = queryset.count()
+        extra_filters = [
+            'adults', 'children',
+            'accommodation_offered', 'accommodation_not_offered',
+            'accommodation_requested', 'accommodation_not_requested'
+        ]
+        
+        # Count Persons, not Invitations
+        total_count = Person.objects.filter(invitation__in=queryset, not_coming=False).count()
 
         return Response({
             "levels": [] if levels is None else levels,
             "meta": {
                 "total": total_count,
                 "filtered_count": total_count,
-                "available_filters": origins + statuses + list(labels)
+                "available_filters": origins + statuses + list(labels) + extra_filters
             }
         })

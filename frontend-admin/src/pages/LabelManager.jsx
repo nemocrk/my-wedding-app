@@ -2,12 +2,10 @@ import { Edit2, Plus, Save, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ConfirmationModal from '../components/common/ConfirmationModal';
-import { useToast } from '../contexts/ToastContext';
 import { api } from '../services/api';
 
 const LabelManager = () => {
   const { t } = useTranslation();
-  const toast = useToast();
   const [labels, setLabels] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);

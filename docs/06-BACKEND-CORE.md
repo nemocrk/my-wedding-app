@@ -142,6 +142,20 @@ Sistema di tracciamento integrato.
 - **GuestInteraction**: Traccia eventi discreti (Visit, Click, RSVP). Include metadata (IP anonimizzato, Device Type).
 - **GuestHeatmap**: Raccoglie stream di coordinate (X,Y) per generare mappe di calore dell'attenzione utente sul frontend.
 
+### Dynamic Stats (Dashboard Admin) 🆕
+L'endpoint `/api/admin/dashboard/dynamic-stats/` (POST) fornisce statistiche gerarchiche (pie chart multilivello).
+- **Filtri Supportati**: 
+    - `origin:groom`, `origin:bride`
+    - `status:confirmed`, `status:declined`, `status:pending`
+    - `labels:NOME_LABEL`
+    - `has_children`
+    - `accommodation:offered`, `accommodation:requested`
+    - `transfer:requested`
+- **Output**:
+    - Struttura `levels` (array di array) per rendering di PieChart concentrici.
+    - Metadati aggregati: `total` (conteggio persone filtrate) e `total_cost` (stima budget basata su `GlobalConfig`).
+    - Campo `total_cost`: Calcolato dinamicamente sommando (Adulti * PrezzoAdulto) + (Bambini * PrezzoBambino) + (Alloggi/Transfer se richiesti).
+
 ## Diagramma Classi Core
 
 ```mermaid
@@ -199,4 +213,4 @@ classDiagram
 ```
 
 ## Legenda Simboli 🆕
-- 🆕 = Novità introdotte nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi`.
+- 🆕 = Novità introdotte nelle issues #51-54 del branch `feature/inviti-labels-bulk-alloggi` e nella issue #97 (`feat/dynamic-stats-evolution`).

@@ -47,14 +47,6 @@ describe('Configuration Page', () => {
     api.fetchConfigurableTexts.mockResolvedValue([]);
   });
 
-  const renderWithRouter = (component) => {
-    return render(
-      <MemoryRouter>
-        {component}
-      </MemoryRouter>
-    );
-  };
-
   it('should render configuration form and load data', async () => {
     render(<Configuration />);
 
