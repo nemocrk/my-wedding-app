@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 import { api } from '../services/api';
 
@@ -62,6 +63,14 @@ const COLORS = {
   created: '#6B7280',
   read: '#8B5CF6',
   declined: '#EF4444',
+  
+  adults: '#0EA5E9',
+  children: '#F59E0B',
+  accommodation_offered: '#14B8A6',
+  accommodation_not_offered: '#64748B',
+  accommodation_requested: '#A855F7',
+  accommodation_not_requested: '#94A3B8',
+
   other: '#D1D5DB'
 };
 
@@ -76,6 +85,7 @@ const getColorForKey = (key) => {
 };
 
 const DynamicPieChart = () => {
+  const { t, i18n } = useTranslation();
   const [selectedFilters, setSelectedFilters] = useState([]);
   const [chartData, setChartData] = useState(null);
   const [availableFilters, setAvailableFilters] = useState([]);
@@ -214,6 +224,33 @@ const DynamicPieChart = () => {
 
   const levelsWithAngles = calculateAngles();
 
+  const formatCurrency = (value) => {
+    const locale = i18n?.language || 'it';
+    return new Intl.NumberFormat(locale, { style: 'currency', currency: 'EUR' })
+      .format(Number(value || 0));
+  };
+
+  const CustomTooltip = ({ active, payload }) => {
+    if (!active || !payload || !payload.length) return null;
+
+    const data = payload[0]?.payload || {};
+    const hasTotalCost = typeof data.total_cost !== 'undefined' && data.total_cost !== null;
+
+    return (
+      <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-sm">
+        <div className="font-semibold text-gray-900 mb-1">{data.name}</div>
+        <div className="text-gray-700">
+          {t('admin.dashboard.chart.tooltip_people')}: {data.value}
+        </div>
+        {hasTotalCost && (
+          <div className="text-gray-700">
+            {t('admin.dashboard.chart.tooltip_total_cost')}: {formatCurrency(data.total_cost)}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
 
@@ -262,7 +299,7 @@ const DynamicPieChart = () => {
                   ))}
                 </Pie>
               ))}
-              <Tooltip />
+              <Tooltip content={<CustomTooltip />} />
               <Legend content={renderUniqueLegend} />
             </PieChart>
           </ResponsiveContainer>
