@@ -108,7 +108,6 @@ class TestInvitationAdminViews:
         url = '/api/admin/invitations/?status=confirmed'
         response = self.client.get(url)
         
-        # DRF can return 'results' (paginated) or list (non-paginated)
         data = response.data
         if isinstance(data, list):
             results = data
@@ -127,7 +126,7 @@ class TestInvitationAdminViews:
             results = data
         else:
             results = data.get('results', [])
-
+            
         assert len(results) == 1
         assert results[0]['id'] == self.inv2.id
 
