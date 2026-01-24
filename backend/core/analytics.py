@@ -1,17 +1,36 @@
 from collections import defaultdict
 from itertools import combinations
-# from core.models import Invitation # Assumo sia importato
+from core.models import Person, GlobalConfig
 
 class DynamicPieChartEngine:
     def __init__(self, queryset, selected_filters):
-        self.invitations = queryset
+        # queryset here is Invitation queryset
+        self.invitations_queryset = queryset
         self.selected_filters = set(selected_filters)
         self.cache_matches = {} 
+        self.cost_map = {} # person_id -> cost_data
 
-    def _preload_matches(self):
-        invitations = self.invitations.prefetch_related('labels')
-        for inv in invitations:
+    def _preload_data(self):
+        # Fetch persons excluding not_coming
+        persons = Person.objects.filter(
+            invitation__in=self.invitations_queryset, 
+            not_coming=False
+        ).select_related('invitation').prefetch_related('invitation__labels')
+
+        # Load Global Config for costs
+        config = GlobalConfig.objects.first()
+        # Default prices if config missing (fallback)
+        price_adult = float(config.price_adult_meal) if config else 0.0
+        price_child = float(config.price_child_meal) if config else 0.0
+        price_acc_adult = float(config.price_accommodation_adult) if config else 0.0
+        price_acc_child = float(config.price_accommodation_child) if config else 0.0
+        price_transfer = float(config.price_transfer) if config else 0.0
+
+        for person in persons:
+            inv = person.invitation
             matches = []
+            
+            # --- Standard Filters ---
             if inv.origin in self.selected_filters:
                 matches.append({ 'value': inv.origin, 'field': 'origin' })
             if inv.status in self.selected_filters:
@@ -23,43 +42,65 @@ class DynamicPieChartEngine:
             if common_labels:
                 matches.extend({'value': label, 'field': 'labels'} for label in common_labels)
             
-            self.cache_matches[inv.id] = matches
+            # --- New Dichotomous Filters ---
+            
+            # Adults / Children
+            is_child_val = 'children' if person.is_child else 'adults'
+            if is_child_val in self.selected_filters:
+                matches.append({ 'value': is_child_val, 'field': 'is_child' })
+            
+            # Accommodation Offered
+            acc_offered_val = 'accommodation_offered' if inv.accommodation_offered else 'accommodation_not_offered'
+            if acc_offered_val in self.selected_filters:
+                matches.append({ 'value': acc_offered_val, 'field': 'accommodation_offered' })
 
-    def _check_match(self, inv_id, filter_value):
-        matches = self.cache_matches.get(inv_id, [])
+            # Accommodation Requested
+            acc_req_val = 'accommodation_requested' if inv.accommodation_requested else 'accommodation_not_requested'
+            if acc_req_val in self.selected_filters:
+                matches.append({ 'value': acc_req_val, 'field': 'accommodation_requested' })
+
+            self.cache_matches[person.id] = matches
+            
+            # --- Precalc Single Person Cost ---
+            p_cost = price_child if person.is_child else price_adult
+            
+            if inv.accommodation_requested:
+                p_cost += price_acc_child if person.is_child else price_acc_adult
+            
+            if inv.transfer_requested:
+                p_cost += price_transfer
+                
+            self.cost_map[person.id] = p_cost
+
+    def _check_match(self, person_id, filter_value):
+        matches = self.cache_matches.get(person_id, [])
         return any(m['value'] == filter_value for m in matches)
 
-    def _get_field_type(self, inv_id, filter_value):
-        matches = self.cache_matches.get(inv_id, [])
-        found = next((m for m in matches if m['value'] == filter_value), None)
-        return found['field'] if found else 'unknown'
-
-    def _get_max_disjoint_subset(self, candidate_filters, subset_invitation_ids):
+    def _get_max_disjoint_subset(self, candidate_filters, subset_person_ids):
         if not candidate_filters:
-            return {}, list(subset_invitation_ids), []
+            return {}, list(subset_person_ids), []
 
         grouped_data = defaultdict(list)
-        # Ottimizzazione: set per lookup veloce O(1) invece di O(N)
         candidate_filters_set = set(candidate_filters)
 
-        for inv_id in subset_invitation_ids:
-            matches = self.cache_matches.get(inv_id, [])
+        for person_id in subset_person_ids:
+            matches = self.cache_matches.get(person_id, [])
             for m in matches:
                 f_val = m['value']
                 if f_val in candidate_filters_set:
-                    grouped_data[(f_val, m['field'])].append(inv_id)
+                    grouped_data[(f_val, m['field'])].append(person_id)
 
         filter_coverage = [
-            {"filter": f, "field": field, "inv_ids": inv_ids}
-            for (f, field), inv_ids in grouped_data.items()
+            {"filter": f, "field": field, "ids": p_ids}
+            for (f, field), p_ids in grouped_data.items()
         ]
         
-        filter_ids_lookup = {item["filter"]: item["inv_ids"] for item in filter_coverage}
+        filter_ids_lookup = {item["filter"]: item["ids"] for item in filter_coverage}
         filter_fields_lookup = {item["filter"]: item["field"] for item in filter_coverage}
         active_filters = list(filter_ids_lookup.keys())
 
         if not active_filters:
-            return {}, list(subset_invitation_ids), candidate_filters
+            return {}, list(subset_person_ids), candidate_filters
 
         best_combination = []
         best_coverage_count = -1
@@ -100,37 +141,16 @@ class DynamicPieChartEngine:
             partition[f] = { "ids": list(ids), "field": filter_fields_lookup[f] }
             covered_ids.update(ids)
             
-        remaining_ids = [i for i in subset_invitation_ids if i not in covered_ids]
+        remaining_ids = [i for i in subset_person_ids if i not in covered_ids]
         
         # Ritorna i filtri che NON sono stati usati in questa partizione
         used_in_partition = set(partition.keys())
-        remaining_filters = [f for f in active_filters if f not in used_in_partition] # Mantiene l'ordine originale
+        remaining_filters = [f for f in active_filters if f not in used_in_partition]
 
         return partition, remaining_ids, remaining_filters
 
-    def _get_best_splitter(self, candidate_filters, subset_invitation_ids):
-        best_filter = None
-        max_covered = -1
-        
-        # Ottimizzazione: Pre-calcolo se subset è molto grande
-        for f in candidate_filters:
-            count = 0
-            for inv_id in subset_invitation_ids:
-                if self._check_match(inv_id, f):
-                    count += 1
-            
-            # Se troviamo un filtro che copre TUTTI, è sicuramente il migliore, break anticipato
-            if count == len(subset_invitation_ids) and count > 0:
-                return f
-                
-            if count > max_covered:
-                max_covered = count
-                best_filter = f
-                
-        return best_filter if max_covered > 0 else None
-
     def calculate(self):
-        self._preload_matches()
+        self._preload_data()
         
         all_ids = list(self.cache_matches.keys())
         remaining_filters = list(self.selected_filters)
@@ -140,7 +160,7 @@ class DynamicPieChartEngine:
         # --- LEVEL 1: Max Disjoint Partition ---
         partition, other_ids, remaining_filters = self._get_max_disjoint_subset(remaining_filters, all_ids)
 
-        if not partition:
+        if not partition and not other_ids:
             return []
         
         l1_nodes = []
@@ -172,7 +192,6 @@ class DynamicPieChartEngine:
                                     
             partition, other_ids, remaining_filters = self._get_max_disjoint_subset(remaining_filters, all_ids)
             
-            # 3. Costruiamo i nodi del nuovo livello
             next_level_nodes = []
             
             for node in current_level_nodes:
@@ -181,40 +200,35 @@ class DynamicPieChartEngine:
                     continue
                     
                 match_ids = []
-                no_match_ids = []
+                # No need to track no_match_ids explicitly here, we derive it
                 
-                for iid in parent_ids:
+                for pid in parent_ids:
                     for filter_key, data in partition.items():
-                        if iid in data["ids"]:
-                            if self._check_match(iid, filter_key):
-                                match_ids.append({"filter": filter_key, "data": data, "iid": iid})
+                        if pid in data["ids"]:
+                            if self._check_match(pid, filter_key):
+                                match_ids.append({"filter": filter_key, "data": data, "pid": pid})
                 
                 # 1. Estrai gli ID che hanno trovato un match
-                matched_iids = {m["iid"] for m in match_ids}
+                matched_pids = {m["pid"] for m in match_ids}
 
-                # 2. Sottrai i matched_iids dal set totale dei parent_ids
-                # Questo restituisce solo gli ID che non sono presenti in match_ids
-                no_match_ids = list(set(parent_ids) - matched_iids)
+                # 2. Sottrai i matched_pids dal set totale dei parent_ids
+                no_match_ids = list(set(parent_ids) - matched_pids)
                 
                 # --- NODO MATCH (Ha il filtro) ---
                 if match_ids:
-                    # 1. Usiamo un dizionario temporaneo per raggruppare
                     grouped_map = defaultdict(lambda: {"value": 0, "ids": []})
 
-                    for match_id in match_ids:  # Il tuo for esterno
-                        # Definiamo la chiave di raggruppamento
+                    for match_item in match_ids:
                         group_key = (
-                            match_id["filter"],            # name
-                            match_id["data"]["field"],     # field
+                            match_item["filter"],            # name
+                            match_item["data"]["field"],     # field
                             node["name"],                  # parent
                             current_level_nodes.index(node) # parent_idx
                         )
                         
-                        # 2. Aggreghiamo i dati
                         grouped_map[group_key]["value"] += 1
-                        grouped_map[group_key]["ids"].append(match_id["iid"])
+                        grouped_map[group_key]["ids"].append(match_item["pid"])
 
-                    # 3. Trasformiamo il dizionario nella lista finale di oggetti per next_level_nodes
                     for (name, field, parent, p_idx), data in grouped_map.items():
                         next_level_nodes.append({
                             "name": name,
@@ -228,7 +242,7 @@ class DynamicPieChartEngine:
                 # --- NODO NO-MATCH (Rimanenza) ---
                 if no_match_ids:
                     next_level_nodes.append({
-                        "name": "other",          # Si chiama sempre "other"
+                        "name": "other",
                         "field": "other",
                         "value": len(no_match_ids),
                         "ids": no_match_ids,
@@ -242,15 +256,19 @@ class DynamicPieChartEngine:
             else:
                 break
                 
-        # Pulizia finale (rimuovere liste IDs per JSON leggero)
+        # Pulizia finale e Calcolo Costi
         final_output = []
         for level in levels_data:
             clean_level = []
             for node in level:
+                # Calculate total cost for this node
+                node_cost = sum(self.cost_map.get(pid, 0.0) for pid in node["ids"])
+                
                 clean_level.append({
                     "name": node["name"],
                     "field": node.get("field", "unknown"),
                     "value": node["value"],
+                    "total_cost": round(node_cost, 2),
                     "parent_idx": node.get("parent_idx")
                 })
             final_output.append(clean_level)
