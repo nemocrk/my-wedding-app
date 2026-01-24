@@ -1,7 +1,8 @@
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
-from core.models import Invitation, InvitationLabel, ConfigurableText, Person
+from django.db import IntegrityError
+from core.models import Invitation, InvitationLabel, ConfigurableText, Person, Accommodation, Room, GlobalConfig
 
 @pytest.mark.django_db
 class TestInvitationAdminViews:
@@ -126,13 +127,17 @@ class TestConfigurableTextViewSet:
     def test_list_filter_lang(self):
         url = '/api/admin/configurable-texts/?lang=en'
         response = self.client.get(url)
-        assert len(response.data) == 1
-        assert response.data[0]['content'] == "Welcome"
+        # Check standard list response structure
+        # If pagination is active, results are in 'results'
+        results = response.data.get('results', response.data)
+        assert len(results) == 1
+        assert results[0]['content'] == "Welcome"
 
     def test_retrieve_fallback(self):
         # Retrieve IT specific
         url = '/api/admin/configurable-texts/welcome/?lang=it'
         response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
         assert response.data['content'] == "Benvenuti"
 
     def test_update_or_create(self):
@@ -163,6 +168,7 @@ class TestPublicConfigViews:
         # Request EN (should get k1=Hello, k2=Mondo fallback)
         url = '/api/public/configurable-texts/?lang=en'
         response = self.client.get(url)
+        assert response.status_code == status.HTTP_200_OK
         data = response.data
         assert data['k1'] == "Hello"
         assert data['k2'] == "Mondo"
