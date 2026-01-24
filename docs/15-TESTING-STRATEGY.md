@@ -33,8 +33,9 @@ L'intera codebase è soggetta a strict coverage thresholds che bloccano la CI/CD
 
 ### Frontend (User & Admin)
 - **Tool**: Vitest (provider `v8`)
-- **Config**: `vite.config.js` (`test.coverage`)
-- **Soglia Minima**: **80%** Lines
+- **Config**: `vitest.config.ts` (`test.coverage`)
+- **Soglia Minima**: **85%** Lines, **85%** Functions/Statements, **80%** Branches
+- **Policy**: `perFile: true` (ogni singolo file deve rispettare la soglia)
 - **Esclusioni**:
   - `node_modules`, `dist`
   - Config (`vite.config.js`, `.eslintrc.cjs`)
@@ -46,7 +47,7 @@ L'intera codebase è soggetta a strict coverage thresholds che bloccano la CI/CD
 ## 3. Frontend Testing (User & Admin)
 
 ### Configurazione
-La configurazione risiede in `vite.config.js` di ciascun progetto.
+La configurazione risiede in `vite.config.js` o `vitest.config.ts` di ciascun progetto.
 - **Environment**: jsdom
 - **Globals**: Attivati
 - **Coverage Provider**: v8
@@ -60,7 +61,7 @@ npm run test
 # Watch mode (sviluppo)
 npm run test -- --watch
 
-# Coverage Report (Fail under 80%)
+# Coverage Report (Fail under 85%)
 npm run test:coverage
 ```
 
