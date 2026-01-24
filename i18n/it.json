@@ -292,7 +292,9 @@
                 "invitation_status": "Stato Inviti",
                 "logistics_costs": "Logistica e Costi",
                 "cost_breakdown": "Dettaglio Costi",
-                "current_total": "Totale Attuale"
+                "current_total": "Totale Attuale",
+                "tooltip_people": "Persone",
+                "tooltip_total_cost": "Costo totale"
             },
             "logistics": {
                 "accommodation": "Alloggio",
