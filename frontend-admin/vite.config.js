@@ -42,4 +42,25 @@ export default defineConfig({
       },
     },
   },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './src/setupTests.tsx',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'json', 'html'],
+      lines: 80,
+      exclude: [
+        'node_modules',
+        'dist',
+        '.eslintrc.cjs',
+        'vite.config.js',
+        'src/vite-env.d.ts',
+        'src/main.tsx',
+        'src/main.jsx',
+        'src/i18n.js',
+        '**/*.d.ts'
+      ]
+    }
+  }
 })
