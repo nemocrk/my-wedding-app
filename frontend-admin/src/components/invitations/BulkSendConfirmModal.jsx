@@ -2,12 +2,10 @@
 import { AlertCircle, CheckCircle, Phone, Send, X } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '../../contexts/ToastContext';
 import { api } from '../../services/api';
 
 const BulkSendConfirmModal = ({ isOpen, onClose, selectedIds, invitations, onSuccess }) => {
   const { t } = useTranslation();
-  const toast = useToast();
   const [isSending, setIsSending] = useState(false);
 
   // Filter selected invitations

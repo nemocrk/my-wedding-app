@@ -1,13 +1,11 @@
 import { Globe, Loader2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useToast } from '../../contexts/ToastContext';
 import { api } from '../../services/api';
 import ConfigurableTextEditor from './ConfigurableTextEditor';
 
 const TextConfigWidget = () => {
     const { t } = useTranslation();
-    const toast = useToast();
     const [allTexts, setAllTexts] = useState([]); // Store ALL texts for ALL languages
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
