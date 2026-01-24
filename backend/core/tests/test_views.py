@@ -1,6 +1,7 @@
 import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
+from django.db import IntegrityError
 from core.models import Invitation, GlobalConfig, Person, Accommodation, Room
 
 @pytest.mark.django_db
@@ -14,7 +15,7 @@ class TestPublicInvitationAuthView:
         self.token = self.invitation.generate_verification_token("secret")
 
     def test_auth_success(self):
-        url = '/api/public/invitation/auth/'
+        url = '/api/public/auth/'  # FIXED URL
         data = {'code': 'TEST01', 'token': self.token}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -22,13 +23,13 @@ class TestPublicInvitationAuthView:
         assert self.client.session['invitation_id'] == self.invitation.id
 
     def test_auth_invalid_token(self):
-        url = '/api/public/invitation/auth/'
+        url = '/api/public/auth/'  # FIXED URL
         data = {'code': 'TEST01', 'token': 'wrong'}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_auth_not_found(self):
-        url = '/api/public/invitation/auth/'
+        url = '/api/public/auth/'  # FIXED URL
         data = {'code': 'UNKNOWN', 'token': 'whatever'}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -59,7 +60,8 @@ class TestPublicRSVPView:
             'excluded_guests': [1], # Index 1 is Luigi (p2)
             'travel_info': {
                 'transport_type': 'aereo',
-                'schedule': 'Flight AZ123'
+                'schedule': 'Flight AZ123',
+                'car_option': 'none'  # FIXED PAYLOAD (Avoid NOT NULL error)
             }
         }
         
@@ -127,7 +129,7 @@ class TestAccommodationAutoAssign:
         self.p2 = Person.objects.create(invitation=self.inv, first_name="B")
 
     def test_auto_assign_simulation(self):
-        url = '/api/admin/accommodation/auto-assign/'
+        url = '/api/admin/accommodations/auto-assign/'  # FIXED URL (plural)
         data = {'strategy': 'SIMULATION', 'reset_previous': False}
         
         response = self.client.post(url, data, format='json')
@@ -136,7 +138,7 @@ class TestAccommodationAutoAssign:
         assert len(response.data['results']) > 0
 
     def test_auto_assign_execution(self):
-        url = '/api/admin/accommodation/auto-assign/'
+        url = '/api/admin/accommodations/auto-assign/'  # FIXED URL (plural)
         data = {'strategy': 'STANDARD', 'reset_previous': True}
         
         response = self.client.post(url, data, format='json')
