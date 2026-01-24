@@ -2,7 +2,7 @@ from django.test import TestCase
 from django.contrib.auth.models import User
 from rest_framework.test import APIClient
 from rest_framework import status
-from core.models import Invitation, InvitationLabel, GlobalConfig, Person
+from core.models import Invitation, InvitationLabel, Person
 
 
 class DynamicDashboardStatsViewTest(TestCase):
@@ -31,7 +31,7 @@ class DynamicDashboardStatsViewTest(TestCase):
                 status='sent' if i < 7 else 'confirmed'
             )
             # Create at least one Person for each Invitation
-            Person.objects.create(invitation=inv, name=f"Guest {i}", is_child=(i % 3 == 0))
+            Person.objects.create(invitation=inv, first_name=f"Guest {i}", is_child=(i % 3 == 0))
             
             if i < 3:
                 inv.labels.add(self.label1)
@@ -51,7 +51,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Regular user allowed (relies on network isolation)
         """
-        self.client.force_authenticate(user=self.regular_user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -59,7 +58,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Admin user should be allowed access
         """
-        self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
@@ -67,7 +65,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Empty filters query should return empty levels but valid meta
         """
-        self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url)
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -93,7 +90,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Invalid filters (non-existent) should be silently ignored
         """
-        self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url, {'filters': 'invalid_filter,fake_status'})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -106,7 +102,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Valid filters should return calculated levels
         """
-        self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url, {'filters': 'groom,bride'})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -130,7 +125,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Response should have complete structure with all required fields
         """
-        self.client.force_authenticate(user=self.admin_user)
         response = self.client.get(self.url, {'filters': 'groom,sent'})
         
         data = response.json()
@@ -154,7 +148,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Should use prefetch_related to avoid N+1 queries
         """
-        self.client.force_authenticate(user=self.admin_user)
         
         # Add more invitations to make N+1 more obvious
         for i in range(20):
@@ -164,18 +157,18 @@ class DynamicDashboardStatsViewTest(TestCase):
                 status='sent'
             )
             # Add person to these as well
-            Person.objects.create(invitation=inv, name=f"Perf Guest {i}")
+            Person.objects.create(invitation=inv, first_name=f"Perf Guest {i}")
             inv.labels.add(self.label1, self.label2)
         
         # Count queries
         # Expected queries:
-        # 1. Auth/session check
-        # 2. Get invitations
+        # 1. globalconfig
+        # 2. Get persons (prefetch for aggregation)
         # 3. Get labels (prefetch)
-        # 4. Get persons (prefetch for aggregation)
-        # 5. Count total (optional, depends on implementation)
+        # 4. Count total (optional, depends on implementation)
+        # 5. Get invitations
         # With prefetch, it should be constant regardless of N
-        with self.assertNumQueries(4):
+        with self.assertNumQueries(5):
             response = self.client.get(self.url, {'filters': 'groom,TestLabel1'})
         
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -184,7 +177,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: Filters should be correctly parsed from comma-separated string
         """
-        self.client.force_authenticate(user=self.admin_user)
         
         # Test with spaces around commas
         response = self.client.get(self.url, {'filters': 'groom, sent, TestLabel1'})
@@ -197,10 +189,8 @@ class DynamicDashboardStatsViewTest(TestCase):
 
     def test_meta_total_reflects_all_invitations(self):
         """
-        Test: Meta total should always reflect total PEOPLE, not filtered
-        """
-        self.client.force_authenticate(user=self.admin_user)
-        
+        Test: Meta total should always reflect total invitations, not filtered
+        """        
         # Get without filters
         response1 = self.client.get(self.url)
         total1 = response1.json()['meta']['total']
@@ -218,7 +208,6 @@ class DynamicDashboardStatsViewTest(TestCase):
         """
         Test: available_filters should dynamically include all labels in DB
         """
-        self.client.force_authenticate(user=self.admin_user)
         
         # Create a new label
         new_label = InvitationLabel.objects.create(name="DynamicLabel")

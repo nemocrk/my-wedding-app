@@ -100,7 +100,7 @@ class DynamicPieChartEngine:
         active_filters = list(filter_ids_lookup.keys())
 
         if not active_filters:
-            return {}, list(subset_person_ids), candidate_filters
+            return {}, list(subset_person_ids), active_filters
 
         best_combination = []
         best_coverage_count = -1
@@ -160,7 +160,7 @@ class DynamicPieChartEngine:
         # --- LEVEL 1: Max Disjoint Partition ---
         partition, other_ids, remaining_filters = self._get_max_disjoint_subset(remaining_filters, all_ids)
 
-        if not partition and not other_ids:
+        if not partition and not remaining_filters:
             return []
         
         l1_nodes = []

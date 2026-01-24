@@ -63,7 +63,7 @@ const COLORS = {
   created: '#6B7280',
   read: '#8B5CF6',
   declined: '#EF4444',
-  
+
   adults: '#0EA5E9',
   children: '#F59E0B',
   accommodation_offered: '#14B8A6',
@@ -240,11 +240,11 @@ const DynamicPieChart = () => {
       <div className="bg-white border border-gray-200 rounded-lg shadow-md p-3 text-sm">
         <div className="font-semibold text-gray-900 mb-1">{data.name}</div>
         <div className="text-gray-700">
-          {t('admin.dashboard.chart.tooltip_people')}: {data.value}
+          {t('admin.dashboard.charts.tooltip_people')}: {data.value}
         </div>
         {hasTotalCost && (
           <div className="text-gray-700">
-            {t('admin.dashboard.chart.tooltip_total_cost')}: {formatCurrency(data.total_cost)}
+            {t('admin.dashboard.charts.tooltip_total_cost')}: {formatCurrency(data.total_cost)}
           </div>
         )}
       </div>
