@@ -107,14 +107,19 @@ class TestInvitationAdminViews:
         # Test Status Filter
         url = '/api/admin/invitations/?status=confirmed'
         response = self.client.get(url)
-        assert len(response.data['results']) == 1
-        assert response.data['results'][0]['id'] == self.inv1.id
+        
+        # DRF StandardPagination returns 'results' list
+        results = response.data.get('results', [])
+        assert len(results) == 1
+        assert results[0]['id'] == self.inv1.id
         
         # Test Label Filter
         url = f'/api/admin/invitations/?label={self.label1.id}'
         response = self.client.get(url)
-        assert len(response.data['results']) == 1
-        assert response.data['results'][0]['id'] == self.inv2.id
+        
+        results = response.data.get('results', [])
+        assert len(results) == 1
+        assert results[0]['id'] == self.inv2.id
 
 
 @pytest.mark.django_db
@@ -125,31 +130,30 @@ class TestConfigurableTextViewSet:
         self.text2 = ConfigurableText.objects.create(key="welcome", language="en", content="Welcome")
 
     def test_list_filter_lang(self):
-        url = '/api/admin/configurable-texts/?lang=en'
+        url = '/api/admin/texts/?lang=en' # CORRECTED URL from 'configurable-texts' to 'texts'
         response = self.client.get(url)
         # Check standard list response structure
-        # If pagination is active, results are in 'results'
         results = response.data.get('results', response.data)
         assert len(results) == 1
         assert results[0]['content'] == "Welcome"
 
     def test_retrieve_fallback(self):
         # Retrieve IT specific
-        url = '/api/admin/configurable-texts/welcome/?lang=it'
+        url = '/api/admin/texts/welcome/?lang=it' # CORRECTED URL
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data['content'] == "Benvenuti"
 
     def test_update_or_create(self):
         # Create new key
-        url = '/api/admin/configurable-texts/new-key/?lang=it'
+        url = '/api/admin/texts/new-key/?lang=it' # CORRECTED URL
         data = {'content': 'Nuovo Contenuto'}
         response = self.client.put(url, data)
         assert response.status_code == status.HTTP_201_CREATED
         assert ConfigurableText.objects.filter(key="new-key", language="it").exists()
         
         # Update existing
-        url = '/api/admin/configurable-texts/welcome/?lang=it'
+        url = '/api/admin/texts/welcome/?lang=it' # CORRECTED URL
         data = {'content': 'Benvenuti Modificato'}
         response = self.client.put(url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -166,7 +170,7 @@ class TestPublicConfigViews:
 
     def test_public_texts_fallback(self):
         # Request EN (should get k1=Hello, k2=Mondo fallback)
-        url = '/api/public/configurable-texts/?lang=en'
+        url = '/api/public/texts/?lang=en' # CORRECTED URL from 'configurable-texts' to 'texts'
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         data = response.data
