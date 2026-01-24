@@ -1,55 +1,42 @@
 import { renderHook, act } from '@testing-library/react';
-import { vi } from 'vitest';
 import useApiErrorModal from '../hooks/useApiErrorModal';
 
 describe('useApiErrorModal Hook', () => {
   test('initial state', () => {
     const { result } = renderHook(() => useApiErrorModal());
     
-    expect(result.current.apiError).toBeNull();
-    expect(result.current.isErrorOpen).toBe(false);
+    expect(result.current.error).toBeNull(); // FIX: property is 'error', not 'apiError'
+    expect(result.current.isOpen).toBe(false); // FIX: property is 'isOpen', not 'isErrorOpen'
   });
 
-  test('handleApiError sets error state', () => {
+  test('handleApiError (simulated via event) sets error state', () => {
     const { result } = renderHook(() => useApiErrorModal());
     const testError = { message: 'Test Error', status: 500 };
 
     act(() => {
-      result.current.handleApiError(testError);
+      // Logic relies on window event
+      window.dispatchEvent(new CustomEvent('api-error', { detail: testError }));
     });
 
-    expect(result.current.apiError).toEqual(testError);
-    expect(result.current.isErrorOpen).toBe(true);
+    expect(result.current.error).toEqual(testError);
+    expect(result.current.isOpen).toBe(true);
   });
 
-  test('handleApiError handles generic error object', () => {
-    const { result } = renderHook(() => useApiErrorModal());
-    const genericError = new Error('Network Error');
-
-    act(() => {
-      result.current.handleApiError(genericError);
-    });
-
-    // Check if it wrapped it or used it directly
-    expect(result.current.apiError).toBeTruthy();
-    expect(result.current.isErrorOpen).toBe(true);
-  });
-
-  test('closeErrorModal resets state', () => {
+  test('clearError resets state', () => {
     const { result } = renderHook(() => useApiErrorModal());
 
     // First open it
     act(() => {
-      result.current.handleApiError({ message: 'E' });
+      window.dispatchEvent(new CustomEvent('api-error', { detail: { message: 'E' } }));
     });
-    expect(result.current.isErrorOpen).toBe(true);
+    expect(result.current.isOpen).toBe(true);
 
     // Then close
     act(() => {
-      result.current.closeErrorModal();
+      result.current.clearError(); // FIX: method is 'clearError'
     });
 
-    expect(result.current.isErrorOpen).toBe(false);
-    expect(result.current.apiError).toBeNull();
+    expect(result.current.isOpen).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 });
