@@ -1,9 +1,7 @@
 import pytest
-from unittest.mock import patch, MagicMock
 from rest_framework.test import APIClient
 from rest_framework import status
 from core.models import Invitation, GlobalConfig, Person, Accommodation, Room
-from django.utils import timezone
 
 @pytest.mark.django_db
 class TestPublicInvitationAuthView:
@@ -90,11 +88,17 @@ class TestDashboardStatsView:
             price_accommodation_adult=80, price_accommodation_child=40,
             price_transfer=20
         )
-        # Create some data
-        inv1 = Invitation.objects.create(status=Invitation.Status.CONFIRMED, accommodation_requested=True)
+        # Create unique codes for invitations
+        inv1 = Invitation.objects.create(
+            name="Conf", code="CONF01", 
+            status=Invitation.Status.CONFIRMED, accommodation_requested=True
+        )
         Person.objects.create(invitation=inv1, is_child=False) # 1 Adult
         
-        inv2 = Invitation.objects.create(status=Invitation.Status.SENT)
+        inv2 = Invitation.objects.create(
+            name="Pend", code="PEND01",
+            status=Invitation.Status.SENT
+        )
         Person.objects.create(invitation=inv2, is_child=True) # 1 Child
 
     def test_get_stats(self):
@@ -111,11 +115,12 @@ class TestDashboardStatsView:
 class TestAccommodationAutoAssign:
     def setup_method(self):
         self.client = APIClient()
-        self.acc = Accommodation.objects.create(name="Hotel A")
-        self.room = Room.objects.create(accommodation=self.acc, name="101", capacity=2)
+        self.acc = Accommodation.objects.create(name="Hotel A", address="Via Roma")
+        self.room = Room.objects.create(accommodation=self.acc, room_number="101", capacity_adults=2, capacity_children=0)
         
         self.inv = Invitation.objects.create(
-            name="Couple", status=Invitation.Status.CONFIRMED, 
+            name="Couple", code="COUPLE01",
+            status=Invitation.Status.CONFIRMED, 
             accommodation_requested=True
         )
         self.p1 = Person.objects.create(invitation=self.inv, first_name="A")
