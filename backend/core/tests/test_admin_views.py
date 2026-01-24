@@ -108,8 +108,13 @@ class TestInvitationAdminViews:
         url = '/api/admin/invitations/?status=confirmed'
         response = self.client.get(url)
         
-        # DRF StandardPagination returns 'results' list
-        results = response.data.get('results', [])
+        # DRF can return 'results' (paginated) or list (non-paginated)
+        data = response.data
+        if isinstance(data, list):
+            results = data
+        else:
+            results = data.get('results', [])
+            
         assert len(results) == 1
         assert results[0]['id'] == self.inv1.id
         
@@ -117,7 +122,12 @@ class TestInvitationAdminViews:
         url = f'/api/admin/invitations/?label={self.label1.id}'
         response = self.client.get(url)
         
-        results = response.data.get('results', [])
+        data = response.data
+        if isinstance(data, list):
+            results = data
+        else:
+            results = data.get('results', [])
+
         assert len(results) == 1
         assert results[0]['id'] == self.inv2.id
 
@@ -130,30 +140,35 @@ class TestConfigurableTextViewSet:
         self.text2 = ConfigurableText.objects.create(key="welcome", language="en", content="Welcome")
 
     def test_list_filter_lang(self):
-        url = '/api/admin/texts/?lang=en' # CORRECTED URL from 'configurable-texts' to 'texts'
+        url = '/api/admin/texts/?lang=en' 
         response = self.client.get(url)
         # Check standard list response structure
-        results = response.data.get('results', response.data)
+        data = response.data
+        if isinstance(data, list):
+            results = data
+        else:
+            results = data.get('results', [])
+            
         assert len(results) == 1
         assert results[0]['content'] == "Welcome"
 
     def test_retrieve_fallback(self):
         # Retrieve IT specific
-        url = '/api/admin/texts/welcome/?lang=it' # CORRECTED URL
+        url = '/api/admin/texts/welcome/?lang=it'
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert response.data['content'] == "Benvenuti"
 
     def test_update_or_create(self):
         # Create new key
-        url = '/api/admin/texts/new-key/?lang=it' # CORRECTED URL
+        url = '/api/admin/texts/new-key/?lang=it' 
         data = {'content': 'Nuovo Contenuto'}
         response = self.client.put(url, data)
         assert response.status_code == status.HTTP_201_CREATED
         assert ConfigurableText.objects.filter(key="new-key", language="it").exists()
         
         # Update existing
-        url = '/api/admin/texts/welcome/?lang=it' # CORRECTED URL
+        url = '/api/admin/texts/welcome/?lang=it'
         data = {'content': 'Benvenuti Modificato'}
         response = self.client.put(url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -170,7 +185,7 @@ class TestPublicConfigViews:
 
     def test_public_texts_fallback(self):
         # Request EN (should get k1=Hello, k2=Mondo fallback)
-        url = '/api/public/texts/?lang=en' # CORRECTED URL from 'configurable-texts' to 'texts'
+        url = '/api/public/texts/?lang=en' 
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         data = response.data
