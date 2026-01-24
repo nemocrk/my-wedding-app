@@ -2,7 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.db import IntegrityError
-from core.models import Invitation, GlobalConfig, Person, Accommodation, Room
+from core.models import Invitation, GlobalConfig, Person, Accommodation, Room, WhatsAppSessionStatus
 
 @pytest.mark.django_db
 class TestPublicInvitationAuthView:
@@ -10,12 +10,16 @@ class TestPublicInvitationAuthView:
         self.client = APIClient()
         self.config = GlobalConfig.objects.create(invitation_link_secret="secret")
         self.invitation = Invitation.objects.create(
-            name="Test Fam", code="TEST01", status=Invitation.Status.SENT
+            name="Test Fam", code="TEST01", status=Invitation.Status.SENT, origin=Invitation.Origin.GROOM
         )
         self.token = self.invitation.generate_verification_token("secret")
+        
+        # Create necessary Session Status to avoid DoesNotExist error in Serializer
+        WhatsAppSessionStatus.objects.create(session_type='groom', state='connected')
+        WhatsAppSessionStatus.objects.create(session_type='bride', state='connected')
 
     def test_auth_success(self):
-        url = '/api/public/auth/'  # FIXED URL
+        url = '/api/public/auth/'
         data = {'code': 'TEST01', 'token': self.token}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_200_OK
@@ -23,13 +27,13 @@ class TestPublicInvitationAuthView:
         assert self.client.session['invitation_id'] == self.invitation.id
 
     def test_auth_invalid_token(self):
-        url = '/api/public/auth/'  # FIXED URL
+        url = '/api/public/auth/'
         data = {'code': 'TEST01', 'token': 'wrong'}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
     def test_auth_not_found(self):
-        url = '/api/public/auth/'  # FIXED URL
+        url = '/api/public/auth/'
         data = {'code': 'UNKNOWN', 'token': 'whatever'}
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_404_NOT_FOUND
@@ -61,7 +65,7 @@ class TestPublicRSVPView:
             'travel_info': {
                 'transport_type': 'aereo',
                 'schedule': 'Flight AZ123',
-                'car_option': 'none'  # FIXED PAYLOAD (Avoid NOT NULL error)
+                'car_option': 'none'
             }
         }
         
@@ -129,7 +133,7 @@ class TestAccommodationAutoAssign:
         self.p2 = Person.objects.create(invitation=self.inv, first_name="B")
 
     def test_auto_assign_simulation(self):
-        url = '/api/admin/accommodations/auto-assign/'  # FIXED URL (plural)
+        url = '/api/admin/accommodations/auto-assign/'
         data = {'strategy': 'SIMULATION', 'reset_previous': False}
         
         response = self.client.post(url, data, format='json')
@@ -138,7 +142,7 @@ class TestAccommodationAutoAssign:
         assert len(response.data['results']) > 0
 
     def test_auto_assign_execution(self):
-        url = '/api/admin/accommodations/auto-assign/'  # FIXED URL (plural)
+        url = '/api/admin/accommodations/auto-assign/'
         data = {'strategy': 'STANDARD', 'reset_previous': True}
         
         response = self.client.post(url, data, format='json')
