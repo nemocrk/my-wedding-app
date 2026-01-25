@@ -6,26 +6,6 @@ import { useConfigurableText } from '../contexts/TextContext';
 import { submitRSVP } from '../services/api';
 import { logInteraction } from '../services/analytics';
 
-// Mock delle dipendenze
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key) => {
-      const translations = {
-        'rsvp.labels.dietary_requirements': 'Intolleranze Alimentari',
-        'rsvp.labels.dietary_placeholder': 'Inserisci allergie o intolleranze...',
-        'rsvp.buttons.next': 'Avanti',
-        'rsvp.buttons.confirm_presence': 'Conferma Presenza',
-        'rsvp.labels.guests': 'Ospiti',
-        'rsvp.title': 'Form',
-        'rsvp.options.ferry': 'Traghetto',
-        'rsvp.options.plane': 'Aereo',
-        'rsvp.labels.schedule_placeholder': 'Es. Partenza ore 10:00 da Civitavecchia'
-      };
-      return translations[key] || key;
-    }
-  })
-}));
-
 vi.mock('../contexts/TextContext', () => ({
   useConfigurableText: vi.fn()
 }));
