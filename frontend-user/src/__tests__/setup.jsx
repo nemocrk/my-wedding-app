@@ -1,7 +1,6 @@
-import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import React from 'react';
+import { cleanup } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
 
 // Cleanup automatico dopo ogni test
 afterEach(() => {
@@ -21,12 +20,14 @@ const getNestedTranslation = (obj, path) => {
 // ========================================
 // MOCK: react-i18next
 // ========================================
+export const changeLanguageMock = vi.fn();
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => {
     return {
       t: (key, options) => {
         let translation = getNestedTranslation(translations, key);
-        
+
         // Handle interpolation {variable}
         if (options && typeof translation === 'string') {
           Object.keys(options).forEach(varName => {
@@ -36,17 +37,17 @@ vi.mock('react-i18next', () => ({
             );
           });
         }
-        
+
         return translation;
       },
       i18n: {
-        changeLanguage: vi.fn(),
+        changeLanguage: changeLanguageMock,
         language: 'it',
       },
     };
   },
   Trans: ({ children }) => children,
-  Translation: ({ children }) => children(() => {}),
+  Translation: ({ children }) => children(() => { }),
 }));
 
 // ========================================
@@ -58,7 +59,7 @@ const mockGetText = (key, defaultValue) => {
     'envelope.front.content': '<div style="font-family: serif;"><h1>Domenico & Loredana</h1><p>Ci sposiamo il 19 Settembre 2026</p><p>Dress Code: Beach Chic</p></div>',
     // Le card usano i default se non presenti nel DB
   };
-  
+
   return dbTexts[key] || defaultValue || '';
 };
 

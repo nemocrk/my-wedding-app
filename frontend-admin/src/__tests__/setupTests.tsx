@@ -1,7 +1,6 @@
-import React from 'react';
-import { afterEach, vi } from 'vitest';
-import { cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
+import { cleanup } from '@testing-library/react';
+import { afterEach, vi } from 'vitest';
 
 
 // Cleanup automatico dopo ogni test
@@ -22,7 +21,7 @@ Object.defineProperty(window, 'dispatchEvent', {
 // ========================================
 // TRADUZIONI COMPLETE DA i18n/it.json
 // ========================================
-import translations from '../../i18n/it.json';
+import translations from '../../../i18n/it.json';
 
 // Helper per navigare oggetti nested con dot notation
 const getNestedTranslation = (obj: any, path: string): string => {
@@ -37,7 +36,7 @@ vi.mock('react-i18next', () => ({
     return {
       t: (key: string, options?: any) => {
         let translation = getNestedTranslation(translations, key);
-        
+
         // Handle interpolation {variable}
         if (options && typeof translation === 'string') {
           Object.keys(options).forEach(varName => {
@@ -47,7 +46,7 @@ vi.mock('react-i18next', () => ({
             );
           });
         }
-        
+
         return translation;
       },
       i18n: {
@@ -57,7 +56,7 @@ vi.mock('react-i18next', () => ({
     };
   },
   Trans: ({ children }: any) => children,
-  Translation: ({ children }: any) => children(() => {}),
+  Translation: ({ children }: any) => children(() => { }),
 }));
 
 // ========================================
@@ -71,7 +70,7 @@ vi.mock('@tiptap/react', () => ({
       focus: vi.fn(),
     },
     chain: () => ({
-      focus: () => ({ 
+      focus: () => ({
         undo: () => ({ run: vi.fn() }),
         redo: () => ({ run: vi.fn() }),
         setFontFamily: () => ({ run: vi.fn() }),
@@ -87,8 +86,8 @@ vi.mock('@tiptap/react', () => ({
       }),
     }),
     can: () => ({
-      chain: () => ({ 
-        focus: () => ({ 
+      chain: () => ({
+        focus: () => ({
           undo: () => ({ run: () => false }),
           redo: () => ({ run: () => false }),
         }),
@@ -125,13 +124,13 @@ vi.mock('@tiptap/react', () => ({
 // ========================================
 // MOCK: TipTap Extensions
 // ========================================
-vi.mock('@tiptap/starter-kit', () => ({ 
-  default: { configure: vi.fn(() => ({ name: 'StarterKit' })) } 
+vi.mock('@tiptap/starter-kit', () => ({
+  default: { configure: vi.fn(() => ({ name: 'StarterKit' })) }
 }));
 vi.mock('@tiptap/extension-link', () => ({ default: vi.fn() }));
 vi.mock('@tiptap/extension-underline', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-text-align', () => ({ 
-  default: { configure: vi.fn(() => ({ name: 'TextAlign' })) } 
+vi.mock('@tiptap/extension-text-align', () => ({
+  default: { configure: vi.fn(() => ({ name: 'TextAlign' })) }
 }));
 vi.mock('@tiptap/extension-subscript', () => ({ default: vi.fn() }));
 vi.mock('@tiptap/extension-superscript', () => ({ default: vi.fn() }));
@@ -139,17 +138,3 @@ vi.mock('@tiptap/extension-highlight', () => ({ default: vi.fn() }));
 vi.mock('@tiptap/extension-text-style', () => ({ TextStyle: vi.fn() }));
 vi.mock('@tiptap/extension-color', () => ({ Color: vi.fn() }));
 vi.mock('@tiptap/extension-font-family', () => ({ default: vi.fn() }));
-
-// ========================================
-// MOCK: GoogleFontPicker
-// ========================================
-vi.mock('../components/ui/GoogleFontPicker', () => ({
-  default: () => <div data-testid="google-font-picker">Font Picker</div>,
-}));
-
-// ========================================
-// MOCK: fontLoader
-// ========================================
-vi.mock('../utils/fontLoader', () => ({
-  autoLoadFontsFromHTML: vi.fn(),
-}));

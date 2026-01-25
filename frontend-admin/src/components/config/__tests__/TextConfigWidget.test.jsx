@@ -1,6 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '../../../test-utils';
+import { render, screen, waitFor, within } from '../../../__tests__/test-utils';
 
 // CRITICAL: Mock API BEFORE importing component (hoisting)
 vi.mock('../../../services/api', () => ({

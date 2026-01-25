@@ -1,9 +1,9 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import react from '@vitejs/plugin-react';
+import { defineConfig } from 'vite';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: './', 
+  base: './',
   plugins: [react()],
   server: {
     port: 3000,
@@ -16,13 +16,13 @@ export default defineConfig({
         configure: (proxy, options) => {
           proxy.on('error', (err, req, res) => {
             console.error('Proxy Error:', err);
-            
+
             // Se la risposta non è stata ancora inviata
             if (!res.headersSent) {
               res.writeHead(502, {
                 'Content-Type': 'application/json',
               });
-              
+
               const errorResponse = {
                 error: 'Bad Gateway',
                 message: `Proxy connection failed: ${err.message}`,
@@ -30,7 +30,7 @@ export default defineConfig({
                 path: req.url,
                 timestamp: new Date().toISOString()
               };
-              
+
               res.end(JSON.stringify(errorResponse));
             }
           });
@@ -38,26 +38,4 @@ export default defineConfig({
       },
     },
   },
-  test: {
-    globals: true,
-    environment: 'jsdom',
-    setupFiles: './src/setupTests.ts',
-    coverage: {
-      provider: 'v8',
-      reporter: ['text', 'json', 'html'],
-      lines: 80,
-      exclude: [
-        'node_modules',
-        'dist',
-        '.eslintrc.cjs',
-        'vite.config.js',
-        'src/vite-env.d.ts',
-        'src/main.tsx',
-        'src/main.jsx',
-        'src/i18n.js',
-        'src/index.js',
-        '**/*.d.ts'
-      ]
-    }
-  }
 })

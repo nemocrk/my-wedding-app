@@ -1,20 +1,15 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import LetterContent from '../components/invitation/LetterContent';
-import { useConfigurableText } from '../contexts/TextContext';
-import { submitRSVP } from '../services/api';
-import { logInteraction } from '../services/analytics';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '../../../__tests__/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
+import { logInteraction } from '../../../services/analytics';
+import { submitRSVP } from '../../../services/api';
+import LetterContent from '../LetterContent';
 
-vi.mock('../contexts/TextContext', () => ({
-  useConfigurableText: vi.fn()
-}));
-
-vi.mock('../services/api', () => ({
+vi.mock('../../../services/api', () => ({
   submitRSVP: vi.fn()
 }));
 
-vi.mock('../services/analytics', () => ({
+vi.mock('../../../services/analytics', () => ({
   logInteraction: vi.fn(),
   heatmapTracker: { start: vi.fn(), stop: vi.fn() }
 }));
@@ -44,16 +39,12 @@ describe('LetterContent - Dietary Requirements', () => {
   };
 
   beforeEach(() => {
-    useConfigurableText.mockReturnValue({
-      getText: (key, defaultText) => defaultText || key
-    });
-    submitRSVP.mockResolvedValue({ success: true, message: 'RSVP Aggiornato' });
     logInteraction.mockClear();
   });
 
   const openRSVP = () => {
     // Cerchiamo l'heading specifico della card RSVP per evitare ambiguità
-    const rsvpTitle = screen.getByRole('heading', { name: /RSVP - Form/i });
+    const rsvpTitle = screen.getByRole('heading', { name: /RSVP - Conferma Presenza/i });
     fireEvent.click(rsvpTitle);
   };
 
@@ -78,7 +69,7 @@ describe('LetterContent - Dietary Requirements', () => {
     fireEvent.click(editButtons[0]);
 
     // Trova la textarea delle intolleranze
-    const dietaryInput = screen.getByPlaceholderText('Inserisci allergie o intolleranze...');
+    const dietaryInput = screen.getByPlaceholderText(/Intollerante al lattosio/i);
     fireEvent.change(dietaryInput, { target: { value: 'Lattosio' } });
 
     // Salva
@@ -98,12 +89,12 @@ describe('LetterContent - Dietary Requirements', () => {
     // Step 1: Modifica intolleranza Mario
     const editButtons = screen.getAllByText('✏️');
     fireEvent.click(editButtons[0]);
-    const dietaryInput = screen.getByPlaceholderText('Inserisci allergie o intolleranze...');
+    const dietaryInput = screen.getByPlaceholderText(/Intollerante al lattosio/i);
     fireEvent.change(dietaryInput, { target: { value: 'No Noci' } });
     fireEvent.click(screen.getByText('✓'));
 
     // Avanza negli step (Guests -> Contact -> Travel -> Final)
-    fireEvent.click(screen.getByText('Avanti')); // Guests -> Contact
+    fireEvent.click(screen.getByText(/Avanti/i)); // Guests -> Contact
 
     // Contact Step
     const phoneEditButtons = screen.getAllByText('✏️');
@@ -112,17 +103,17 @@ describe('LetterContent - Dietary Requirements', () => {
     fireEvent.change(phoneField, { target: { value: '+393331234567' } });
     const phoneSaveButton = screen.getByText('✓');
     fireEvent.click(phoneSaveButton);
-    fireEvent.click(screen.getByText('Avanti')); // Contact -> Travel
+    fireEvent.click(screen.getByText(/Avanti/i)); // Contact -> Travel
 
     // Travel Step: Usa getByRole per radio button
     const ferryOption = screen.getByRole('radio', { name: /Traghetto/i });
     fireEvent.click(ferryOption);
-    const scheduleInput = screen.getByPlaceholderText(/Es. Partenza ore 10:00 da Civitavecchia/i);
+    const scheduleInput = screen.getByPlaceholderText(/es: Partenza 10:00/i);
     fireEvent.change(scheduleInput, { target: { value: '10:00' } });
-    fireEvent.click(screen.getByText('Avanti')); // Travel -> Final
+    fireEvent.click(screen.getByText(/Avanti/i)); // Travel -> Final
 
     // Final Step - Conferma
-    fireEvent.click(screen.getByText('Conferma Presenza'));
+    fireEvent.click(screen.getByRole('button', { name: /Conferma Presenza/i }));
 
     await waitFor(() => {
       expect(submitRSVP).toHaveBeenCalledWith(

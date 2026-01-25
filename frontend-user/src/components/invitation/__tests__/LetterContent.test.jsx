@@ -1,9 +1,9 @@
-import '../../../test/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LetterContent from '../LetterContent';
-import * as apiService from '../../../services/api';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '../../../__tests__/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
+import * as apiService from '../../../services/api';
+import LetterContent from '../LetterContent';
 
 // Mock services
 vi.mock('../../../services/api', () => ({
@@ -98,8 +98,8 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
         // Click the exclude button (✕) within each list item
         // This avoids clicking the modal close button which also has "✕"
         listItems.forEach(item => {
-           const excludeBtn = within(item).getByText('✕');
-           fireEvent.click(excludeBtn);
+          const excludeBtn = within(item).getByText('✕');
+          fireEvent.click(excludeBtn);
         });
       });
 
@@ -344,7 +344,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
   describe('Wizard Step 5 - Final Confirmation', () => {
     it('shows final summary with all data', async () => {
       const user = userEvent.setup();
-      const {container } = render(<LetterContent data={mockData} />);
+      const { container } = render(<LetterContent data={mockData} />);
 
       // Navigate through all steps
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
@@ -361,7 +361,7 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
       fireEvent.click(screen.getByLabelText('Auto al seguito'));
       fireEvent.click(screen.getByText(/Avanti →/i)); // travel
       fireEvent.click(screen.getByText(/Avanti →/i)); // accommodation
-            
+
       await waitFor(() => {
         expect(screen.getByText('Conferma Finale')).toBeInTheDocument();
         expect(screen.getByText(/Trasporto:/i)).toBeInTheDocument();

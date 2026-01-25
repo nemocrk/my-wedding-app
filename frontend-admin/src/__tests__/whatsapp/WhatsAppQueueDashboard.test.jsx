@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsAppQueueDashboard from '../../components/whatsapp/WhatsAppQueueDashboard';
 import { whatsappService } from '../../services/whatsappService';
-import { fireEvent, render, screen, waitFor } from '../../test-utils';
+import { fireEvent, render, screen, waitFor } from '../test-utils';
 
 // Mock del service
 vi.mock('../../services/whatsappService', () => ({

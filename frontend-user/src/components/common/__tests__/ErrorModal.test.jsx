@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
-import ErrorModal from '../components/common/ErrorModal';
+import '../../../__tests__/setup.jsx'; // Import i18n and TextContext mocks (corrected extension)
+import ErrorModal from '../ErrorModal';
 
 describe('ErrorModal Component', () => {
   const mockOnClose = vi.fn();
@@ -29,7 +30,7 @@ describe('ErrorModal Component', () => {
       />
     );
     expect(screen.getByText('Generic Error')).toBeTruthy();
-    expect(screen.getByText('Si è verificato un errore')).toBeTruthy();
+    expect(screen.getByText('Ops! Qualcosa non va')).toBeTruthy();
   });
 
   test('calls onClose when button clicked', () => {
@@ -40,7 +41,7 @@ describe('ErrorModal Component', () => {
         error={{ message: 'Test' }}
       />
     );
-    const btn = screen.getByRole('button');
+    const btn = screen.getByRole('button', { name: /Ho capito, chiudi/i });
     fireEvent.click(btn);
     expect(mockOnClose).toHaveBeenCalled();
   });

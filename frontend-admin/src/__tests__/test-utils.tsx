@@ -1,8 +1,8 @@
-import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
+import React, { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext';
-import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmDialogProvider } from '../contexts/ConfirmDialogContext';
+import { ToastProvider } from '../contexts/ToastContext';
 
 /**
  * Custom render function che wrappa il componente con tutti i provider necessari.

@@ -1,10 +1,10 @@
-import '../../test/setup.jsx'; // Import i18n and TextContext mocks
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, act, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import App from '../../App';
 import { BrowserRouter } from 'react-router';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import App from '../../App';
 import * as api from '../../services/api';
+import '../setup.jsx'; // Import i18n and TextContext mocks
 
 // Mock child components to isolate animation test
 vi.mock('../../components/InvitationCard', () => ({
@@ -86,13 +86,13 @@ describe('Envelope Animation E2E', () => {
 
     // Poiché ora usiamo fake timers, dobbiamo far avanzare il tempo affinché waitFor funzioni
     // O semplicemente aspettare la chiamata API (che è un microtask promise, non timer)
-    
+
     // Auth call should happen immediately (promise)
     await act(async () => {
-        // Run pending promises
-        await Promise.resolve(); 
+      // Run pending promises
+      await Promise.resolve();
     });
-    
+
     // Verifichiamo che l'auth sia partita
     expect(api.authenticateInvitation).toHaveBeenCalled();
 
@@ -114,7 +114,7 @@ describe('Envelope Animation E2E', () => {
     // Verify LetterContent is visible in the extracted letter
     // Se l'animazione ha completato, il contenuto dovrebbe essere renderizzato
     expect(screen.getByText(/Domenico & Loredana/i)).toBeInTheDocument();
-    
+
     // Use user var to avoid lint/unused warnings
     expect(user).toBeDefined();
   }, 15_000);

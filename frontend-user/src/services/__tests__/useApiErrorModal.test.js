@@ -1,10 +1,10 @@
 import { renderHook, act } from '@testing-library/react';
-import useApiErrorModal from '../hooks/useApiErrorModal';
+import useApiErrorModal from '../../hooks/useApiErrorModal';
 
 describe('useApiErrorModal Hook', () => {
   test('initial state', () => {
     const { result } = renderHook(() => useApiErrorModal());
-    
+
     expect(result.current.error).toBeNull(); // FIX: property is 'error', not 'apiError'
     expect(result.current.isOpen).toBe(false); // FIX: property is 'isOpen', not 'isErrorOpen'
   });

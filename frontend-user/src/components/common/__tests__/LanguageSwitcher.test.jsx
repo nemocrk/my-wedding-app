@@ -1,12 +1,13 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi } from 'vitest';
-import { describe, it, expect } from 'vitest';
-import LanguageFab from '../components/LanguageSwitcher';
-import * as api from '../services/api';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, vi } from 'vitest';
+import '../../../__tests__/setup.jsx'; // Import i18n mock (corrected extension)
+import { changeLanguageMock } from '../../../__tests__/setup.jsx';
+
+import * as api from '../../../services/api';
+import LanguageFab from '../LanguageSwitcher';
 
 // Partially mock API to spy on fetchLanguages
-vi.mock('../services/api', async (importOriginal) => {
+vi.mock('../../../services/api', async (importOriginal) => {
   const actual = await importOriginal();
   return {
     ...actual,
@@ -26,29 +27,20 @@ describe('LanguageSwitcher Component', () => {
   });
 
   test('changes language on click', async () => {
-    api.fetchLanguages.mockResolvedValue({
-      ok: true,
-      json: async () => mockLanguages,
-    });
-
-    const { useTranslation } = await import('react-i18next');
-    const changeLanguageMock = useTranslation().i18n.changeLanguage;
+    api.fetchLanguages.mockResolvedValue(mockLanguages);
 
     render(<LanguageFab />);
-    const fab = screen.getByLabelText('Change Language');
+    const fab = await waitFor(() => screen.getByLabelText('Change Language'));
     fireEvent.click(fab);
 
     await waitFor(() => screen.getByText('🇬🇧'));
     fireEvent.click(screen.getByText('🇬🇧'));
 
-    expect(changeLanguageMock).toHaveBeenCalledWith('en');
+    await waitFor(() => expect(changeLanguageMock).toHaveBeenCalledWith('en'));
   });
 
   test('hides if only one language', async () => {
-    api.fetchLanguages.mockResolvedValue({
-      ok: true,
-      json: async () => [{ code: 'it' }],
-    });
+    api.fetchLanguages.mockResolvedValue([{ code: 'it' }]);
 
     const { container } = render(<LanguageFab />);
 

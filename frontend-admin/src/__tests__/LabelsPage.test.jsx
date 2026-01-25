@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LabelManager from '../pages/LabelManager';
 import { api } from '../services/api';
-import { fireEvent, render, screen, waitFor } from '../test-utils';
+import { fireEvent, render, screen, waitFor } from './test-utils';
 
 // Mock API
 vi.mock('../services/api', () => ({
