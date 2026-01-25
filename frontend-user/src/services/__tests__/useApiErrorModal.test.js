@@ -1,20 +1,20 @@
 import { renderHook, act } from '@testing-library/react';
 import useApiErrorModal from '../../hooks/useApiErrorModal';
+import { expect, test, describe } from 'vitest';
 
 describe('useApiErrorModal Hook', () => {
   test('initial state', () => {
     const { result } = renderHook(() => useApiErrorModal());
 
-    expect(result.current.error).toBeNull(); // FIX: property is 'error', not 'apiError'
-    expect(result.current.isOpen).toBe(false); // FIX: property is 'isOpen', not 'isErrorOpen'
+    expect(result.current.error).toBeNull();
+    expect(result.current.isOpen).toBe(false);
   });
 
-  test('handleApiError (simulated via event) sets error state', () => {
+  test('handleApiError sets error state', () => {
     const { result } = renderHook(() => useApiErrorModal());
     const testError = { message: 'Test Error', status: 500 };
 
     act(() => {
-      // Logic relies on window event
       window.dispatchEvent(new CustomEvent('api-error', { detail: testError }));
     });
 
@@ -22,18 +22,26 @@ describe('useApiErrorModal Hook', () => {
     expect(result.current.isOpen).toBe(true);
   });
 
+  test('handleApiError uses fallback if detail is null', () => {
+    const { result } = renderHook(() => useApiErrorModal());
+
+    act(() => {
+      window.dispatchEvent(new CustomEvent('api-error', { detail: null }));
+    });
+
+    expect(result.current.error).toEqual({ message: 'Errore sconosciuto' });
+  });
+
   test('clearError resets state', () => {
     const { result } = renderHook(() => useApiErrorModal());
 
-    // First open it
     act(() => {
       window.dispatchEvent(new CustomEvent('api-error', { detail: { message: 'E' } }));
     });
     expect(result.current.isOpen).toBe(true);
 
-    // Then close
     act(() => {
-      result.current.clearError(); // FIX: method is 'clearError'
+      result.current.clearError();
     });
 
     expect(result.current.isOpen).toBe(false);
