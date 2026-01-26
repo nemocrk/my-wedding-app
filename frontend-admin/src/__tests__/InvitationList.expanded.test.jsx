@@ -59,23 +59,38 @@ const mockLabels = [
   { id: 2, name: 'Family', color: '#00FF00' },
 ];
 
+const mockInvitation = {
+  id: 1,
+  name: 'Family Test',
+  code: 'test123',
+  status: 'created',
+  origin: 'groom',
+  phone_number: '+39 333 1234567',
+  whatsapp_number: '+39 333 1234567',
+  whatsapp_name: 'Test Contact',
+  accommodation_pinned: false,
+  labels: [{ id: 1, name: 'VIP', color: '#FF0000' }],
+  guests: [{ first_name: 'John', last_name: 'Doe', is_child: false }],
+};
+
 describe('InvitationList - Expanded Coverage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
     // Setup API mock
-    vi.spyOn(apiModule.api, 'getInvitations').mockResolvedValue({
+    vi.spyOn(apiModule.api, 'fetchInvitations').mockResolvedValue({
       results: mockInvitations,
       count: 2,
       next: null,
       previous: null,
     });
-    
-    vi.spyOn(apiModule.api, 'getInvitationLabels').mockResolvedValue(mockLabels);
+
+    vi.spyOn(apiModule.api, 'fetchInvitationLabels').mockResolvedValue(mockLabels);
     vi.spyOn(apiModule.api, 'bulkSendInvitations').mockResolvedValue({ sent: 1 });
     vi.spyOn(apiModule.api, 'updateInvitation').mockResolvedValue(mockInvitations[0]);
     vi.spyOn(apiModule.api, 'deleteInvitation').mockResolvedValue({});
-    vi.spyOn(apiModule.api, 'exportInvitationsCSV').mockResolvedValue(new Blob(['csv data']));
+    vi.spyOn(apiModule.api, 'getInvitation').mockResolvedValue(mockInvitation);
+    //vi.spyOn(apiModule.api, 'exportInvitationsCSV').mockResolvedValue(new Blob(['csv data']));
   });
 
   // === SORTING FUNCTIONALITY ===
@@ -84,15 +99,15 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find Name column header and click
       const nameHeader = screen.getAllByRole('button').find(btn => btn.textContent.includes('admin.invitations.table.name'));
-      
+
       if (nameHeader) {
         fireEvent.click(nameHeader);
-        
+
         await waitFor(() => {
           expect(apiModule.api.getInvitations).toHaveBeenCalledWith(
             expect.objectContaining({ ordering: 'name' })
@@ -101,7 +116,7 @@ describe('InvitationList - Expanded Coverage', () => {
 
         // Click again for descending
         fireEvent.click(nameHeader);
-        
+
         await waitFor(() => {
           expect(apiModule.api.getInvitations).toHaveBeenCalledWith(
             expect.objectContaining({ ordering: '-name' })
@@ -114,14 +129,14 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       const statusHeader = screen.getAllByRole('button').find(btn => btn.textContent.includes('admin.invitations.table.status'));
-      
+
       if (statusHeader) {
         fireEvent.click(statusHeader);
-        
+
         await waitFor(() => {
           expect(apiModule.api.getInvitations).toHaveBeenCalledWith(
             expect.objectContaining({ ordering: 'status' })
@@ -138,11 +153,11 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find edit icon/button for first row
-      const editBtns = screen.getAllByRole('button').filter(btn => 
+      const editBtns = screen.getAllByRole('button').filter(btn =>
         btn.querySelector('svg') && btn.closest('tr')
       );
 
@@ -174,13 +189,13 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('+39 333 1234567')).toBeInTheDocument();
+        expect(screen.getAllByText('+39 333 1234567')[0]).toBeInTheDocument();
       });
 
       // Click on phone to edit (if clickable)
-      const phoneEl = screen.getByText('+39 333 1234567');
+      const phoneEl = screen.getAllByText('+39 333 1234567')[0];
       const editableContainer = phoneEl.closest('[contenteditable], input, textarea');
-      
+
       if (editableContainer) {
         fireEvent.click(phoneEl);
 
@@ -204,16 +219,26 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
-      // Click row to open modal
-      const rowElement = screen.getByText('Family Test').closest('tr');
-      fireEvent.click(rowElement);
+      // 1. Trova la riga che contiene "Test 2"
+      const row = screen.getAllByText('Family Test')[0].closest('tr');
+      expect(row).not.toBeNull();
+
+      // 2. Trova la lucide-pen dentro quella riga
+      const penButton = within(row)
+        .getAllByRole('button')
+        .find(btn => btn.querySelector('.lucide-pen'));
+      expect(penButton).not.toBeNull();
+
+      // 3. Clicca la penna
+      await userEvent.click(penButton);
+
 
       await waitFor(() => {
         // Check if modal content appears (guest details, etc.)
-        expect(screen.queryByText('John Doe') || screen.queryByText('admin.invitations.details')).toBeTruthy();
+        expect(screen.queryByText('John Doe') || screen.queryByText('admin.invitations.create_modal.title')).toBeTruthy();
       });
     });
 
@@ -221,16 +246,21 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find delete button (trash icon)
-      const deleteBtns = screen.getAllByRole('button').filter(btn => 
+      const deleteBtns = screen.getAllByRole('button').filter(btn =>
         btn.querySelector('svg[class*="trash"]')
       );
 
       if (deleteBtns.length > 0) {
         fireEvent.click(deleteBtns[0]);
+        // 2. Trova la lucide-pen dentro quella riga
+        const confirmDeleteButton = screen.getByRole('button', { name: 'admin.invitations.delete_modal.confirm' })
+
+        // 3. Clicca la penna
+        await userEvent.click(confirmDeleteButton);
 
         await waitFor(() => {
           expect(apiModule.api.deleteInvitation).toHaveBeenCalledWith(1);
@@ -242,11 +272,11 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find pin/star icon button
-      const pinBtns = screen.getAllByRole('button').filter(btn => 
+      const pinBtns = screen.getAllByRole('button').filter(btn =>
         btn.querySelector('svg[class*="star"], svg[class*="pin"]')
       );
 
@@ -272,21 +302,11 @@ describe('InvitationList - Expanded Coverage', () => {
 
       // Mock link click
       const linkClickSpy = vi.fn();
-      vi.spyOn(document, 'createElement').mockImplementation((tag) => {
-        if (tag === 'a') {
-          return {
-            click: linkClickSpy,
-            setAttribute: vi.fn(),
-            style: {},
-          };
-        }
-        return document.createElement(tag);
-      });
 
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find export button
@@ -309,7 +329,7 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Family Test')).toBeInTheDocument();
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
       });
 
       // Find search input
@@ -319,7 +339,7 @@ describe('InvitationList - Expanded Coverage', () => {
         await user.type(searchInput, 'Test');
 
         await waitFor(() => {
-          expect(apiModule.api.getInvitations).toHaveBeenCalledWith(
+          expect(apiModule.api.fetchInvitations).toHaveBeenCalledWith(
             expect.objectContaining({ search: 'Test' })
           );
         }, { timeout: 3000 });
@@ -330,7 +350,7 @@ describe('InvitationList - Expanded Coverage', () => {
   // === EDGE CASES ===
   describe('Edge Cases', () => {
     it('handles empty invitations list', async () => {
-      apiModule.api.getInvitations.mockResolvedValueOnce({
+      apiModule.api.fetchInvitations.mockResolvedValueOnce({
         results: [],
         count: 0,
         next: null,
@@ -340,18 +360,18 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText(/admin.invitations.empty|no invitations|nessun invito/i)).toBeInTheDocument();
+        expect(screen.getAllByText(/admin.invitations.no_invitations/i)[0]).toBeInTheDocument();
       });
     });
 
     it('handles API errors gracefully', async () => {
-      apiModule.api.getInvitations.mockRejectedValueOnce(new Error('Network error'));
+      apiModule.api.fetchInvitations.mockRejectedValueOnce(new Error('Network error'));
 
       render(<InvitationList />);
 
       await waitFor(() => {
         // Should show error state or toast
-        expect(screen.queryByText(/error|errore/i)).toBeTruthy();
+        expect(screen.getAllByText(/common.error_modal.title/i)[0]).toBeInTheDocument();
       });
     });
 
@@ -359,11 +379,11 @@ describe('InvitationList - Expanded Coverage', () => {
       render(<InvitationList />);
 
       await waitFor(() => {
-        expect(screen.getByText('Another Family')).toBeInTheDocument();
+        expect(screen.getAllByText('Another Family')[0]).toBeInTheDocument();
       });
 
       // Verify no phone number displayed (or placeholder)
-      const row = screen.getByText('Another Family').closest('tr');
+      const row = screen.getAllByText('Another Family')[0].closest('tr');
       expect(row).toBeInTheDocument();
       // Phone should be empty or show placeholder
     });

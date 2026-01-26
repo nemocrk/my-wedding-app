@@ -389,6 +389,7 @@ const InvitationList = () => {
           className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
         >
           <option value="">{t('admin.invitations.filters.all_statuses')}</option>
+          <option value="imported">{t('admin.invitations.status.imported')}</option>
           <option value="created">{t('admin.invitations.status.created')}</option>
           <option value="sent">{t('admin.invitations.status.sent')}</option>
           <option value="read">{t('admin.invitations.status.read')}</option>

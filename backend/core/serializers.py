@@ -59,7 +59,7 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = [
             'name', 'guests', 'letter_content',
-            'accommodation_offered', 'transfer_offered', 'status',
+            'accommodation_offered', 'accommodation_requested', 'transfer_offered', 'status',
             'whatsapp', 'phone_number', 'travel_info'
         ]
 

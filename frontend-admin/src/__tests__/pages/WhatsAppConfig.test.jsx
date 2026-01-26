@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsAppConfig from '../../pages/WhatsAppConfig';
 import * as apiService from '../../services/api';
@@ -88,7 +88,7 @@ describe('WhatsAppConfig - Basic Coverage', () => {
 
       // Verify connected status
       expect(screen.getByText('admin.whatsapp_config.connection.status.connected')).toBeInTheDocument();
-      
+
       // Verify disconnected status
       expect(screen.getByText('admin.whatsapp_config.connection.status.disconnected')).toBeInTheDocument();
     });
@@ -99,8 +99,8 @@ describe('WhatsAppConfig - Basic Coverage', () => {
       render(<WhatsAppConfig />);
 
       await waitFor(() => {
-        expect(screen.getByText('Groom')).toBeInTheDocument();
-        expect(screen.getByText('123')).toBeInTheDocument();
+        expect(screen.getAllByText('Groom')[0]).toBeInTheDocument();
+        expect(screen.getAllByText('123')[0]).toBeInTheDocument();
       });
     });
 
@@ -133,11 +133,11 @@ describe('WhatsAppConfig - Basic Coverage', () => {
       render(<WhatsAppConfig />);
 
       await waitFor(() => {
-        expect(screen.getByText('Groom')).toBeInTheDocument();
+        expect(screen.getAllByText('Groom')[0]).toBeInTheDocument();
       });
 
       // Click send test button
-      const testBtn = screen.getByText('admin.whatsapp_config.connection.buttons.send_test');
+      const testBtn = screen.getAllByText('admin.whatsapp_config.connection.buttons.send_test')[0];
       fireEvent.click(testBtn);
 
       await waitFor(() => {
@@ -152,13 +152,13 @@ describe('WhatsAppConfig - Basic Coverage', () => {
       render(<WhatsAppConfig />);
 
       await waitFor(() => {
-        expect(screen.getByText('Groom')).toBeInTheDocument();
+        expect(screen.getAllByText('Groom')[0]).toBeInTheDocument();
       });
 
       // Find and click logout button (icon-only button)
       const logoutBtns = screen.getAllByRole('button');
       const logoutBtn = logoutBtns.find(btn => btn.querySelector('svg[class*="lucide-log-out"]'));
-      
+
       fireEvent.click(logoutBtn);
 
       await waitFor(() => {
@@ -267,8 +267,8 @@ describe('WhatsAppConfig - Basic Coverage', () => {
 
       // Find edit button for first template
       const templateCards = screen.getAllByRole('button', { name: '' });
-      const editBtn = templateCards.find(btn => btn.querySelector('svg[class*="lucide-edit"]'));
-      
+      const editBtn = templateCards.find(btn => btn.querySelector('svg[class*="lucide-pen"]'));
+
       fireEvent.click(editBtn);
 
       await waitFor(() => {
@@ -292,7 +292,7 @@ describe('WhatsAppConfig - Basic Coverage', () => {
       // Find delete button
       const templateCards = screen.getAllByRole('button', { name: '' });
       const deleteBtn = templateCards.find(btn => btn.querySelector('svg[class*="lucide-trash"]'));
-      
+
       fireEvent.click(deleteBtn);
 
       await waitFor(() => {
@@ -310,7 +310,7 @@ describe('WhatsAppConfig - Basic Coverage', () => {
 
       await waitFor(() => {
         // Should show error state
-        expect(screen.getByText('admin.whatsapp_config.connection.status.error')).toBeInTheDocument();
+        expect(screen.getAllByText('admin.whatsapp_config.connection.status.error')[0]).toBeInTheDocument();
       });
     });
 

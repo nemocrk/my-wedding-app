@@ -315,6 +315,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleStartModify = () => {
+    setTempDeclining(false);
     setRsvpStep('guests');
     safeLogInteraction('start_modify_rsvp', { current_status: rsvpStatus });
   };
@@ -809,28 +810,6 @@ const LetterContent = ({ data }) => {
                   </ul>
                 </div>
 
-                {/* Alert se già confermato e vuole escludere tutti */}
-                {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
-                  <div className="whatsapp-alert">
-                    <p>{t('whatsapp.alert_modify_confirmed')}</p>
-                    {(waNumber) && (
-                      <div className="whatsapp-section">
-                        <div className="whatsapp-buttons">
-                          <a
-                            href={getWaLink(waNumber)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="whatsapp-link"
-                            onClick={() => handleWhatsAppClick(waName)}
-                          >
-                            <FaWhatsapp size={20} /> {waName}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
                 {rsvpStatus !== 'declined' && (
                   <button className="rsvp-next-btn" onClick={handleGoToDeclineStep} disabled={submitting}>{t('rsvp.buttons.decline')}</button>
@@ -973,7 +952,7 @@ const LetterContent = ({ data }) => {
                   </label>
 
                   {/* Alert se modifica da accepted a rejected */}
-                  {accommodationRequested && !accommodationChoice && (
+                  {['confirmed', 'declined'].includes(rsvpStatus) && (accommodationRequested !== accommodationChoice) && (
                     <div className="whatsapp-alert">
                       <p>{t('whatsapp.alert_modify_confirmed')}</p>
                       {(waNumber) && (
@@ -994,8 +973,9 @@ const LetterContent = ({ data }) => {
                     </div>
                   )}
                 </div>
-
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                {!(['confirmed', 'declined'].includes(rsvpStatus) && (accommodationRequested !== accommodationChoice)) && (
+                  <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                )}
                 <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
               </>
             )}
@@ -1042,7 +1022,7 @@ const LetterContent = ({ data }) => {
                         {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
                       </button>
                     )}
-                    {['confirmed', 'declined'].includes(rsvpStatus) && (
+                    {['confirmed', 'declined'].includes(rsvpStatus) && !tempDeclining && (
                       <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
                         {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.save_changes')}`}
                       </button>
