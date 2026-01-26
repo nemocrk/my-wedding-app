@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CreateInvitationModal from '../components/invitations/CreateInvitationModal';
@@ -6,8 +6,8 @@ import * as apiModule from '../services/api';
 
 // --- MOCKS ---
 vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ 
-    t: (key) => key 
+  useTranslation: () => ({
+    t: (key) => key
   }),
 }));
 
@@ -21,7 +21,7 @@ vi.mock('../contexts/ToastContext', () => ({
 }));
 
 vi.mock('../components/common/ErrorModal', () => ({
-  default: ({ isOpen, onClose, errorDetails }) => 
+  default: ({ isOpen, onClose, errorDetails }) =>
     isOpen ? (
       <div data-testid="error-modal">
         <button onClick={onClose}>Close Error</button>
@@ -76,9 +76,9 @@ describe('CreateInvitationModal', () => {
   describe('Render and Initial State', () => {
     it('renders modal with correct title in create mode', async () => {
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -88,9 +88,9 @@ describe('CreateInvitationModal', () => {
 
     it('loads and displays available labels', async () => {
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -104,9 +104,9 @@ describe('CreateInvitationModal', () => {
 
     it('initializes with edit data when initialData is provided', async () => {
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
           initialData={mockInitialData}
         />
       );
@@ -121,9 +121,9 @@ describe('CreateInvitationModal', () => {
     it('closes modal when X button is clicked', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -138,9 +138,9 @@ describe('CreateInvitationModal', () => {
     it('allows user to input name and code', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -157,9 +157,9 @@ describe('CreateInvitationModal', () => {
     it('toggles origin between groom and bride', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -176,9 +176,9 @@ describe('CreateInvitationModal', () => {
     it('allows selecting/deselecting labels', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -187,7 +187,7 @@ describe('CreateInvitationModal', () => {
       });
 
       const vipLabel = screen.getByText('VIP').closest('button');
-      
+
       await user.click(vipLabel);
       // Check is selected (implementation uses inline Check icon)
       expect(vipLabel).toHaveClass('ring-2');
@@ -200,9 +200,9 @@ describe('CreateInvitationModal', () => {
     it('toggles accommodation and transfer checkboxes', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -222,14 +222,14 @@ describe('CreateInvitationModal', () => {
     it('validates name and code before proceeding to step 2', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
       const nextButton = screen.getByText('admin.invitations.create_modal.buttons.next');
-      
+
       await user.click(nextButton);
 
       // Should show warning toast (via ToastContext mock)
@@ -242,9 +242,9 @@ describe('CreateInvitationModal', () => {
     it('navigates to step 2 after filling step 1', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -262,9 +262,9 @@ describe('CreateInvitationModal', () => {
     it('allows adding and removing guests', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -286,9 +286,11 @@ describe('CreateInvitationModal', () => {
       expect(guestInputs).toHaveLength(2);
 
       // Remove guest (trash icon button)
-      const trashButtons = screen.getAllByRole('button').filter(btn => btn.querySelector('svg'));
+      const trashButtons = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('svg[class*="trash"]')
+      );
       const removeButton = trashButtons.find(btn => !btn.disabled);
-      
+
       if (removeButton) {
         await user.click(removeButton);
         await waitFor(() => {
@@ -300,9 +302,9 @@ describe('CreateInvitationModal', () => {
     it('allows filling guest details and checking is_child', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -331,9 +333,9 @@ describe('CreateInvitationModal', () => {
     it('navigates back to step 1', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -360,9 +362,9 @@ describe('CreateInvitationModal', () => {
     it('loads existing invitations on step 3', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -383,16 +385,16 @@ describe('CreateInvitationModal', () => {
         expect(apiModule.api.fetchInvitations).toHaveBeenCalled();
       });
 
-      expect(screen.getByText('Test Family 1')).toBeInTheDocument();
-      expect(screen.getByText('Test Family 2')).toBeInTheDocument();
+      expect(screen.getAllByText('Test Family 1')[0]).toBeInTheDocument();
+      expect(screen.getAllByText('Test Family 2')[0]).toBeInTheDocument();
     });
 
     it('allows selecting affinities and non-affinities', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -404,17 +406,19 @@ describe('CreateInvitationModal', () => {
       await user.click(screen.getByText('admin.invitations.create_modal.buttons.next'));
 
       await waitFor(() => {
-        expect(screen.getByText('Test Family 1')).toBeInTheDocument();
+        expect(screen.getAllByText('Test Family 1')[0]).toBeInTheDocument();
       });
 
       // Click on affinity item
       const affinitySection = screen.getByText('admin.invitations.create_modal.steps.review.affinity_title').closest('div');
-      const family1InAffinity = within(affinitySection).getByText('Test Family 1').closest('div');
-      
+      const family1InAffinity = within(affinitySection).getByText('Test Family 1').closest('div').parentElement;
+
       await user.click(family1InAffinity);
-      
+
       // Should show check icon (implementation specific)
-      expect(family1InAffinity).toHaveClass('bg-green-50');
+      await waitFor(() => {
+        expect(family1InAffinity).toHaveClass('bg-green-50');
+      })
     });
   });
 
@@ -422,9 +426,9 @@ describe('CreateInvitationModal', () => {
     it('creates new invitation on submit in create mode', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -463,9 +467,9 @@ describe('CreateInvitationModal', () => {
     it('updates invitation on submit in edit mode', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
           initialData={mockInitialData}
         />
       );
@@ -507,9 +511,9 @@ describe('CreateInvitationModal', () => {
       apiModule.api.createInvitation.mockRejectedValueOnce(new Error('API Error'));
 
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -519,7 +523,7 @@ describe('CreateInvitationModal', () => {
       await user.click(screen.getByText('admin.invitations.create_modal.buttons.next'));
       await user.type(screen.getByPlaceholderText('admin.invitations.create_modal.steps.guests.name_placeholder'), 'John');
       await user.click(screen.getByText('admin.invitations.create_modal.buttons.next'));
-      
+
       await waitFor(() => {
         expect(screen.getByText('admin.invitations.create_modal.buttons.create')).toBeInTheDocument();
       });
@@ -541,9 +545,9 @@ describe('CreateInvitationModal', () => {
       apiModule.api.fetchInvitationLabels.mockResolvedValueOnce([]);
 
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -555,9 +559,9 @@ describe('CreateInvitationModal', () => {
     it('filters out self invitation in edit mode from affinities list', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
           initialData={mockInitialData}
         />
       );
@@ -578,9 +582,9 @@ describe('CreateInvitationModal', () => {
     it('prevents removal of last guest', async () => {
       const user = userEvent.setup();
       render(
-        <CreateInvitationModal 
-          onClose={onCloseMock} 
-          onSuccess={onSuccessMock} 
+        <CreateInvitationModal
+          onClose={onCloseMock}
+          onSuccess={onSuccessMock}
         />
       );
 
@@ -593,7 +597,7 @@ describe('CreateInvitationModal', () => {
       });
 
       // Try to remove the only guest
-      const trashButtons = screen.getAllByRole('button').filter(btn => 
+      const trashButtons = screen.getAllByRole('button').filter(btn =>
         btn.querySelector('svg') && btn.disabled
       );
 

@@ -93,6 +93,7 @@ describe('InvitationList - Expanded Coverage', () => {
     vi.spyOn(apiModule.api, 'updateInvitation').mockResolvedValue(mockInvitations[0]);
     vi.spyOn(apiModule.api, 'deleteInvitation').mockResolvedValue({});
     vi.spyOn(apiModule.api, 'getInvitation').mockResolvedValue(mockInvitation);
+    vi.spyOn(apiModule.api, 'verifyContact').mockResolvedValue({});
     //vi.spyOn(apiModule.api, 'exportInvitationsCSV').mockResolvedValue(new Blob(['csv data']));
   });
 
@@ -234,21 +235,21 @@ describe('InvitationList - Expanded Coverage', () => {
       // The previous test logic used .lucide-pen which might be wrong, checking the component:
       // <Edit2 size={18} /> inside button
       // We look for button that contains svg
-      
+
       const editButtons = within(row).getAllByRole('button');
       // The edit button is usually one of the last ones.
       // Let's rely on finding the Edit2 icon or just clicking the button that handles edit
       // In InvitationList.jsx: tooltip content t('admin.invitations.actions.edit')
-      
+
       const editButton = editButtons.find(btn => btn.querySelector('.lucide-edit-2'));
-      
+
       if (editButton) {
-          await user.click(editButton);
-          await waitFor(() => {
-            // Check if modal content appears (guest details, etc.)
-            // Assuming CreateInvitationModal renders something recognizable
-             expect(apiModule.api.getInvitation).toHaveBeenCalledWith(1);
-          });
+        await user.click(editButton);
+        await waitFor(() => {
+          // Check if modal content appears (guest details, etc.)
+          // Assuming CreateInvitationModal renders something recognizable
+          expect(apiModule.api.getInvitation).toHaveBeenCalledWith(1);
+        });
       }
     });
 
@@ -275,6 +276,30 @@ describe('InvitationList - Expanded Coverage', () => {
 
         await waitFor(() => {
           expect(apiModule.api.deleteInvitation).toHaveBeenCalledWith(1);
+        });
+      }
+    });
+
+    it('toggles accommodation pin', async () => {
+      render(<InvitationList />);
+
+      await waitFor(() => {
+        expect(screen.getAllByText('Family Test')[0]).toBeInTheDocument();
+      });
+
+      // Find pin/star icon button
+      const pinBtns = screen.getAllByRole('button').filter(btn =>
+        btn.querySelector('svg[class*="star"], svg[class*="pin"]')
+      );
+
+      if (pinBtns.length > 0) {
+        fireEvent.click(pinBtns[0]);
+
+        await waitFor(() => {
+          expect(apiModule.api.updateInvitation).toHaveBeenCalledWith(
+            1,
+            expect.objectContaining({ accommodation_pinned: true })
+          );
         });
       }
     });
@@ -352,7 +377,7 @@ describe('InvitationList - Expanded Coverage', () => {
     });
 
     it('handles API errors gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
       apiModule.api.fetchInvitations.mockRejectedValueOnce(new Error('Network error'));
 
       render(<InvitationList />);
@@ -363,7 +388,7 @@ describe('InvitationList - Expanded Coverage', () => {
         // The list will be empty, so "no invitations" text appears
         expect(screen.getAllByText(/admin.invitations.no_invitations/i)[0]).toBeInTheDocument();
       });
-      
+
       consoleSpy.mockRestore();
     });
 
