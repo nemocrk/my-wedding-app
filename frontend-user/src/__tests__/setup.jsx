@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
 import { afterEach, vi } from 'vitest';
@@ -16,6 +17,10 @@ import translations from '../../../i18n/it.json';
 const getNestedTranslation = (obj, path) => {
   return path.split('.').reduce((current, key) => current?.[key], obj) || path;
 };
+
+export const getTranslations = (path) => {
+  return getNestedTranslation(translations, path);
+}
 
 // ========================================
 // MOCK: react-i18next
@@ -60,7 +65,7 @@ const mockGetText = (key, defaultValue) => {
     // Le card usano i default se non presenti nel DB
   };
 
-  return dbTexts[key] || defaultValue || '';
+  return dbTexts[key] || defaultValue || key || '';
 };
 
 vi.mock('../contexts/TextContext', () => ({
