@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, act } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, test, vi } from 'vitest';
 import '../../../__tests__/setup.jsx';
 import ErrorModal from '../ErrorModal';
@@ -23,16 +23,16 @@ describe('ErrorModal Component', () => {
   test('renders userMessage when provided', () => {
     const error = { userMessage: 'Friendly Message', message: 'Tech Details' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
-    
+
     expect(screen.getByText('Friendly Message')).toBeInTheDocument();
   });
 
   test('renders default message when userMessage missing', () => {
     const error = { message: 'Tech Details' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
-    
+
     // Checks for translation key fallback (mocked) or default
-    expect(screen.getByText('common.error_modal.default_user_message')).toBeInTheDocument();
+    expect(screen.getByText('Non siamo riusciti a completare l\'operazione richiesta.')).toBeInTheDocument();
   });
 
   test('toggles technical details with animation simulation', async () => {
@@ -40,22 +40,22 @@ describe('ErrorModal Component', () => {
     render(<ErrorModal error={error} onClose={mockOnClose} />);
 
     // Initial state: Show Details button exists
-    const toggleBtn = screen.getByText('common.error_modal.show_technical_data');
+    const toggleBtn = screen.getByText('Mostra dettagli errore');
     expect(toggleBtn).toBeInTheDocument();
-    
+
     // Click toggle to SHOW
     fireEvent.click(toggleBtn);
 
     // Now should show "Hide" text
     await waitFor(() => {
-        expect(screen.getByText('common.error_modal.hide_technical_data')).toBeInTheDocument();
+      expect(screen.getByText('Technical Error 500')).toBeVisible();
+      expect(screen.getByText('Nascondi dettagli tecnici')).toBeInTheDocument();
     });
 
-    // Click toggle to HIDE again
-    fireEvent.click(screen.getByText('common.error_modal.hide_technical_data'));
-    
+    // Close again
+    fireEvent.click(screen.getByText('Nascondi dettagli tecnici'));
     await waitFor(() => {
-        expect(screen.getByText('common.error_modal.show_technical_data')).toBeInTheDocument();
+      expect(screen.getByText('Mostra dettagli errore')).toBeInTheDocument();
     });
   });
 
@@ -63,12 +63,12 @@ describe('ErrorModal Component', () => {
     const errorObj = { code: 123, status: 'Fail' };
     render(<ErrorModal error={errorObj} onClose={mockOnClose} />);
 
-    const toggleBtn = screen.getByText('common.error_modal.show_technical_data');
+    const toggleBtn = screen.getByText('Mostra dettagli errore');
     fireEvent.click(toggleBtn);
 
     await waitFor(() => {
-        // Should verify JSON string presence
-        expect(screen.getByText(/"code": 123/)).toBeVisible();
+      // Should verify JSON string presence
+      expect(screen.getByText(/"code": 123/)).toBeVisible();
     });
   });
 
@@ -76,7 +76,7 @@ describe('ErrorModal Component', () => {
     const error = { message: 'Err' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByText('common.error_modal.button'));
+    fireEvent.click(screen.getByText('Ho capito, chiudi'));
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -92,15 +92,15 @@ describe('ErrorModal Component', () => {
     fireEvent.mouseOver(xButton);
     fireEvent.mouseOut(xButton);
 
-    fireEvent.click(xButton); 
+    fireEvent.click(xButton);
     expect(mockOnClose).toHaveBeenCalled();
   });
 
   test('simulates hover on action button', () => {
     const error = { message: 'Err' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
-    
-    const actionBtn = screen.getByText('common.error_modal.button');
+
+    const actionBtn = screen.getByText('Ho capito, chiudi');
     fireEvent.mouseOver(actionBtn);
     fireEvent.mouseOut(actionBtn);
   });
