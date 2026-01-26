@@ -420,7 +420,8 @@
                 "link_copied": "Link Copiato!",
                 "preview": "Anteprima Invito",
                 "edit": "Modifica",
-                "delete": "Elimina"
+                "delete": "Elimina",
+                "restore": "Ripristina"
             },
             "services": {
                 "accommodation": "Alloggio",

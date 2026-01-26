@@ -1,7 +1,8 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import InvitationPage from '../InvitationPage';
+import '../../__tests__/setup.jsx';
 import * as api from '../../services/api';
+import InvitationPage from '../InvitationPage';
 
 // Mock dependencies
 vi.mock('../../services/api', () => ({
@@ -32,15 +33,15 @@ describe('InvitationPage', () => {
   const originalLocation = window.location;
 
   beforeEach(() => {
-    vi.restoreAllMocks();
+    vi.clearAllMocks();
     dispatchEventSpy.mockClear();
-    
+
     // Reset location
     Object.defineProperty(window, 'location', {
-        writable: true,
-        value: { search: '', pathname: '/', href: 'http://localhost/' }
+      writable: true,
+      value: { search: '', pathname: '/', href: 'http://localhost/' }
     });
-    
+
     // Mock History
     window.history.replaceState = vi.fn();
   });
@@ -51,17 +52,19 @@ describe('InvitationPage', () => {
 
   it('shows loading initially then error if params missing', async () => {
     window.location.search = ''; // No code/token
-    
+
     render(<InvitationPage />);
-    
+
     await waitFor(() => {
-        expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
     });
 
     // Check dispatch event
-    expect(dispatchEventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    await waitFor(() => {
+      expect(dispatchEventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
+    });
     const evt = dispatchEventSpy.mock.calls.find(c => c[0].type === 'api-error')[0];
-    expect(evt.detail.message).toMatch(/parametri mancanti/i); // translation key fallback or text
+    expect(evt.detail.message).toMatch(/Link non valido. Mancano i parametri di autenticazione./i); // translation key fallback or text
   });
 
   it('authenticates successfully and shows envelope', async () => {
@@ -71,8 +74,8 @@ describe('InvitationPage', () => {
     render(<InvitationPage />);
 
     await waitFor(() => {
-        expect(api.authenticateInvitation).toHaveBeenCalledWith('ABC', '123');
-        expect(screen.getByTestId('envelope-anim')).toBeInTheDocument();
+      expect(api.authenticateInvitation).toHaveBeenCalledWith('ABC', '123');
+      expect(screen.getByTestId('envelope-anim')).toBeInTheDocument();
     });
 
     // Params stripped
@@ -86,7 +89,7 @@ describe('InvitationPage', () => {
     render(<InvitationPage />);
 
     await waitFor(() => {
-        // expect(screen.getByText('Invalid Token')).toBeInTheDocument(); // Handled by Modal via event
+      // expect(screen.getByText('Invalid Token')).toBeInTheDocument(); // Handled by Modal via event
     });
 
     expect(dispatchEventSpy).toHaveBeenCalled();
@@ -101,7 +104,7 @@ describe('InvitationPage', () => {
     render(<InvitationPage />);
 
     await waitFor(() => {
-         expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('loading')).not.toBeInTheDocument();
     });
 
     expect(dispatchEventSpy).toHaveBeenCalled();
@@ -114,17 +117,17 @@ describe('InvitationPage', () => {
     // But we can check api calls count if we could rerender.
     // However, the component unmounts on param change usually.
     // Let's rely on the logic: useEffect checks `if (invitationData) return`
-    
+
     window.location.search = '?code=ABC&token=123';
     api.authenticateInvitation.mockResolvedValue({ valid: true, invitation: { id: 1 } });
-    
+
     const { rerender } = render(<InvitationPage />);
-    
+
     await waitFor(() => screen.getByTestId('envelope-anim'));
-    
+
     // Force rerender (simulating language change which updates 't' prop/hook)
     rerender(<InvitationPage />);
-    
+
     // Should still be 1 call
     expect(api.authenticateInvitation).toHaveBeenCalledTimes(1);
   });

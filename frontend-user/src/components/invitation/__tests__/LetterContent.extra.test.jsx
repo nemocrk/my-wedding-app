@@ -1,9 +1,9 @@
-import '../../../test/setup.jsx'; // Import i18n and TextContext mocks
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import LetterContent from '../LetterContent';
-import * as apiService from '../../../services/api';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import '../../../__tests__/setup.jsx'; // Import i18n and TextContext mocks
+import * as apiService from '../../../services/api';
+import LetterContent from '../LetterContent';
 
 // Mock services
 vi.mock('../../../services/api', () => ({
@@ -57,29 +57,29 @@ describe('LetterContent Component - Comprehensive Coverage', () => {
       render(<LetterContent data={mockData} />);
 
       fireEvent.click(screen.getByText('RSVP - Conferma Presenza'));
-      
+
       // Select Decline in first step (Guest list)
       // Usually there's a "Purtroppo non potremo esserci" button or similar logic
       // Assuming button "Declino l'invito" or similar logic based on context
       // If not present, we simulate excluding all guests which triggers logic
-      
+
       // Wait, standard flow is: Confirm Guests -> ...
       // Is there a "Decline" button? The previous tests didn't show one.
       // Let's assume the flow is: Open Modal -> Click "Purtroppo non ci saremo"
-      
+
       // Let's check logic for decline.
       // If UI has a specific decline button:
-      const declineBtn = screen.getByText(/Purtroppo non ci saremo/i);
+      const declineBtn = screen.getByText(/❌ Declina/i);
       fireEvent.click(declineBtn);
 
       // Should show confirmation dialog or directly submit?
       // Assuming a confirmation text appears
       await waitFor(() => {
-         expect(screen.getByText(/Ci dispiace che non possiate esserci/i)).toBeInTheDocument();
+        expect(screen.getByText(/Conferma Finale/i)).toBeInTheDocument();
       });
 
       // Submit Decline
-      const confirmDecline = screen.getByText(/Conferma Rinuncia/i);
+      const confirmDecline = screen.getByText(/❌ Declina/i);
       fireEvent.click(confirmDecline);
 
       await waitFor(() => {
@@ -95,26 +95,26 @@ describe('LetterContent Component - Comprehensive Coverage', () => {
 
   describe('Navigation & Validation', () => {
     it('handles back navigation from all steps', async () => {
-        render(<LetterContent data={mockData} />);
-        
-        // Open
-        fireEvent.click(screen.getByText('RSVP - Conferma Presenza')); // Step 1
-        
-        // 1 -> 2
-        fireEvent.click(screen.getByText(/Avanti/i)); 
-        await waitFor(() => expect(screen.getByText('Numero di Contatto')).toBeInTheDocument());
-        
-        // 2 -> 3
-        fireEvent.click(screen.getByText(/Avanti/i));
-        await waitFor(() => expect(screen.getByText('Come Viaggerai?')).toBeInTheDocument());
-        
-        // 3 -> 2 (Back)
-        fireEvent.click(screen.getByText(/Indietro/i));
-        await waitFor(() => expect(screen.getByText('Numero di Contatto')).toBeInTheDocument());
-        
-        // 2 -> 1 (Back)
-        fireEvent.click(screen.getByText(/Indietro/i));
-        await waitFor(() => expect(screen.getByText('Conferma Ospiti')).toBeInTheDocument());
+      render(<LetterContent data={mockData} />);
+
+      // Open
+      fireEvent.click(screen.getByText('RSVP - Conferma Presenza')); // Step 1
+
+      // 1 -> 2
+      fireEvent.click(screen.getByText(/Avanti/i));
+      await waitFor(() => expect(screen.getByText('Numero di Contatto')).toBeInTheDocument());
+
+      // 2 -> 3
+      fireEvent.click(screen.getByText(/Avanti/i));
+      await waitFor(() => expect(screen.getByText('Come Viaggerai?')).toBeInTheDocument());
+
+      // 3 -> 2 (Back)
+      fireEvent.click(screen.getByText(/Indietro/i));
+      await waitFor(() => expect(screen.getByText('Numero di Contatto')).toBeInTheDocument());
+
+      // 2 -> 1 (Back)
+      fireEvent.click(screen.getByText(/Indietro/i));
+      await waitFor(() => expect(screen.getByText('Conferma Ospiti')).toBeInTheDocument());
     });
   });
 });

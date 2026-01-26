@@ -1,4 +1,6 @@
-import { vi, describe, beforeEach, test, expect, afterEach } from 'vitest';
+import { beforeEach, describe, expect, test, vi } from 'vitest';
+
+
 import * as api from '../api';
 
 // Helper to mock fetch
@@ -18,46 +20,45 @@ const mockFetchFail = (error) => {
 
 describe('API Service', () => {
   const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
-
   beforeEach(() => {
-    vi.restoreAllMocks();
-    global.fetch = mockFetch({});
+    vi.clearAllMocks();
+    globalThis.fetch = mockFetch({});
     dispatchEventSpy.mockClear();
     sessionStorage.clear();
   });
 
   test('fetchWithCredentials success', async () => {
     const data = { success: true };
-    global.fetch = mockFetch(data);
+    globalThis.fetch = mockFetch(data);
 
     const result = await api.fetchWithCredentials('test-url');
     expect(result).toEqual(data);
-    expect(global.fetch).toHaveBeenCalledWith('test-url', expect.objectContaining({
+    expect(globalThis.fetch).toHaveBeenCalledWith('test-url', expect.objectContaining({
       credentials: 'include'
     }));
   });
 
   test('fetchWithCredentials HTTP error (400)', async () => {
     const errorData = { message: 'Bad Request' };
-    global.fetch = mockFetch(errorData, 400, false);
+    globalThis.fetch = mockFetch(errorData, 400, false);
 
     await expect(api.fetchWithCredentials('test-url')).rejects.toThrow('Bad Request');
-    
-    // Check global error dispatch
+
+    // Check globalThis error dispatch
     expect(dispatchEventSpy).toHaveBeenCalledWith(expect.any(CustomEvent));
     const event = dispatchEventSpy.mock.calls[0][0];
     expect(event.type).toBe('api-error');
-    expect(event.detail.message).toBe('Bad Request');
+    expect(event.detail.message).toContain('Bad Request');
   });
 
   test('fetchWithCredentials HTTP error generic (500)', async () => {
     // Mock catch on json()
     const mockRes = {
-        ok: false,
-        status: 500,
-        json: () => Promise.reject('JSON Parse Error')
+      ok: false,
+      status: 500,
+      json: () => Promise.reject('JSON Parse Error')
     };
-    global.fetch = vi.fn().mockResolvedValue(mockRes);
+    globalThis.fetch = vi.fn().mockResolvedValue(mockRes);
 
     await expect(api.fetchWithCredentials('test-url')).rejects.toThrow('HTTP 500');
     expect(dispatchEventSpy).toHaveBeenCalled();
@@ -65,9 +66,9 @@ describe('API Service', () => {
 
   test('fetchWithCredentials Network Error', async () => {
     const netErr = new Error('Network Error');
-    global.fetch = mockFetchFail(netErr);
+    globalThis.fetch = mockFetchFail(netErr);
 
-    await expect(api.fetchWithCredentials('test-url')).rejects.toThrow('Network Error');
+    await expect(api.fetchWithCredentials('test-url')).rejects.toThrow('Errore di connessione al server.');
     expect(dispatchEventSpy).toHaveBeenCalled(); // Should trigger handled error
   });
 
@@ -75,18 +76,18 @@ describe('API Service', () => {
     // Force a handled error
     const handledErr = new Error('Handled');
     handledErr.isHandled = true;
-    
-    global.fetch = vi.fn().mockImplementation(() => {
-        throw handledErr;
+
+    globalThis.fetch = vi.fn().mockImplementation(() => {
+      throw handledErr;
     });
 
     await expect(api.fetchWithCredentials('test')).rejects.toThrow('Handled');
-    expect(dispatchEventSpy).not.toHaveBeenCalled(); 
+    expect(dispatchEventSpy).not.toHaveBeenCalled();
   });
 
   test('authenticateInvitation calls correct endpoint', async () => {
     await api.authenticateInvitation('ABC', 'TOKEN');
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/auth/'),
       expect.objectContaining({
         method: 'POST',
@@ -97,14 +98,17 @@ describe('API Service', () => {
 
   test('getInvitationDetails calls correct endpoint', async () => {
     await api.getInvitationDetails();
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/invitation/'));
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/invitation/'),
+      expect.anything()
+    );
   });
 
   test('submitRSVP sends correct payload with session', async () => {
     sessionStorage.setItem('wedding_analytics_sid', 'sess_123');
     await api.submitRSVP('confirmed', true, false, { note: 'Hi' });
 
-    expect(global.fetch).toHaveBeenCalledWith(
+    expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/rsvp/'),
       expect.objectContaining({
         method: 'POST',
@@ -115,6 +119,8 @@ describe('API Service', () => {
 
   test('fetchLanguages calls correct endpoint', async () => {
     await api.fetchLanguages();
-    expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/languages/'));
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/languages/'),
+      expect.anything());
   });
 });

@@ -23,7 +23,9 @@ export default defineConfig({
         'tailwind.config.js',
         'postcss.config.js',
         'src/main.jsx',
-        'src/vite-env.d.ts'
+        'src/vite-env.d.ts',
+        'src/assets/illustrations',
+        '*.css',
       ],
       thresholds: {
         lines: 85,

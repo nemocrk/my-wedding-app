@@ -23,16 +23,16 @@ describe('ErrorModal Component', () => {
   test('renders userMessage when provided', () => {
     const error = { userMessage: 'Friendly Message', message: 'Tech Details' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
-    
+
     expect(screen.getByText('Friendly Message')).toBeInTheDocument();
   });
 
   test('renders default message when userMessage missing', () => {
     const error = { message: 'Tech Details' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
-    
+
     // Checks for translation key fallback (mocked) or default
-    expect(screen.getByText('common.error_modal.default_user_message')).toBeInTheDocument();
+    expect(screen.getByText('Non siamo riusciti a completare l\'operazione richiesta.')).toBeInTheDocument();
   });
 
   test('toggles technical details', async () => {
@@ -41,19 +41,19 @@ describe('ErrorModal Component', () => {
 
     // Initial state: details hidden (impl check: max-height 0 or hidden class, but testing visibility via interaction)
     // Click toggle
-    const toggleBtn = screen.getByText('common.error_modal.show_technical_data');
+    const toggleBtn = screen.getByText('Mostra dettagli errore');
     fireEvent.click(toggleBtn);
 
     // Now should show "Technical Error 500" and "Hide" text
     await waitFor(() => {
-        expect(screen.getByText('Technical Error 500')).toBeVisible();
-        expect(screen.getByText('common.error_modal.hide_technical_data')).toBeInTheDocument();
+      expect(screen.getByText('Technical Error 500')).toBeVisible();
+      expect(screen.getByText('Nascondi dettagli tecnici')).toBeInTheDocument();
     });
 
     // Close again
-    fireEvent.click(screen.getByText('common.error_modal.hide_technical_data'));
+    fireEvent.click(screen.getByText('Nascondi dettagli tecnici'));
     await waitFor(() => {
-        expect(screen.getByText('common.error_modal.show_technical_data')).toBeInTheDocument();
+      expect(screen.getByText('Mostra dettagli errore')).toBeInTheDocument();
     });
   });
 
@@ -61,12 +61,12 @@ describe('ErrorModal Component', () => {
     const errorObj = { code: 123, status: 'Fail' };
     render(<ErrorModal error={errorObj} onClose={mockOnClose} />);
 
-    const toggleBtn = screen.getByText('common.error_modal.show_technical_data');
+    const toggleBtn = screen.getByText('Mostra dettagli errore');
     fireEvent.click(toggleBtn);
 
     await waitFor(() => {
-        // Should verify JSON string presence
-        expect(screen.getByText(/"code": 123/)).toBeVisible();
+      // Should verify JSON string presence
+      expect(screen.getByText(/"code": 123/)).toBeVisible();
     });
   });
 
@@ -74,7 +74,7 @@ describe('ErrorModal Component', () => {
     const error = { message: 'Err' };
     render(<ErrorModal error={error} onClose={mockOnClose} />);
 
-    fireEvent.click(screen.getByText('common.error_modal.button'));
+    fireEvent.click(screen.getByText('Ho capito, chiudi'));
     expect(mockOnClose).toHaveBeenCalled();
   });
 
@@ -86,7 +86,7 @@ describe('ErrorModal Component', () => {
     // We can find by class or hierarchy, or assume it's the first button
     const closeButtons = screen.getAllByRole('button');
     // First button is X, Second is Toggle Details, Third is Action Button
-    fireEvent.click(closeButtons[0]); 
+    fireEvent.click(closeButtons[0]);
     expect(mockOnClose).toHaveBeenCalled();
   });
 });

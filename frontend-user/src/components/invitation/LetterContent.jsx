@@ -34,6 +34,7 @@ const LetterContent = ({ data }) => {
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
   const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
 
+
   // Step 1: Ospiti
   const [excludedGuests, setExcludedGuests] = useState([]);
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
@@ -41,6 +42,7 @@ const LetterContent = ({ data }) => {
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
   const [tempDietaryRequirements, setTempDietaryRequirements] = useState('');
+  const [tempDeclining, setTempDeclining] = useState(false);
 
   // Step 2: Contatto
   const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
@@ -277,6 +279,16 @@ const LetterContent = ({ data }) => {
     }
   };
 
+  const handleGoToDeclineStep = () => {
+    setMessage(null);
+    setTempDeclining(true);
+    let fromStep = rsvpStep;
+    let toStep = 'final';
+
+    setRsvpStep('final');
+    safeLogInteraction('rsvp_go_to_decline_step', { from: fromStep, to: toStep });
+  }
+
   const handleBackStep = () => {
     setMessage(null);
     let fromStep = rsvpStep;
@@ -505,6 +517,11 @@ const LetterContent = ({ data }) => {
               break;
 
             case 'rsvp_back_step':
+              if (payload?.details?.to) setRsvpStep(payload.details.to);
+              break;
+
+            case 'rsvp_go_to_decline_step':
+              setTempDeclining(true);
               if (payload?.details?.to) setRsvpStep(payload.details.to);
               break;
 
@@ -815,6 +832,9 @@ const LetterContent = ({ data }) => {
                 )}
 
                 <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                {rsvpStatus !== 'declined' && (
+                  <button className="rsvp-next-btn" onClick={handleGoToDeclineStep} disabled={submitting}>{t('rsvp.buttons.decline')}</button>
+                )}
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -983,16 +1003,17 @@ const LetterContent = ({ data }) => {
             {/* STEP 5: CONFERMA FINALE */}
             {rsvpStep === 'final' && (
               <>
-                <div className="final-summary">
-                  <h3>{t('rsvp.labels.summary')}</h3>
-                  <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                  <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
-                  <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
-                  {data.accommodation_offered && (
-                    <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
-                  )}
-                </div>
-
+                {!tempDeclining && (
+                  <div className="final-summary">
+                    <h3>{t('rsvp.labels.summary')}</h3>
+                    <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
+                    <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    {data.accommodation_offered && (
+                      <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
+                    )}
+                  </div>
+                )}
                 {/* Alert se già confermato e declina */}
                 {rsvpStatus === 'declined' ? (
                   <div className="whatsapp-alert">
@@ -1016,7 +1037,7 @@ const LetterContent = ({ data }) => {
                 )
                   :
                   (<div className="button-group">
-                    {!['confirmed', 'declined'].includes(rsvpStatus) && (
+                    {!['confirmed', 'declined'].includes(rsvpStatus) && !tempDeclining && (
                       <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
                         {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
                       </button>
@@ -1033,7 +1054,9 @@ const LetterContent = ({ data }) => {
                     )}
                   </div>
                   )}
-                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
+                {!tempDeclining && (
+                  <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
+                )}
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}

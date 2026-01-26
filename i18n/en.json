@@ -420,7 +420,8 @@
         "link_copied": "Link Copied!",
         "preview": "Invitation Preview",
         "edit": "Edit",
-        "delete": "Delete"
+        "delete": "Delete",
+        "restore": "Restore"
       },
       "services": {
         "accommodation": "Accommodation",
