@@ -33,7 +33,7 @@ do
     esac
 done
 COMPOSE_OTHER=$(echo $COMPOSE_OTHER | xargs)
-if [ -z "$USING_SHARED_CONTEXT" ]; then
+if [ -n "$USING_SHARED_CONTEXT" ]; then
     echo "--------------------------------------------------------"
     echo "  Siamo in Shared Context"
     echo "--------------------------------------------------------"
@@ -44,7 +44,7 @@ echo "  [1/4] Killo eventuali Container Attivi..."
 echo "--------------------------------------------------------"
 # Recupera gli ID dei container in esecuzione
 
-if [ -z "$USING_SHARED_CONTEXT" ]; then
+if [ -n "$USING_SHARED_CONTEXT" ]; then
 CONTAINERS=$(docker ps --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
 else
 CONTAINERS=$(docker ps -q)
@@ -58,7 +58,7 @@ fi
 echo "--------------------------------------------------------"
 echo "  [2/4] Elimino eventuali Container Esistenti..."
 echo "--------------------------------------------------------"
-if [ -z "$USING_SHARED_CONTEXT" ]; then
+if [ -n "$USING_SHARED_CONTEXT" ]; then
 CONTAINERS=$(docker ps -a --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
 else
 CONTAINERS=$(docker ps -a -q)
@@ -72,7 +72,7 @@ fi
 echo "--------------------------------------------------------"
 echo "  [3/4] Elimino eventuali Reti Esistenti..."
 echo "--------------------------------------------------------"
-if [ -z "$USING_SHARED_CONTEXT" ]; then
+if [ -n "$USING_SHARED_CONTEXT" ]; then
 CONTAINERS=$(docker network ls --filter "type=custom" --format json | jq -r 'select(.Name | contains("_dev_")) | .ID')
 else
 CONTAINERS=$(docker network ls --filter "type=custom" -q)
