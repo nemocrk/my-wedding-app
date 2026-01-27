@@ -62,7 +62,7 @@ vi.mock('@tiptap/react', async (importOriginal) => {
 vi.mock('../ui/GoogleFontPicker', () => ({
   default: ({ onSelect }) => (
     <button onClick={() => onSelect({ family: 'Roboto', category: 'sans-serif' })}>
-      Select Font
+      <span>Select Font</span>
     </button>
   ),
 }));
