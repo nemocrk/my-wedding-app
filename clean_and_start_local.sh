@@ -12,6 +12,7 @@ COMPOSE_OTHER=""
 CLEAN_ONLY=false
 DETACH=false
 DEBUG_BACKEND=false
+USING_SHARED_CONTEXT=$(docker context show |grep shared-context)
 
 # Parse arguments
 for arg in "$@"
@@ -32,13 +33,22 @@ do
     esac
 done
 COMPOSE_OTHER=$(echo $COMPOSE_OTHER | xargs)
+if [ -z "$USING_SHARED_CONTEXT" ]; then
+    echo "--------------------------------------------------------"
+    echo "  Siamo in Shared Context"
+    echo "--------------------------------------------------------"
+fi
 # Pulire tutti i container docker
 echo "--------------------------------------------------------"
 echo "  [1/4] Killo eventuali Container Attivi..."
 echo "--------------------------------------------------------"
 # Recupera gli ID dei container in esecuzione
-CONTAINERS=$(docker ps -q)
 
+if [ -z "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker ps --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
+else
+CONTAINERS=$(docker ps -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessun container in esecuzione da terminare."
 else
@@ -48,7 +58,11 @@ fi
 echo "--------------------------------------------------------"
 echo "  [2/4] Elimino eventuali Container Esistenti..."
 echo "--------------------------------------------------------"
+if [ -z "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker ps -a --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
+else
 CONTAINERS=$(docker ps -a -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessun container da eliminare."
 else
@@ -58,7 +72,11 @@ fi
 echo "--------------------------------------------------------"
 echo "  [3/4] Elimino eventuali Reti Esistenti..."
 echo "--------------------------------------------------------"
+if [ -z "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker network ls --filter "type=custom" --format json | jq -r 'select(.Name | contains("_dev_")) | .ID')
+else
 CONTAINERS=$(docker network ls --filter "type=custom" -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessuna rete da eliminare."
 else
