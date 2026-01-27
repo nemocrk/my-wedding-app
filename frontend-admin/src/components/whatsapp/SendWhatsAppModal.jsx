@@ -65,7 +65,6 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
   };
 
   const handleSend = async () => {
-    console.log('[SendWhatsAppModal] handleSend start');
     // double-click prevent
     if (sending) return;
     if (!messageBody) return;
@@ -78,7 +77,6 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i];
       setProgress(prev => ({ ...prev, current: i + 1 }));
-      console.log(`[SendWhatsAppModal] processing recipient ${i + 1}/${recipients.length}: ${recipient.name}`);
 
       try {
         // 1. Prepare Message Body
@@ -89,14 +87,16 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         finalBody = finalBody.replace(/{code}/g, recipient.code);
 
         // Link Generation (only if needed)
-        if (finalBody.includes('{link}')) {
+        // Check for both {link} (multiple recipients) and [LINK_INVITO] (single recipient preview)
+        if (finalBody.includes('{link}') || finalBody.includes('[LINK_INVITO]')) {
           try {
-            console.log(`[SendWhatsAppModal] generating link for ${recipient.id}`);
             const linkData = await api.generateInvitationLink(recipient.id);
-            finalBody = finalBody.replace(/{link}/g, linkData.url);
+            finalBody = finalBody.replace(/{link}/g, linkData.url)
+                                 .replace(/\[LINK_INVITO\]/g, linkData.url);
           } catch (e) {
             console.error('Link generation failed for', recipient.name);
-            finalBody = finalBody.replace(/{link}/g, '[LINK_ERROR]');
+            finalBody = finalBody.replace(/{link}/g, '[LINK_ERROR]')
+                                 .replace(/\[LINK_INVITO\]/g, '[LINK_ERROR]');
           }
         }
 
@@ -104,7 +104,6 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         const sessionType = recipient.origin === 'bride' ? 'bride' : 'groom';
 
         // 3. Enqueue (spot message -> non aggiorniamo lo status dell'invito)
-        console.log(`[SendWhatsAppModal] sending message to ${recipient.phone_number}`);
         await api.enqueueWhatsAppMessage({
           session_type: sessionType,
           recipient_number: recipient.phone_number,
@@ -120,10 +119,8 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
       setProgress(prev => ({ ...prev, success: successCount, failed: failCount }));
     }
 
-    console.log('[SendWhatsAppModal] all messages processed. Setting timeout for success.');
     setSending(false);
     setTimeout(() => {
-      console.log('[SendWhatsAppModal] calling onSuccess and onClose');
       onSuccess();
       onClose();
     }, 1500);
