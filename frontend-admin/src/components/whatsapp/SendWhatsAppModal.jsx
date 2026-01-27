@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
-import { X, Send, AlertTriangle, Loader, Smartphone } from 'lucide-react';
-import { api } from '../../services/api';
+import { AlertTriangle, Loader, Send, Smartphone, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { api } from '../../services/api';
 
 const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
   const { t } = useTranslation();
@@ -116,8 +116,8 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
       setProgress(prev => ({ ...prev, success: successCount, failed: failCount }));
     }
 
-    setSending(false);
     setTimeout(() => {
+      setSending(false);
       onSuccess();
       onClose();
     }, 1500);

@@ -1,6 +1,6 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
 import * as apiModule from '../services/api';
 
@@ -36,7 +36,7 @@ describe('SendWhatsAppModal', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
+    vi.useRealTimers()
     onCloseMock = vi.fn();
     onSuccessMock = vi.fn();
 
@@ -57,17 +57,17 @@ describe('SendWhatsAppModal', () => {
 
   it('renders correctly when open and loads templates', async () => {
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={mockRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={mockRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
     // Check header
     expect(screen.getByText(/admin.whatsapp.send_modal.title/)).toBeInTheDocument();
-    
+
     // Check recipients list
     expect(screen.getByText(/Mario Rossi, Luigi Verdi/)).toBeInTheDocument();
 
@@ -79,20 +79,20 @@ describe('SendWhatsAppModal', () => {
     // Check filtered templates in select (only active manual ones)
     const options = screen.getAllByRole('option');
     // Option 0 is placeholder, + Template 1 + Template Link = 3 options total
-    expect(options).toHaveLength(3); 
+    expect(options).toHaveLength(3);
     expect(screen.getByText('Template 1')).toBeInTheDocument();
     expect(screen.getByText('Template Link')).toBeInTheDocument();
     expect(screen.queryByText('Auto Template')).not.toBeInTheDocument();
   });
 
   it('handles template selection for multiple recipients (no immediate replacement)', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={mockRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={mockRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
@@ -107,15 +107,15 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('handles template selection for SINGLE recipient (smart preview)', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     const singleRecipient = [mockRecipients[0]];
-    
+
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={singleRecipient} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={singleRecipient}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
@@ -130,27 +130,39 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('sends messages to multiple recipients successfully', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    vi.useFakeTimers()
+    const user = userEvent.setup();
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={mockRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={mockRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
+    // flush effetti + microtask
+    await act(async () => {
+      await Promise.resolve();
+      await vi.runAllTicks();
+    });
 
-    await waitFor(() => expect(screen.getByText('Template 1')).toBeInTheDocument());
-    
+
+    expect(screen.getByText(/Template 1/i)).toBeInTheDocument();
+
     // Select template
-    await user.selectOptions(screen.getByRole('combobox'), '1');
-    
+    user.selectOptions(screen.getByRole('combobox'), '1');
+
     // Click Send
     const sendBtn = screen.getByText('admin.whatsapp.send_modal.enqueue_button');
-    await user.click(sendBtn);
+    user.click(sendBtn);
+    // flush effetti + microtask
+    await act(async () => {
+      await Promise.resolve();
+      await vi.runAllTicks();
+    });
 
     // Should show loader
-    expect(screen.getByTestId('icon-loader')).toBeInTheDocument();
+    expect(screen.getByTestId('icon-loader')).toBeInTheDocument(); //<-- no loader
 
     // Verify API calls
     await waitFor(() => {
@@ -174,7 +186,7 @@ describe('SendWhatsAppModal', () => {
 
     // Wait for success callback (timeout 1500ms in component)
     vi.advanceTimersByTime(2000);
-    
+
     await waitFor(() => {
       expect(onSuccessMock).toHaveBeenCalled();
       expect(onCloseMock).toHaveBeenCalled();
@@ -182,21 +194,21 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('generates links when {link} placeholder is present', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={[mockRecipients[0]]} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={[mockRecipients[0]]}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
     await waitFor(() => expect(screen.getByText('Template Link')).toBeInTheDocument());
-    
+
     // Select template with {link}
     await user.selectOptions(screen.getByRole('combobox'), '2');
-    
+
     // For single recipient, it previews as [LINK_INVITO] without generating yet
     expect(screen.getByRole('textbox')).toHaveValue('Ciao Mario Rossi, link: [LINK_INVITO]');
 
@@ -205,7 +217,7 @@ describe('SendWhatsAppModal', () => {
 
     // Verify link generation was called during send process
     await waitFor(() => {
-      expect(apiModule.api.generateInvitationLink).toHaveBeenCalledWith(mockRecipients[0].id);
+      expect(apiModule.api.generateInvitationLink).toHaveBeenCalledWith(mockRecipients[0].id); // <-- no call
       expect(apiModule.api.enqueueWhatsAppMessage).toHaveBeenCalledWith(expect.objectContaining({
         message_body: 'Ciao Mario Rossi, link: http://test.com/invitation'
       }));
@@ -213,58 +225,70 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('handles API errors gracefully during send loop', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    
-    // Make first call fail, second succeed
+    const user = userEvent.setup(); // IMPORTANT: real timers
+
     apiModule.api.enqueueWhatsAppMessage
       .mockRejectedValueOnce(new Error('Network Error'))
       .mockResolvedValueOnce({ status: 'queued' });
 
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={mockRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={mockRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
-    await waitFor(() => expect(screen.getByText('Template 1')).toBeInTheDocument());
+    // Wait for templates
+    await waitFor(() =>
+      expect(screen.getByText('Template 1')).toBeInTheDocument()
+    );
+
+    // User interactions
     await user.selectOptions(screen.getByRole('combobox'), '1');
     await user.click(screen.getByText('admin.whatsapp.send_modal.enqueue_button'));
 
-    await waitFor(() => {
-      expect(apiModule.api.enqueueWhatsAppMessage).toHaveBeenCalledTimes(2);
-    });
 
-    // Check UI progress counters
-    // Success: 1, Failed: 1
+    // API calls
+    await waitFor(() =>
+      expect(apiModule.api.enqueueWhatsAppMessage).toHaveBeenCalledTimes(2)
+    );
+
+    // UI counters
     expect(screen.getByText('admin.whatsapp.send_modal.sent_count{"count":1}')).toBeInTheDocument();
     expect(screen.getByText('admin.whatsapp.send_modal.failed_count{"count":1}')).toBeInTheDocument();
 
-    // Should still close after timeout
-    vi.advanceTimersByTime(2000);
-    await waitFor(() => {
+    // NOW activate fake timers
+    vi.useFakeTimers();
+
+    // Flush microtasks (loop)
+    await vi.runAllTicks();
+    // Final timeout
+    vi.advanceTimersByTime(1500);
+
+    await waitFor(() => { // <-- timeout
       expect(onSuccessMock).toHaveBeenCalled();
       expect(onCloseMock).toHaveBeenCalled();
     });
   });
 
+
   it('shows warning when using {link} with many recipients', async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const user = userEvent.setup();
     const manyRecipients = Array(6).fill(mockRecipients[0]); // 6 recipients
 
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={manyRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={manyRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
     await waitFor(() => expect(screen.getByText('Template Link')).toBeInTheDocument());
-    
+
     await user.selectOptions(screen.getByRole('combobox'), '2');
 
     // Should show warning because length > 5 and message contains {link}
@@ -272,15 +296,15 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('handles template loading error gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     apiModule.api.fetchWhatsAppTemplates.mockRejectedValue(new Error('Load Failed'));
 
     render(
-      <SendWhatsAppModal 
-        isOpen={true} 
-        recipients={mockRecipients} 
-        onClose={onCloseMock} 
-        onSuccess={onSuccessMock} 
+      <SendWhatsAppModal
+        isOpen={true}
+        recipients={mockRecipients}
+        onClose={onCloseMock}
+        onSuccess={onSuccessMock}
       />
     );
 
@@ -291,7 +315,7 @@ describe('SendWhatsAppModal', () => {
     // Should NOT crash, select should be empty
     const options = screen.getAllByRole('option');
     expect(options).toHaveLength(1); // Only default placeholder
-    
+
     consoleSpy.mockRestore();
   });
 });
