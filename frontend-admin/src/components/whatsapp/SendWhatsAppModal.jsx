@@ -1,7 +1,7 @@
-import { AlertTriangle, Loader, Send, Smartphone, X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import React, { useState, useEffect } from 'react';
+import { X, Send, AlertTriangle, Loader, Smartphone } from 'lucide-react';
 import { api } from '../../services/api';
+import { useTranslation } from 'react-i18next';
 
 const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
   const { t } = useTranslation();
@@ -65,6 +65,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
   };
 
   const handleSend = async () => {
+    console.log('[SendWhatsAppModal] handleSend start');
     // double-click prevent
     if (sending) return;
     if (!messageBody) return;
@@ -77,6 +78,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i];
       setProgress(prev => ({ ...prev, current: i + 1 }));
+      console.log(`[SendWhatsAppModal] processing recipient ${i + 1}/${recipients.length}: ${recipient.name}`);
 
       try {
         // 1. Prepare Message Body
@@ -89,6 +91,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         // Link Generation (only if needed)
         if (finalBody.includes('{link}')) {
           try {
+            console.log(`[SendWhatsAppModal] generating link for ${recipient.id}`);
             const linkData = await api.generateInvitationLink(recipient.id);
             finalBody = finalBody.replace(/{link}/g, linkData.url);
           } catch (e) {
@@ -101,6 +104,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
         const sessionType = recipient.origin === 'bride' ? 'bride' : 'groom';
 
         // 3. Enqueue (spot message -> non aggiorniamo lo status dell'invito)
+        console.log(`[SendWhatsAppModal] sending message to ${recipient.phone_number}`);
         await api.enqueueWhatsAppMessage({
           session_type: sessionType,
           recipient_number: recipient.phone_number,
@@ -116,8 +120,10 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
       setProgress(prev => ({ ...prev, success: successCount, failed: failCount }));
     }
 
+    console.log('[SendWhatsAppModal] all messages processed. Setting timeout for success.');
+    setSending(false);
     setTimeout(() => {
-      setSending(false);
+      console.log('[SendWhatsAppModal] calling onSuccess and onClose');
       onSuccess();
       onClose();
     }, 1500);
@@ -143,7 +149,7 @@ const SendWhatsAppModal = ({ isOpen, onClose, recipients, onSuccess }) => {
 
         {sending ? (
           <div className="py-8 text-center">
-            <Loader className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" />
+            <Loader className="w-12 h-12 text-green-600 animate-spin mx-auto mb-4" data-testid="icon-loader" />
             <h4 className="text-lg font-semibold text-gray-800">{t('admin.whatsapp.send_modal.sending_title')}</h4>
             <p className="text-gray-500 mb-4">{t('admin.whatsapp.send_modal.processing', { current: progress.current, total: progress.total })}</p>
             <div className="w-full bg-gray-200 rounded-full h-2.5 mb-2">
