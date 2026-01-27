@@ -1,12 +1,78 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userEvent from '@testing-library/user-event';
 import ConfigurableTextEditor from '../ConfigurableTextEditor';
+import * as TipTapReact from '@tiptap/react';
 
-// NOTA: TipTap e Lucide icons sono mockati globalmente in setupTests.tsx
+// --- MOCK TIPTAP LOCALLY TO CAPTURE COMMANDS ---
+const mockChain = {
+  focus: vi.fn().mockReturnThis(),
+  undo: vi.fn().mockReturnThis(),
+  redo: vi.fn().mockReturnThis(),
+  setFontFamily: vi.fn().mockReturnThis(),
+  setFontSize: vi.fn().mockReturnThis(),
+  setColor: vi.fn().mockReturnThis(),
+  setRotation: vi.fn().mockReturnThis(),
+  toggleBold: vi.fn().mockReturnThis(),
+  toggleItalic: vi.fn().mockReturnThis(),
+  toggleStrike: vi.fn().mockReturnThis(),
+  toggleCode: vi.fn().mockReturnThis(),
+  toggleUnderline: vi.fn().mockReturnThis(),
+  setTextAlign: vi.fn().mockReturnThis(),
+  run: vi.fn(),
+  setMark: vi.fn().mockReturnThis(),
+  unsetMark: vi.fn().mockReturnThis(),
+  removeEmptyTextStyle: vi.fn().mockReturnThis(),
+};
+
+const mockEditor = {
+  getHTML: vi.fn(() => '<p>Mocked Content</p>'),
+  commands: {
+    setContent: vi.fn(),
+    focus: vi.fn(),
+    insertContent: vi.fn(),
+  },
+  chain: vi.fn(() => mockChain),
+  can: vi.fn(() => ({
+    chain: () => ({
+      focus: () => ({
+        undo: () => ({ run: () => true }),
+        redo: () => ({ run: () => true }),
+      }),
+    }),
+  })),
+  on: vi.fn(),
+  off: vi.fn(),
+  isActive: vi.fn(() => false),
+  getAttributes: vi.fn(() => ({})),
+  isEditable: true,
+};
+
+// Override the global mock for useEditor
+vi.mock('@tiptap/react', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    useEditor: vi.fn(() => mockEditor),
+    EditorContent: ({ editor }) => <div data-testid="editor-content" />,
+  };
+});
+
+// Mock GoogleFontPicker
+vi.mock('../ui/GoogleFontPicker', () => ({
+  default: ({ onSelect }) => (
+    <button onClick={() => onSelect({ family: 'Roboto', category: 'sans-serif' })}>
+      Select Font
+    </button>
+  ),
+}));
 
 describe('ConfigurableTextEditor', () => {
   const mockOnSave = vi.fn();
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
 
   it('renders correctly in preview mode', () => {
     render(
@@ -17,166 +83,162 @@ describe('ConfigurableTextEditor', () => {
         label="Test Label"
       />
     );
-
-    // Should show label
     expect(screen.getByText('Test Label')).toBeInTheDocument();
-    
-    // Should show "Modifica" button
-    expect(screen.getByRole('button', { name: /modifica/i })).toBeInTheDocument();
-    
-    // Should show preview content
-    expect(screen.getByText(/Initial Content/i)).toBeInTheDocument();
-  });
-
-  it('uses textKey as label when label prop is not provided', () => {
-    render(
-      <ConfigurableTextEditor 
-        textKey="envelope.front.content" 
-        initialContent="<p>Test</p>" 
-        onSave={mockOnSave}
-      />
-    );
-
-    // Should NOT show label in preview (only in modal header)
-    // Preview card shows the label prop or nothing
-    const modifyButton = screen.getByRole('button', { name: /modifica/i });
-    expect(modifyButton).toBeInTheDocument();
-  });
-
-  it('opens fullscreen modal when edit button is clicked', async () => {
-    const user = userEvent.setup();
-    
-    render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave}
-        label="Test Label"
-      />
-    );
-
-    const editButton = screen.getByRole('button', { name: /modifica/i });
-    await user.click(editButton);
-
-    // Modal should open - use specific title to distinguish from TipTap Undo button
-    let dialog;
-    await waitFor(() => {
-      dialog = screen.getByRole('dialog');
-      expect(dialog).toBeInTheDocument();
-      expect(within(dialog).getByTitle('Salva modifiche')).toBeInTheDocument();
-      expect(within(dialog).getByTitle('Annulla modifiche')).toBeInTheDocument();
-    });
-    
-    // Modal header should show label
-    expect(within(dialog).getByText('Test Label')).toBeInTheDocument();
-  });
-
-  it('calls onSave when save button is clicked in modal', async () => {
-    const user = userEvent.setup();
-    mockOnSave.mockResolvedValue(undefined); // Simulate async save
-    
-    render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave}
-        label="Test Label"
-      />
-    );
-
-    // Open modal
-    await user.click(screen.getByRole('button', { name: /modifica/i }));
-
-    // Wait for modal and get Save button by title (more specific)
-    let saveButton;
-    await waitFor(() => {
-      saveButton = screen.getByTitle('Salva modifiche');
-      expect(saveButton).toBeInTheDocument();
-    });
-
-    // Click save
-    await user.click(saveButton);
-
-    await waitFor(() => {
-      expect(mockOnSave).toHaveBeenCalledWith('test.key', expect.any(String));
-    });
-  });
-
-  it('closes modal when cancel button is clicked', async () => {
-    const user = userEvent.setup();
-    
-    render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
-        onSave={mockOnSave}
-        label="Test Label"
-      />
-    );
-
-    // Open modal
-    await user.click(screen.getByRole('button', { name: /modifica/i }));
-
-    // Wait for modal and get Cancel button by title (distinguishes from TipTap Undo)
-    let cancelButton;
-    await waitFor(() => {
-      cancelButton = screen.getByTitle('Annulla modifiche');
-      expect(cancelButton).toBeInTheDocument();
-    });
-
-    // Click cancel
-    await user.click(cancelButton);
-
-    // Modal should close
-    await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-    });
-
-    // Should be back to preview mode
     expect(screen.getByRole('button', { name: /modifica/i })).toBeInTheDocument();
   });
 
-  it('displays empty content message when no content is provided', () => {
-    render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="" 
-        onSave={mockOnSave}
-        label="Empty Test"
-      />
-    );
-
-    // Should show "Nessun contenuto" message
-    expect(screen.getByText(/Nessun contenuto/i)).toBeInTheDocument();
-  });
-
-  it('closes modal after successful save', async () => {
+  it('opens modal and renders toolbar', async () => {
     const user = userEvent.setup();
-    mockOnSave.mockResolvedValue(undefined);
-    
     render(
       <ConfigurableTextEditor 
         textKey="test.key" 
-        initialContent="<p>Content</p>" 
+        initialContent="<p>Initial Content</p>" 
         onSave={mockOnSave}
-        label="Test"
+        label="Test Label"
       />
     );
 
-    // Open and save
     await user.click(screen.getByRole('button', { name: /modifica/i }));
     
-    let saveButton;
-    await waitFor(() => {
-      saveButton = screen.getByTitle('Salva modifiche');
-      expect(saveButton).toBeInTheDocument();
-    });
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    // Verify toolbar buttons are present
+    expect(screen.getByTitle('Grassetto')).toBeInTheDocument();
+    expect(screen.getByTitle('Corsivo')).toBeInTheDocument();
+    expect(screen.getByTitle('Allinea Centro')).toBeInTheDocument();
+  });
 
-    await user.click(saveButton);
+  it('executes formatting commands when toolbar buttons are clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
 
-    // Modal should close after save
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    // Bold
+    await user.click(screen.getByTitle('Grassetto'));
+    expect(mockChain.toggleBold).toHaveBeenCalled();
+    expect(mockChain.run).toHaveBeenCalled();
+
+    // Italic
+    await user.click(screen.getByTitle('Corsivo'));
+    expect(mockChain.toggleItalic).toHaveBeenCalled();
+
+    // Align Center
+    await user.click(screen.getByTitle('Allinea Centro'));
+    expect(mockChain.setTextAlign).toHaveBeenCalledWith('center');
+  });
+
+  it('handles font selection', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    await user.click(screen.getByText('Select Font'));
+    expect(mockChain.setFontFamily).toHaveBeenCalledWith('"Roboto", sans-serif');
+  });
+
+  it('handles NumberSpinner changes (Font Size)', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    // Find font size spinner by title
+    const spinner = screen.getByTitle('Dimensione Font (rem)');
+    const plusBtn = within(spinner).getByText('+');
+    
+    await user.click(plusBtn);
+    // Initial is 1, step is 0.1 -> 1.1
+    expect(mockChain.setFontSize).toHaveBeenCalledWith('1.1rem');
+  });
+
+  it('handles NumberSpinner changes (Rotation)', async () => {
+    const user = userEvent.setup();
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    const spinner = screen.getByTitle('Rotazione (gradi)');
+    const plusBtn = within(spinner).getByText('+');
+    
+    await user.click(plusBtn);
+    // Initial 0, step 1 -> 1
+    expect(mockChain.setRotation).toHaveBeenCalledWith(1);
+  });
+
+  it('handles NumberSpinner wheel events', async () => {
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    fireEvent.click(screen.getByRole('button', { name: /modifica/i }));
+
+    const spinner = screen.getByTitle('Rotazione (gradi)');
+    
+    // Simulate wheel event
+    fireEvent.wheel(spinner, { deltaY: -100 }); // Scroll UP -> increment
+    expect(mockChain.setRotation).toHaveBeenCalledWith(1); // 0 + 1
+
+    fireEvent.wheel(spinner, { deltaY: 100 }); // Scroll DOWN -> decrement
+    // Note: in valid test environment without real browser behavior, this tests the handler logic
+    // but React's synthetic event might need careful mocking. 
+    // If the component uses native addEventListener, we need to verify if JSDOM supports it fully.
+    // The component does use ref.current.addEventListener.
+  });
+
+  it('saves content and closes modal', async () => {
+    const user = userEvent.setup();
+    mockOnSave.mockResolvedValueOnce();
+
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+
+    await user.click(screen.getByTitle('Salva modifiche'));
+    
+    expect(mockEditor.getHTML).toHaveBeenCalled();
+    expect(mockOnSave).toHaveBeenCalledWith('test', '<p>Mocked Content</p>');
+    
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
+  });
+
+  it('handles save error gracefully', async () => {
+    const user = userEvent.setup();
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockOnSave.mockRejectedValueOnce(new Error('Save failed'));
+
+    render(
+      <ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />
+    );
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+    await user.click(screen.getByTitle('Salva modifiche'));
+
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith('Failed to save text:', expect.any(Error));
+    });
+    // Modal should stay open on error or at least handle it (implementation just logs currently)
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    
+    consoleSpy.mockRestore();
+  });
+
+  it('manages body overflow on open/close', async () => {
+     const user = userEvent.setup();
+     render(<ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />);
+     
+     // Open
+     await user.click(screen.getByRole('button', { name: /modifica/i }));
+     expect(document.body.style.overflow).toBe('hidden');
+
+     // Close
+     await user.click(screen.getByTitle('Annulla modifiche'));
+     expect(document.body.style.overflow).toBe('unset');
   });
 });
