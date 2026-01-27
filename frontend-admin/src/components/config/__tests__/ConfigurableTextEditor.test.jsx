@@ -58,8 +58,11 @@ vi.mock('@tiptap/react', async (importOriginal) => {
   };
 });
 
-// Mock GoogleFontPicker
-vi.mock('../ui/GoogleFontPicker', () => ({
+// Mock GoogleFontPicker with correct path resolution
+// Test file is in src/components/config/__tests__/
+// Component imports from ../ui/GoogleFontPicker (src/components/ui/GoogleFontPicker)
+// So mock path must be ../../ui/GoogleFontPicker
+vi.mock('../../ui/GoogleFontPicker', () => ({
   default: ({ onSelect }) => (
     <button onClick={() => onSelect({ family: 'Roboto', category: 'sans-serif' })}>
       <span>Select Font</span>
