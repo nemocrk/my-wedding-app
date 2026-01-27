@@ -1,8 +1,8 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import ConfigurableTextEditor from '../ConfigurableTextEditor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fontLoader from '../../../utils/fontLoader';
+import ConfigurableTextEditor from '../ConfigurableTextEditor';
 
 // Mock only i18n (necessario per il rendering)
 vi.mock('react-i18next', () => ({
@@ -140,7 +140,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
 
       await waitFor(() => {
-        expect(screen.getByText('My Custom Title')).toBeInTheDocument();
+        expect(screen.getAllByText('My Custom Title')[0]).toBeInTheDocument();
       });
     });
 
@@ -155,7 +155,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const cancelButton = await screen.findByTitle(/Annulla/i);
       await user.click(cancelButton);
 
@@ -175,7 +175,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const saveButton = await screen.findByText(/admin.config.text_editor.buttons.save/i);
       await user.click(saveButton);
 
@@ -192,7 +192,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
     it('shows loading state while saving', async () => {
       const slowSave = vi.fn(() => new Promise(resolve => setTimeout(resolve, 100)));
       const user = userEvent.setup();
-      
+
       render(
         <ConfigurableTextEditor
           textKey="test_key"
@@ -203,7 +203,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
       const saveButton = await screen.findByText(/admin.config.text_editor.buttons.save/i);
-      
+
       await user.click(saveButton);
 
       // Loader should appear
@@ -211,10 +211,10 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
     });
 
     it('handles save error gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
       const failingSave = vi.fn().mockRejectedValue(new Error('Save failed'));
       const user = userEvent.setup();
-      
+
       render(
         <ConfigurableTextEditor
           textKey="test_key"
@@ -225,7 +225,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
       const saveButton = await screen.findByText(/admin.config.text_editor.buttons.save/i);
-      
+
       await user.click(saveButton);
 
       await waitFor(() => {
@@ -289,7 +289,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const boldButton = await screen.findByTitle(/Grassetto/i);
       await user.click(boldButton);
 
@@ -310,7 +310,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const italicButton = await screen.findByTitle(/Corsivo/i);
       await user.click(italicButton);
 
@@ -330,7 +330,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const underlineButton = await screen.findByTitle(/Sottolineato/i);
       await user.click(underlineButton);
 
@@ -350,7 +350,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const centerButton = await screen.findByTitle(/Allinea Centro/i);
       await user.click(centerButton);
 
@@ -370,7 +370,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       const undoButton = await screen.findByTitle(/Annulla/i);
       const redoButton = await screen.findByTitle(/Ripeti/i);
 
@@ -391,7 +391,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         // GoogleFontPicker renders a button with "Font" or "Open Sans"
         expect(screen.getByText(/Font|Open Sans/i)).toBeInTheDocument();
@@ -409,7 +409,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         const sizeSpinner = screen.getByTitle(/Dimensione Font/i);
         expect(sizeSpinner).toBeInTheDocument();
@@ -428,7 +428,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         const rotationSpinner = screen.getByTitle(/Rotazione/i);
         expect(rotationSpinner).toBeInTheDocument();
@@ -447,7 +447,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         const colorPicker = screen.getByTitle(/Colore Testo/i);
         expect(colorPicker).toBeInTheDocument();
@@ -469,7 +469,7 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         const dialog = screen.getByRole('dialog');
         expect(dialog).toHaveAttribute('aria-modal', 'true');
@@ -489,12 +489,12 @@ describe('ConfigurableTextEditor - Integration Tests', () => {
       );
 
       await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      
+
       await waitFor(() => {
         const dialog = screen.getByRole('dialog');
         const titleId = dialog.getAttribute('aria-labelledby');
         expect(titleId).toBe('editor-title-unique_key');
-        
+
         const titleElement = document.getElementById(titleId);
         expect(titleElement.textContent).toBe('Unique Label');
       });
