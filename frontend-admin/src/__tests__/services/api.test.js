@@ -13,6 +13,25 @@ describe('API Service', () => {
     vi.clearAllMocks();
   });
 
+  // Helper per creare mock response con headers
+  const mockResponse = (data, ok = true, status = 200) => ({
+    ok,
+    status,
+    headers: {
+        get: (key) => key.toLowerCase() === 'content-type' ? 'application/json' : null
+    },
+    json: async () => data,
+    text: async () => JSON.stringify(data)
+  });
+
+  const mockEmptyResponse = (ok = true, status = 204) => ({
+      ok,
+      status,
+      headers: { get: () => null },
+      json: async () => ({}),
+      text: async () => ''
+  });
+
   describe('General', () => {
     it('should export an api object', () => {
       expect(api).toBeDefined();
@@ -20,12 +39,7 @@ describe('API Service', () => {
     });
 
     it('should handle API errors gracefully (generic)', async () => {
-      globalThis.fetch.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        headers: { get: () => 'application/json' },
-        json: async () => ({ error: 'Internal Server Error' })
-      });
+      globalThis.fetch.mockResolvedValueOnce(mockResponse({ error: 'Internal Server Error' }, false, 500));
 
       await expect(api.fetchInvitations()).rejects.toThrow('Internal Server Error');
       expect(window.dispatchEvent).toHaveBeenCalledWith(expect.any(CustomEvent));
@@ -34,7 +48,7 @@ describe('API Service', () => {
 
   describe('Invitation Labels', () => {
     it('fetchInvitationLabels calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+      globalThis.fetch.mockResolvedValue(mockResponse([]));
       await api.fetchInvitationLabels();
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitation-labels/'),
@@ -43,7 +57,7 @@ describe('API Service', () => {
     });
 
     it('CRUD operations call correct endpoints', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
 
       await api.createInvitationLabel({ name: 'Test' });
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -57,6 +71,8 @@ describe('API Service', () => {
         expect.objectContaining({ method: 'PUT' })
       );
 
+      // Delete usually returns 204 No Content
+      globalThis.fetch.mockResolvedValue(mockEmptyResponse());
       await api.deleteInvitationLabel(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitation-labels/1/'),
@@ -67,7 +83,7 @@ describe('API Service', () => {
 
   describe('Invitations', () => {
     it('fetchInvitations builds query string correctly', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.fetchInvitations({ status: 'sent', search: 'test', ordering: '-created' });
       
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -82,7 +98,7 @@ describe('API Service', () => {
     });
 
     it('CRUD operations call correct endpoints', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
 
       await api.getInvitation(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/invitations/1/'), expect.anything());
@@ -99,6 +115,7 @@ describe('API Service', () => {
         expect.objectContaining({ method: 'PUT' })
       );
 
+      globalThis.fetch.mockResolvedValue(mockEmptyResponse());
       await api.deleteInvitation(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/'),
@@ -107,7 +124,7 @@ describe('API Service', () => {
     });
 
     it('markInvitationAsSent calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.markInvitationAsSent(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/mark-as-sent/'),
@@ -116,7 +133,7 @@ describe('API Service', () => {
     });
 
     it('bulkSendInvitations calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.bulkSendInvitations([1, 2, 3]);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/bulk-send/'),
@@ -128,7 +145,7 @@ describe('API Service', () => {
     });
 
     it('bulkManageLabels calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.bulkManageLabels([1], [10], 'add');
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/bulk-labels/'),
@@ -140,7 +157,7 @@ describe('API Service', () => {
     });
 
     it('verifyContact calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.verifyContact(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/'),
@@ -152,7 +169,7 @@ describe('API Service', () => {
     });
 
     it('generateInvitationLink calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.generateInvitationLink(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/generate_link/'),
@@ -163,7 +180,7 @@ describe('API Service', () => {
 
   describe('Analytics', () => {
     it('getInvitationHeatmaps calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.getInvitationHeatmaps(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/heatmaps/'),
@@ -172,7 +189,7 @@ describe('API Service', () => {
     });
 
     it('getInvitationInteractions calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.getInvitationInteractions(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/invitations/1/interactions/'),
@@ -183,13 +200,13 @@ describe('API Service', () => {
 
   describe('Dashboard', () => {
     it('getDashboardStats calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.getDashboardStats();
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/dashboard/stats/'), expect.anything());
     });
 
     it('getDynamicDashboardStats handles filters', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.getDynamicDashboardStats(['filter1', 'filter2']);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/dashboard/dynamic-stats/?filters=filter1,filter2'),
@@ -200,25 +217,25 @@ describe('API Service', () => {
 
   describe('Config & System', () => {
     it('fetchLanguages calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+      globalThis.fetch.mockResolvedValue(mockResponse([]));
       await api.fetchLanguages();
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/languages/'), expect.anything());
     });
 
     it('fetchGoogleFonts calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+      globalThis.fetch.mockResolvedValue(mockResponse([]));
       await api.fetchGoogleFonts();
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/google-fonts/'), expect.anything());
     });
 
     it('getConfig calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.getConfig();
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/config/'), expect.anything());
     });
 
     it('updateConfig calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.updateConfig({ maintenance: true });
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/config/'),
@@ -229,7 +246,7 @@ describe('API Service', () => {
 
   describe('Configurable Texts', () => {
     it('fetchConfigurableTexts handles lang parameter', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+      globalThis.fetch.mockResolvedValue(mockResponse([]));
       
       await api.fetchConfigurableTexts('it');
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/texts/?lang=it'), expect.anything());
@@ -239,13 +256,13 @@ describe('API Service', () => {
     });
 
     it('getConfigurableText calls correct endpoint', async () => {
-        globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+        globalThis.fetch.mockResolvedValue(mockResponse({}));
         await api.getConfigurableText('home.title', 'en');
         expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/texts/home.title/?lang=en'), expect.anything());
     });
 
     it('CRUD operations call correct endpoints', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
 
       await api.createConfigurableText({ key: 'k' });
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -259,6 +276,7 @@ describe('API Service', () => {
         expect.objectContaining({ method: 'PUT' })
       );
 
+      globalThis.fetch.mockResolvedValue(mockEmptyResponse());
       await api.deleteConfigurableText('k', 'it');
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/texts/k/?lang=it'),
@@ -269,7 +287,7 @@ describe('API Service', () => {
 
   describe('Accommodations', () => {
     it('CRUD operations call correct endpoints', async () => {
-        globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+        globalThis.fetch.mockResolvedValue(mockResponse({}));
 
         await api.fetchAccommodations();
         expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/accommodations/'), expect.anything());
@@ -286,6 +304,7 @@ describe('API Service', () => {
             expect.objectContaining({ method: 'PUT' })
         );
 
+        globalThis.fetch.mockResolvedValue(mockEmptyResponse());
         await api.deleteAccommodation(1);
         expect(globalThis.fetch).toHaveBeenCalledWith(
             expect.stringContaining('/accommodations/1/'),
@@ -294,7 +313,7 @@ describe('API Service', () => {
     });
 
     it('triggerAutoAssign calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
       await api.triggerAutoAssign(true, 'GREEDY');
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/accommodations/auto-assign/'),
@@ -306,7 +325,7 @@ describe('API Service', () => {
     });
 
     it('fetchUnassignedInvitations calls correct endpoint', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+      globalThis.fetch.mockResolvedValue(mockResponse([]));
       await api.fetchUnassignedInvitations();
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/accommodations/unassigned-invitations/'),
@@ -317,7 +336,7 @@ describe('API Service', () => {
 
   describe('WhatsApp Integration', () => {
     it('status and refresh methods', async () => {
-        globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+        globalThis.fetch.mockResolvedValue(mockResponse({}));
 
         await api.getWhatsAppStatus('groom');
         expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/whatsapp/groom/status/'), expect.anything());
@@ -327,7 +346,7 @@ describe('API Service', () => {
     });
 
     it('session management methods call correct endpoints', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
 
       await api.logoutWhatsAppSession('groom');
       expect(globalThis.fetch).toHaveBeenCalledWith(
@@ -345,13 +364,13 @@ describe('API Service', () => {
 
   describe('WhatsApp Queue', () => {
       it('fetchWhatsAppQueue calls correct endpoint', async () => {
-          globalThis.fetch.mockResolvedValue({ ok: true, json: async () => [] });
+          globalThis.fetch.mockResolvedValue(mockResponse([]));
           await api.fetchWhatsAppQueue();
           expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/whatsapp-queue/'), expect.anything());
       });
 
       it('enqueueWhatsAppMessage calls correct endpoint', async () => {
-          globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+          globalThis.fetch.mockResolvedValue(mockResponse({}));
           await api.enqueueWhatsAppMessage({ message: 'test' });
           expect(globalThis.fetch).toHaveBeenCalledWith(
               expect.stringContaining('/whatsapp-queue/'),
@@ -362,7 +381,7 @@ describe('API Service', () => {
 
   describe('WhatsApp Templates', () => {
     it('CRUD operations call correct endpoints', async () => {
-      globalThis.fetch.mockResolvedValue({ ok: true, json: async () => ({}) });
+      globalThis.fetch.mockResolvedValue(mockResponse({}));
 
       await api.fetchWhatsAppTemplates();
       expect(globalThis.fetch).toHaveBeenCalledWith(expect.stringContaining('/whatsapp-templates/'), expect.anything());
@@ -379,6 +398,7 @@ describe('API Service', () => {
         expect.objectContaining({ method: 'PUT' })
       );
 
+      globalThis.fetch.mockResolvedValue(mockEmptyResponse());
       await api.deleteWhatsAppTemplate(1);
       expect(globalThis.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/whatsapp-templates/1/'),
