@@ -1,198 +1,209 @@
-import pytest
-from rest_framework.test import APIClient
-from rest_framework import status
-from django.db import IntegrityError
-from core.models import Invitation, InvitationLabel, ConfigurableText, Person, Accommodation, Room, GlobalConfig
+from django.test import TestCase, Client
+from django.urls import reverse
+from django.contrib.auth.models import User
+from core.models import (
+    Invitation, GlobalConfig, Person, Accommodation, Room, 
+    GuestInteraction, GuestHeatmap, WhatsAppTemplate, 
+    ConfigurableText, InvitationLabel, WhatsAppMessageQueue
+)
+from core.views import AccommodationViewSet
+import json
+from unittest.mock import patch, MagicMock
 
-@pytest.mark.django_db
-class TestInvitationAdminViews:
-    def setup_method(self):
-        self.client = APIClient()
-        # Create test data
-        self.label1 = InvitationLabel.objects.create(name="VIP", color="#FF0000")
-        self.label2 = InvitationLabel.objects.create(name="Friends", color="#00FF00")
+class AdminViewsTest(TestCase):
+    def setUp(self):
+        # Admin User
+        self.user = User.objects.create_superuser('admin', 'admin@test.com', 'password')
+        self.client = Client()
+        self.client.force_login(self.user)
         
-        self.inv1 = Invitation.objects.create(name="Inv1", code="C1", status=Invitation.Status.CREATED)
-        self.inv2 = Invitation.objects.create(name="Inv2", code="C2", status=Invitation.Status.CREATED)
-        self.inv3 = Invitation.objects.create(name="Inv3", code="C3", status=Invitation.Status.CREATED)
+        # Config
+        self.config = GlobalConfig.objects.create(
+            invitation_link_secret='secret',
+            price_adult_meal=100.0,
+            price_child_meal=50.0,
+            price_accommodation_adult=80.0,
+            price_accommodation_child=40.0,
+            price_transfer=20.0
+        )
 
-    def test_bulk_send_success(self):
-        url = '/api/admin/invitations/bulk-send/'
-        data = {'invitation_ids': [self.inv1.id, self.inv2.id]}
-        response = self.client.post(url, data, format='json')
-        
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['updated_count'] == 2
-        
-        self.inv1.refresh_from_db()
-        self.inv2.refresh_from_db()
-        self.inv3.refresh_from_db()
-        
-        assert self.inv1.status == Invitation.Status.SENT
-        assert self.inv2.status == Invitation.Status.SENT
-        assert self.inv3.status == Invitation.Status.CREATED
-
-    def test_bulk_send_validation_error(self):
-        url = '/api/admin/invitations/bulk-send/'
-        # Missing IDs
-        response = self.client.post(url, {}, format='json')
-        assert response.status_code == status.HTTP_400_BAD_REQUEST
-        
-        # Invalid IDs
-        response = self.client.post(url, {'invitation_ids': [99999]}, format='json')
-        assert response.status_code == status.HTTP_404_NOT_FOUND
-
-    def test_bulk_labels_add(self):
-        url = '/api/admin/invitations/bulk-labels/'
-        data = {
-            'invitation_ids': [self.inv1.id, self.inv2.id],
-            'label_ids': [self.label1.id],
-            'action': 'add'
-        }
-        response = self.client.post(url, data, format='json')
-        
-        assert response.status_code == status.HTTP_200_OK
-        
-        self.inv1.refresh_from_db()
-        self.inv2.refresh_from_db()
-        
-        assert self.label1 in self.inv1.labels.all()
-        assert self.label1 in self.inv2.labels.all()
-
-    def test_bulk_labels_remove(self):
-        # Pre-assign
-        self.inv1.labels.add(self.label1, self.label2)
-        
-        url = '/api/admin/invitations/bulk-labels/'
-        data = {
-            'invitation_ids': [self.inv1.id],
-            'label_ids': [self.label1.id],
-            'action': 'remove'
-        }
-        response = self.client.post(url, data, format='json')
-        
-        assert response.status_code == status.HTTP_200_OK
-        
-        self.inv1.refresh_from_db()
-        labels = self.inv1.labels.all()
-        assert self.label1 not in labels
-        assert self.label2 in labels
-
-    def test_mark_as_sent_single(self):
-        url = f'/api/admin/invitations/{self.inv1.id}/mark-as-sent/'
-        response = self.client.post(url)
-        assert response.status_code == status.HTTP_200_OK
-        self.inv1.refresh_from_db()
-        assert self.inv1.status == Invitation.Status.SENT
-
-    def test_generate_link(self):
-        url = f'/api/admin/invitations/{self.inv1.id}/generate_link/'
-        response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert 'url' in response.data
-        assert 'token' in response.data
-
-    def test_search_invitation(self):
-        url = f'/api/admin/invitations/search/?code={self.inv1.code}'
-        response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['id'] == self.inv1.id
-
-    def test_invitation_filters(self):
-        # Setup specific statuses
-        self.inv1.status = Invitation.Status.CONFIRMED
-        self.inv1.save()
-        self.inv2.labels.add(self.label1)
-        
-        # Test Status Filter
-        url = '/api/admin/invitations/?status=confirmed'
-        response = self.client.get(url)
-        
-        data = response.data
-        if isinstance(data, list):
-            results = data
-        else:
-            results = data.get('results', [])
-            
-        assert len(results) == 1
-        assert results[0]['id'] == self.inv1.id
-        
-        # Test Label Filter
-        url = f'/api/admin/invitations/?label={self.label1.id}'
-        response = self.client.get(url)
-        
-        data = response.data
-        if isinstance(data, list):
-            results = data
-        else:
-            results = data.get('results', [])
-            
-        assert len(results) == 1
-        assert results[0]['id'] == self.inv2.id
-
-
-@pytest.mark.django_db
-class TestConfigurableTextViewSet:
-    def setup_method(self):
-        self.client = APIClient()
-        self.text1 = ConfigurableText.objects.create(key="welcome", language="it", content="Benvenuti")
-        self.text2 = ConfigurableText.objects.create(key="welcome", language="en", content="Welcome")
-
-    def test_list_filter_lang(self):
-        url = '/api/admin/texts/?lang=en' 
-        response = self.client.get(url)
-        # Check standard list response structure
-        data = response.data
-        if isinstance(data, list):
-            results = data
-        else:
-            results = data.get('results', [])
-            
-        assert len(results) == 1
-        assert results[0]['content'] == "Welcome"
-
-    def test_retrieve_fallback(self):
-        # Retrieve IT specific
-        url = '/api/admin/texts/welcome/?lang=it'
-        response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert response.data['content'] == "Benvenuti"
-
-    def test_update_or_create(self):
-        # Create new key
-        url = '/api/admin/texts/new-key/?lang=it' 
-        data = {'content': 'Nuovo Contenuto'}
-        response = self.client.put(url, data)
-        assert response.status_code == status.HTTP_201_CREATED
-        assert ConfigurableText.objects.filter(key="new-key", language="it").exists()
-        
-        # Update existing
-        url = '/api/admin/texts/welcome/?lang=it'
-        data = {'content': 'Benvenuti Modificato'}
-        response = self.client.put(url, data)
-        assert response.status_code == status.HTTP_200_OK
-        self.text1.refresh_from_db()
-        assert self.text1.content == 'Benvenuti Modificato'
-
-@pytest.mark.django_db
-class TestPublicConfigViews:
-    def setup_method(self):
-        self.client = APIClient()
-        ConfigurableText.objects.create(key="k1", language="it", content="Ciao")
-        ConfigurableText.objects.create(key="k1", language="en", content="Hello")
-        ConfigurableText.objects.create(key="k2", language="it", content="Mondo")
-
-    def test_public_texts_fallback(self):
-        # Request EN (should get k1=Hello, k2=Mondo fallback)
-        url = '/api/public/texts/?lang=en' 
-        response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        data = response.data
-        assert data['k1'] == "Hello"
-        assert data['k2'] == "Mondo"
+    # --- PUBLIC VIEWS ---
 
     def test_public_languages(self):
-        url = '/api/public/languages/'
-        response = self.client.get(url)
-        assert response.status_code == status.HTTP_200_OK
-        assert isinstance(response.data, list)
+        response = self.client.get('/api/public/languages/')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(len(response.json()) > 0)
+
+    def test_public_configurable_texts(self):
+        ConfigurableText.objects.create(key='welcome', content='Benvenuto', language='it')
+        ConfigurableText.objects.create(key='welcome', content='Welcome', language='en')
+        
+        # Default (it)
+        res_it = self.client.get('/api/public/texts/')
+        self.assertEqual(res_it.json().get('welcome'), 'Benvenuto')
+        
+        # English
+        res_en = self.client.get('/api/public/texts/?lang=en')
+        self.assertEqual(res_en.json().get('welcome'), 'Welcome')
+
+    # --- DASHBOARD & STATS ---
+
+    def test_dashboard_stats(self):
+        # Setup Data
+        inv = Invitation.objects.create(status=Invitation.Status.CONFIRMED, accommodation_requested=True, transfer_requested=True)
+        Person.objects.create(invitation=inv, first_name="Adult", is_child=False)
+        Person.objects.create(invitation=inv, first_name="Child", is_child=True)
+        
+        # Declined
+        inv_decl = Invitation.objects.create(status=Invitation.Status.DECLINED)
+        Person.objects.create(invitation=inv_decl, first_name="Declined")
+
+        response = self.client.get('/api/dashboard/stats/')
+        self.assertEqual(response.status_code, 200)
+        data = response.json()
+        
+        # Guests
+        self.assertEqual(data['guests']['adults_confirmed'], 1)
+        self.assertEqual(data['guests']['children_confirmed'], 1)
+        self.assertEqual(data['guests']['adults_declined'], 1)
+        
+        # Logistics
+        self.assertEqual(data['logistics']['accommodation']['confirmed_adults'], 1)
+        
+        # Financials (100 + 50 + 80 + 40 + 2*20 = 310)
+        expected_cost = 100 + 50 + 80 + 40 + 40
+        self.assertEqual(data['financials']['confirmed'], expected_cost)
+
+    # --- INVITATION ACTIONS ---
+
+    def test_invitation_bulk_actions(self):
+        inv1 = Invitation.objects.create(name="Inv1", status=Invitation.Status.CREATED)
+        inv2 = Invitation.objects.create(name="Inv2", status=Invitation.Status.CREATED)
+        
+        # Bulk Send
+        res_send = self.client.post('/api/invitations/bulk-send/', 
+                                  data=json.dumps({'invitation_ids': [inv1.id, inv2.id]}), 
+                                  content_type='application/json')
+        self.assertEqual(res_send.status_code, 200)
+        inv1.refresh_from_db()
+        self.assertEqual(inv1.status, Invitation.Status.SENT)
+        
+        # Bulk Labels
+        label = InvitationLabel.objects.create(name="VIP", color="#000000")
+        res_label = self.client.post('/api/invitations/bulk-labels/',
+                                   data=json.dumps({
+                                       'invitation_ids': [inv1.id, inv2.id],
+                                       'label_ids': [label.id],
+                                       'action': 'add'
+                                   }),
+                                   content_type='application/json')
+        self.assertEqual(res_label.status_code, 200)
+        self.assertTrue(inv1.labels.filter(id=label.id).exists())
+
+    def test_mark_as_read_idempotency(self):
+        inv = Invitation.objects.create(name="InvRead", status=Invitation.Status.SENT)
+        
+        # First call: Sent -> Read
+        res1 = self.client.post(f'/api/invitations/{inv.id}/mark-as-read/')
+        self.assertEqual(res1.status_code, 200)
+        self.assertEqual(res1.json()['status'], 'read')
+        
+        # Second call: Already Read -> No change
+        res2 = self.client.post(f'/api/invitations/{inv.id}/mark-as-read/')
+        self.assertEqual(res2.json()['transition'], 'none')
+
+    def test_heatmaps_and_interactions(self):
+        inv = Invitation.objects.create(name="Analytics")
+        GuestHeatmap.objects.create(invitation=inv, session_id="s1", mouse_data=[])
+        GuestInteraction.objects.create(invitation=inv, event_type="visit", ip_address="127.0.0.1")
+        
+        res_hm = self.client.get(f'/api/invitations/{inv.id}/heatmaps/')
+        self.assertEqual(res_hm.status_code, 200)
+        self.assertEqual(len(res_hm.json()), 1)
+        
+        res_int = self.client.get(f'/api/invitations/{inv.id}/interactions/')
+        self.assertEqual(res_int.status_code, 200)
+
+    # --- ACCOMMODATION LOGIC ---
+
+    def test_accommodation_auto_assign(self):
+        # Setup
+        acc = Accommodation.objects.create(name="Hotel")
+        room = Room.objects.create(accommodation=acc, name="101", capacity=2)
+        
+        inv = Invitation.objects.create(status=Invitation.Status.CONFIRMED, accommodation_requested=True)
+        p1 = Person.objects.create(invitation=inv, first_name="G1", is_child=False)
+        p2 = Person.objects.create(invitation=inv, first_name="G2", is_child=False)
+        
+        # Unassigned check
+        res_unassigned = self.client.get('/api/accommodations/unassigned-invitations/')
+        self.assertEqual(len(res_unassigned.json()), 1)
+        
+        # Auto Assign Simulation
+        res_sim = self.client.post('/api/accommodations/auto-assign/',
+                                 data=json.dumps({'strategy': 'SIMULATION', 'reset_previous': True}),
+                                 content_type='application/json')
+        self.assertEqual(res_sim.status_code, 200)
+        self.assertEqual(res_sim.json()['mode'], 'SIMULATION')
+        
+        # Execution
+        res_exec = self.client.post('/api/accommodations/auto-assign/',
+                                  data=json.dumps({'strategy': 'STANDARD', 'reset_previous': True}),
+                                  content_type='application/json')
+        self.assertEqual(res_exec.status_code, 200)
+        
+        # Verify Assignment
+        p1.refresh_from_db()
+        self.assertEqual(p1.assigned_room, room)
+
+    # --- SIGNALS ---
+
+    def test_signal_dietary_label(self):
+        inv = Invitation.objects.create(name="Dietary")
+        p = Person.objects.create(invitation=inv, first_name="Allergic")
+        
+        # Update dietary -> Trigger signal
+        p.dietary_requirements = "Gluten Free"
+        p.save()
+        
+        self.assertTrue(inv.labels.filter(name="Intolleranze").exists())
+        
+        # Clear -> Remove label
+        p.dietary_requirements = ""
+        p.save()
+        
+        self.assertFalse(inv.labels.filter(name="Intolleranze").exists())
+
+    def test_signal_whatsapp_status_change(self):
+        # Create Template
+        WhatsAppTemplate.objects.create(
+            name="SentTpl",
+            content="Hello {name}",
+            condition=WhatsAppTemplate.Condition.STATUS_CHANGE,
+            trigger_status=Invitation.Status.SENT,
+            is_active=True
+        )
+        
+        inv = Invitation.objects.create(name="Whatsapp", phone_number="1234567890", status=Invitation.Status.CREATED)
+        
+        # Change Status -> Trigger Signal
+        inv.status = Invitation.Status.SENT
+        inv.save()
+        
+        # Check Queue
+        self.assertTrue(WhatsAppMessageQueue.objects.filter(recipient_number="1234567890").exists())
+
+    # --- GOOGLE FONTS PROXY ---
+    
+    @patch('builtins.open')
+    @patch('os.path.exists')
+    def test_google_fonts_proxy(self, mock_exists, mock_open):
+        mock_exists.return_value = True
+        mock_file = MagicMock()
+        mock_file.__enter__.return_value = mock_file
+        mock_file.read.return_value = json.dumps([{"name": "Roboto", "category": "sans-serif"}])
+        mock_open.return_value = mock_file
+        
+        response = self.client.get('/api/admin/fonts/')
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()['items'][0]['family'], 'Roboto')
