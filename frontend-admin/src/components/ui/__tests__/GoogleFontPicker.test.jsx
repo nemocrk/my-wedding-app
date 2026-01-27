@@ -1,9 +1,9 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import GoogleFontPicker from '../GoogleFontPicker';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../../services/api';
 import * as FontLoader from '../../../utils/fontLoader';
+import GoogleFontPicker from '../GoogleFontPicker';
 
 // --- MOCKS ---
 
@@ -26,35 +26,37 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
-// Mock React Window (Virtual List) - Improved Reactivity
-vi.mock('react-window', () => ({
-  List: ({ children, rowCount, itemData }) => (
-    <div data-testid="virtual-list">
-      {rowCount > 0 ? (
-        Array.from({ length: rowCount }).map((_, index) => (
-          <div key={index}>
-             {children({ index, style: {}, data: itemData })}
-          </div>
-        ))
-      ) : (
-         <div data-testid="empty-list"></div>
-      )}
-    </div>
-  ),
+globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
+  observe: vi.fn(),
+  unobserve: vi.fn(),
+  disconnect: vi.fn(),
 }));
 
-// Mock Radix UI Popover
-vi.mock('@radix-ui/react-popover', () => ({
-  Root: ({ children }) => <div data-testid="popover-root">{children}</div>,
-  Trigger: ({ children, onClick }) => (
-    <div onClick={onClick} data-testid="popover-trigger">
-      {children}
-    </div>
-  ),
-  Portal: ({ children }) => <div data-testid="popover-portal">{children}</div>,
-  Content: ({ children }) => <div data-testid="popover-content">{children}</div>,
-  Arrow: () => null,
-}));
+// Se il test continua a dare errore, usa la sintassi della classe esplicita:
+globalThis.ResizeObserver = class ResizeObserver {
+  constructor(callback) {
+    this.callback = callback;
+  }
+  observe = vi.fn();
+  unobserve = vi.fn();
+  disconnect = vi.fn();
+};
+
+// Verifica se PointerEvent esiste, altrimenti crealo (JSDOM spesso non lo ha)
+if (!globalThis.PointerEvent) {
+  class PointerEvent extends MouseEvent {
+    constructor(type, props) {
+      super(type, props);
+      this.pointerId = props.pointerId || 0;
+      this.pointerType = props.pointerType || 'mouse';
+    }
+  }
+  globalThis.PointerEvent = PointerEvent;
+}
+
+// Necessario per evitare errori con componenti che catturano il puntatore
+HTMLElement.prototype.setPointerCapture = vi.fn();
+HTMLElement.prototype.releasePointerCapture = vi.fn();
 
 // Mock LocalStorage
 const localStorageMock = (() => {
@@ -99,38 +101,42 @@ describe('GoogleFontPicker', () => {
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    
-    await user.click(screen.getByTestId('popover-trigger'));
+
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
 
     expect(api.fetchGoogleFonts).toHaveBeenCalled();
-    
+
     // Explicitly wait for the virtual list to render the items
     await waitFor(() => {
-        expect(screen.getByText('Roboto')).toBeInTheDocument();
-        expect(screen.getByText('Lora')).toBeInTheDocument();
+      expect(screen.getByText('Roboto')).toBeInTheDocument();
+      expect(screen.getByText('Lora')).toBeInTheDocument();
     });
 
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
-        'mw:googleFonts:v1:popularity', 
-        expect.stringContaining('Roboto')
+      'mw:googleFonts:v1:popularity',
+      expect.stringContaining('Roboto')
     );
   });
 
   it('reads from cache if available', async () => {
     const cachedData = {
-        ts: Date.now(),
-        items: [{ family: 'CachedFont', category: 'display' }]
+      ts: Date.now(),
+      items: [{ family: 'CachedFont', category: 'display' }]
     };
-    localStorageMock.getItem.mockReturnValue(JSON.stringify(cachedData));
+    localStorageMock.getItem.mockReturnValueOnce(JSON.stringify(cachedData));
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    
-    await user.click(screen.getByTestId('popover-trigger'));
+
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
 
     expect(api.fetchGoogleFonts).not.toHaveBeenCalled();
     await waitFor(() => {
-        expect(screen.getByText('CachedFont')).toBeInTheDocument();
+      expect(screen.getByText('CachedFont')).toBeInTheDocument();
     });
   });
 
@@ -139,8 +145,10 @@ describe('GoogleFontPicker', () => {
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    await user.click(screen.getByTestId('popover-trigger'));
-    
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
+
     // Wait for initial list
     await waitFor(() => expect(screen.getByText('Roboto')).toBeInTheDocument());
 
@@ -149,8 +157,8 @@ describe('GoogleFontPicker', () => {
 
     // Wait for virtual list to update
     await waitFor(() => {
-        expect(screen.getByText('Lora')).toBeInTheDocument();
-        expect(screen.queryByText('Roboto')).not.toBeInTheDocument();
+      expect(screen.getByText('Lora')).toBeInTheDocument();
+      expect(screen.queryByText('Roboto')).not.toBeInTheDocument();
     });
   });
 
@@ -159,8 +167,10 @@ describe('GoogleFontPicker', () => {
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    await user.click(screen.getByTestId('popover-trigger'));
-    
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
+
     const fontOption = await screen.findByText('Roboto');
     await user.hover(fontOption);
 
@@ -172,31 +182,35 @@ describe('GoogleFontPicker', () => {
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    await user.click(screen.getByTestId('popover-trigger'));
-    
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
+
     const fontOption = await screen.findByText('Open Sans');
     await user.click(fontOption);
 
     expect(mockOnSelect).toHaveBeenCalledWith(
-        expect.objectContaining({ family: 'Open Sans' })
+      expect.objectContaining({ family: 'Open Sans' })
     );
   });
 
   it('uses fallback fonts on API error', async () => {
     // Silence console error for this test
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     api.fetchGoogleFonts.mockRejectedValue(new Error('Network Error'));
     const user = userEvent.setup();
 
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
-    await user.click(screen.getByTestId('popover-trigger'));
+    expect(screen.getByRole('button', { name: 'Font' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Font' }));
 
     await waitFor(() => {
-        expect(screen.getByText('admin.configuration.fonts.offline_mode')).toBeInTheDocument();
-        // Check for at least one fallback font
-        expect(screen.getByText('Inter')).toBeInTheDocument();
+      expect(screen.getByText('admin.configuration.fonts.offline_mode')).toBeInTheDocument();
+      // Check for at least one fallback font
+      expect(screen.getByText('Inter')).toBeInTheDocument();
     });
-    
+
     consoleSpy.mockRestore();
   });
 });

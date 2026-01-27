@@ -1,8 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import BulkLabelModal from '../BulkLabelModal';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../../../services/api';
+import BulkLabelModal from '../BulkLabelModal';
 
 // Mock dependencies
 vi.mock('../../../services/api', () => ({
@@ -15,8 +15,8 @@ vi.mock('../../../services/api', () => ({
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key, options) => {
-        if (key === 'admin.invitations.bulk_labels.subtitle') return `Selected ${options?.count}`;
-        return key;
+      if (key === 'admin.invitations.bulk_labels.subtitle') return `Selected ${options?.count}`;
+      return key;
     },
   }),
 }));
@@ -41,13 +41,13 @@ describe('BulkLabelModal', () => {
 
   it('renders and fetches labels when opened', async () => {
     api.fetchInvitationLabels.mockResolvedValue(mockLabels);
-    
+
     render(<BulkLabelModal open={true} onClose={mockOnClose} selectedIds={selectedIds} />);
-    
+
     expect(api.fetchInvitationLabels).toHaveBeenCalled();
     expect(await screen.findByText('admin.invitations.bulk_labels.title')).toBeInTheDocument();
     expect(screen.getByText('Selected 3')).toBeInTheDocument();
-    
+
     // Check labels are rendered
     expect(await screen.findByText('VIP')).toBeInTheDocument();
     expect(screen.getByText('Family')).toBeInTheDocument();
@@ -56,17 +56,17 @@ describe('BulkLabelModal', () => {
   it('allows selecting labels and toggling selection', async () => {
     api.fetchInvitationLabels.mockResolvedValue(mockLabels);
     const user = userEvent.setup();
-    
+
     render(<BulkLabelModal open={true} onClose={mockOnClose} selectedIds={selectedIds} />);
-    
+
     const vipButton = await screen.findByText('VIP');
-    
+
     // Select
     await user.click(vipButton);
     // Visual check (class or icon check might be fragile, but state update allows submit)
     const confirmBtn = screen.getByText('common.confirm');
     expect(confirmBtn).not.toBeDisabled();
-    
+
     // Deselect
     await user.click(vipButton);
     expect(confirmBtn).toBeDisabled();
@@ -75,12 +75,14 @@ describe('BulkLabelModal', () => {
   it('allows changing action type', async () => {
     api.fetchInvitationLabels.mockResolvedValue(mockLabels);
     const user = userEvent.setup();
-    
+
     render(<BulkLabelModal open={true} onClose={mockOnClose} selectedIds={selectedIds} />);
-    
+
     // Default is 'add'
-    expect(screen.getByLabelText('admin.invitations.bulk_labels.action_add')).toBeChecked();
-    
+    await waitFor(() => {
+      expect(screen.getByLabelText('admin.invitations.bulk_labels.action_add')).toBeChecked();
+    });
+
     // Change to remove
     const removeRadio = screen.getByLabelText('admin.invitations.bulk_labels.action_remove');
     await user.click(removeRadio);
@@ -91,42 +93,42 @@ describe('BulkLabelModal', () => {
     api.fetchInvitationLabels.mockResolvedValue(mockLabels);
     api.bulkManageLabels.mockResolvedValue({ success: true });
     const user = userEvent.setup();
-    
+
     render(<BulkLabelModal open={true} onClose={mockOnClose} selectedIds={selectedIds} onSuccess={mockOnSuccess} />);
-    
+
     // Select label
     const vipButton = await screen.findByText('VIP');
     await user.click(vipButton);
-    
+
     // Submit
     const confirmBtn = screen.getByText('common.confirm');
     await user.click(confirmBtn);
-    
+
     expect(api.bulkManageLabels).toHaveBeenCalledWith(selectedIds, [101], 'add');
     await waitFor(() => {
-        expect(mockOnSuccess).toHaveBeenCalled();
-        expect(mockOnClose).toHaveBeenCalled();
+      expect(mockOnSuccess).toHaveBeenCalled();
+      expect(mockOnClose).toHaveBeenCalled();
     });
   });
 
   it('handles submission error', async () => {
     api.fetchInvitationLabels.mockResolvedValue(mockLabels);
     api.bulkManageLabels.mockRejectedValue(new Error('Update failed'));
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     const user = userEvent.setup();
-    
+
     render(<BulkLabelModal open={true} onClose={mockOnClose} selectedIds={selectedIds} />);
-    
+
     const vipButton = await screen.findByText('VIP');
     await user.click(vipButton);
-    
+
     const confirmBtn = screen.getByText('common.confirm');
     await user.click(confirmBtn);
-    
+
     await waitFor(() => {
-        expect(consoleSpy).toHaveBeenCalledWith('Error bulk updating labels:', expect.any(Error));
+      expect(consoleSpy).toHaveBeenCalledWith('Error bulk updating labels:', expect.any(Error));
     });
-    
+
     consoleSpy.mockRestore();
   });
 });
