@@ -1,14 +1,22 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import {
-  loadGoogleFont,
-  extractFontFamiliesFromHTML,
-  autoLoadFontsFromHTML,
-  initFontAutoLoader
-} from '../fontLoader';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('fontLoader', () => {
+  let fontLoader;
+  let loadGoogleFont;
+  let autoLoadFontsFromHTML;
+  let extractFontFamiliesFromHTML;
+  let initFontAutoLoader;
   // Clean up DOM after each test
-  beforeEach(() => {
+  beforeEach(async () => {
+    // 1. Reset dello stato dei moduli di Vitest
+    vi.resetModules();
+
+    // 2. Import dinamico del modulo per ottenere un nuovo Set() "pulito"
+    fontLoader = await import('../fontLoader');
+    loadGoogleFont = fontLoader.loadGoogleFont;
+    autoLoadFontsFromHTML = fontLoader.autoLoadFontsFromHTML;
+    extractFontFamiliesFromHTML = fontLoader.extractFontFamiliesFromHTML;
+    initFontAutoLoader = fontLoader.initFontAutoLoader;
     document.head.innerHTML = '';
     document.body.innerHTML = '';
   });
@@ -21,7 +29,7 @@ describe('fontLoader', () => {
   describe('loadGoogleFont', () => {
     it('loads a font by creating a link element', () => {
       loadGoogleFont('Roboto');
-      
+
       const link = document.querySelector('link[data-font-family="Roboto"]');
       expect(link).toBeTruthy();
       expect(link.rel).toBe('stylesheet');
@@ -31,7 +39,7 @@ describe('fontLoader', () => {
 
     it('handles font families with spaces', () => {
       loadGoogleFont('Open Sans');
-      
+
       const link = document.querySelector('link[data-font-family="Open Sans"]');
       expect(link).toBeTruthy();
       expect(link.href).toContain('family=Open+Sans');
@@ -39,7 +47,7 @@ describe('fontLoader', () => {
 
     it('cleans quoted font family strings', () => {
       loadGoogleFont('"Roboto", sans-serif');
-      
+
       const link = document.querySelector('link[data-font-family="Roboto"]');
       expect(link).toBeTruthy();
       expect(link.href).toContain('family=Roboto');
@@ -47,11 +55,11 @@ describe('fontLoader', () => {
 
     it('does not load generic font families', () => {
       const genericFamilies = ['serif', 'sans-serif', 'monospace', 'cursive', 'fantasy'];
-      
+
       genericFamilies.forEach(family => {
         loadGoogleFont(family);
       });
-      
+
       const links = document.querySelectorAll('link[rel="stylesheet"]');
       expect(links.length).toBe(0);
     });
@@ -59,7 +67,7 @@ describe('fontLoader', () => {
     it('does not load the same font twice', () => {
       loadGoogleFont('Roboto');
       loadGoogleFont('Roboto');
-      
+
       const links = document.querySelectorAll('link[data-font-family="Roboto"]');
       expect(links.length).toBe(1);
     });
@@ -68,7 +76,7 @@ describe('fontLoader', () => {
       loadGoogleFont('');
       loadGoogleFont(null);
       loadGoogleFont(undefined);
-      
+
       const links = document.querySelectorAll('link[rel="stylesheet"]');
       expect(links.length).toBe(0);
     });
@@ -77,7 +85,7 @@ describe('fontLoader', () => {
       loadGoogleFont('Roboto');
       loadGoogleFont('Open Sans');
       loadGoogleFont('Lora');
-      
+
       expect(document.querySelector('link[data-font-family="Roboto"]')).toBeTruthy();
       expect(document.querySelector('link[data-font-family="Open Sans"]')).toBeTruthy();
       expect(document.querySelector('link[data-font-family="Lora"]')).toBeTruthy();
@@ -88,7 +96,7 @@ describe('fontLoader', () => {
     it('extracts font families from inline styles', () => {
       const html = '<p style="font-family: Roboto;">Hello</p><div style="font-family: Open Sans;">World</div>';
       const families = extractFontFamiliesFromHTML(html);
-      
+
       expect(families).toContain('Roboto');
       expect(families).toContain('Open Sans');
       expect(families.length).toBe(2);
@@ -107,7 +115,7 @@ describe('fontLoader', () => {
         <p style="font-family: Open Sans;">C</p>
       `;
       const families = extractFontFamiliesFromHTML(html);
-      
+
       expect(families.length).toBe(2);
       expect(families).toContain('Roboto');
       expect(families).toContain('Open Sans');
@@ -116,21 +124,21 @@ describe('fontLoader', () => {
     it('handles complex inline styles', () => {
       const html = '<p style="color: red; font-family: \'Lora\', serif; font-size: 16px;">Text</p>';
       const families = extractFontFamiliesFromHTML(html);
-      
+
       expect(families).toContain("'Lora', serif");
     });
 
     it('ignores elements without font-family', () => {
       const html = '<p style="color: blue;">No font</p><div>Plain text</div>';
       const families = extractFontFamiliesFromHTML(html);
-      
+
       expect(families.length).toBe(0);
     });
 
     it('handles malformed HTML gracefully', () => {
       const html = '<p style="font-family: Roboto;>Unclosed tag';
       const families = extractFontFamiliesFromHTML(html);
-      
+
       // Should still extract what it can
       expect(Array.isArray(families)).toBe(true);
     });
@@ -143,9 +151,9 @@ describe('fontLoader', () => {
         <p style="font-family: Open Sans;">Text 2</p>
         <span style="font-family: Lora;">Text 3</span>
       `;
-      
+
       autoLoadFontsFromHTML(html);
-      
+
       expect(document.querySelector('link[data-font-family="Roboto"]')).toBeTruthy();
       expect(document.querySelector('link[data-font-family="Open Sans"]')).toBeTruthy();
       expect(document.querySelector('link[data-font-family="Lora"]')).toBeTruthy();
@@ -153,10 +161,10 @@ describe('fontLoader', () => {
 
     it('does not load fonts twice', () => {
       const html = '<p style="font-family: Roboto;">Text</p>';
-      
+
       autoLoadFontsFromHTML(html);
       autoLoadFontsFromHTML(html);
-      
+
       const links = document.querySelectorAll('link[data-font-family="Roboto"]');
       expect(links.length).toBe(1);
     });
@@ -164,7 +172,7 @@ describe('fontLoader', () => {
     it('handles empty HTML', () => {
       autoLoadFontsFromHTML('');
       autoLoadFontsFromHTML(null);
-      
+
       const links = document.querySelectorAll('link[rel="stylesheet"]');
       expect(links.length).toBe(0);
     });
@@ -179,9 +187,9 @@ describe('fontLoader', () => {
 
     it('scans existing elements on initialization', () => {
       document.body.innerHTML = '<p style="font-family: Roboto;">Initial content</p>';
-      
+
       const cleanup = initFontAutoLoader();
-      
+
       // Use setTimeout to allow requestAnimationFrame to execute
       return new Promise((resolve) => {
         setTimeout(() => {
@@ -194,13 +202,13 @@ describe('fontLoader', () => {
 
     it('observes dynamically added elements', () => {
       const cleanup = initFontAutoLoader();
-      
+
       // Add element after observer is active
       const newEl = document.createElement('div');
       newEl.style.fontFamily = 'Open Sans';
       newEl.textContent = 'Dynamic content';
       document.body.appendChild(newEl);
-      
+
       return new Promise((resolve) => {
         setTimeout(() => {
           expect(document.querySelector('link[data-font-family="Open Sans"]')).toBeTruthy();
@@ -214,12 +222,12 @@ describe('fontLoader', () => {
       const el = document.createElement('p');
       el.textContent = 'Text';
       document.body.appendChild(el);
-      
+
       const cleanup = initFontAutoLoader();
-      
+
       // Change style after observer is active
       el.style.fontFamily = 'Lora';
-      
+
       return new Promise((resolve) => {
         setTimeout(() => {
           expect(document.querySelector('link[data-font-family="Lora"]')).toBeTruthy();
@@ -232,12 +240,12 @@ describe('fontLoader', () => {
     it('cleanup disconnects observer', () => {
       const cleanup = initFontAutoLoader();
       cleanup();
-      
+
       // Add element after cleanup
       const newEl = document.createElement('div');
       newEl.style.fontFamily = 'ShouldNotLoad';
       document.body.appendChild(newEl);
-      
+
       return new Promise((resolve) => {
         setTimeout(() => {
           expect(document.querySelector('link[data-font-family="ShouldNotLoad"]')).toBeFalsy();
