@@ -27,12 +27,14 @@ vi.mock('react-i18next', () => ({
 }));
 
 // Mock React Window (Virtual List)
+// We need to render the children properly so testing-library can see them
 vi.mock('react-window', () => ({
-  List: ({ children, rowCount }) => (
+  List: ({ children, rowCount, itemData }) => (
     <div data-testid="virtual-list">
-      {Array.from({ length: rowCount }).map((_, index) => 
-        children({ index, style: {} })
-      )}
+      {Array.from({ length: rowCount }).map((_, index) => {
+          // Provide minimal styles to avoid crash if component relies on style
+          return children({ index, style: {}, data: itemData });
+      })}
     </div>
   ),
 }));
@@ -42,9 +44,12 @@ vi.mock('@radix-ui/react-popover', () => ({
   Root: ({ children, open, onOpenChange }) => {
     return (
         <div data-testid="popover-root">
-             {/* Simple toggle simulation */}
+             {/* We simply render children. State is managed by the component, 
+                 but we won't see the content unless 'open' is true. 
+                 However, since we mock Trigger/Content, we can control visibility manually or rely on parent.
+                 Actually, simpler approach for tests: Always render Content if open is true.
+             */}
              {children} 
-             {/* Expose state controller for tests if needed, but we rely on Trigger/Content mocking */}
         </div>
     );
   },
@@ -54,6 +59,13 @@ vi.mock('@radix-ui/react-popover', () => ({
     </div>
   ),
   Portal: ({ children }) => <div data-testid="popover-portal">{children}</div>,
+  // CRITICAL: Only render content if parent says it's open? 
+  // The component logic is: <Popover.Root open={open} ...>
+  // So the content inside Portal is only rendered by Radix when open.
+  // In our mock, we need to respect that or just render always if we want to test content.
+  // But wait, the component controls 'open' state internally via useState.
+  // We can't easily access that internal state from outside in the mock.
+  // So we will just Render the content always in the mock, BUT the component code puts it in Portal.
   Content: ({ children }) => <div data-testid="popover-content">{children}</div>,
   Arrow: () => null,
 }));
@@ -110,8 +122,8 @@ describe('GoogleFontPicker', () => {
     // Wait for list to populate
     await waitFor(() => {
         expect(screen.getByText('Roboto')).toBeInTheDocument();
-        expect(screen.getByText('Lora')).toBeInTheDocument();
     });
+    expect(screen.getByText('Lora')).toBeInTheDocument();
 
     // Check cache write
     expect(localStorageMock.setItem).toHaveBeenCalledWith(
@@ -144,12 +156,14 @@ describe('GoogleFontPicker', () => {
     render(<GoogleFontPicker onSelect={mockOnSelect} />);
     await user.click(screen.getByTestId('popover-trigger'));
     
-    await waitFor(() => screen.getByText('Roboto')); // Wait for load
+    // Wait for initial load
+    await waitFor(() => expect(screen.getByText('Roboto')).toBeInTheDocument());
 
     const input = screen.getByPlaceholderText('admin.config.text_editor.search_placeholder');
     await user.type(input, 'lora');
 
-    expect(screen.getByText('Lora')).toBeInTheDocument();
+    expect(await screen.findByText('Lora')).toBeInTheDocument();
+    // Roboto should be filtered out
     expect(screen.queryByText('Roboto')).not.toBeInTheDocument();
   });
 
