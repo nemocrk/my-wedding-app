@@ -1,12 +1,18 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import 'jest-prosemirror/environment';
 import { afterEach, vi } from 'vitest';
 
 // Cleanup automatico dopo ogni test
 afterEach(() => {
   cleanup();
 });
+
+// Inform React that the test environment supports `act`.
+// This silences warnings and enables React's internal act behavior.
+// See: https://react.dev/warnings/act-missing
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-ignore
+globalThis.IS_REACT_ACT_ENVIRONMENT = true;
 
 // ========================================
 // GLOBAL MOCKS: fetch & window.dispatchEvent

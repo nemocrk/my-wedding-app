@@ -1,6 +1,5 @@
-import React from 'react';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import { vi, describe, it, expect, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Tooltip from '../components/common/Tooltip';
 
 describe('Tooltip Component', () => {
@@ -93,6 +92,38 @@ describe('Tooltip Component', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Bottom tooltip')).toBeInTheDocument();
+    });
+
+    fireEvent.mouseLeave(bottomTrigger);
+
+    // Test left position
+    rerender(
+      <Tooltip content="Left tooltip" position="left">
+        <button>Left</button>
+      </Tooltip>
+    );
+
+    const leftTrigger = screen.getByText('Left').parentElement;
+    fireEvent.mouseEnter(leftTrigger);
+
+    await waitFor(() => {
+      expect(screen.getByText('Left tooltip')).toBeInTheDocument();
+    });
+
+    fireEvent.mouseLeave(leftTrigger);
+
+    // Test right position
+    rerender(
+      <Tooltip content="Right tooltip" position="right">
+        <button>Right</button>
+      </Tooltip>
+    );
+
+    const rightTrigger = screen.getByText('Right').parentElement;
+    fireEvent.mouseEnter(rightTrigger);
+
+    await waitFor(() => {
+      expect(screen.getByText('Right tooltip')).toBeInTheDocument();
     });
   });
 

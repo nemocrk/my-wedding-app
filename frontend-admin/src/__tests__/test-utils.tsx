@@ -38,3 +38,12 @@ export * from '@testing-library/react';
 
 // Override del render con la versione custom
 export { customRender as render };
+
+// Ensure tests can import `act` reliably from the shared utils.
+// React Testing Library may not re-export the correct `act` in all setups,
+// so explicitly export the one from react-dom which is compatible with jsdom.
+// Prefer React's act when available (React 18+); some environments warn if
+// ReactDOMTestUtils.act is used. Export act from react so tests import
+// the recommended implementation.
+export { act } from 'react';
+

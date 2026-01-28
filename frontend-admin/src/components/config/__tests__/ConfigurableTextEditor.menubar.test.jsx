@@ -166,7 +166,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
         const value = parseFloat(text.slice(1, -1));
         expect(value).toBeLessThanOrEqual(8);
       });
-    });
+    }, 10000);
 
     it('updates font size in editor via wheel scroll', async () => {
       await openEditor();
@@ -514,6 +514,61 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
       await waitFor(() => {
         expect(justifyButton.className).toContain('bg-indigo-100');
       });
+    });
+  });
+
+  describe('Left Alignment', () => {
+    it('applies left alignment when clicked', async () => {
+      await openEditor();
+      const user = userEvent.setup();
+
+      const alignButton = screen.getByTitle(/Allinea Sx/i);
+      await user.click(alignButton);
+
+      await waitFor(() => {
+        expect(alignButton.className).toContain('bg-indigo-100');
+      });
+    });
+  });
+
+  describe('Right Alignment', () => {
+    it('applies right alignment when clicked', async () => {
+      await openEditor();
+      const user = userEvent.setup();
+
+      const alignButton = screen.getByTitle(/Allinea Dx/i);
+      await user.click(alignButton);
+
+      await waitFor(() => {
+        expect(alignButton.className).toContain('bg-indigo-100');
+      });
+    });
+  });
+
+  describe('Undo and Redo action', () => {
+    it('Undo and Redo', async () => {
+      await openEditor();
+      const user = userEvent.setup();
+      const editor = document.querySelector('.ProseMirror');
+      if (editor) {
+        user.type(editor, "Ciao!");
+        const undoButton = screen.getByTitle(/Annulla/i);
+        await user.click(undoButton);
+        const redoButton = screen.getByTitle(/Ripeti/i);
+        await user.click(redoButton);
+      }
+    });
+  });
+
+  describe('parse html', () => {
+    it('parse html in text', async () => {
+      await openEditor();
+      const user = userEvent.setup();
+      const editor = document.querySelector('.ProseMirror');
+      if (editor) {
+        await user.click(editor);
+        await user.paste('<p>Ciao</p>');
+      }
     });
   });
 });

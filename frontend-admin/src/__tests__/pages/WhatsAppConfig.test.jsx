@@ -252,8 +252,14 @@ describe('WhatsAppConfig - Basic Coverage', () => {
       const namePlaceholderBtn = screen.getByText('admin.whatsapp_config.templates.modal.placeholders.name');
       fireEvent.click(namePlaceholderBtn);
 
+      const linkPlaceholderBtn = screen.getByText('admin.whatsapp_config.templates.modal.placeholders.link');
+      fireEvent.click(linkPlaceholderBtn);
+
+      const codePlaceholderBtn = screen.getByText('admin.whatsapp_config.templates.modal.placeholders.code');
+      fireEvent.click(codePlaceholderBtn);
+
       const contentInput = screen.getByPlaceholderText('admin.whatsapp_config.templates.modal.fields.content_placeholder');
-      expect(contentInput.value).toBe('{name}');
+      expect(contentInput.value).toBe('{name}{link}{code}');
     });
 
     it('opens edit template modal with pre-filled data', async () => {
