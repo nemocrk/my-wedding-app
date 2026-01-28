@@ -12,7 +12,7 @@ COMPOSE_OTHER=""
 CLEAN_ONLY=false
 DETACH=false
 DEBUG_BACKEND=false
-USING_SHARED_CONTEXT=$(docker context show |grep shared-context)
+USING_SHARED_CONTEXT=$(docker context show |grep shared-context||true)
 
 # Parse arguments
 for arg in "$@"

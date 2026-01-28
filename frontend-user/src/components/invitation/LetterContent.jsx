@@ -20,6 +20,9 @@ import PaperModal from '../layout/PaperModal';
 import './LetterContent.css';
 
 const LetterContent = ({ data }) => {
+
+  data.getGuest = (guestId) => data.guests.find(guest => guest.id === guestId);
+
   const { t } = useTranslation();
   const { getText } = useConfigurableText();
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
@@ -36,7 +39,7 @@ const LetterContent = ({ data }) => {
 
 
   // Step 1: Ospiti
-  const [excludedGuests, setExcludedGuests] = useState([]);
+  const [excludedGuests, setExcludedGuests] = useState(data.guests.filter((guest) => guest.not_coming).map((guest) => guest.id));
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
   const [editedGuests, setEditedGuests] = useState({});
   const [tempFirstName, setTempFirstName] = useState('');
@@ -118,12 +121,12 @@ const LetterContent = ({ data }) => {
     safeLogInteraction('toggle_guest_exclusion', {
       guestIndex,
       action: isExcluding ? 'exclude' : 'include',
-      guest_name: data.guests[guestIndex].first_name
+      guest_name: data.getGuest(guestIndex).first_name
     });
   };
 
   const handleStartEdit = (guestIndex) => {
-    const guest = data.guests[guestIndex];
+    const guest = data.getGuest(guestIndex);
     const edited = editedGuests[guestIndex] || guest;
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
@@ -136,7 +139,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleSaveEdit = (guestIndex) => {
-    const originalGuest = data.guests[guestIndex];
+    const originalGuest = data.getGuest(guestIndex);
     setEditedGuests(prev => ({
       ...prev,
       [guestIndex]: {
@@ -164,11 +167,11 @@ const LetterContent = ({ data }) => {
   };
 
   const getGuestDisplayName = (guestIndex) => {
-    const guest = data.guests[guestIndex];
+    const guest = data.getGuest(guestIndex);
     return editedGuests[guestIndex] ? { ...editedGuests[guestIndex], is_child: guest.is_child } : guest;
   };
 
-  const getActiveGuests = () => data.guests.filter((_, idx) => !excludedGuests.includes(idx));
+  const getActiveGuests = () => data.guests.filter((guest) => !excludedGuests.includes(guest.id));
 
   // Phone Validation
   const validatePhoneNumber = (phone) => {
@@ -483,7 +486,7 @@ const LetterContent = ({ data }) => {
 
             case 'start_edit_guest':
               if (payload?.details?.guestIndex !== undefined) {
-                const guest = data.guests[payload.details.guestIndex];
+                const guest = data.getGuest(payload.details.guestIndex);
                 const edited = editedGuests[payload.details.guestIndex] || guest;
                 setEditingGuestIndex(payload.details.guestIndex);
                 setTempFirstName(edited.first_name);
@@ -747,13 +750,13 @@ const LetterContent = ({ data }) => {
                     <small>* {t('rsvp.hints.edit_guest_hint')}</small>
                   </p>
                   <ul>
-                    {data.guests.map((guest, idx) => {
-                      const displayGuest = getGuestDisplayName(idx);
-                      const isEditing = editingGuestIndex === idx;
-                      const isExcluded = excludedGuests.includes(idx);
+                    {data.guests.map((guest) => {
+                      const displayGuest = getGuestDisplayName(guest.id);
+                      const isEditing = editingGuestIndex === guest.id;
+                      const isExcluded = excludedGuests.includes(guest.id);
 
                       return (
-                        <li key={idx} className={isExcluded ? 'guest-excluded' : ''}>
+                        <li key={guest.id} className={isExcluded ? 'guest-excluded' : ''}>
                           {isEditing ? (
                             <>
                               <div className="guest-edit-inputs">
@@ -781,7 +784,7 @@ const LetterContent = ({ data }) => {
                                 />
                               </div>
                               <div className="guest-actions">
-                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(idx)}>✓</button>
+                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(guest.id)}>✓</button>
                                 <button className="guest-action-btn cancel" onClick={handleCancelEdit}>✕</button>
                               </div>
                             </>
@@ -799,8 +802,8 @@ const LetterContent = ({ data }) => {
                                 )}
                               </div>
                               <div className="guest-actions">
-                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
-                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(idx)}>✕</button>
+                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(guest.id)}>✏️</button>
+                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(guest.id)}>✕</button>
                               </div>
                             </>
                           )}

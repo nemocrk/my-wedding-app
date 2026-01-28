@@ -46,7 +46,7 @@ class TestInvitationSerializerWithLabels:
         data = {
             "name": "Test Invite",
             "code": "test-code",
-            "guests": [{"first_name": "Mario", "last_name": "Rossi"}],
+            "guests": [{"first_name": "Mario", "last_name": "Rossi", "is_child": False, "assigned_room": None, "dietary_requirements": "", "not_coming": False, "accommodation_pinned": True}],
             "label_ids": [label1.id, label2.id],
             "accommodation_pinned": True
         }
@@ -57,7 +57,9 @@ class TestInvitationSerializerWithLabels:
         
         assert invitation.labels.count() == 2
         assert label1 in invitation.labels.all()
-        assert invitation.accommodation_pinned is True
+        assert invitation.guests.count() == 1
+        assert invitation.guests.first().first_name == "Mario"
+        assert invitation.guests.first().accommodation_pinned is True
 
     def test_update_invitation_labels(self):
         """Test updating invitation labels"""

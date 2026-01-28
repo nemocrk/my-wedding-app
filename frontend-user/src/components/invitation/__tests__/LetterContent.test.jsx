@@ -34,8 +34,8 @@ describe('LetterContent Component - Wizard RSVP Multi-Step', () => {
     name: 'Mario Rossi',
     letter_content: 'Benvenuti al nostro matrimonio!',
     guests: [
-      { first_name: 'Mario', last_name: 'Rossi', is_child: false },
-      { first_name: 'Luigi', last_name: '', is_child: true }
+      { id: 0, first_name: 'Mario', last_name: 'Rossi', is_child: false },
+      { id: 1, first_name: 'Luigi', last_name: '', is_child: true }
     ],
     accommodation_offered: true,
     accommodation_requested: false,

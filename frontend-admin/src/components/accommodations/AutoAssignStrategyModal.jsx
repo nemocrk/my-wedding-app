@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { Sparkles, BarChart2, CheckCircle, AlertTriangle, X, Loader } from 'lucide-react';
-import { api } from '../../services/api';
+import { AlertTriangle, BarChart2, Loader, Sparkles, X } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useConfirm } from '../../contexts/ConfirmDialogContext';
+import { api } from '../../services/api';
 
 const STRATEGIES = [
     { code: 'STANDARD', label: 'Standard (Default)' },
@@ -13,6 +14,7 @@ const STRATEGIES = [
 ];
 
 const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
+    const { confirm } = useConfirm();
     const { t } = useTranslation();
     const [step, setStep] = useState('SIMULATE'); // SIMULATE | RESULTS
     const [isLoading, setIsLoading] = useState(false);
@@ -35,7 +37,14 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
     };
 
     const applyStrategy = async (strategyCode) => {
-        if (!window.confirm(t('admin.accommodations.auto_assign_modal.results.confirm_apply', { strategy: strategyCode }))) return;
+        const confirmed = await confirm({
+            title: t('admin.accommodations.auto_assign_modal.results.apply_button'),
+            message: t('admin.accommodations.auto_assign_modal.results.confirm_apply', { strategy: strategyCode }),
+            confirmText: t('common.confirm'),
+            cancelText: t('common.cancel')
+        });
+
+        if (!confirmed) return;
         setIsLoading(true);
         try {
             const response = await api.triggerAutoAssign(true, strategyCode);
@@ -100,23 +109,22 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                         <div className="space-y-6">
                             <div className="flex justify-between items-center">
                                 <h3 className="font-bold text-lg text-gray-700">{t('admin.accommodations.auto_assign_modal.results.title')}</h3>
-                                <button 
-                                    onClick={() => setStep('SIMULATE')} 
+                                <button
+                                    onClick={() => setStep('SIMULATE')}
                                     className="text-sm text-purple-600 hover:text-purple-800 font-medium"
                                 >
                                     {t('admin.accommodations.auto_assign_modal.simulation.restart')}
                                 </button>
                             </div>
-                            
+
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                 {simResults.map((res, idx) => {
                                     const isBest = idx === 0; // Results are sorted by backend
                                     return (
-                                        <div 
-                                            key={res.strategy_code} 
-                                            className={`relative border rounded-xl p-5 transition-all hover:shadow-lg ${
-                                                isBest ? 'border-green-500 bg-green-50 ring-2 ring-green-200' : 'border-gray-200 bg-white'
-                                            }`}
+                                        <div
+                                            key={res.strategy_code}
+                                            className={`relative border rounded-xl p-5 transition-all hover:shadow-lg ${isBest ? 'border-green-500 bg-green-50 ring-2 ring-green-200' : 'border-gray-200 bg-white'
+                                                }`}
                                         >
                                             {isBest && (
                                                 <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-green-500 text-white text-xs px-3 py-1 rounded-full font-bold shadow-sm flex items-center gap-1">
@@ -124,7 +132,7 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                                                     {t('admin.accommodations.auto_assign_modal.results.best_fit')}
                                                 </div>
                                             )}
-                                            
+
                                             <div className="flex justify-between items-start mb-3">
                                                 <h4 className="font-bold text-gray-800">{res.strategy_name}</h4>
                                             </div>
@@ -149,11 +157,10 @@ const AutoAssignStrategyModal = ({ isOpen, onClose, onSuccess, onError }) => {
                                             <button
                                                 onClick={() => applyStrategy(res.strategy_code)}
                                                 disabled={isLoading}
-                                                className={`w-full py-2 rounded-lg font-medium transition-colors ${
-                                                    isBest 
-                                                        ? 'bg-green-600 hover:bg-green-700 text-white' 
-                                                        : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
-                                                }`}
+                                                className={`w-full py-2 rounded-lg font-medium transition-colors ${isBest
+                                                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                                                    : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                                                    }`}
                                             >
                                                 {isLoading ? t('common.loading') : t('admin.accommodations.auto_assign_modal.results.apply_button')}
                                             </button>

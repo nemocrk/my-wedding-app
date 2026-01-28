@@ -31,8 +31,8 @@ describe('LetterContent - Dietary Requirements', () => {
     transfer_requested: false,
     phone_number: '',
     guests: [
-      { first_name: 'Mario', last_name: 'Rossi', is_child: false, dietary_requirements: '' },
-      { first_name: 'Luigi', last_name: 'Verdi', is_child: false, dietary_requirements: 'Gluten Free' }
+      { id: 0, first_name: 'Mario', last_name: 'Rossi', is_child: false, dietary_requirements: '' },
+      { id: 1, first_name: 'Luigi', last_name: 'Verdi', is_child: false, dietary_requirements: 'Gluten Free' }
     ],
     whatsapp: { whatsapp_number: '1234567890', whatsapp_name: 'Sposi' },
     travel_info: { transport_type: '', schedule: '', car_option: 'none', carpool_interest: false }

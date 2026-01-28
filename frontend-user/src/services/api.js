@@ -65,12 +65,6 @@ export const authenticateInvitation = async (code, token) => {
   });
 };
 
-/**
- * Recupera dettagli invito (richiede sessione attiva)
- */
-export const getInvitationDetails = async () => {
-  return fetchWithCredentials(`${API_BASE}/invitation/`);
-};
 
 /**
  * Invia RSVP (conferma/declino)

@@ -13,10 +13,10 @@ vi.mock('../components/accommodations/AccommodationList', () => ({
           <button onClick={() => onEdit(acc)}>Edit</button>
           <button onClick={() => onDelete(acc.id)}>Delete</button>
           {/* Mock pin toggle interaction */}
-          <button onClick={() => onTogglePin(101, true)}>Pin Invite 101</button>
+          <button onClick={() => onTogglePin(101, { id: 999 }, true)}>Pin Invite 101</button>
         </div>
       ))}
-    </div>
+    </div >
   )
 }));
 
@@ -52,6 +52,7 @@ vi.mock('../services/api', () => ({
     updateAccommodation: vi.fn(),
     deleteAccommodation: vi.fn(),
     updateInvitation: vi.fn(),
+    pinPersonInInvitation: vi.fn(),
   }
 }));
 
@@ -147,13 +148,13 @@ describe('AccommodationsPage', () => {
     render(<AccommodationsPage />);
     await waitFor(() => screen.getByTestId('acc-item-1'));
 
-    api.updateInvitation.mockResolvedValue({});
+    api.pinPersonInInvitation.mockResolvedValue({});
 
     // Trigger pin via mocked list component
     fireEvent.click(screen.getByText('Pin Invite 101'));
 
     await waitFor(() => {
-      expect(api.updateInvitation).toHaveBeenCalledWith(101, { accommodation_assignment_pinned: true });
+      expect(api.pinPersonInInvitation).toHaveBeenCalledWith(101, { guest_id: 999, pin_status: true });
       expect(screen.getByText(/Assegnazione bloccata/i)).toBeInTheDocument();
     });
   });

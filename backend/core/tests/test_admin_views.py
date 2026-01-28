@@ -2,6 +2,7 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.db import IntegrityError
+from unittest.mock import patch
 from core.models import Invitation, InvitationLabel, ConfigurableText, Person, Accommodation, Room, GlobalConfig
 
 @pytest.mark.django_db
@@ -196,3 +197,27 @@ class TestPublicConfigViews:
         response = self.client.get(url)
         assert response.status_code == status.HTTP_200_OK
         assert isinstance(response.data, list)
+
+    def test_public_languages_fallback(self):
+        url = '/api/public/languages/'
+        # Mock os.path.exists per ritornare False (file non trovato)
+        with patch('os.path.exists', return_value=False):
+            response = self.client.get(url)
+            assert response.status_code == status.HTTP_200_OK
+            assert isinstance(response.data, list)
+            # Dovrebbe ritornare il fallback di 2 lingue (it, en)
+            assert len(response.data) == 2
+            assert response.data[0]['code'] == 'it'
+            assert response.data[1]['code'] == 'en'
+
+    def test_public_languages_fallback_on_error(self):
+        url = '/api/public/languages/'
+        # Mock open() per sollevare un'eccezione (file non leggibile)
+        with patch('builtins.open', side_effect=IOError("File read error")):
+            response = self.client.get(url)
+            assert response.status_code == status.HTTP_200_OK
+            assert isinstance(response.data, list)
+            # Dovrebbe ritornare il fallback di 1 lingua (it) nel caso di errore
+            assert len(response.data) == 1
+            assert response.data[0]['code'] == 'it'
+

@@ -38,6 +38,14 @@ class TestPublicInvitationAuthView:
         response = self.client.post(url, data)
         assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    def test_not_valid_status(self):
+        url = '/api/public/auth/'
+        data = {'code': 'TEST01', 'token': self.token}
+        self.invitation.status = Invitation.Status.CREATED
+        self.invitation.save()
+        response = self.client.post(url, data)
+        assert response.status_code == status.HTTP_403_FORBIDDEN
+
 @pytest.mark.django_db
 class TestPublicRSVPView:
     def setup_method(self):
@@ -45,7 +53,7 @@ class TestPublicRSVPView:
         self.invitation = Invitation.objects.create(
             name="RSVP Family", code="RSVP01", status=Invitation.Status.SENT
         )
-        self.p1 = Person.objects.create(invitation=self.invitation, first_name="Mario", last_name="Rossi")
+        self.p1 = Person.objects.create(invitation=self.invitation, first_name="Mario", last_name="Rossi", not_coming=True)
         self.p2 = Person.objects.create(invitation=self.invitation, first_name="Luigi", last_name="Verdi")
         
         # Simulate login
@@ -53,15 +61,33 @@ class TestPublicRSVPView:
         session['invitation_id'] = self.invitation.id
         session.save()
 
+    def test_rsvp_unknown_status(self):
+        url = '/api/public/rsvp/'
+        data = {
+            'status': 'unknown',
+            'phone_number': '3331234567',
+            'guest_updates': {
+                self.p1.id: {'first_name': 'Mario Updated', 'dietary_requirements': 'Vegan'}
+            },
+            'excluded_guests': [self.p2.id], # Index 1 is Luigi (p2)
+            'travel_info': {
+                'transport_type': 'aereo',
+                'schedule': 'Flight AZ123',
+                'car_option': 'none'
+            }
+        }
+        response = self.client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
     def test_rsvp_confirm_updates(self):
         url = '/api/public/rsvp/'
         data = {
             'status': 'confirmed',
             'phone_number': '3331234567',
             'guest_updates': {
-                '0': {'first_name': 'Mario Updated', 'dietary_requirements': 'Vegan'}
+                self.p1.id: {'first_name': 'Mario Updated', 'dietary_requirements': 'Vegan'}
             },
-            'excluded_guests': [1], # Index 1 is Luigi (p2)
+            'excluded_guests': [self.p2.id], # Index 1 is Luigi (p2)
             'travel_info': {
                 'transport_type': 'aereo',
                 'schedule': 'Flight AZ123',

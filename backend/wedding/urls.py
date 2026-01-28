@@ -7,7 +7,7 @@ from core.views import (
     WhatsAppTemplateViewSet, ConfigurableTextViewSet, AdminGoogleFontsProxyView,
     InvitationLabelViewSet,
     # Public Views
-    PublicInvitationAuthView, PublicInvitationView, PublicRSVPView,
+    PublicInvitationAuthView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
     PublicLanguagesView
 )
@@ -73,10 +73,7 @@ urlpatterns = [
     
     # 1. Autenticazione Iniziale (valida code + token, crea sessione)
     path('api/public/auth/', PublicInvitationAuthView.as_view(), name='public-auth'),
-    
-    # 2. Dettagli Invito (richiede sessione attiva)
-    path('api/public/invitation/', PublicInvitationView.as_view(), name='public-invitation'),
-    
+        
     # 3. RSVP - Conferma/Declino (richiede sessione attiva)
     path('api/public/rsvp/', PublicRSVPView.as_view(), name='public-rsvp'),
     

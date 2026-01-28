@@ -1,6 +1,6 @@
 from collections import defaultdict
 from itertools import combinations
-from core.models import Person, GlobalConfig
+from core.models import Accommodation, Invitation, Person, GlobalConfig
 
 class DynamicPieChartEngine:
     def __init__(self, queryset, selected_filters):
@@ -13,9 +13,8 @@ class DynamicPieChartEngine:
     def _preload_data(self):
         # Fetch persons excluding not_coming
         persons = Person.objects.filter(
-            invitation__in=self.invitations_queryset, 
-            not_coming=False
-        ).select_related('invitation').prefetch_related('invitation__labels')
+            invitation__in=self.invitations_queryset
+        ).select_related('invitation').prefetch_related('invitation__labels').select_related('assigned_room')
 
         # Load Global Config for costs
         config = GlobalConfig.objects.first()
@@ -34,7 +33,7 @@ class DynamicPieChartEngine:
             if inv.origin in self.selected_filters:
                 matches.append({ 'value': inv.origin, 'field': 'origin' })
             if inv.status in self.selected_filters:
-                matches.append({ 'value': inv.status, 'field': 'status' })
+                matches.append({ 'value': Invitation.Status.DECLINED if person.not_coming else inv.status, 'field': 'status' })
             
             # Label optimization
             inv_label_names = set(l.name for l in inv.labels.all())
@@ -62,13 +61,19 @@ class DynamicPieChartEngine:
             self.cache_matches[person.id] = matches
             
             # --- Precalc Single Person Cost ---
-            p_cost = price_child if person.is_child else price_adult
-            
-            if inv.accommodation_requested:
-                p_cost += price_acc_child if person.is_child else price_acc_adult
-            
-            if inv.transfer_requested:
-                p_cost += price_transfer
+            if person.not_coming:
+                p_cost = 0.0
+            else:
+                p_cost = price_child if person.is_child else price_adult
+
+                p_real_room_cost = -1.0 if person.assigned_room is None else person.assigned_room.children_price() if person.is_child else person.assigned_room.adults_price()
+                p_hp_room_cost = price_acc_child if person.is_child else price_acc_adult
+                
+                if inv.accommodation_requested or (inv.accommodation_offered and not inv.status == Invitation.Status.CONFIRMED):
+                    p_cost += p_real_room_cost if p_real_room_cost >= 0.0 else p_hp_room_cost
+                
+                if inv.transfer_requested or (inv.transfer_offered and not inv.status == Invitation.Status.CONFIRMED):
+                    p_cost += price_transfer
                 
             self.cost_map[person.id] = p_cost
 

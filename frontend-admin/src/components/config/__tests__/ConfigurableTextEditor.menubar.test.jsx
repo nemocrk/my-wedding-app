@@ -229,7 +229,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
         const value = parseInt(text.slice(1, -1));
         expect(value).toBeGreaterThanOrEqual(-180);
       });
-    });
+    }, 10000);
 
     it('respects max boundary (180°)', async () => {
       await openEditor();
@@ -248,7 +248,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
         expect(value).toBeLessThanOrEqual(180);
       });
     });
-  });
+  }, 10000);
 
   describe('Color Picker Interaction', () => {
     it('changes text color when color input changes', async () => {

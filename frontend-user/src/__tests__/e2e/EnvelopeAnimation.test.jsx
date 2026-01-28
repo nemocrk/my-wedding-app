@@ -14,7 +14,6 @@ vi.mock('../../components/InvitationCard', () => ({
 // Mock API service
 vi.mock('../../services/api', () => ({
   authenticateInvitation: vi.fn(),
-  getInvitationDetails: vi.fn(),
   submitRSVP: vi.fn()
 }));
 

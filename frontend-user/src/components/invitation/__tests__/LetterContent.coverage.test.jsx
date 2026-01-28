@@ -54,8 +54,8 @@ const mockData = {
   status: 'created',
   name: 'Mario Rossi',
   guests: [
-    { first_name: 'Mario', last_name: 'Rossi', is_child: false },
-    { first_name: 'Luigi', last_name: 'Verdi', is_child: false },
+    { id: 0, first_name: 'Mario', last_name: 'Rossi', is_child: false },
+    { id: 1, first_name: 'Luigi', last_name: 'Verdi', is_child: false },
   ],
   phone_number: '',
   whatsapp: { whatsapp_number: '123', whatsapp_name: 'Sposi' },

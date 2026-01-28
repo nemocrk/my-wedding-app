@@ -783,6 +783,7 @@
           "room_placeholder": "101",
           "adults_label": "Adults",
           "children_label": "Children",
+          "price": "Price",
           "add_room": "Add Room"
         },
         "buttons": {
@@ -806,6 +807,7 @@
           "room_placeholder": "101",
           "adults_label": "Adults",
           "children_label": "Children",
+          "price": "Price",
           "add_room": "Add Room"
         },
         "buttons": {

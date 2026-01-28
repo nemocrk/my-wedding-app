@@ -42,8 +42,8 @@ const mockData = {
   status: 'sent',
   name: 'Branch Tester',
   guests: [
-    { first_name: 'Guest', last_name: 'One', is_child: false, dietary_requirements: 'None' },
-    { first_name: 'Guest', last_name: 'Two', is_child: true } // No dietary, no last name check
+    { id: 1, first_name: 'Guest', last_name: 'One', is_child: false, dietary_requirements: 'None' },
+    { id: 2, first_name: 'Guest', last_name: 'Two', is_child: true } // No dietary, no last name check
   ],
   phone_number: '3939393933939',
   whatsapp: { whatsapp_number: '12345', whatsapp_name: 'Sposi' },

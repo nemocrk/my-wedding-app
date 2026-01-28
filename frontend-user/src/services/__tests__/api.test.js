@@ -96,14 +96,6 @@ describe('API Service', () => {
     );
   });
 
-  test('getInvitationDetails calls correct endpoint', async () => {
-    await api.getInvitationDetails();
-    expect(globalThis.fetch).toHaveBeenCalledWith(
-      expect.stringContaining('/invitation/'),
-      expect.anything()
-    );
-  });
-
   test('submitRSVP sends correct payload with session', async () => {
     sessionStorage.setItem('wedding_analytics_sid', 'sess_123');
     await api.submitRSVP('confirmed', true, false, { note: 'Hi' });

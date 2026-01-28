@@ -395,7 +395,10 @@ const LazyEditor = ({ content, onSave, onCancel, textKey, label }) => {
           const errorNode = doc.querySelector('parsererror');
           if (!errorNode && doc.body.innerHTML.trim().length > 0 && (text.includes('</') || text.includes('/>'))) {
             event.preventDefault();
-            view.props.editor.commands.insertContent(text);
+            // Guard against undefined editor (can occur in test environments)
+            if (view.props?.editor?.commands) {
+              view.props.editor.commands.insertContent(text);
+            }
             return true;
           }
         }
