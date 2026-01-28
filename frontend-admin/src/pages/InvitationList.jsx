@@ -1,5 +1,5 @@
 // frontend-admin/src/pages/InvitationList.jsx
-import { Activity, AlertCircle, ArrowRight, Baby, Bus, CheckCircle, Copy, Edit2, ExternalLink, Eye, FileText, Filter, HelpCircle, Home, Loader, MessageCircle, Plus, RefreshCw, Send, Smartphone, Tag, Trash2, User, Users, UserX, Utensils, XCircle } from 'lucide-react';
+import { Activity, AlertCircle, ArrowRight, Baby, Bus, CheckCircle, Copy, Edit2, ExternalLink, Eye, FileText, Filter, HelpCircle, Home, Loader, MessageCircle, Plus, RefreshCw, RotateCcw, Send, Smartphone, Tag, Trash2, User, Users, UserX, Utensils, XCircle } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import InteractionsModal from '../components/analytics/InteractionsModal';
@@ -389,6 +389,7 @@ const InvitationList = () => {
           className="px-3 py-1.5 border border-gray-300 rounded-md text-sm focus:ring-1 focus:ring-pink-500 outline-none"
         >
           <option value="">{t('admin.invitations.filters.all_statuses')}</option>
+          <option value="imported">{t('admin.invitations.status.imported')}</option>
           <option value="created">{t('admin.invitations.status.created')}</option>
           <option value="sent">{t('admin.invitations.status.sent')}</option>
           <option value="read">{t('admin.invitations.status.read')}</option>
@@ -710,6 +711,17 @@ const InvitationList = () => {
                               <Edit2 size={18} />
                             </button>
                           </Tooltip>
+                          {invitation.status === 'declined' && (
+                            <Tooltip content={t('admin.invitations.actions.restore')} position="top">
+                              <button
+                                onClick={() => handleMarkAsSent(invitation.id)}
+                                disabled={markingSentFor === invitation.id}
+                                className={`p-1.5 rounded-md transition-colors ${markingSentFor === invitation.id ? 'bg-yellow-50 text-yellow-600 cursor-wait' : 'text-gray-400 hover:text-blue-600 hover:bg-blue-50'}`}
+                              >
+                                {markingSentFor === invitation.id ? <Loader size={18} className="animate-spin" /> : <RotateCcw size={18} />}
+                              </button>
+                            </Tooltip>
+                          )}
 
                           <Tooltip content={t('admin.invitations.actions.delete')} position="top">
                             <button

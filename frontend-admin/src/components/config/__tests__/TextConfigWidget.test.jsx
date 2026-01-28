@@ -1,6 +1,6 @@
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen, waitFor, within } from '../../../test-utils';
+import { render, screen, waitFor, within } from '../../../__tests__/test-utils';
 
 // CRITICAL: Mock API BEFORE importing component (hoisting)
 vi.mock('../../../services/api', () => ({
@@ -159,6 +159,14 @@ describe('TextConfigWidget', () => {
 
     if (cardEventoButton) {
       await user.click(cardEventoButton);
+
+      await waitFor(async () => {
+        const dialog = screen.getByRole('dialog');
+        const editorContent = dialog.querySelector('.tiptap.ProseMirror');
+
+        await user.click(editorContent);
+        await user.keyboard("ciao");
+      });
 
       let saveButton;
       await waitFor(() => {

@@ -87,8 +87,7 @@ class TestInvitationViewSetFilters:
         self.inv3 = Invitation.objects.create(
             name="Inv3", code="inv3", 
             status=Invitation.Status.CONFIRMED,
-            origin=Invitation.Origin.GROOM,
-            accommodation_pinned=True
+            origin=Invitation.Origin.GROOM
         )
         self.inv3.labels.add(self.label_vip, self.label_family)
 
@@ -112,14 +111,6 @@ class TestInvitationViewSetFilters:
         response = self.client.get(url)
         assert response.status_code == 200
         assert len(response.data) == 2  # inv1, inv3
-
-    def test_filter_by_pinned(self):
-        """Test filtering invitations by accommodation_pinned"""
-        url = '/api/admin/invitations/?accommodation_pinned=true'
-        response = self.client.get(url)
-        assert response.status_code == 200
-        assert len(response.data) == 1
-        assert response.data[0]['code'] == 'inv3'
 
     def test_ordering_by_name(self):
         """Test ordering invitations by name"""

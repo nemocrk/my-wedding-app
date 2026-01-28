@@ -1,10 +1,10 @@
 import logging
 import os
 import requests
-from django.db.models.signals import pre_save, post_save
+from django.db.models.signals import pre_save, post_save, post_delete
 from django.dispatch import receiver
 from django.utils import timezone
-from .models import Invitation, InvitationLabel, WhatsAppTemplate, WhatsAppMessageQueue, GlobalConfig, Person
+from .models import Invitation, InvitationLabel, WhatsAppTemplate, WhatsAppMessageQueue, GlobalConfig, Person, Room
 
 logger = logging.getLogger(__name__)
 
@@ -195,3 +195,19 @@ def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
         )
         
         logger.info(f"✅ Enqueued automated message for {instance.name} (Template: {template.name}) -> ID: {queue_item.id}")
+
+
+@receiver(post_delete, sender=Room)
+def reset_accommodation_pin_on_room_delete(sender, instance, **kwargs):
+    """
+    Quando una Room viene cancellata, resetta accommodation_pinned a False
+    per tutti i Person che erano assegnati a quella stanza.
+    
+    Django metterà automaticamente assigned_room a null (SET_NULL),
+    ma dobbiamo anche resettare il flag di pin.
+    """
+    Person.objects.filter(
+        assigned_room=instance
+    ).update(accommodation_pinned=False)
+    
+    logger.info(f"🔓 Reset accommodation_pinned for guests in deleted room: {instance}")

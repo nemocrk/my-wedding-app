@@ -1,0 +1,16 @@
+[run]
+omit =
+    */migrations/*
+    manage.py
+    wedding/asgi.py
+    wedding/wsgi.py
+    */tests/*
+    conftest.py
+    tests/*
+    backend/assets/*
+    backend/wedding/*
+
+[report]
+fail_under = 85
+show_missing = True
+skip_covered = True

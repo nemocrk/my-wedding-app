@@ -9,7 +9,7 @@ export const API_BASE = 'api/public';
  * Helper to get session ID from storage (same logic as analytics.js)
  */
 const getSessionId = () => {
-    return sessionStorage.getItem('wedding_analytics_sid') || null;
+  return sessionStorage.getItem('wedding_analytics_sid') || null;
 };
 
 const triggerGlobalError = (error) => {
@@ -34,8 +34,8 @@ export const fetchWithCredentials = async (url, options = {}) => {
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({ message: 'Errore sconosciuto' }));
       // Crea un errore custom con flag per evitare double-handling
-      const error = new Error(errorData.message || `HTTP ${response.status}`);
-      error.isHandled = true; 
+      const error = new Error(`${errorData.message}: HTTP ${response.status}`);
+      error.isHandled = true;
       triggerGlobalError(error);
       throw error;
     }
@@ -46,7 +46,7 @@ export const fetchWithCredentials = async (url, options = {}) => {
     if (err.isHandled) {
       throw err;
     }
-    
+
     // Se è un errore di rete (fetch fallito) o altro imprevisto
     const networkError = new Error("Errore di connessione al server.");
     networkError.isHandled = true;
@@ -65,12 +65,6 @@ export const authenticateInvitation = async (code, token) => {
   });
 };
 
-/**
- * Recupera dettagli invito (richiede sessione attiva)
- */
-export const getInvitationDetails = async () => {
-  return fetchWithCredentials(`${API_BASE}/invitation/`);
-};
 
 /**
  * Invia RSVP (conferma/declino)

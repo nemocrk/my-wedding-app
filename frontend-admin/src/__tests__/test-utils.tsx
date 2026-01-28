@@ -1,8 +1,8 @@
-import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
+import React, { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
-import { ConfirmDialogProvider } from './contexts/ConfirmDialogContext';
-import { ToastProvider } from './contexts/ToastContext';
+import { ConfirmDialogProvider } from '../contexts/ConfirmDialogContext';
+import { ToastProvider } from '../contexts/ToastContext';
 
 /**
  * Custom render function che wrappa il componente con tutti i provider necessari.
@@ -38,3 +38,12 @@ export * from '@testing-library/react';
 
 // Override del render con la versione custom
 export { customRender as render };
+
+// Ensure tests can import `act` reliably from the shared utils.
+// React Testing Library may not re-export the correct `act` in all setups,
+// so explicitly export the one from react-dom which is compatible with jsdom.
+// Prefer React's act when available (React 18+); some environments warn if
+// ReactDOMTestUtils.act is used. Export act from react so tests import
+// the recommended implementation.
+export { act } from 'react';
+

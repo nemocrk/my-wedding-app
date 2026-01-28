@@ -153,6 +153,7 @@ const LabelManager = () => {
                       <button
                         onClick={() => handleEdit(label)}
                         className="text-indigo-600 hover:text-indigo-900 mr-4"
+                        aria-label={`Edit ${label.name}`}
                       >
                         <Edit2 size={18} />
                       </button>

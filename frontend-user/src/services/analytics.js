@@ -7,58 +7,58 @@ const API_BASE = 'api/public';
 
 // Generate a cryptographically secure random string using Web Crypto API
 const generateSecureRandomString = (length) => {
-    const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
-    const charsLength = chars.length;
+  const chars = '0123456789abcdefghijklmnopqrstuvwxyz';
+  const charsLength = chars.length;
 
-    // Prefer window.crypto / self.crypto where available
-    const cryptoObj =
-        (typeof window !== 'undefined' && window.crypto) ||
-        (typeof self !== 'undefined' && self.crypto) ||
-        (typeof crypto !== 'undefined' && crypto);
+  // Prefer window.crypto / self.crypto where available
+  const cryptoObj =
+    (typeof window !== 'undefined' && window.crypto) ||
+    (typeof self !== 'undefined' && self.crypto) ||
+    (typeof crypto !== 'undefined' && crypto);
 
-    if (!cryptoObj || !cryptoObj.getRandomValues) {
-        // Fallback: still use Math.random, but this path should rarely be hit
-        let fallback = '';
-        for (let i = 0; i < length; i++) {
-            fallback += chars.charAt(Math.floor(Math.random() * charsLength));
-        }
-        return fallback;
-    }
-
-    const randomBytes = new Uint8Array(length);
-    cryptoObj.getRandomValues(randomBytes);
-
-    let result = '';
+  if (!cryptoObj || !cryptoObj.getRandomValues) {
+    // Fallback: still use Math.random, but this path should rarely be hit
+    let fallback = '';
     for (let i = 0; i < length; i++) {
-        // Map each random byte to a character index
-        result += chars.charAt(randomBytes[i] % charsLength);
+      fallback += chars.charAt(Math.floor(Math.random() * charsLength));
     }
-    return result;
+    return fallback;
+  }
+
+  const randomBytes = new Uint8Array(length);
+  cryptoObj.getRandomValues(randomBytes);
+
+  let result = '';
+  for (let i = 0; i < length; i++) {
+    // Map each random byte to a character index
+    result += chars.charAt(randomBytes[i] % charsLength);
+  }
+  return result;
 };
 
 // Generate or retrieve session ID for this tab session
 const getSessionId = () => {
-    let sid = sessionStorage.getItem('wedding_analytics_sid');
-    if (!sid) {
-        sid = `sess_${Date.now()}_${generateSecureRandomString(9)}`;
-        sessionStorage.setItem('wedding_analytics_sid', sid);
-    }
-    return sid;
+  let sid = sessionStorage.getItem('wedding_analytics_sid');
+  if (!sid) {
+    sid = `sess_${Date.now()}_${generateSecureRandomString(9)}`;
+    sessionStorage.setItem('wedding_analytics_sid', sid);
+  }
+  return sid;
 };
 
 /**
  * Recupera dati GeoIP dal client
  */
 const fetchGeoLocation = async () => {
-    try {
-        const response = await fetch('https://ipapi.co/json/');
-        if (response.ok) {
-            return await response.json();
-        }
-    } catch (error) {
-        console.warn('Geo fetch failed', error);
+  try {
+    const response = await fetch('https://ipapi.co/json/');
+    if (response.ok) {
+      return await response.json();
     }
-    return null;
+  } catch (error) {
+    console.warn('Geo fetch failed', error);
+  }
+  return null;
 };
 
 /**
@@ -70,26 +70,26 @@ export const logInteraction = async (eventType, metadata = {}) => {
   try {
     // Enrich metadata with Session ID
     const enrichedMetadata = {
-        ...metadata,
-        session_id: getSessionId(),
-        t: Date.now()
+      ...metadata,
+      session_id: getSessionId(),
+      t: Date.now()
     };
 
     // Se è la prima visita, arricchisci con GeoData
     if (eventType === 'view_letter' || eventType === 'visit') {
-        const geoData = await fetchGeoLocation();
-        if (geoData) {
-            enrichedMetadata.geo = geoData;
-        }
+      const geoData = await fetchGeoLocation();
+      if (geoData) {
+        enrichedMetadata.geo = geoData;
+      }
     }
 
     await fetch(`${API_BASE}/log-interaction/`, {
       method: 'POST',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-          event_type: eventType, 
-          metadata: enrichedMetadata
+      body: JSON.stringify({
+        event_type: eventType,
+        metadata: enrichedMetadata
       }),
     });
   } catch (error) {
@@ -118,10 +118,10 @@ class HeatmapTracker {
     this.isTracking = true;
     window.addEventListener('mousemove', this.handleMouseMove);
     window.addEventListener('beforeunload', this.flush);
-    
-    // Flush periodico ogni 10 secondi se ci sono dati
+
+    // Flush periodico ogni 1 secondi se ci sono dati
     this.interval = setInterval(() => {
-        if (this.mouseData.length > 0) this.flush();
+      if (this.mouseData.length > 0) this.flush();
     }, 1000);
   }
 
@@ -158,13 +158,13 @@ class HeatmapTracker {
       screen_height: window.innerHeight,
       mouse_data: [...this.mouseData] // copia
     };
-    
+
     // Clear buffer immediately
     this.mouseData = [];
 
     // Send beacon API if available (better for unload), else fetch
     const url = `${API_BASE}/log-heatmap/`;
-    
+
     // Use simple fetch for reliability within component lifecycle
     try {
       await fetch(url, {

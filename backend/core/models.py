@@ -171,6 +171,7 @@ class Room(models.Model):
     room_number = models.CharField(max_length=50, verbose_name="Numero/Nome Stanza")
     capacity_adults = models.PositiveIntegerField(default=2, verbose_name="Capienza Adulti")
     capacity_children = models.PositiveIntegerField(default=0, verbose_name="Capienza Bambini")
+    price = models.FloatField(default=0.0, verbose_name="Prezzo Camera")
 
     def __str__(self):
         return f"{self.accommodation.name} - {self.room_number} (A:{self.capacity_adults}, B:{self.capacity_children})"
@@ -200,6 +201,33 @@ class Room(models.Model):
             'child_slots_free': self.capacity_children - used_child_slots,
             'total_free': (self.capacity_adults - used_adult_slots) + (self.capacity_children - used_child_slots)
         }
+    
+    def adults_price(self):
+        config = GlobalConfig.objects.first()
+        price_acc_adult = float(config.price_accommodation_adult) if config else 0.0
+        price_acc_child = float(config.price_accommodation_child) if config else 0.0
+        child_usage = self.assigned_guests.filter(is_child=True, not_coming=False).count()
+        adult_usage = self.assigned_guests.filter(is_child=False, not_coming=False).count()
+        if price_acc_adult + price_acc_child == 0.0 or child_usage + adult_usage == 0:
+            return 0.0
+        child_ratio = price_acc_child / (price_acc_adult + price_acc_child)
+        adult_ratio = price_acc_adult / (price_acc_adult + price_acc_child)
+        occupancy_ratio = child_usage * child_ratio + adult_usage * adult_ratio
+        return adult_ratio * self.price / occupancy_ratio
+    
+    def children_price(self):
+        config = GlobalConfig.objects.first()
+        price_acc_adult = float(config.price_accommodation_adult) if config else 0.0
+        price_acc_child = float(config.price_accommodation_child) if config else 0.0
+        child_usage = self.assigned_guests.filter(is_child=True, not_coming=False).count()
+        adult_usage = self.assigned_guests.filter(is_child=False, not_coming=False).count()
+        if price_acc_adult + price_acc_child == 0.0 or child_usage + adult_usage == 0:
+            return 0.0
+        child_ratio = price_acc_child / (price_acc_adult + price_acc_child)
+        adult_ratio = price_acc_adult / (price_acc_adult + price_acc_child)
+        occupancy_ratio = child_usage * child_ratio + adult_usage * adult_ratio
+        return child_ratio * self.price / occupancy_ratio
+
 
     class Meta:
         verbose_name = "Stanza"
@@ -308,14 +336,7 @@ class Invitation(models.Model):
         on_delete=models.SET_NULL,
         verbose_name="Alloggio Assegnato"
     )
-    
-    # NUOVI CAMPI (Issue #51)
-    accommodation_pinned = models.BooleanField(
-        default=False, 
-        verbose_name="Blocca Assegnazione Alloggio",
-        help_text="Se attivo, l'algoritmo di auto-assegnazione non modificherà l'alloggio di questo invito."
-    )
-    
+        
     labels = models.ManyToManyField(
         InvitationLabel, 
         blank=True, 
@@ -373,6 +394,12 @@ class Person(models.Model):
         related_name='assigned_guests',
         on_delete=models.SET_NULL,
         verbose_name="Stanza Assegnata"
+    )
+    # NUOVI CAMPI (Issue #51)
+    accommodation_pinned = models.BooleanField(
+        default=False, 
+        verbose_name="Blocca Assegnazione Alloggio",
+        help_text="Se attivo, l'algoritmo di auto-assegnazione non modificherà l'alloggio di questo invito."
     )
 
     def __str__(self):

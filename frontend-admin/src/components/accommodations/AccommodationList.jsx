@@ -1,11 +1,10 @@
-import React from 'react';
-import { Trash2, Users, Home, User, Baby, Bed, Edit2, Pin, PinOff } from 'lucide-react';
+import { Baby, Bed, Edit2, Home, Pin, PinOff, Trash2, User, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../common/Tooltip';
 
 const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) => {
     const { t } = useTranslation();
-    
+
     if (!accommodations || accommodations.length === 0) {
         return (
             <div className="p-12 text-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
@@ -24,7 +23,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                 const used = acc.total_capacity - acc.available_capacity;
                 const total = acc.total_capacity;
                 const percentFull = total > 0 ? Math.round((used / total) * 100) : 0;
-                
+
                 return (
                     <div key={acc.id} className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
                         <div className="flex justify-between items-start mb-4">
@@ -36,7 +35,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                             </div>
                             <div className="flex gap-2">
                                 <Tooltip content={t('admin.accommodations.list.edit')} position="top">
-                                    <button 
+                                    <button
                                         onClick={() => onEdit(acc)}
                                         className="text-indigo-600 hover:bg-indigo-50 p-2 rounded-lg transition-colors"
                                         aria-label="Edit"
@@ -45,7 +44,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                     </button>
                                 </Tooltip>
                                 <Tooltip content={t('admin.accommodations.list.delete')} position="top">
-                                    <button 
+                                    <button
                                         onClick={() => onDelete(acc.id)}
                                         className="text-red-500 hover:bg-red-50 p-2 rounded-lg transition-colors"
                                         aria-label="Delete"
@@ -68,8 +67,8 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                 </span>
                             </div>
                             <div className="w-full bg-gray-100 rounded-full h-2.5">
-                                <div 
-                                    className={`h-2.5 rounded-full transition-all ${percentFull > 90 ? 'bg-red-500' : 'bg-green-500'}`} 
+                                <div
+                                    className={`h-2.5 rounded-full transition-all ${percentFull > 90 ? 'bg-red-500' : 'bg-green-500'}`}
                                     style={{ width: `${percentFull}%` }}
                                 ></div>
                             </div>
@@ -81,13 +80,13 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                 <Bed size={14} />
                                 {t('admin.accommodations.list.rooms_title')}
                             </h4>
-                            
+
                             {acc.rooms && acc.rooms.map(room => {
                                 const roomCapacity = room.capacity_adults + room.capacity_children;
                                 const roomOccupied = room.occupied_count || 0;
                                 const roomPercent = roomCapacity > 0 ? Math.round((roomOccupied / roomCapacity) * 100) : 0;
                                 const availableSlots = room.available_slots || { adult_slots_free: room.capacity_adults, child_slots_free: room.capacity_children };
-                                
+
                                 return (
                                     <div key={room.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                         {/* Room Header */}
@@ -99,11 +98,10 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                 </span>
                                             </div>
                                             <div className="text-xs">
-                                                <span className={`font-semibold ${
-                                                    availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0 
-                                                    ? 'text-red-600' 
+                                                <span className={`font-semibold ${availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0
+                                                    ? 'text-red-600'
                                                     : 'text-green-600'
-                                                }`}>
+                                                    }`}>
                                                     {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
                                                 </span>
                                             </div>
@@ -112,10 +110,9 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                         {/* Occupancy Bar */}
                                         <div className="flex items-center gap-2 mb-3">
                                             <div className="flex-1 bg-gray-200 rounded-full h-2">
-                                                <div 
-                                                    className={`h-2 rounded-full transition-all ${
-                                                        roomPercent === 100 ? 'bg-red-500' : roomPercent > 80 ? 'bg-orange-400' : 'bg-blue-500'
-                                                    }`}
+                                                <div
+                                                    className={`h-2 rounded-full transition-all ${roomPercent === 100 ? 'bg-red-500' : roomPercent > 80 ? 'bg-orange-400' : 'bg-blue-500'
+                                                        }`}
                                                     style={{ width: `${roomPercent}%` }}
                                                 ></div>
                                             </div>
@@ -131,31 +128,29 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                 <div className="flex flex-wrap gap-2">
                                                     {room.assigned_guests.map((guest, idx) => (
                                                         <div key={idx} className="flex items-center gap-1">
-                                                            <span 
-                                                                className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${
-                                                                    guest.is_child 
-                                                                    ? 'bg-pink-50 text-pink-700 border-pink-200' 
+                                                            <span
+                                                                className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${guest.is_child
+                                                                    ? 'bg-pink-50 text-pink-700 border-pink-200'
                                                                     : 'bg-blue-50 text-blue-700 border-blue-200'
-                                                                }`}
+                                                                    }`}
                                                             >
                                                                 {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
                                                                 {guest.first_name} {guest.last_name || ''}
                                                             </span>
-                                                            {guest.invitation_id && onTogglePin && (
-                                                                <Tooltip 
-                                                                    content={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')} 
+                                                            {guest.invitation && onTogglePin && (
+                                                                <Tooltip
+                                                                    content={guest.accommodation_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
                                                                     position="top"
                                                                 >
                                                                     <button
-                                                                        onClick={() => onTogglePin(guest.invitation_id, !guest.is_pinned)}
-                                                                        className={`p-1 rounded transition-all ${
-                                                                            guest.is_pinned 
-                                                                            ? 'text-pink-600 hover:bg-pink-50' 
+                                                                        onClick={() => onTogglePin(guest.invitation, guest, !guest.accommodation_pinned)}
+                                                                        className={`p-1 rounded transition-all ${guest.accommodation_pinned
+                                                                            ? 'text-pink-600 hover:bg-pink-50'
                                                                             : 'text-gray-400 hover:bg-gray-100'
-                                                                        }`}
-                                                                        aria-label={guest.is_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
+                                                                            }`}
+                                                                        aria-label={guest.accommodation_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
                                                                     >
-                                                                        {guest.is_pinned ? <Pin size={14} /> : <PinOff size={14} />}
+                                                                        {guest.accommodation_pinned ? <Pin size={14} /> : <PinOff size={14} />}
                                                                     </button>
                                                                 </Tooltip>
                                                             )}

@@ -29,10 +29,6 @@ class TestInvitationLabelModel:
 
 @pytest.mark.django_db
 class TestInvitationModelNewFields:
-    def test_accommodation_pinned_default(self):
-        """Test accommodation_pinned default value"""
-        invitation = Invitation.objects.create(name="Rossi", code="rossi-test")
-        assert invitation.accommodation_pinned is False
 
     def test_add_labels_to_invitation(self):
         """Test adding labels to an invitation (ManyToMany)"""

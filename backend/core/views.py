@@ -2,7 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from django.db.models import Sum, Count, Q
+from django.db.models import F, Sum, Count, Q
 from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.conf import settings
@@ -100,26 +100,6 @@ class PublicInvitationAuthView(APIView):
         except Invitation.DoesNotExist:
             return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
 
-class PublicInvitationView(APIView):
-    def get(self, request):
-        invitation_id = request.session.get('invitation_id')
-        stored_code = request.session.get('invitation_code')
-        stored_token = request.session.get('invitation_token')
-        if not all([invitation_id, stored_code, stored_token]):
-            return Response({'valid': False, 'message': 'Sessione non valida'}, status=status.HTTP_401_UNAUTHORIZED)
-        try:
-            invitation = Invitation.objects.get(id=invitation_id, code=stored_code)
-            config, _ = GlobalConfig.objects.get_or_create(pk=1)
-            if not invitation.verify_token(stored_token, config.invitation_link_secret):
-                request.session.flush()
-                return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_403_FORBIDDEN)
-            serializer = PublicInvitationSerializer(invitation, context={'config': config})
-            return Response({'valid': True, 'invitation': serializer.data})
-        except Invitation.DoesNotExist:
-            request.session.flush()
-            config, _ = GlobalConfig.objects.get_or_create(pk=1)
-            return Response({'valid': False, 'message': config.unauthorized_message}, status=status.HTTP_404_NOT_FOUND)
-
 class PublicRSVPView(APIView):
     """
     Enhanced RSVP Endpoint supporting Multi-Step Wizard payload:
@@ -165,44 +145,48 @@ class PublicRSVPView(APIView):
                 if guest_updates:
                     guests = list(invitation.guests.all())
                     updated_guests = []
-                    for idx_str, updates in guest_updates.items():
+                    for guest_id_str, updates in guest_updates.items():
                         try:
-                            idx = int(idx_str)
-                            if 0 <= idx < len(guests):
-                                guest = guests[idx]
-                                old_name = f"{guest.first_name} {guest.last_name or ''}".strip()
-                                if 'first_name' in updates:
-                                    guest.first_name = updates['first_name']
-                                if 'last_name' in updates:
-                                    guest.last_name = updates['last_name']
-                                if 'dietary_requirements' in updates:
-                                    guest.dietary_requirements = updates['dietary_requirements']
-                                guest.save()
-                                new_name = f"{guest.first_name} {guest.last_name or ''} [{guest.dietary_requirements or ''}]".strip()
-                                updated_guests.append({'idx': idx, 'old': old_name, 'new': new_name})
-                                logger.info(f"Guest updated: {old_name} → {new_name}")
+                            guest_id = int(guest_id_str)
+                            # se l'idx appartiene ad una delle persone dell'invito
+                            if guest_id in [g.id for g in guests]:
+                                idx = [g.id for g in guests].index(guest_id)
+                                if 0 <= idx < len(guests):
+                                    guest = guests[idx]
+                                    old_name = f"{guest.first_name} {guest.last_name or ''}".strip()
+                                    if 'first_name' in updates:
+                                        guest.first_name = updates['first_name']
+                                    if 'last_name' in updates:
+                                        guest.last_name = updates['last_name']
+                                    if 'dietary_requirements' in updates:
+                                        guest.dietary_requirements = updates['dietary_requirements']
+                                    guest.save()
+                                    new_name = f"{guest.first_name} {guest.last_name or ''} [{guest.dietary_requirements or ''}]".strip()
+                                    updated_guests.append({'idx': idx, 'old': old_name, 'new': new_name})
+                                    logger.info(f"Guest updated: {old_name} → {new_name}")
                         except (ValueError, IndexError) as e:
-                            logger.warning(f"Invalid guest update index {idx_str}: {e}")
+                            logger.warning(f"Invalid guest update index {guest_id_str}: {e}")
                     metadata['updated_guests'] = updated_guests
                 
                 # 4. Handle Excluded Guests (Hard Flag: not_coming=True)
                 excluded_guests = request.data.get('excluded_guests', [])
-                if excluded_guests:
+                if excluded_guests or invitation.guests.filter(not_coming=True).exists():
                     guests = list(invitation.guests.all())
                     excluded_ids = []
-                    for idx in excluded_guests:
-                        try:
-                            if 0 <= idx < len(guests):
-                                guest = guests[idx]
-                                # Set not_coming flag
-                                guest.not_coming = True
-                                # Clear room assignment for consistency
-                                guest.assigned_room = None
+                    for guest in guests:
+                        if guest.id not in excluded_guests:
+                            if guest.not_coming == True:
+                                guest.not_coming = False
                                 guest.save()
-                                excluded_ids.append(guest.id)
-                                logger.info(f"Guest excluded (not_coming=True): {guest.first_name} {guest.last_name or ''}")
-                        except IndexError as e:
-                            logger.warning(f"Invalid excluded guest index {idx}: {e}")
+                                logger.info(f"Guest reintegrated (not_coming=False): {guest.first_name} {guest.last_name or ''}")
+                        else:
+                            # Set not_coming flag
+                            guest.not_coming = True
+                            # Clear room assignment for consistency
+                            guest.assigned_room = None
+                            guest.save()
+                            excluded_ids.append(guest.id)
+                            logger.info(f"Guest excluded (not_coming=True): {guest.first_name} {guest.last_name or ''}")
                     metadata['excluded_guests_ids'] = excluded_ids
                 
                 # 5. Persist Travel Info to Invitation Fields
@@ -457,7 +441,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
         - ?status=confirmed
         - ?label=<label_id>
         - ?origin=groom|bride
-        - ?accommodation_pinned=true|false
         """
         qs = super().get_queryset()
         
@@ -475,12 +458,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
         origin_filter = self.request.query_params.get('origin')
         if origin_filter:
             qs = qs.filter(origin=origin_filter)
-        
-        # Filtro per accommodation_pinned
-        pinned_filter = self.request.query_params.get('accommodation_pinned')
-        if pinned_filter is not None:
-            pinned_bool = pinned_filter.lower() == 'true'
-            qs = qs.filter(accommodation_pinned=pinned_bool)
         
         return qs
 
@@ -683,6 +660,28 @@ class InvitationViewSet(viewsets.ModelViewSet):
             sessions_map[sid]['events'].append({'type': evt.event_type, 'timestamp': evt.timestamp, 'details': meta})
         sorted_sessions = sorted(sessions_map.values(), key=lambda x: x['start_time'], reverse=True)
         return Response(sorted_sessions)
+    
+    @action(detail=True, methods=['put'], url_path='pin_guest_accomodation')
+    def pin_guest_accomodation(self, request, pk=None):
+        invitation = self.get_object()
+        guest_id = request.data.get('guest_id')
+        pin_status = request.data.get('pin_status')
+        if not guest_id:
+            return Response({'error': 'guest_id is required'}, status=status.HTTP_400_BAD_REQUEST)
+        guest = Person.objects.filter(id=guest_id, invitation=invitation)
+        if not guest:
+            return Response({'error': 'guest not found in invitation'}, status=status.HTTP_400_BAD_REQUEST)
+        if pin_status is None:
+            return Response({'error': 'pin_status is required'}, status=status.HTTP_400_BAD_REQUEST)
+        guest.update(accommodation_pinned = pin_status)
+        # Already read or in different state
+        return Response({
+            'status': pin_status,
+            'message': f'Persona {'pinnata' if pin_status else 'depinnata'} correttamente',
+        })
+        
+            
+
 
 class GlobalConfigViewSet(viewsets.ViewSet):
     def list(self, request):
@@ -795,12 +794,12 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                     # Reset only guests belonging to NON-PINNED invitations
                     Person.objects.filter(
                         assigned_room__isnull=False,
-                        invitation__accommodation_pinned=False
+                        accommodation_pinned=False
                     ).update(assigned_room=None)
                     
                     Invitation.objects.filter(
                         accommodation__isnull=False,
-                        accommodation_pinned=False
+                        guests__accommodation_pinned=False
                     ).update(accommodation=None)
                     
                     logger.info("🔄 Reset completed (pinned invitations preserved)")
@@ -809,7 +808,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 invitations = list(Invitation.objects.filter(
                     status=Invitation.Status.CONFIRMED,
                     accommodation_requested=True,
-                    accommodation_pinned=False,  # EXCLUDE PINNED
+                    guests__accommodation_pinned=False,  # EXCLUDE PINNED
                     guests__assigned_room__isnull=True,
                     guests__not_coming=False
                 ).distinct().prefetch_related('guests', 'affinities', 'non_affinities'))
@@ -931,7 +930,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                         affinities = list(inv.affinities.filter(
                             status=Invitation.Status.CONFIRMED,
                             accommodation_requested=True,
-                            accommodation_pinned=False  # EXCLUDE PINNED from affinity groups
+                            guests__accommodation_pinned=False  # EXCLUDE PINNED from affinity groups
                         ).exclude(id__in=processed_ids))
                         group.extend(affinities)
                     
@@ -969,7 +968,7 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 unassigned_count = Person.objects.filter(
                     invitation__status=Invitation.Status.CONFIRMED,
                     invitation__accommodation_requested=True,
-                    invitation__accommodation_pinned=False,  # Exclude pinned
+                    accommodation_pinned=False,  # Exclude pinned
                     assigned_room__isnull=True,
                     not_coming=False
                 ).count()

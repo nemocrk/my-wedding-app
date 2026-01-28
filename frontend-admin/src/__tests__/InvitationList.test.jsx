@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InvitationList from '../pages/InvitationList';
-import { fireEvent, render, screen, waitFor, within } from '../test-utils';
+import { fireEvent, render, screen, waitFor, within } from './test-utils';
 
 describe('InvitationList', () => {
   const mockInvitations = [

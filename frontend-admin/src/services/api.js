@@ -38,7 +38,7 @@ export const api = {
     if (filters.label) queryParams.append('label', filters.label);
     if (filters.search) queryParams.append('search', filters.search);
     if (filters.ordering) queryParams.append('ordering', filters.ordering);
-    
+
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
     return fetchClient(`${API_BASE_URL}/invitations/${queryString}`);
   },
@@ -63,6 +63,14 @@ export const api = {
     });
   },
 
+  pinPersonInInvitation: async (id, data) => {
+    return fetchClient(`${API_BASE_URL}/invitations/${id}/pin_guest_accomodation/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
   markInvitationAsSent: async (id) => {
     return fetchClient(`${API_BASE_URL}/invitations/${id}/mark-as-sent/`, {
       method: 'POST',
@@ -70,7 +78,7 @@ export const api = {
       body: JSON.stringify({}) // Empty body for action
     });
   },
-  
+
   bulkSendInvitations: async (invitationIds) => {
     return fetchClient(`${API_BASE_URL}/invitations/bulk-send/`, {
       method: 'POST',
@@ -83,7 +91,7 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/invitations/bulk-labels/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         invitation_ids: invitationIds,
         label_ids: labelIds,
         action: action
@@ -94,9 +102,9 @@ export const api = {
   verifyContact: async (id) => {
     // Uses fallback option (PATCH to set state to not_valid which triggers backend task)
     return fetchClient(`${API_BASE_URL}/invitations/${id}/`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contact_verified: 'not_valid' }),
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ contact_verified: 'not_valid' }),
     });
   },
 
@@ -105,7 +113,7 @@ export const api = {
       method: 'DELETE',
     });
   },
-  
+
   generateInvitationLink: async (id) => {
     return fetchClient(`${API_BASE_URL}/invitations/${id}/generate_link/`);
   },
@@ -136,7 +144,7 @@ export const api = {
 
   updateConfig: async (data) => {
     return fetchClient(`${API_BASE_URL}/config/`, {
-      method: 'POST', 
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
@@ -161,12 +169,12 @@ export const api = {
   getConfigurableText: async (key, lang = 'it') => {
     return fetchClient(`${API_BASE_URL}/texts/${key}/?lang=${lang}`);
   },
-  
+
   createConfigurableText: async (data) => {
     return fetchClient(`${API_BASE_URL}/texts/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
     });
   },
 
@@ -192,7 +200,7 @@ export const api = {
 
   createAccommodation: async (data) => {
     return fetchClient(`${API_BASE_URL}/accommodations/`, {
-      method: 'POST', 
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
@@ -200,15 +208,15 @@ export const api = {
 
   updateAccommodation: async (id, data) => {
     return fetchClient(`${API_BASE_URL}/accommodations/${id}/`, {
-      method: 'PUT', 
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),
     });
   },
-  
+
   deleteAccommodation: async (id) => {
-    return fetchClientDelete(`${API_BASE_URL}/accommodations/${id}/`, { 
-      method: 'DELETE' 
+    return fetchClientDelete(`${API_BASE_URL}/accommodations/${id}/`, {
+      method: 'DELETE'
     });
   },
 
@@ -216,15 +224,15 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/accommodations/auto-assign/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
+      body: JSON.stringify({
         reset_previous: resetPrevious,
-        strategy: strategy 
+        strategy: strategy
       })
     });
   },
 
   fetchUnassignedInvitations: async () => {
-      return fetchClient(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
+    return fetchClient(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
   },
 
   // --- WHATSAPP INTEGRATION ---
@@ -234,22 +242,22 @@ export const api = {
 
   refreshWhatsAppSession: async (type) => {
     return fetchClient(`${API_BASE_URL}/whatsapp/${type}/refresh/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
   },
 
   logoutWhatsAppSession: async (type) => {
     return fetchClient(`${API_BASE_URL}/whatsapp/${type}/logout/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
   },
 
   sendWhatsAppTest: async (type) => {
     return fetchClient(`${API_BASE_URL}/whatsapp/${type}/test/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
     });
   },
 
@@ -260,36 +268,36 @@ export const api = {
 
   enqueueWhatsAppMessage: async (data) => {
     return fetchClient(`${API_BASE_URL}/whatsapp-queue/`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
     });
   },
 
   // --- WHATSAPP TEMPLATES ---
   fetchWhatsAppTemplates: async () => {
-      return fetchClient(`${API_BASE_URL}/whatsapp-templates/`);
+    return fetchClient(`${API_BASE_URL}/whatsapp-templates/`);
   },
 
   createWhatsAppTemplate: async (data) => {
-      return fetchClient(`${API_BASE_URL}/whatsapp-templates/`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-      });
+    return fetchClient(`${API_BASE_URL}/whatsapp-templates/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
   },
 
   updateWhatsAppTemplate: async (id, data) => {
-      return fetchClient(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-      });
+    return fetchClient(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
   },
 
   deleteWhatsAppTemplate: async (id) => {
-      return fetchClientDelete(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
-          method: 'DELETE'
-      });
+    return fetchClientDelete(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
+      method: 'DELETE'
+    });
   }
 };

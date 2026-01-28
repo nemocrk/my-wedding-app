@@ -1,6 +1,5 @@
-import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '../../test-utils';
+import { fireEvent, render, screen, waitFor } from '../test-utils';
 
 // CRITICAL: Hoist mocks calls BEFORE component imports
 vi.mock('../../services/api', () => ({
