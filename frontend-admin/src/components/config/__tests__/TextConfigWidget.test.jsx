@@ -160,6 +160,14 @@ describe('TextConfigWidget', () => {
     if (cardEventoButton) {
       await user.click(cardEventoButton);
 
+      await waitFor(async () => {
+        const dialog = screen.getByRole('dialog');
+        const editorContent = dialog.querySelector('.tiptap.ProseMirror');
+
+        await user.click(editorContent);
+        await user.keyboard("ciao");
+      });
+
       let saveButton;
       await waitFor(() => {
         const dialog = screen.getByRole('dialog');

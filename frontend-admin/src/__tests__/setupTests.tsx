@@ -1,7 +1,7 @@
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
+import 'jest-prosemirror/environment';
 import { afterEach, vi } from 'vitest';
-
 
 // Cleanup automatico dopo ogni test
 afterEach(() => {
@@ -60,81 +60,64 @@ vi.mock('react-i18next', () => ({
 }));
 
 // ========================================
-// MOCK: @tiptap/react (TipTap Editor)
+// Polyfills minimi per Tiptap / ProseMirror
 // ========================================
-vi.mock('@tiptap/react', () => ({
-  useEditor: vi.fn(() => ({
-    getHTML: () => '<p>Mocked HTML</p>',
-    commands: {
-      setContent: vi.fn(),
-      focus: vi.fn(),
-    },
-    chain: () => ({
-      focus: () => ({
-        undo: () => ({ run: vi.fn() }),
-        redo: () => ({ run: vi.fn() }),
-        setFontFamily: () => ({ run: vi.fn() }),
-        setFontSize: () => ({ run: vi.fn() }),
-        setColor: () => ({ run: vi.fn() }),
-        setRotation: () => ({ run: vi.fn() }),
-        toggleBold: () => ({ run: vi.fn() }),
-        toggleItalic: () => ({ run: vi.fn() }),
-        toggleStrike: () => ({ run: vi.fn() }),
-        toggleCode: () => ({ run: vi.fn() }),
-        toggleUnderline: () => ({ run: vi.fn() }),
-        setTextAlign: () => ({ run: vi.fn() }),
-      }),
-    }),
-    can: () => ({
-      chain: () => ({
-        focus: () => ({
-          undo: () => ({ run: () => false }),
-          redo: () => ({ run: () => false }),
-        }),
-      }),
-    }),
-    on: vi.fn(),
-    off: vi.fn(),
-    isActive: vi.fn(() => false),
-    getAttributes: vi.fn(() => ({})),
-  })),
-  EditorContent: ({ children }: any) => <div data-testid="editor-content">{children}</div>,
-  // CRITICAL: Export Extension, Mark, mergeAttributes
-  Extension: {
-    create: vi.fn(() => ({
-      name: 'mockExtension',
-      addOptions: vi.fn(),
-      addGlobalAttributes: vi.fn(),
-      addCommands: vi.fn(),
-    })),
-  },
-  Mark: {
-    create: vi.fn(() => ({
-      name: 'mockMark',
-      addOptions: vi.fn(),
-      addAttributes: vi.fn(),
-      parseHTML: vi.fn(),
-      renderHTML: vi.fn(),
-      addCommands: vi.fn(),
-    })),
-  },
-  mergeAttributes: vi.fn((...attrs) => Object.assign({}, ...attrs)),
-}));
 
-// ========================================
-// MOCK: TipTap Extensions
-// ========================================
-vi.mock('@tiptap/starter-kit', () => ({
-  default: { configure: vi.fn(() => ({ name: 'StarterKit' })) }
-}));
-vi.mock('@tiptap/extension-link', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-underline', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-text-align', () => ({
-  default: { configure: vi.fn(() => ({ name: 'TextAlign' })) }
-}));
-vi.mock('@tiptap/extension-subscript', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-superscript', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-highlight', () => ({ default: vi.fn() }));
-vi.mock('@tiptap/extension-text-style', () => ({ TextStyle: vi.fn() }));
-vi.mock('@tiptap/extension-color', () => ({ Color: vi.fn() }));
-vi.mock('@tiptap/extension-font-family', () => ({ default: vi.fn() }));
+// 1. createRange (JSDOM ce l'ha, ma lo rendiamo più permissivo)
+if (!document.createRange) {
+  document.createRange = () => ({
+    setStart: () => { },
+    setEnd: () => { },
+    commonAncestorContainer: document.body,
+  }) as any;
+}
+
+// 2. getSelection (fallback)
+if (!window.getSelection) {
+  window.getSelection = () => ({
+    removeAllRanges: () => { },
+    addRange: () => { },
+  }) as any;
+}
+
+// 3. ResizeObserver (Tiptap lo usa)
+class ResizeObserver {
+  observe() { }
+  unobserve() { }
+  disconnect() { }
+}
+window.ResizeObserver = ResizeObserver;
+// 1. Salva il metodo originale di JSDOM
+const nativeCreateRange = document.createRange.bind(document);
+
+document.createRange = () => {
+  const range = nativeCreateRange();
+
+  // 2. Aggiungi o correggi solo le proprietà problematiche per ProseMirror
+  // Se getClientRects manca o crasha, lo mockiamo
+  if (!range.getClientRects) {
+    range.getClientRects = () => {
+      const rects: DOMRect[] = [];
+      return {
+        item: (index: number) => rects[index] || null,
+        length: rects.length,
+        // Usiamo l'iteratore nativo di un array vuoto per soddisfare TypeScript
+        [Symbol.iterator]: () => rects[Symbol.iterator]()
+      } as unknown as DOMRectList; // Cast per evitare conflitti con DOMRectList
+    };
+  }
+
+  if (!range.getBoundingClientRect) {
+    range.getBoundingClientRect = () => ({
+      bottom: 0, height: 0, left: 0, right: 0, top: 0, width: 0,
+      x: 0, y: 0, toJSON: () => { }
+    });
+  }
+
+  return range;
+};
+
+// 3. Sistema anche elementFromPoint se non esiste (fondamentale per il tuo errore)
+if (!document.elementFromPoint) {
+  document.elementFromPoint = () => document.body;
+}

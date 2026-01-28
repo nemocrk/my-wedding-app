@@ -1,8 +1,7 @@
-import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ConfigurableTextEditor from '../ConfigurableTextEditor';
-import * as TipTapReact from '@tiptap/react';
 
 // --- MOCK TIPTAP LOCALLY TO CAPTURE COMMANDS ---
 const mockChain = {
@@ -79,9 +78,9 @@ describe('ConfigurableTextEditor', () => {
 
   it('renders correctly in preview mode', () => {
     render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
+      <ConfigurableTextEditor
+        textKey="test.key"
+        initialContent="<p>Initial Content</p>"
         onSave={mockOnSave}
         label="Test Label"
       />
@@ -93,16 +92,16 @@ describe('ConfigurableTextEditor', () => {
   it('opens modal and renders toolbar', async () => {
     const user = userEvent.setup();
     render(
-      <ConfigurableTextEditor 
-        textKey="test.key" 
-        initialContent="<p>Initial Content</p>" 
+      <ConfigurableTextEditor
+        textKey="test.key"
+        initialContent="<p>Initial Content</p>"
         onSave={mockOnSave}
         label="Test Label"
       />
     );
 
     await user.click(screen.getByRole('button', { name: /modifica/i }));
-    
+
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     // Verify toolbar buttons are present
     expect(screen.getByTitle('Grassetto')).toBeInTheDocument();
@@ -153,7 +152,7 @@ describe('ConfigurableTextEditor', () => {
     // Find font size spinner by title
     const spinner = screen.getByTitle('Dimensione Font (rem)');
     const plusBtn = within(spinner).getByText('+');
-    
+
     await user.click(plusBtn);
     // Initial is 1, step is 0.1 -> 1.1
     expect(mockChain.setFontSize).toHaveBeenCalledWith('1.1rem');
@@ -168,7 +167,7 @@ describe('ConfigurableTextEditor', () => {
 
     const spinner = screen.getByTitle('Rotazione (gradi)');
     const plusBtn = within(spinner).getByText('+');
-    
+
     await user.click(plusBtn);
     // Initial 0, step 1 -> 1
     expect(mockChain.setRotation).toHaveBeenCalledWith(1);
@@ -181,7 +180,7 @@ describe('ConfigurableTextEditor', () => {
     fireEvent.click(screen.getByRole('button', { name: /modifica/i }));
 
     const spinner = screen.getByTitle('Rotazione (gradi)');
-    
+
     // Simulate wheel event
     fireEvent.wheel(spinner, { deltaY: -100 }); // Scroll UP -> increment
     expect(mockChain.setRotation).toHaveBeenCalledWith(1); // 0 + 1
@@ -203,18 +202,18 @@ describe('ConfigurableTextEditor', () => {
     await user.click(screen.getByRole('button', { name: /modifica/i }));
 
     await user.click(screen.getByTitle('Salva modifiche'));
-    
+
     expect(mockEditor.getHTML).toHaveBeenCalled();
     expect(mockOnSave).toHaveBeenCalledWith('test', '<p>Mocked Content</p>');
-    
+
     await waitFor(() => {
-        expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     });
   });
 
   it('handles save error gracefully', async () => {
     const user = userEvent.setup();
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     mockOnSave.mockRejectedValueOnce(new Error('Save failed'));
 
     render(
@@ -228,20 +227,20 @@ describe('ConfigurableTextEditor', () => {
     });
     // Modal should stay open on error or at least handle it (implementation just logs currently)
     expect(screen.getByRole('dialog')).toBeInTheDocument();
-    
+
     consoleSpy.mockRestore();
   });
 
   it('manages body overflow on open/close', async () => {
-     const user = userEvent.setup();
-     render(<ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />);
-     
-     // Open
-     await user.click(screen.getByRole('button', { name: /modifica/i }));
-     expect(document.body.style.overflow).toBe('hidden');
+    const user = userEvent.setup();
+    render(<ConfigurableTextEditor textKey="test" initialContent="" onSave={mockOnSave} />);
 
-     // Close
-     await user.click(screen.getByTitle('Annulla modifiche'));
-     expect(document.body.style.overflow).toBe('unset');
+    // Open
+    await user.click(screen.getByRole('button', { name: /modifica/i }));
+    expect(document.body.style.overflow).toBe('hidden');
+
+    // Close
+    await user.click(screen.getByTitle('Annulla modifiche'));
+    expect(document.body.style.overflow).toBe('unset');
   });
 });

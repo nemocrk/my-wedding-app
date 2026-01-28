@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import ConfigurableTextEditor from '../ConfigurableTextEditor';
+
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -19,6 +20,10 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
+  afterEach(() => {
+    cleanup();
+  });
+
 
   const openEditor = async () => {
     const user = userEvent.setup();
@@ -32,6 +37,65 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
     await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
     await waitFor(() => screen.getByTitle(/Grassetto/i));
   };
+  describe('Editor Event Listeners', () => {
+    it('updates toolbar state on selectionUpdate event', async () => {
+      const user = userEvent.setup();
+      render(
+        <ConfigurableTextEditor
+          textKey="test_key"
+          initialContent="<p>Normal <strong>Bold</strong></p>"
+          onSave={mockOnSave}
+        />
+      );
+
+      await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
+      await waitFor(() => screen.getByTitle(/Grassetto/i));
+
+      const boldButton = screen.getByTitle(/Grassetto/i);
+
+      // Initially, bold should not be active
+      expect(boldButton.className).not.toContain('bg-indigo-100');
+
+      // Click on bold text
+      const editor = document.querySelector('.ProseMirror');
+      const boldElement = editor?.querySelector('strong');
+      if (boldElement) {
+        await user.click(boldElement);
+        // svuota microtask
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // svuota macrotask
+        await new Promise(setImmediate);
+
+        // svuota pending observer
+        await Promise.resolve();
+        await Promise.resolve();
+
+
+        // Bold button should become active
+        await waitFor(async () => {
+          expect(boldButton.className).toContain('bg-indigo-100');
+        });
+      }
+    });
+
+    it('updates toolbar state on transaction event', async () => {
+      await openEditor();
+      const user = userEvent.setup();
+
+      const boldButton = screen.getByTitle(/Grassetto/i);
+
+      // Click bold to toggle it on
+      await user.click(boldButton);
+
+      // Button should show active state after transaction
+      await waitFor(() => {
+        expect(boldButton.className).toContain('bg-indigo-100');
+      });
+    });
+  });
 
   describe('Font Size Spinner Interaction', () => {
     it('increments font size when + is clicked', async () => {
@@ -80,7 +144,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
 
       await waitFor(() => {
         const text = sizeSpinner.textContent;
-        const value = parseFloat(text);
+        const value = parseFloat(text.slice(1, -1));
         expect(value).toBeGreaterThanOrEqual(0.5);
       });
     });
@@ -99,7 +163,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
 
       await waitFor(() => {
         const text = sizeSpinner.textContent;
-        const value = parseFloat(text);
+        const value = parseFloat(text.slice(1, -1));
         expect(value).toBeLessThanOrEqual(8);
       });
     });
@@ -162,7 +226,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
 
       await waitFor(() => {
         const text = rotationSpinner.textContent;
-        const value = parseInt(text);
+        const value = parseInt(text.slice(1, -1));
         expect(value).toBeGreaterThanOrEqual(-180);
       });
     });
@@ -180,7 +244,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
 
       await waitFor(() => {
         const text = rotationSpinner.textContent;
-        const value = parseInt(text);
+        const value = parseInt(text.slice(1, -1));
         expect(value).toBeLessThanOrEqual(180);
       });
     });
@@ -265,7 +329,7 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
 
         // Font state should update (Roboto or fallback to Open Sans)
         await waitFor(() => {
-          expect(screen.getByText(/Roboto|Open Sans|Font/i)).toBeInTheDocument();
+          expect(screen.getAllByText(/Roboto|Open Sans|Font/i)[0]).toBeInTheDocument();
         }, { timeout: 2000 });
       }
     });
@@ -352,54 +416,6 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
           expect(centerButton.className).toContain('bg-indigo-100');
         });
       }
-    });
-  });
-
-  describe('Editor Event Listeners', () => {
-    it('updates toolbar state on selectionUpdate event', async () => {
-      const user = userEvent.setup();
-      render(
-        <ConfigurableTextEditor
-          textKey="test_key"
-          initialContent="<p>Normal <strong>Bold</strong></p>"
-          onSave={mockOnSave}
-        />
-      );
-
-      await user.click(screen.getByText(/admin.config.text_editor.buttons.edit/i));
-      await waitFor(() => screen.getByTitle(/Grassetto/i));
-
-      const boldButton = screen.getByTitle(/Grassetto/i);
-
-      // Initially, bold should not be active
-      expect(boldButton.className).not.toContain('bg-indigo-100');
-
-      // Click on bold text
-      const editor = document.querySelector('.ProseMirror');
-      const boldElement = editor?.querySelector('strong');
-      if (boldElement) {
-        await user.click(boldElement);
-
-        // Bold button should become active
-        await waitFor(() => {
-          expect(boldButton.className).toContain('bg-indigo-100');
-        });
-      }
-    });
-
-    it('updates toolbar state on transaction event', async () => {
-      await openEditor();
-      const user = userEvent.setup();
-
-      const boldButton = screen.getByTitle(/Grassetto/i);
-
-      // Click bold to toggle it on
-      await user.click(boldButton);
-
-      // Button should show active state after transaction
-      await waitFor(() => {
-        expect(boldButton.className).toContain('bg-indigo-100');
-      });
     });
   });
 
