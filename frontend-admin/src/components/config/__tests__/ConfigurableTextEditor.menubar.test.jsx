@@ -25,12 +25,14 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
   });
 
 
-  const openEditor = async () => {
+  const openEditor = async (initialContent) => {
+    if (!initialContent)
+      initialContent = "<p>Test</p>"
     const user = userEvent.setup();
     render(
       <ConfigurableTextEditor
         textKey="test_key"
-        initialContent="<p>Test</p>"
+        initialContent={initialContent}
         onSave={mockOnSave}
       />
     );
@@ -150,14 +152,14 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
     });
 
     it('respects max boundary (8rem)', async () => {
-      await openEditor();
+      await openEditor('<p><span style="font-size: 6.8rem;">Text</span></p>');
       const user = userEvent.setup();
 
       const sizeSpinner = screen.getByTitle(/Dimensione Font/i);
       const incrementBtn = sizeSpinner.querySelector('button:last-child');
 
       // Click increment many times to try to go above 8
-      for (let i = 0; i < 100; i++) {
+      for (let i = 0; i < 20; i++) {
         await user.click(incrementBtn);
       }
 
@@ -214,38 +216,39 @@ describe('ConfigurableTextEditor MenuBar - Advanced Interactions', () => {
     });
 
     it('respects min boundary (-180°)', async () => {
-      await openEditor();
+      await openEditor("<p><span data-angle=\"-150\" style=\"display: inline-block; transform: rotate(-150deg); transform-origin: center center;\">RotatedText</span></p>");
       const user = userEvent.setup();
 
       const rotationSpinner = screen.getByTitle(/Rotazione/i);
+      await user.wheel
       const decrementBtn = rotationSpinner.querySelector('button:first-of-type');
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 50; i++) {
         await user.click(decrementBtn);
       }
 
       await waitFor(() => {
         const text = rotationSpinner.textContent;
         const value = parseInt(text.slice(1, -1));
-        expect(value).toBeGreaterThanOrEqual(-180);
+        expect(value).toBe(-180);
       });
     }, 10000);
 
     it('respects max boundary (180°)', async () => {
-      await openEditor();
+      await openEditor("<p><span data-angle=\"150\" style=\"display: inline-block; transform: rotate(150deg); transform-origin: center center;\">RotatedText</span></p>");
       const user = userEvent.setup();
 
       const rotationSpinner = screen.getByTitle(/Rotazione/i);
       const incrementBtn = rotationSpinner.querySelector('button:last-child');
 
-      for (let i = 0; i < 200; i++) {
+      for (let i = 0; i < 50; i++) {
         await user.click(incrementBtn);
       }
 
       await waitFor(() => {
         const text = rotationSpinner.textContent;
         const value = parseInt(text.slice(1, -1));
-        expect(value).toBeLessThanOrEqual(180);
+        expect(value).toBe(180);
       });
     });
   }, 10000);

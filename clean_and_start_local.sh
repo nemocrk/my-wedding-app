@@ -6,13 +6,20 @@
 
 set -e # Interrompe l'esecuzione se un comando fallisce
 
-COMPOSE_CMD="docker-compose -f docker-compose.yml -f docker-compose.dev.yml"
 COMPOSE_OTHER=""
 # Default values
 CLEAN_ONLY=false
 DETACH=false
 DEBUG_BACKEND=false
 USING_SHARED_CONTEXT=$(docker context show |grep shared-context||true)
+if [ -n "$USING_SHARED_CONTEXT" ]; then
+    echo "--------------------------------------------------------"
+    echo "  Siamo in Shared Context"
+    echo "--------------------------------------------------------"
+COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.remote-dev.yml"
+else 
+COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.dev.yml"
+fi
 
 # Parse arguments
 for arg in "$@"
@@ -33,11 +40,6 @@ do
     esac
 done
 COMPOSE_OTHER=$(echo $COMPOSE_OTHER | xargs)
-if [ -n "$USING_SHARED_CONTEXT" ]; then
-    echo "--------------------------------------------------------"
-    echo "  Siamo in Shared Context"
-    echo "--------------------------------------------------------"
-fi
 # Pulire tutti i container docker
 echo "--------------------------------------------------------"
 echo "  [1/4] Killo eventuali Container Attivi..."
@@ -45,7 +47,7 @@ echo "--------------------------------------------------------"
 # Recupera gli ID dei container in esecuzione
 
 if [ -n "$USING_SHARED_CONTEXT" ]; then
-CONTAINERS=$(docker ps --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
+CONTAINERS=$(docker ps --format json | jq -r 'select(.Names | contains("dev-")) | .ID')
 else
 CONTAINERS=$(docker ps -q)
 fi
@@ -59,7 +61,7 @@ echo "--------------------------------------------------------"
 echo "  [2/4] Elimino eventuali Container Esistenti..."
 echo "--------------------------------------------------------"
 if [ -n "$USING_SHARED_CONTEXT" ]; then
-CONTAINERS=$(docker ps -a --format json | jq -r 'select(.Names | contains("_dev_")) | .ID')
+CONTAINERS=$(docker ps -a --format json | jq -r 'select(.Names | contains("dev-")) | .ID')
 else
 CONTAINERS=$(docker ps -a -q)
 fi
