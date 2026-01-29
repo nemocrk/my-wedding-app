@@ -25,7 +25,7 @@ fi
 for arg in "$@"
 do
     case $arg in
-        --clean_only)
+        --clean-only)
             CLEAN_ONLY=true
             shift
             ;;
