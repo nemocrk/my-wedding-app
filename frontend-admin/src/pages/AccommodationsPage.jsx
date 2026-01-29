@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from 'react';
-import { Plus, Home, Sparkles, AlertCircle, X } from 'lucide-react';
+import { AlertCircle, Plus, Sparkles, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useConfirm } from '../contexts/ConfirmDialogContext';
 import AccommodationList from '../components/accommodations/AccommodationList';
+import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
 import EditAccommodationModal from '../components/accommodations/EditAccommodationModal';
-import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
-import { api } from '../services/api';
 import ErrorModal from '../components/common/ErrorModal';
+import { useConfirm } from '../contexts/ConfirmDialogContext';
+import { api } from '../services/api';
 
 const AccommodationsPage = () => {
     const { t } = useTranslation();
@@ -78,9 +78,9 @@ const AccommodationsPage = () => {
             cancelText: t('common.cancel'),
             isDangerous: true
         });
-        
+
         if (!isConfirmed) return;
-        
+
         try {
             await api.deleteAccommodation(id);
             setSuccessMsg(t('admin.accommodations.success.deleted'));
@@ -90,10 +90,10 @@ const AccommodationsPage = () => {
         }
     };
 
-    const handleTogglePin = async (invitationId, isPinned) => {
+    const handleTogglePin = async (invitationId, guest, isPinned) => {
         try {
-            await api.updateInvitation(invitationId, { accommodation_assignment_pinned: isPinned });
-            setSuccessMsg(isPinned 
+            await api.pinPersonInInvitation(invitationId, { guest_id: guest.id, pin_status: isPinned });
+            setSuccessMsg(isPinned
                 ? (t('admin.accommodations.success.pinned'))
                 : (t('admin.accommodations.success.unpinned'))
             );
@@ -116,14 +116,14 @@ const AccommodationsPage = () => {
                     <p className="text-gray-500">{t('admin.accommodations.page_subtitle')}</p>
                 </div>
                 <div className="flex gap-3">
-                    <button 
+                    <button
                         onClick={() => setIsStrategyModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors shadow-sm"
                     >
                         <Sparkles size={20} />
                         {t('admin.accommodations.buttons.auto_assign')}
                     </button>
-                    <button 
+                    <button
                         onClick={() => setIsCreateModalOpen(true)}
                         className="flex items-center gap-2 px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition-colors shadow-sm"
                     >
@@ -168,17 +168,17 @@ const AccommodationsPage = () => {
                 </div>
             )}
 
-            <AccommodationList 
-                accommodations={accommodations} 
+            <AccommodationList
+                accommodations={accommodations}
                 onDelete={handleDelete}
                 onEdit={handleEdit}
                 onTogglePin={handleTogglePin}
             />
 
-            <CreateAccommodationModal 
-                isOpen={isCreateModalOpen} 
-                onClose={() => setIsCreateModalOpen(false)} 
-                onSave={handleCreate} 
+            <CreateAccommodationModal
+                isOpen={isCreateModalOpen}
+                onClose={() => setIsCreateModalOpen(false)}
+                onSave={handleCreate}
             />
 
             <EditAccommodationModal

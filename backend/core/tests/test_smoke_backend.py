@@ -66,13 +66,11 @@ class TestModelSmoke:
         
         inv = Invitation.objects.create(
             name="Smoke Inv",
-            code="smoke-inv",
-            accommodation_pinned=True
+            code="smoke-inv"
         )
         inv.labels.add(label1, label2)
         
         assert inv.id is not None
-        assert inv.accommodation_pinned is True
         assert inv.labels.count() == 2
     
     def test_create_person_with_room_assignment(self):
@@ -85,12 +83,14 @@ class TestModelSmoke:
             invitation=inv,
             first_name="Smoke",
             last_name="Test",
-            assigned_room=room
+            assigned_room=room,
+            accommodation_pinned=True
         )
         
         assert person.id is not None
         assert person.assigned_room == room
         assert room.occupied_count() == 1
+        assert person.accommodation_pinned is True
 
 
 @pytest.mark.django_db
@@ -106,14 +106,11 @@ class TestEndpointSmoke:
         """Test GET /api/admin/invitations/ with new filter params"""
         # Create test data
         label = InvitationLabel.objects.create(name="Filter Test")
-        inv = Invitation.objects.create(name="Test", code="test", accommodation_pinned=True)
+        inv = Invitation.objects.create(name="Test", code="test")
         inv.labels.add(label)
         
         # Test filters
         response = api_client.get(f'/api/admin/invitations/?label={label.id}')
-        assert response.status_code in [200, 401]
-        
-        response = api_client.get('/api/admin/invitations/?accommodation_pinned=true')
         assert response.status_code in [200, 401]
     
     def test_bulk_send_endpoint(self, api_client):

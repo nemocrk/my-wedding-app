@@ -36,3 +36,6 @@ Before generating code, verify context in the documentation:
 - Respect `docker-compose.yml` network isolation.
 - Use `healthcheck` in service definitions.
 - Changes to Nginx config must be documented in `docs/05-DEVOPS.md`.
+
+## Agent integration
+- Avoid using grep and tail

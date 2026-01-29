@@ -108,12 +108,12 @@ services:
       pgbouncer:
         condition: service_healthy
     environment:
-      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
+      DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@dev-wed-app-pgbouncer:5432/wedding_db
       DJANGO_SETTINGS_MODULE: wedding.settings
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
-      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-localhost,127.0.0.1,dev-wed-app-nginx-intranet}
       DEBUG: ${DEBUG:-False}
-      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://localhost}
+      FRONTEND_PUBLIC_URL: ${FRONTEND_PUBLIC_URL:-http://dev-wed-app-nginx-public}
     networks:
       - dev_db_network
       - dev_backend_network
@@ -149,7 +149,7 @@ services:
       DJANGO_SETTINGS_MODULE: wedding.settings
       SECRET_KEY: ${DJANGO_SECRET_KEY:-dev-secret-key-change-in-prod}
       WAHA_WORKER_INTERVAL: ${WAHA_WORKER_INTERVAL:-60}
-      WA_INTEGRATION_URL: http://whatsapp-integration:3000
+      WA_INTEGRATION_URL: http://dev-wed-app-whatsapp-integration:3000
     networks:
       - dev_db_network
       - dev_whatsapp_intranet_network
@@ -164,7 +164,7 @@ services:
       dockerfile: Dockerfile
       target: ${BUILD_TARGET:-production}
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost/api}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://dev-wed-app-nginx-public/api}
     volumes:
       - ./frontend-user/nginx.conf:/etc/nginx/nginx.conf:ro
     networks:
@@ -188,7 +188,7 @@ services:
       dockerfile: Dockerfile
       target: ${BUILD_TARGET:-production}
       args:
-        REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://localhost:8080/api}
+        REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://dev-wed-app-nginx-intranet:8080/api}
     volumes:
       - ./frontend-admin/nginx.conf:/etc/nginx/nginx.conf:ro
     # CLEANUP: Rimossa environment VITE_... (non pi necessaria lato client)
@@ -277,7 +277,7 @@ services:
     environment:
       # Free Tier config (no swagger, no dashboard in prod)
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
-      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/groom'
+      WHATSAPP_WEBHOOK_URL: 'http://dev-wed-app-whatsapp-integration:3000/webhook/groom'
       WAHA_API_KEY: ${WAHA_API_KEY_GROOM:-secret}
       # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
       WAHA_PRINT_QR: 'false'
@@ -305,7 +305,7 @@ services:
     restart: on-failure
     environment:
       WHATSAPP_DEFAULT_ENGINE: 'WEBJS'
-      WHATSAPP_WEBHOOK_URL: 'http://whatsapp-integration:3000/webhook/bride'
+      WHATSAPP_WEBHOOK_URL: 'http://dev-wed-app-whatsapp-integration:3000/webhook/bride'
       WAHA_API_KEY: ${WAHA_API_KEY_BRIDE:-secret}
       # Disabilita il print del QR nei log (evita confusione - il QR viene servito via API)
       WAHA_PRINT_QR: 'false'
@@ -341,11 +341,11 @@ services:
         condition: service_healthy
     environment:
       PORT: 3000
-      WAHA_GROOM_URL: 'http://waha-groom:3000'
-      WAHA_BRIDE_URL: 'http://waha-bride:3000'
+      WAHA_GROOM_URL: 'http://dev-wed-app-waha-groom:3000'
+      WAHA_BRIDE_URL: 'http://dev-wed-app-waha-bride:3000'
       WAHA_API_KEY_GROOM: ${WAHA_API_KEY_GROOM:-secret}
       WAHA_API_KEY_BRIDE: ${WAHA_API_KEY_BRIDE:-secret}
-      DJANGO_API_URL: 'http://backend:8000/api/admin'
+      DJANGO_API_URL: 'http://dev-wed-app-backend:8000/api/admin'
     networks:
       - dev_backend_network # Per comunicare con Django
       - dev_whatsapp_intranet_network # Per parlare con container WAHA

@@ -8,7 +8,7 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'jsdom',
-    setupFiles: ['./src/setupTests.tsx'],
+    setupFiles: ['./src/__tests__/setupTests.tsx'],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
@@ -26,10 +26,10 @@ export default defineConfig({
         'src/vite-env.d.ts'
       ],
       thresholds: {
-        lines: 0, //90,
-        functions: 0, //90,
-        branches: 0, //85,
-        statements: 0, //90,
+        lines: 85,
+        functions: 85,
+        branches: 80,
+        statements: 85,
       },
     },
   },

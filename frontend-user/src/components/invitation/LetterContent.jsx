@@ -20,6 +20,9 @@ import PaperModal from '../layout/PaperModal';
 import './LetterContent.css';
 
 const LetterContent = ({ data }) => {
+
+  data.getGuest = (guestId) => data.guests.find(guest => guest.id === guestId);
+
   const { t } = useTranslation();
   const { getText } = useConfigurableText();
   const [rsvpStatus, setRsvpStatus] = useState(data.status || 'created');
@@ -34,13 +37,15 @@ const LetterContent = ({ data }) => {
   // WIZARD STEP STATE: 'summary' | 'guests' | 'contact' | 'travel' | 'accommodation' | 'final'
   const [rsvpStep, setRsvpStep] = useState(['confirmed', 'declined'].includes(rsvpStatus) ? 'summary' : 'guests');
 
+
   // Step 1: Ospiti
-  const [excludedGuests, setExcludedGuests] = useState([]);
+  const [excludedGuests, setExcludedGuests] = useState(data.guests.filter((guest) => guest.not_coming).map((guest) => guest.id));
   const [editingGuestIndex, setEditingGuestIndex] = useState(null);
   const [editedGuests, setEditedGuests] = useState({});
   const [tempFirstName, setTempFirstName] = useState('');
   const [tempLastName, setTempLastName] = useState('');
   const [tempDietaryRequirements, setTempDietaryRequirements] = useState('');
+  const [tempDeclining, setTempDeclining] = useState(false);
 
   // Step 2: Contatto
   const [phoneNumber, setPhoneNumber] = useState(data.phone_number || '');
@@ -116,12 +121,12 @@ const LetterContent = ({ data }) => {
     safeLogInteraction('toggle_guest_exclusion', {
       guestIndex,
       action: isExcluding ? 'exclude' : 'include',
-      guest_name: data.guests[guestIndex].first_name
+      guest_name: data.getGuest(guestIndex).first_name
     });
   };
 
   const handleStartEdit = (guestIndex) => {
-    const guest = data.guests[guestIndex];
+    const guest = data.getGuest(guestIndex);
     const edited = editedGuests[guestIndex] || guest;
     setEditingGuestIndex(guestIndex);
     setTempFirstName(edited.first_name);
@@ -134,7 +139,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleSaveEdit = (guestIndex) => {
-    const originalGuest = data.guests[guestIndex];
+    const originalGuest = data.getGuest(guestIndex);
     setEditedGuests(prev => ({
       ...prev,
       [guestIndex]: {
@@ -162,11 +167,11 @@ const LetterContent = ({ data }) => {
   };
 
   const getGuestDisplayName = (guestIndex) => {
-    const guest = data.guests[guestIndex];
+    const guest = data.getGuest(guestIndex);
     return editedGuests[guestIndex] ? { ...editedGuests[guestIndex], is_child: guest.is_child } : guest;
   };
 
-  const getActiveGuests = () => data.guests.filter((_, idx) => !excludedGuests.includes(idx));
+  const getActiveGuests = () => data.guests.filter((guest) => !excludedGuests.includes(guest.id));
 
   // Phone Validation
   const validatePhoneNumber = (phone) => {
@@ -277,6 +282,16 @@ const LetterContent = ({ data }) => {
     }
   };
 
+  const handleGoToDeclineStep = () => {
+    setMessage(null);
+    setTempDeclining(true);
+    let fromStep = rsvpStep;
+    let toStep = 'final';
+
+    setRsvpStep('final');
+    safeLogInteraction('rsvp_go_to_decline_step', { from: fromStep, to: toStep });
+  }
+
   const handleBackStep = () => {
     setMessage(null);
     let fromStep = rsvpStep;
@@ -303,6 +318,7 @@ const LetterContent = ({ data }) => {
   };
 
   const handleStartModify = () => {
+    setTempDeclining(false);
     setRsvpStep('guests');
     safeLogInteraction('start_modify_rsvp', { current_status: rsvpStatus });
   };
@@ -470,7 +486,7 @@ const LetterContent = ({ data }) => {
 
             case 'start_edit_guest':
               if (payload?.details?.guestIndex !== undefined) {
-                const guest = data.guests[payload.details.guestIndex];
+                const guest = data.getGuest(payload.details.guestIndex);
                 const edited = editedGuests[payload.details.guestIndex] || guest;
                 setEditingGuestIndex(payload.details.guestIndex);
                 setTempFirstName(edited.first_name);
@@ -505,6 +521,11 @@ const LetterContent = ({ data }) => {
               break;
 
             case 'rsvp_back_step':
+              if (payload?.details?.to) setRsvpStep(payload.details.to);
+              break;
+
+            case 'rsvp_go_to_decline_step':
+              setTempDeclining(true);
               if (payload?.details?.to) setRsvpStep(payload.details.to);
               break;
 
@@ -729,13 +750,13 @@ const LetterContent = ({ data }) => {
                     <small>* {t('rsvp.hints.edit_guest_hint')}</small>
                   </p>
                   <ul>
-                    {data.guests.map((guest, idx) => {
-                      const displayGuest = getGuestDisplayName(idx);
-                      const isEditing = editingGuestIndex === idx;
-                      const isExcluded = excludedGuests.includes(idx);
+                    {data.guests.map((guest) => {
+                      const displayGuest = getGuestDisplayName(guest.id);
+                      const isEditing = editingGuestIndex === guest.id;
+                      const isExcluded = excludedGuests.includes(guest.id);
 
                       return (
-                        <li key={idx} className={isExcluded ? 'guest-excluded' : ''}>
+                        <li key={guest.id} className={isExcluded ? 'guest-excluded' : ''}>
                           {isEditing ? (
                             <>
                               <div className="guest-edit-inputs">
@@ -763,7 +784,7 @@ const LetterContent = ({ data }) => {
                                 />
                               </div>
                               <div className="guest-actions">
-                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(idx)}>✓</button>
+                                <button className="guest-action-btn save" onClick={() => handleSaveEdit(guest.id)}>✓</button>
                                 <button className="guest-action-btn cancel" onClick={handleCancelEdit}>✕</button>
                               </div>
                             </>
@@ -781,8 +802,8 @@ const LetterContent = ({ data }) => {
                                 )}
                               </div>
                               <div className="guest-actions">
-                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(idx)}>✏️</button>
-                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(idx)}>✕</button>
+                                <button className="guest-action-btn edit" onClick={() => handleStartEdit(guest.id)}>✏️</button>
+                                <button className="guest-action-btn exclude" onClick={() => toggleGuestExclusion(guest.id)}>✕</button>
                               </div>
                             </>
                           )}
@@ -792,29 +813,10 @@ const LetterContent = ({ data }) => {
                   </ul>
                 </div>
 
-                {/* Alert se già confermato e vuole escludere tutti */}
-                {rsvpStatus === 'confirmed' && getActiveGuests().length === 0 && (
-                  <div className="whatsapp-alert">
-                    <p>{t('whatsapp.alert_modify_confirmed')}</p>
-                    {(waNumber) && (
-                      <div className="whatsapp-section">
-                        <div className="whatsapp-buttons">
-                          <a
-                            href={getWaLink(waNumber)}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="whatsapp-link"
-                            onClick={() => handleWhatsAppClick(waName)}
-                          >
-                            <FaWhatsapp size={20} /> {waName}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
                 <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                {rsvpStatus !== 'declined' && (
+                  <button className="rsvp-next-btn" onClick={handleGoToDeclineStep} disabled={submitting}>{t('rsvp.buttons.decline')}</button>
+                )}
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}
@@ -953,7 +955,7 @@ const LetterContent = ({ data }) => {
                   </label>
 
                   {/* Alert se modifica da accepted a rejected */}
-                  {accommodationRequested && !accommodationChoice && (
+                  {['confirmed', 'declined'].includes(rsvpStatus) && (accommodationRequested !== accommodationChoice) && (
                     <div className="whatsapp-alert">
                       <p>{t('whatsapp.alert_modify_confirmed')}</p>
                       {(waNumber) && (
@@ -974,8 +976,9 @@ const LetterContent = ({ data }) => {
                     </div>
                   )}
                 </div>
-
-                <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                {!(['confirmed', 'declined'].includes(rsvpStatus) && (accommodationRequested !== accommodationChoice)) && (
+                  <button className="rsvp-next-btn" onClick={handleNextStep}>{t('rsvp.buttons.next')}</button>
+                )}
                 <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
               </>
             )}
@@ -983,16 +986,17 @@ const LetterContent = ({ data }) => {
             {/* STEP 5: CONFERMA FINALE */}
             {rsvpStep === 'final' && (
               <>
-                <div className="final-summary">
-                  <h3>{t('rsvp.labels.summary')}</h3>
-                  <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
-                  <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
-                  <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
-                  {data.accommodation_offered && (
-                    <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
-                  )}
-                </div>
-
+                {!tempDeclining && (
+                  <div className="final-summary">
+                    <h3>{t('rsvp.labels.summary')}</h3>
+                    <p><strong>{t('rsvp.labels.guests')}</strong> {getActiveGuests().map(g => `${g.first_name} ${g.last_name || ''}`).join(', ')}</p>
+                    <p><strong>{t('rsvp.labels.phone')}</strong> {phoneNumber}</p>
+                    <p><strong>{t('rsvp.labels.transport')}</strong> {travelInfo.transport_type} - {travelInfo.schedule}</p>
+                    {data.accommodation_offered && (
+                      <p><strong>{t('rsvp.labels.accommodation')}</strong> {accommodationChoice ? t('rsvp.options.yes') : t('rsvp.options.no')}</p>
+                    )}
+                  </div>
+                )}
                 {/* Alert se già confermato e declina */}
                 {rsvpStatus === 'declined' ? (
                   <div className="whatsapp-alert">
@@ -1016,12 +1020,12 @@ const LetterContent = ({ data }) => {
                 )
                   :
                   (<div className="button-group">
-                    {!['confirmed', 'declined'].includes(rsvpStatus) && (
+                    {!['confirmed', 'declined'].includes(rsvpStatus) && !tempDeclining && (
                       <button className="rsvp-button confirm" onClick={() => handleRSVP('confirmed')} disabled={submitting}>
                         {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.confirm_presence')}`}
                       </button>
                     )}
-                    {['confirmed', 'declined'].includes(rsvpStatus) && (
+                    {['confirmed', 'declined'].includes(rsvpStatus) && !tempDeclining && (
                       <button className="rsvp-button save" onClick={() => handleRSVP(rsvpStatus)} disabled={submitting}>
                         {submitting ? t('rsvp.labels.loading') : `${t('rsvp.buttons.save_changes')}`}
                       </button>
@@ -1033,7 +1037,9 @@ const LetterContent = ({ data }) => {
                     )}
                   </div>
                   )}
-                <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
+                {!tempDeclining && (
+                  <button className="rsvp-back-btn" onClick={handleBackStep}>{t('rsvp.buttons.back')}</button>
+                )}
                 {message && <div className={`message ${message.type}`}>{message.text}</div>}
               </>
             )}

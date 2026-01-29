@@ -1,0 +1,64 @@
+services:
+  # ---------------------------------------------
+  # BACKEND - Abilita Django Dev Server
+  # ---------------------------------------------
+  adminer:
+    ports: !reset []
+  backend:
+    ports: !reset []
+    volumes: !reset
+      - dev_static_volume:/app/staticfiles
+      - dev_media_volume:/app/media
+    environment:
+      - DEBUG=True
+
+  # ---------------------------------------------
+  # FRONTEND USER - Abilita Vite Dev Server
+  # ---------------------------------------------
+  frontend-user:
+    ports: !reset []
+    volumes: !reset []
+
+  # ---------------------------------------------
+  # FRONTEND ADMIN - Abilita Vite Dev Server
+  # ---------------------------------------------
+  frontend-admin:
+    ports: !reset []
+    volumes: !reset []
+    build:
+      args:
+        REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://dev-wed-app-nginx-intranet/api}
+
+  # ---------------------------------------------
+  # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
+  # ---------------------------------------------
+  nginx-public:
+    ports: !reset []
+    networks:
+      remote-dev-network: {}
+
+  # ---------------------------------------------
+  # 6. NGINX INTRANET - Gateway Intranet (solo frontend-admin)
+  # ---------------------------------------------
+  nginx-intranet:
+    ports: !reset []
+    networks:
+      remote-dev-network: {}
+
+  # ---------------------------------------------
+  # WHATSAPP INTEGRATION (Dev Overrides)
+  # ---------------------------------------------
+
+  # Integration Layer - Hot Reload Node.js
+  whatsapp-integration:
+    ports: !reset []
+
+  # Worker Django (Esegue command custom in modalità dev con reload se supportato)
+  backend-worker:
+    ports: !reset []
+    environment:
+      DEBUG: "True"
+
+networks:
+  remote-dev-network:
+    external: true

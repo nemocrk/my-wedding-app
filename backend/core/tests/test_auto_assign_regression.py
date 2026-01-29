@@ -19,18 +19,16 @@ class TestAutoAssignRegression:
             name="Pinned Family", code="pinned", 
             status=Invitation.Status.CONFIRMED, 
             accommodation_requested=True,
-            accommodation_pinned=True,
             accommodation=self.hotel  # Assegnato a livello logico
         )
-        self.p1 = Person.objects.create(invitation=self.inv_pinned, first_name="Pin", last_name="Ned", assigned_room=self.room1)
-        self.p2 = Person.objects.create(invitation=self.inv_pinned, first_name="Pin", last_name="Ned Jr", assigned_room=self.room1)
+        self.p1 = Person.objects.create(invitation=self.inv_pinned, first_name="Pin", last_name="Ned", assigned_room=self.room1, accommodation_pinned=True)
+        self.p2 = Person.objects.create(invitation=self.inv_pinned, first_name="Pin", last_name="Ned Jr", assigned_room=self.room1, accommodation_pinned=True)
 
         # Invito 2: Non Pinned (da assegnare)
         self.inv_new = Invitation.objects.create(
             name="New Family", code="new", 
             status=Invitation.Status.CONFIRMED, 
-            accommodation_requested=True,
-            accommodation_pinned=False
+            accommodation_requested=True
         )
         self.p3 = Person.objects.create(invitation=self.inv_new, first_name="New", last_name="Guy")
         self.p4 = Person.objects.create(invitation=self.inv_new, first_name="New", last_name="Girl")
@@ -116,8 +114,7 @@ class TestAutoAssignRegression:
 
     def test_unpin_allows_reassignment(self):
         """Test that unpinning allows the invitation to be moved/reset"""
-        self.inv_pinned.accommodation_pinned = False
-        self.inv_pinned.save()
+        self.inv_pinned.guests.all().update(accommodation_pinned = False)
         
         url = '/api/admin/accommodations/auto-assign/'
         payload = {

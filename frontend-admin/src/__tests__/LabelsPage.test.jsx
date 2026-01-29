@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import LabelManager from '../pages/LabelManager';
 import { api } from '../services/api';
-import { fireEvent, render, screen, waitFor } from '../test-utils';
+import { fireEvent, render, screen, waitFor, within } from './test-utils';
 
 // Mock API
 vi.mock('../services/api', () => ({
@@ -21,6 +21,7 @@ describe('LabelManager', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    api.fetchInvitationLabels.mockClear();
     api.fetchInvitationLabels.mockResolvedValue({ results: mockLabels });
   });
 
@@ -69,6 +70,35 @@ describe('LabelManager', () => {
       });
     });
   });
+  it('handles label editing', async () => {
+    api.updateInvitationLabel.mockResolvedValue({});
+    api.fetchInvitationLabels.mockResolvedValueOnce({ results: mockLabels });
+
+    render(<LabelManager />);
+
+    await waitFor(() => {
+      const elementsFamily = screen.getAllByText('Family');
+      expect(elementsFamily.length).toBeGreaterThan(0);
+      expect(elementsFamily[0]).toBeInTheDocument();
+    });
+    // Click Delete on second item
+    const editBtn = screen.getByRole('button', { name: /Edit Family/i }); // Assuming button text or title
+    fireEvent.click(editBtn);
+
+    const colorsDiv = screen.getByText('Colore').closest('div');
+    const anotherColor = within(colorsDiv).getAllByRole('button')[0];
+    fireEvent.click(anotherColor);
+
+    const saveBtn = screen.getByRole('button', { name: /Salva/i }); // Assuming button text or title
+    fireEvent.click(saveBtn);
+
+    expect(api.updateInvitationLabel).toHaveBeenCalledWith(2, { "color": "#EF4444", "name": "Family", });
+
+    fireEvent.click(editBtn);
+    const header = screen.getByText('Modifica Etichetta').closest('div');
+    const closeBtn = within(header).getByRole('button');
+    fireEvent.click(closeBtn);
+  });
 
   it('handles label deletion', async () => {
     api.deleteInvitationLabel.mockResolvedValue({});
@@ -85,6 +115,9 @@ describe('LabelManager', () => {
     });
     // Click Delete on second item
     const deleteBtn = screen.getByRole('button', { name: /delete Family/i }); // Assuming button text or title
+    fireEvent.click(deleteBtn);
+    const cancelBtn = screen.getByText('Annulla'); // Assuming button text or title
+    fireEvent.click(cancelBtn);
     fireEvent.click(deleteBtn);
     const deleteBtns = screen.getByText('Elimina'); // Assuming button text or title
     fireEvent.click(deleteBtns);

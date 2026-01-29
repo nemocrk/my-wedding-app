@@ -26,12 +26,13 @@ class InvitationLabelSerializer(serializers.ModelSerializer):
 class PersonSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(required=False)
     assigned_room_number = serializers.SerializerMethodField(read_only=True)
+    invitation = serializers.PrimaryKeyRelatedField(read_only=True)
 
     class Meta:
         model = Person
         fields = [
             'id', 'first_name', 'last_name', 'is_child', 
-            'dietary_requirements', 'assigned_room', 'assigned_room_number'
+            'dietary_requirements', 'assigned_room', 'assigned_room_number', 'not_coming', 'accommodation_pinned', 'invitation'
         ]
         extra_kwargs = {
             'last_name': {'required': False, 'allow_blank': True, 'allow_null': True},
@@ -45,7 +46,8 @@ class PublicPersonSerializer(serializers.ModelSerializer):
     """Serializer ridotto per visualizzazione pubblica (solo nome)"""
     class Meta:
         model = Person
-        fields = ['first_name', 'last_name', 'is_child']
+        fields = ['first_name', 'last_name', 'is_child', 'id', 'not_coming', 'dietary_requirements']
+        
 
 class PublicInvitationSerializer(serializers.ModelSerializer):
     """Serializer per endpoint pubblico con lettera renderizzata"""
@@ -59,7 +61,7 @@ class PublicInvitationSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = [
             'name', 'guests', 'letter_content',
-            'accommodation_offered', 'transfer_offered', 'status',
+            'accommodation_offered', 'accommodation_requested', 'transfer_offered', 'status',
             'whatsapp', 'phone_number', 'travel_info'
         ]
 
@@ -116,7 +118,7 @@ class RoomDetailSerializer(serializers.ModelSerializer):
         model = Room
         fields = [
             'id', 'room_number', 'capacity_adults', 'capacity_children',
-            'assigned_guests', 'occupied_count', 'available_slots'
+            'assigned_guests', 'occupied_count', 'available_slots', 'price'
         ]
 
     def get_available_slots(self, obj):
@@ -126,7 +128,7 @@ class RoomSerializer(serializers.ModelSerializer):
     """Serializer leggero per creazione/aggiornamento alloggi"""
     class Meta:
         model = Room
-        fields = ['id', 'room_number', 'capacity_adults', 'capacity_children']
+        fields = ['id', 'room_number', 'capacity_adults', 'capacity_children', 'price']
 
 class InvitationAssignmentSerializer(serializers.ModelSerializer):
     """Serializer leggero per mostrare chi occupa l'alloggio"""
@@ -209,7 +211,7 @@ class InvitationSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invitation
         fields = [
-            'id', 'code', 'name', 'accommodation_offered', 'transfer_offered', 'accommodation_pinned',
+            'id', 'code', 'name', 'accommodation_offered', 'transfer_offered',
             'accommodation_requested', 'transfer_requested', 'accommodation',
             'affinities', 'non_affinities', 'guests', 'created_at', 'status',
             'origin', 'phone_number', 'contact_verified', 'contact_verified_display',
@@ -323,7 +325,7 @@ class InvitationListSerializer(serializers.ModelSerializer):
         model = Invitation
         fields = [
             'id', 'name', 'code', 'guests_count', 'guests', 
-            'accommodation_offered', 'transfer_offered', 'accommodation_pinned',
+            'accommodation_offered', 'transfer_offered',
             'accommodation_requested', 'transfer_requested',
             'status', 'accommodation_name', 'origin', 'phone_number',
             'contact_verified', 'contact_verified_display', 'labels'

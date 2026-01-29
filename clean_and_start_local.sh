@@ -6,18 +6,26 @@
 
 set -e # Interrompe l'esecuzione se un comando fallisce
 
-COMPOSE_CMD="docker-compose -f docker-compose.yml -f docker-compose.dev.yml"
 COMPOSE_OTHER=""
 # Default values
 CLEAN_ONLY=false
 DETACH=false
 DEBUG_BACKEND=false
+USING_SHARED_CONTEXT=$(docker context show |grep shared-context||true)
+if [ -n "$USING_SHARED_CONTEXT" ]; then
+    echo "--------------------------------------------------------"
+    echo "  Siamo in Shared Context"
+    echo "--------------------------------------------------------"
+COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.remote-dev.yml"
+else 
+COMPOSE_CMD="docker compose -f docker-compose.yml -f docker-compose.dev.yml"
+fi
 
 # Parse arguments
 for arg in "$@"
 do
     case $arg in
-        --clean_only)
+        --clean-only)
             CLEAN_ONLY=true
             shift
             ;;
@@ -37,8 +45,12 @@ echo "--------------------------------------------------------"
 echo "  [1/4] Killo eventuali Container Attivi..."
 echo "--------------------------------------------------------"
 # Recupera gli ID dei container in esecuzione
-CONTAINERS=$(docker ps -q)
 
+if [ -n "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker ps --format json | jq -r 'select(.Names | contains("dev-")) | .ID')
+else
+CONTAINERS=$(docker ps -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessun container in esecuzione da terminare."
 else
@@ -48,7 +60,11 @@ fi
 echo "--------------------------------------------------------"
 echo "  [2/4] Elimino eventuali Container Esistenti..."
 echo "--------------------------------------------------------"
+if [ -n "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker ps -a --format json | jq -r 'select(.Names | contains("dev-")) | .ID')
+else
 CONTAINERS=$(docker ps -a -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessun container da eliminare."
 else
@@ -58,7 +74,11 @@ fi
 echo "--------------------------------------------------------"
 echo "  [3/4] Elimino eventuali Reti Esistenti..."
 echo "--------------------------------------------------------"
+if [ -n "$USING_SHARED_CONTEXT" ]; then
+CONTAINERS=$(docker network ls --filter "type=custom" --format json | jq -r 'select(.Name | contains("_dev_")) | .ID')
+else
 CONTAINERS=$(docker network ls --filter "type=custom" -q)
+fi
 if [ -z "$CONTAINERS" ]; then
     echo "Nessuna rete da eliminare."
 else
