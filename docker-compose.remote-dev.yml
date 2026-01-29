@@ -2,6 +2,8 @@ services:
   # ---------------------------------------------
   # BACKEND - Abilita Django Dev Server
   # ---------------------------------------------
+  adminer:
+    ports: !reset []
   backend:
     ports: !reset []
     volumes: !reset
@@ -23,6 +25,9 @@ services:
   frontend-admin:
     ports: !reset []
     volumes: !reset []
+    build:
+      args:
+        REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://dev-wed-app-nginx-intranet/api}
 
   # ---------------------------------------------
   # 5. NGINX PUBLIC - Gateway Internet (solo frontend-user)
