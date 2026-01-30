@@ -12,6 +12,7 @@ export default defineConfig({
   server: {
     port: 3001,
     host: true, // Needed for Docker
+    allowedHosts: true,
     proxy: {
       '/api': {
         target: 'http://backend:8000',

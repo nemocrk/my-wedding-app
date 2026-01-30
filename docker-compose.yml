@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
     volumes:
-      - dev_postgres_data:/var/lib/postgresql/data
+      - dev_postgres_data:/var/lib/postgresql
     networks:
       - dev_db_network
     healthcheck:

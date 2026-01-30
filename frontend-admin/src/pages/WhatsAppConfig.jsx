@@ -9,7 +9,7 @@ import { api } from '../services/api';
 
 const WhatsAppConfig = () => {
     const { t } = useTranslation();
-    const confirm = useConfirm();
+    const { confirm } = useConfirm();
     const toast = useToast();
     const [activeTab, setActiveTab] = useState('connection'); // connection | templates
     const [groomStatus, setGroomStatus] = useState({ state: 'loading' });

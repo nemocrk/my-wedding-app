@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsAppQueueDashboard from '../../components/whatsapp/WhatsAppQueueDashboard';
 import { whatsappService } from '../../services/whatsappService';
-import { fireEvent, render, screen, waitFor } from '../test-utils';
+import { fireEvent, render, screen, waitFor, within } from '../test-utils';
 
 // Mock del service
 vi.mock('../../services/whatsappService', () => ({
@@ -9,6 +9,7 @@ vi.mock('../../services/whatsappService', () => ({
     getQueue: vi.fn(),
     retryFailed: vi.fn(),
     forceSend: vi.fn(),
+    deleteMessage: vi.fn()
   },
 }));
 
@@ -73,6 +74,23 @@ describe('WhatsAppQueueDashboard', () => {
     fireEvent.click(sendButton);
 
     await waitFor(() => expect(whatsappService.forceSend).toHaveBeenCalledWith(1));
+  });
+
+  it('clicking Delete calls delete', async () => {
+    render(<WhatsAppQueueDashboard />);
+
+    await waitFor(() => expect(whatsappService.getQueue).toHaveBeenCalled());
+
+    const sendButton = screen.getAllByTitle("Delete")[0];
+    fireEvent.click(sendButton);
+
+    await waitFor(() => expect(screen.getByText('Elimina Messaggio')).toBeInTheDocument());
+    const confirmationModal = screen.getByText('Elimina Messaggio').closest('div');
+    const confirmationBtn = within(confirmationModal).getByRole('button', { name: 'Elimina' })
+
+    fireEvent.click(confirmationBtn);
+
+    await waitFor(() => expect(whatsappService.deleteMessage).toHaveBeenCalledWith(1));
   });
 
   it('shows empty state when no messages', async () => {

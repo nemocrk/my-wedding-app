@@ -4,6 +4,8 @@ services:
   # ---------------------------------------------
   adminer:
     ports: !reset []
+    networks:
+      remote-dev-network: {}
   backend:
     ports: !reset []
     volumes: !reset
@@ -56,6 +58,9 @@ services:
   # Worker Django (Esegue command custom in modalità dev con reload se supportato)
   backend-worker:
     ports: !reset []
+    volumes: !reset
+      - dev_static_volume_worker:/app/staticfiles
+      - dev_media_volume_worker:/app/media
     environment:
       DEBUG: "True"
 
