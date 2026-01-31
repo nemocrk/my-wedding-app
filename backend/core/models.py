@@ -621,7 +621,7 @@ class WhatsAppTemplate(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ['trigger_status', 'condition'] # Un solo template automatico per stato
+        unique_together = ['trigger_status', 'condition', 'recipient'] # Un solo template automatico per stato
         verbose_name = "Template WhatsApp"
         verbose_name_plural = "Template WhatsApp"
 

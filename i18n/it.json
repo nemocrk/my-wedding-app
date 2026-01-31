@@ -619,6 +619,7 @@
                     "inactive": "Inattivo"
                 },
                 "trigger": "Trigger: Cambio stato in",
+                "recipient": "inviato a",
                 "modal": {
                     "title_create": "Nuovo Template",
                     "title_edit": "Modifica Template",

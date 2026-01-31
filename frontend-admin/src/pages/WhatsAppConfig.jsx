@@ -188,6 +188,7 @@ const WhatsAppConfig = () => {
                 name: template.name,
                 condition: template.condition,
                 trigger_status: template.trigger_status || '',
+                recipient: template.recipient || '',
                 content: template.content,
                 is_active: template.is_active
             });
@@ -441,7 +442,7 @@ const WhatsAppConfig = () => {
 
                                     {tpl.condition === 'status_change' && (
                                         <div className="text-xs text-gray-500 mb-2 font-mono bg-gray-50 inline-block px-2 py-1 rounded">
-                                            {t('admin.whatsapp_config.templates.trigger')} <strong>{tpl.trigger_status}</strong>
+                                            {t('admin.whatsapp_config.templates.trigger')} <strong>{t('admin.whatsapp_config.templates.modal.fields.trigger_' + tpl.trigger_status)}</strong> {t('admin.whatsapp_config.templates.recipient')} <strong>{t('admin.whatsapp_config.templates.modal.fields.recipient_' + tpl.recipient)}</strong>
                                         </div>
                                     )}
 
