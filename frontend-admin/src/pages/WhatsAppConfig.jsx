@@ -29,6 +29,7 @@ const WhatsAppConfig = () => {
         name: '',
         condition: 'manual',
         trigger_status: '',
+        recipient: '',
         content: '',
         is_active: true
     });
@@ -529,21 +530,36 @@ const WhatsAppConfig = () => {
                             </div>
 
                             {formData.condition === 'status_change' && (
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.whatsapp_config.templates.modal.fields.trigger_status')}</label>
-                                    <select
-                                        value={formData.trigger_status}
-                                        onChange={(e) => setFormData({ ...formData, trigger_status: e.target.value })}
-                                        required={formData.condition === 'status_change'}
-                                        className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
-                                    >
-                                        <option value="">{t('admin.whatsapp_config.templates.modal.fields.trigger_select')}</option>
-                                        <option value="sent">{t('admin.whatsapp_config.templates.modal.fields.trigger_sent')}</option>
-                                        <option value="read">{t('admin.whatsapp_config.templates.modal.fields.trigger_read')}</option>
-                                        <option value="confirmed">{t('admin.whatsapp_config.templates.modal.fields.trigger_confirmed')}</option>
-                                        <option value="declined">{t('admin.whatsapp_config.templates.modal.fields.trigger_declined')}</option>
-                                    </select>
-                                </div>
+                                <>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.whatsapp_config.templates.modal.fields.trigger_status')}</label>
+                                        <select
+                                            value={formData.trigger_status}
+                                            onChange={(e) => setFormData({ ...formData, trigger_status: e.target.value })}
+                                            required={formData.condition === 'status_change'}
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+                                        >
+                                            <option value="">{t('admin.whatsapp_config.templates.modal.fields.trigger_select')}</option>
+                                            <option value="sent">{t('admin.whatsapp_config.templates.modal.fields.trigger_sent')}</option>
+                                            <option value="read">{t('admin.whatsapp_config.templates.modal.fields.trigger_read')}</option>
+                                            <option value="confirmed">{t('admin.whatsapp_config.templates.modal.fields.trigger_confirmed')}</option>
+                                            <option value="declined">{t('admin.whatsapp_config.templates.modal.fields.trigger_declined')}</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">{t('admin.whatsapp_config.templates.modal.fields.recipient_status')}</label>
+                                        <select
+                                            value={formData.recipient}
+                                            onChange={(e) => setFormData({ ...formData, recipient: e.target.value })}
+                                            required={formData.condition === 'status_change'}
+                                            className="w-full border-gray-300 rounded-md shadow-sm focus:ring-green-500 focus:border-green-500"
+                                        >
+                                            <option value="">{t('admin.whatsapp_config.templates.modal.fields.recipient_select')}</option>
+                                            <option value="guest">{t('admin.whatsapp_config.templates.modal.fields.recipient_guest')}</option>
+                                            <option value="spouse">{t('admin.whatsapp_config.templates.modal.fields.recipient_spouse')}</option>
+                                        </select>
+                                    </div>
+                                </>
                             )}
 
                             <div>

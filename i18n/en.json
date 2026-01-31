@@ -634,6 +634,10 @@
             "trigger_read": "Read",
             "trigger_confirmed": "Accepted (Confirmed)",
             "trigger_declined": "Declined",
+            "recipient_status": "Send to:",
+            "recipient_select": "-- Select Recipient --",
+            "recipient_guest": "Guest",
+            "recipient_spouse": "Spouse",
             "content": "Message Content",
             "content_placeholder": "Hi {name}, here's your invitation...",
             "is_active": "Template Active"

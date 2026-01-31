@@ -144,6 +144,8 @@ services:
     depends_on:
       backend:
         condition: service_healthy
+      whatsapp-integration:
+        condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db
       DJANGO_SETTINGS_MODULE: wedding.settings

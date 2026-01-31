@@ -596,9 +596,14 @@ class WhatsAppTemplate(models.Model):
     class Condition(models.TextChoices):
         STATUS_CHANGE = 'status_change', 'Cambio di Stato'
         MANUAL = 'manual', 'Manuale (Spot)'
+        
+    class Recipient(models.TextChoices):
+        SPOUSE = 'spouse', 'Coniuge'
+        GUEST = 'guest', 'Invitato'
 
     name = models.CharField(max_length=100, help_text="Nome descrittivo del template")
     condition = models.CharField(max_length=20, choices=Condition.choices, default=Condition.STATUS_CHANGE)
+    recipient = models.CharField(max_length=20, choices=Recipient.choices, default=Recipient.GUEST)
     
     # Se condition == STATUS_CHANGE, questo campo definisce QUANDO inviare
     trigger_status = models.CharField(
