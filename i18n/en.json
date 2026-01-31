@@ -619,6 +619,7 @@
           "inactive": "Inactive"
         },
         "trigger": "Trigger: Status change to",
+        "recipient": "sent to",
         "modal": {
           "title_create": "New Template",
           "title_edit": "Edit Template",
@@ -628,12 +629,14 @@
             "type": "Type",
             "type_manual": "Manual (Spot)",
             "type_auto": "Automatic (Status Change)",
+            "trigger_": "Trigger: ",
             "trigger_status": "Activate when status becomes:",
             "trigger_select": "-- Select Status --",
             "trigger_sent": "Sent",
             "trigger_read": "Read",
             "trigger_confirmed": "Accepted (Confirmed)",
             "trigger_declined": "Declined",
+            "recipient_": "Recipient: ",
             "recipient_status": "Send to:",
             "recipient_select": "-- Select Recipient --",
             "recipient_guest": "Guest",

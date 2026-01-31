@@ -619,6 +619,7 @@
                     "inactive": "Inattivo"
                 },
                 "trigger": "Trigger: Cambio stato in",
+                "recipient": "inviato a",
                 "modal": {
                     "title_create": "Nuovo Template",
                     "title_edit": "Modifica Template",
@@ -628,12 +629,14 @@
                         "type": "Tipo",
                         "type_manual": "Manuale (Spot)",
                         "type_auto": "Automatico (Cambio Stato)",
+                        "trigger_": "Trigger: ",
                         "trigger_status": "Attiva quando lo stato diventa:",
                         "trigger_select": "-- Seleziona Stato --",
                         "trigger_sent": "Inviato (Sent)",
                         "trigger_read": "Letto (Read)",
                         "trigger_confirmed": "Accettato (Confirmed)",
                         "trigger_declined": "Declinato (Declined)",
+                        "recipient_": "Destinatario: ",
                         "recipient_status": "Invia a:",
                         "recipient_select": "-- Seleziona Destinatario --",
                         "recipient_guest": "Ospite",
