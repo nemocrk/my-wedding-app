@@ -1,5 +1,5 @@
 import pytest
-from core.models import Invitation, InvitationLabel, WhatsAppMessageQueue, Person
+from core.models import Invitation, InvitationLabel, WhatsAppMessageQueue, Person, GuestHeatmap, GuestInteraction
 from rest_framework.test import APIClient
 from django.urls import reverse
 import json
@@ -290,3 +290,119 @@ class TestInvitationViewSetWithLabels:
         assert 'labels' in inv_data
         assert len(inv_data['labels']) == 1
         assert inv_data['labels'][0]['name'] == 'TestLabel'
+
+@pytest.mark.django_db
+class TestInvitationViewSetExtraActions:
+    def setup_method(self):
+        self.client = APIClient()  # Assumes admin auth if required by gateway
+        self.invitation = Invitation.objects.create(name="Test Inv", code="EXTRA01")
+        self.guest = Person.objects.create(invitation=self.invitation, first_name="John", last_name="Doe")
+
+    def test_heatmaps_action(self):
+        # Setup: Create heatmap data for the invitation
+        GuestHeatmap.objects.create(
+            invitation=self.invitation,
+            session_id="session1",
+            mouse_data=[[1, 2, 3]],
+            screen_width=1024,
+            screen_height=768
+        )
+        GuestHeatmap.objects.create(
+            invitation=self.invitation,
+            session_id="session2",
+            mouse_data=[[4, 5, 6]],
+            screen_width=1024,
+            screen_height=768
+        )
+
+        url = f'/api/admin/invitations/{self.invitation.id}/heatmaps/'
+        response = self.client.get(url)
+
+        assert response.status_code == 200
+        assert len(response.data) == 2
+        assert response.data[0]['session_id'] == "session2" # Ordered by -timestamp
+        assert response.data[1]['mouse_data'] == [[1, 2, 3]]
+
+    def test_interactions_action(self):
+        # Setup: Create heatmap and interaction data
+        GuestHeatmap.objects.create(
+            invitation=self.invitation,
+            session_id="session-abc",
+            mouse_data=[[10, 20, 1]],
+            screen_width=1920,
+            screen_height=1080
+        )
+        GuestInteraction.objects.create(
+            invitation=self.invitation,
+            event_type="click",
+            ip_address="127.0.0.1",
+            metadata={"session_id": "session-abc", "target": "#button"}
+        )
+        GuestInteraction.objects.create(
+            invitation=self.invitation,
+            event_type="visit",
+            ip_address="127.0.0.1",
+            device_type="mobile",
+            geo_country="IT",
+            metadata={} # No session ID
+        )
+
+        url = f'/api/admin/invitations/{self.invitation.id}/interactions/'
+        response = self.client.get(url)
+        assert response.status_code == 200
+        assert len(response.data) == 2 # Two sessions detected
+
+        # Find the session with the heatmap
+        session_with_heatmap = next((s for s in response.data if s['session_id'] == 'session-abc'), None)
+        assert session_with_heatmap is not None
+        assert session_with_heatmap['heatmap'] is not None
+        assert len(session_with_heatmap['events']) == 1
+        assert session_with_heatmap['events'][0]['type'] == 'click'
+
+        # Find the session without a session_id (fallback)
+        session_fallback = next((s for s in response.data if s['session_id'].startswith('unknown_')), None)
+        assert session_fallback is not None
+        assert session_fallback['heatmap'] is None
+        assert len(session_fallback['events']) == 1
+        assert session_fallback['events'][0]['type'] == 'visit'
+        assert session_fallback['device_info'] == "mobile (IT)"
+        
+    def test_pin_guest_accommodation_action(self):
+        # Pin the guest
+        url = f'/api/admin/invitations/{self.invitation.id}/pin_guest_accomodation/'
+        data = {"guest_id": self.guest.id, "pin_status": True}
+        response_pin = self.client.put(url, data, format='json')
+
+        assert response_pin.status_code == 200
+        assert response_pin.data['status'] is True
+        self.guest.refresh_from_db()
+        assert self.guest.accommodation_pinned is True
+
+        # Unpin the guest
+        data = {"guest_id": self.guest.id, "pin_status": False}
+        response_unpin = self.client.put(url, data, format='json')
+
+        assert response_unpin.status_code == 200
+        assert response_unpin.data['status'] is False
+        self.guest.refresh_from_db()
+        assert self.guest.accommodation_pinned is False
+
+    def test_pin_guest_accommodation_bad_requests(self):
+        url = f'/api/admin/invitations/{self.invitation.id}/pin_guest_accomodation/'
+        
+        # Missing guest_id
+        response_no_guest = self.client.put(url, {"pin_status": True}, format='json')
+        assert response_no_guest.status_code == 400
+        assert 'guest_id is required' in response_no_guest.data['error']
+
+        # Missing pin_status
+        response_no_status = self.client.put(url, {"guest_id": self.guest.id}, format='json')
+        assert response_no_status.status_code == 400
+        assert 'pin_status is required' in response_no_status.data['error']
+
+        # Guest not in invitation
+        other_inv = Invitation.objects.create(name="Other", code="OTHER")
+        other_guest = Person.objects.create(invitation=other_inv, first_name="Other")
+        response_wrong_guest = self.client.put(url, {"guest_id": other_guest.id, "pin_status": True}, format='json')
+        assert response_wrong_guest.status_code == 400
+        assert 'guest not found' in response_wrong_guest.data['error']

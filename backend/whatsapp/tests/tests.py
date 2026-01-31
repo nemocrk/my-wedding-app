@@ -74,7 +74,12 @@ class WhatsAppWorkerTest(TestCase):
         mock_post.return_value = mock_response
 
         # Run worker logic once
-        self.cmd.process_queue()
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "raw": {"me": {"id": "12345@c.us"}}
+            }
+            self.cmd.process_queue()
 
         msg.refresh_from_db()
         self.assertEqual(msg.status, WhatsAppMessageQueue.Status.SENT)
@@ -120,7 +125,12 @@ class WhatsAppWorkerTest(TestCase):
         mock_post.return_value = mock_response
 
         # Run worker
-        self.cmd.process_queue()
+        with patch("requests.get") as mock_get:
+            mock_get.return_value.status_code = 200
+            mock_get.return_value.json.return_value = {
+                "raw": {"me": {"id": "12345@c.us"}}
+            }
+            self.cmd.process_queue()
 
         msg.refresh_from_db()
         # Should be SENT now

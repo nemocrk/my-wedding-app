@@ -2,7 +2,10 @@ import pytest
 from rest_framework.test import APIClient
 from rest_framework import status
 from django.db import IntegrityError
-from core.models import Invitation, GlobalConfig, Person, Accommodation, Room, WhatsAppSessionStatus
+from core.models import Invitation, GlobalConfig, Person, Accommodation, Room, WhatsAppSessionStatus, GuestHeatmap
+from unittest.mock import patch
+import os
+
 
 @pytest.mark.django_db
 class TestPublicInvitationAuthView:
@@ -179,3 +182,80 @@ class TestAccommodationAutoAssign:
         
         self.p1.refresh_from_db()
         assert self.p1.assigned_room == self.room
+
+@pytest.mark.django_db
+class TestPublicLogHeatmapView:
+    def setup_method(self):
+        self.client = APIClient()
+        self.config = GlobalConfig.objects.create(invitation_link_secret="secret")
+        self.invitation = Invitation.objects.create(
+            name="Heatmap Fam", code="HEAT01", status=Invitation.Status.SENT, origin=Invitation.Origin.GROOM
+        )
+        self.token = self.invitation.generate_verification_token("secret")
+        
+        WhatsAppSessionStatus.objects.create(session_type='groom', state='connected')
+        WhatsAppSessionStatus.objects.create(session_type='bride', state='connected')
+
+    def _login(self):
+        auth_url = '/api/public/auth/'
+        data = {'code': 'HEAT01', 'token': self.token}
+        self.client.post(auth_url, data)
+
+    def test_log_heatmap_success(self):
+        self._login()
+        url = '/api/public/log-heatmap/'
+        data = {
+            "mouse_data": [[10, 20, 1], [15, 25, 1]],
+            "screen_width": 1920,
+            "screen_height": 1080,
+            "session_id": "test-session-heatmap"
+        }
+        response = self.client.post(url, data, format='json')
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data == {"logged": True}
+        
+        self.invitation.refresh_from_db()
+        assert self.invitation.status == Invitation.Status.READ
+        
+        assert GuestHeatmap.objects.filter(invitation=self.invitation, session_id="test-session-heatmap").exists()
+
+    def test_log_heatmap_unauthorized(self):
+        url = '/api/public/log-heatmap/'
+        data = {"mouse_data": [[10, 20, 1]]}
+        response = self.client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+    def test_log_heatmap_bad_request(self):
+        self._login()
+        url = '/api/public/log-heatmap/'
+        data = {"screen_width": 1920}  # Missing mouse_data
+        response = self.client.post(url, data, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+
+@pytest.mark.django_db
+class TestAdminGoogleFontsProxyView:
+    def setup_method(self):
+        self.client = APIClient() # Using admin_api_client fixture from conftest
+
+    def test_get_fonts_success(self):
+        url = '/api/admin/google-fonts/'
+        response = self.client.get(url)
+        
+        assert response.status_code == status.HTTP_200_OK
+        assert "items" in response.data
+        assert isinstance(response.data["items"], list)
+        assert len(response.data["items"]) > 0
+        
+        first_font = response.data["items"][0]
+        assert "family" in first_font
+        assert "category" in first_font
+
+    @patch('os.path.exists')
+    def test_get_fonts_file_not_found(self, mock_exists):
+        mock_exists.return_value = False
+        url = '/api/admin/google-fonts/'
+        response = self.client.get(url)
+        
+        assert response.status_code == status.HTTP_503_SERVICE_UNAVAILABLE

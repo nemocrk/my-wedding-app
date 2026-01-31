@@ -9,7 +9,9 @@ vi.mock('react-i18next', () => ({
 }));
 
 vi.mock('../../contexts/ConfirmDialogContext', () => ({
-  useConfirm: () => vi.fn().mockResolvedValue(true),
+  useConfirm: () => ({
+    confirm: vi.fn().mockResolvedValue(true),
+  }),
 }));
 
 vi.mock('../../contexts/ToastContext', () => ({

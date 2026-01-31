@@ -166,7 +166,7 @@ def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
 
     # Itera sui template (potrebbero essercene molteplici, anche se logicamente uno per status è meglio)
     for template in templates:
-        if not instance.phone_number and not template.recipient == WhatsAppTemplate.Recipient.GUEST:
+        if not instance.phone_number and not template.recipient == WhatsAppTemplate.Recipient.SPOUSE:
             logger.warning(f"Skipping automated message for {instance.name}: No phone number")
             continue
 
