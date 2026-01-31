@@ -20,6 +20,8 @@ services:
   frontend-user:
     ports: !reset []
     volumes: !reset []
+    build:
+      target: production
 
   # ---------------------------------------------
   # FRONTEND ADMIN - Abilita Vite Dev Server
@@ -28,6 +30,7 @@ services:
     ports: !reset []
     volumes: !reset []
     build:
+      target: production
       args:
         REACT_APP_API_URL: ${REACT_APP_ADMIN_API_URL:-http://dev-wed-app-nginx-intranet/api}
 

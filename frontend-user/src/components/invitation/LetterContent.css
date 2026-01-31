@@ -70,6 +70,28 @@
   -webkit-transform: rotateY(0deg);
 }
 
+/* Quando NON è flipped → front INTERATTIVA, back disabilitata */
+.flip-card:not(.flipped) .flip-card-front {
+  pointer-events: auto;
+  /* ✅ Front cliccabile */
+}
+
+.flip-card:not(.flipped) .flip-card-back {
+  pointer-events: none;
+  /* ✅ Back disabilitata */
+}
+
+/* Quando È flipped → back INTERATTIVA, front disabilitata */
+.flip-card.flipped .flip-card-front {
+  pointer-events: none;
+  /* ✅ Front disabilitata */
+}
+
+.flip-card.flipped .flip-card-back {
+  pointer-events: auto;
+  /* ✅ Back cliccabile */
+}
+
 .front-content {
   position: absolute;
   top: 0;

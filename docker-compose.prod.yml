@@ -11,11 +11,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     networks:
       - db_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: [ "CMD-SHELL", "pg_isready -U postgres" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -34,7 +34,7 @@ services:
       DB_USER: postgres
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: wedding_db
-      
+
       # Configurazione Pooling
       POOL_MODE: transaction
       MAX_CLIENT_CONN: 200
@@ -42,12 +42,12 @@ services:
       MIN_POOL_SIZE: 5
       RESERVE_POOL_SIZE: 5
       SERVER_IDLE_TIMEOUT: 600
-      
+
       # Configurazione Auth e Network
       LISTEN_PORT: 5432
       AUTH_TYPE: scram-sha-256
       ADMIN_USERS: postgres
-      
+
       # Fix DNS Docker issues
       DNS_MAX_TTL: 15
       DNS_ZONE_CHECK_PERIOD: 0
@@ -57,7 +57,7 @@ services:
       db:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "nc -z 127.0.0.1 5432 || exit 1"]
+      test: [ "CMD-SHELL", "nc -z 127.0.0.1 5432 || exit 1" ]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -91,14 +91,14 @@ services:
       - db_network
       - backend_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/health/" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
     expose:
       - "8000"
-      
+
   # ---------------------------------------------
   # 2b. BACKEND WORKER - Gestore Coda Messaggi
   # ---------------------------------------------
@@ -133,7 +133,7 @@ services:
     networks:
       - frontend_public_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -151,7 +151,7 @@ services:
     networks:
       - frontend_intranet_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -179,7 +179,7 @@ services:
       - backend_network
       - wedding_app_public_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -198,22 +198,22 @@ services:
       backend:
         condition: service_healthy
       whatsapp-integration:
-         condition: service_healthy
+        condition: service_healthy
     networks:
       - frontend_intranet_network
       - backend_network
       - whatsapp_intranet_network
       - wedding_app_private_network
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health" ]
       interval: 30s
       timeout: 10s
       retries: 3
-      
+
   # ---------------------------------------------
   # 7. WHATSAPP SERVICES (Isolated)
   # ---------------------------------------------
-  
+
   # WAHA Core - Sposo
   waha-groom:
     container_name: wedding-waha-groom
@@ -233,7 +233,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_GROOM}' http://localhost:3000/api/server/status || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_GROOM}' http://localhost:3000/api/server/status || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -258,7 +258,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_BRIDE}' http://localhost:3000/api/server/status || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider --header='X-Api-Key: ${WAHA_API_KEY_BRIDE}' http://localhost:3000/api/server/status || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -287,7 +287,7 @@ services:
     expose:
       - "3000"
     healthcheck:
-      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1"]
+      test: [ "CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:3000/health || exit 1" ]
       interval: 30s
       timeout: 10s
       retries: 3
