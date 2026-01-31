@@ -10,7 +10,7 @@ import QueueTable from './QueueTable';
 
 const WhatsAppQueueDashboard = () => {
   const { t } = useTranslation();
-  const confirm = useConfirm();
+  const { confirm } = useConfirm();
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);

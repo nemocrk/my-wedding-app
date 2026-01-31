@@ -11,8 +11,8 @@ vi.mock('react-i18next', () => ({
 // Mock confirm dialog context so tests can control confirmation
 const confirmMock = vi.fn();
 vi.mock('../contexts/ConfirmDialogContext', () => ({
-    // The real context returns the confirm function directly from useConfirm()
-    useConfirm: () => confirmMock,
+    // The real context returns an object with a confirm function
+    useConfirm: () => ({ confirm: confirmMock }),
     // Provide a simple provider passthrough for the test wrapper
     ConfirmDialogProvider: ({ children }) => children,
 }));

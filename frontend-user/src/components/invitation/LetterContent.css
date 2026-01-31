@@ -21,7 +21,7 @@
   transition: transform 0.8s;
   transform-style: preserve-3d;
   -webkit-transform-style: preserve-3d;
-  
+
   /* Perspective isolata qui (non contamina il modal in portal) */
   perspective: 1000px;
   -webkit-perspective: 1000px;
@@ -44,7 +44,8 @@
 }
 
 /* FACES Common */
-.flip-card-front, .flip-card-back {
+.flip-card-front,
+.flip-card-back {
   position: absolute;
   top: 0;
   left: 0;
@@ -53,10 +54,10 @@
   -webkit-backface-visibility: hidden;
   backface-visibility: hidden;
   border-radius: 12px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   background-color: #fffef7;
-  -webkit-transform: translate3d(0,0,0);
+  -webkit-transform: translate3d(0, 0, 0);
 }
 
 /* FRONT FACE */
@@ -69,73 +70,99 @@
   -webkit-transform: rotateY(0deg);
 }
 
+/* Quando NON è flipped → front INTERATTIVA, back disabilitata */
+.flip-card:not(.flipped) .flip-card-front {
+  pointer-events: auto;
+  /* ✅ Front cliccabile */
+}
+
+.flip-card:not(.flipped) .flip-card-back {
+  pointer-events: none;
+  /* ✅ Back disabilitata */
+}
+
+/* Quando È flipped → back INTERATTIVA, front disabilitata */
+.flip-card.flipped .flip-card-front {
+  pointer-events: none;
+  /* ✅ Front disabilitata */
+}
+
+.flip-card.flipped .flip-card-back {
+  pointer-events: auto;
+  /* ✅ Back cliccabile */
+}
+
 .front-content {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 0 20px;
-    z-index: 1;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px;
+  z-index: 1;
 }
 
 /* Text Styles - Front */
-.spacer-top { height: 15%; width: 100%; flex-shrink: 0; }
+.spacer-top {
+  height: 15%;
+  width: 100%;
+  flex-shrink: 0;
+}
 
 .text-names {
-    font-family: 'Indie Flower', cursive;
-    font-size: 2.2rem; 
-    color: #4A4A4A;
-    margin-bottom: 0.5rem;
-    line-height: 1.1;
-    transform: rotate(-2deg);
+  font-family: 'Indie Flower', cursive;
+  font-size: 2.2rem;
+  color: #4A4A4A;
+  margin-bottom: 0.5rem;
+  line-height: 1.1;
+  transform: rotate(-2deg);
 }
 
 .text-wit {
-    font-family: 'Quicksand', sans-serif;
-    font-size: 0.9rem;
-    font-weight: 500;
-    color: #555;
-    max-width: 90%;
-    margin-bottom: 0.8rem;
-    line-height: 1.3;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #555;
+  max-width: 90%;
+  margin-bottom: 0.8rem;
+  line-height: 1.3;
 }
 
 .text-date {
-    font-family: 'Pacifico', cursive;
-    font-size: 1.3rem;
-    color: #D2691E;
-    margin-bottom: 0.5rem;
+  font-family: 'Pacifico', cursive;
+  font-size: 1.3rem;
+  color: #D2691E;
+  margin-bottom: 0.5rem;
 }
 
 .text-details {
-    font-family: 'Quicksand', sans-serif;
-    font-size: 0.85rem;
-    color: #333;
-    max-width: 95%;
-    line-height: 1.4;
-    margin-bottom: 0.5rem;
+  font-family: 'Quicksand', sans-serif;
+  font-size: 0.85rem;
+  color: #333;
+  max-width: 95%;
+  line-height: 1.4;
+  margin-bottom: 0.5rem;
 }
 
 .text-dress {
-    font-family: 'Caveat', cursive;
-    font-size: 1.2rem;
-    color: #8B4513;
-    margin-top: 0.5rem;
+  font-family: 'Caveat', cursive;
+  font-size: 1.2rem;
+  color: #8B4513;
+  margin-top: 0.5rem;
 }
 
 /* Wax Seal Style */
 .wax-seal {
-    position: absolute;
-    bottom: 1rem;
-    left: 1rem;
-    width: 36%;
-    max-width: 90px;
-    z-index: 30;
-    pointer-events: none;
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 36%;
+  max-width: 90px;
+  z-index: 30;
+  pointer-events: none;
 }
 
 /* BACK FACE */
@@ -144,15 +171,16 @@
   -webkit-transform: rotateY(180deg);
   display: flex;
   flex-direction: column;
-  overflow-y: auto; 
+  overflow-y: auto;
   z-index: 1;
   background-size: cover;
   background-position: center;
+  --webkit-overflow-scrolling: touch;
 }
 
 /* Content wrapper inside back face */
 .letter-paper {
-  background: linear-gradient(to bottom, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0.7) 40%, rgba(255,255,255,0.3) 100%);
+  background: linear-gradient(to bottom, rgba(255, 255, 255, 0.95) 0%, rgba(255, 255, 255, 0.7) 40%, rgba(255, 255, 255, 0.3) 100%);
   width: 100%;
   min-height: 100%;
   padding: 1.5rem;
@@ -204,12 +232,13 @@
 
 .info-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 }
 
 .info-card:active {
   transform: translateY(0);
 }
+
 /* Icon inside card (left side) */
 .card-icon {
   height: 100%;
@@ -298,6 +327,7 @@
   max-width: 600px;
   max-height: 90vh;
   overflow-y: auto;
+  --webkit-overflow-scrolling: touch;
   /* background/boxShadow RIMOSSI - PaperModal provvede */
 }
 
@@ -374,15 +404,19 @@
 /* Allinea immagine e h2 sulla stessa riga */
 .expanded-content .card-header {
   display: flex;
-  align-items: center; /* Centra verticalmente l'immagine rispetto al testo */
-  gap: 15px;           /* Crea spazio tra immagine e titolo */
-  margin-bottom: 15px; /* Distanza dal testo sottostante */
+  align-items: center;
+  /* Centra verticalmente l'immagine rispetto al testo */
+  gap: 15px;
+  /* Crea spazio tra immagine e titolo */
+  margin-bottom: 15px;
+  /* Distanza dal testo sottostante */
 }
 
 /* Rimuovi i margini predefiniti di h2 per un allineamento perfetto */
 .expanded-content .card-header h2 {
   margin: 0;
 }
+
 /* ========== RSVP MODAL TITLE ========== */
 .rsvp-modal-title {
   font-family: 'Caveat', cursive;
@@ -511,6 +545,7 @@
 .guest-textarea:focus {
   border-color: #8b7355;
 }
+
 /* ========== FINE NUOVE CLASSI DIETARY UX ========== */
 
 /* ========== GUEST ACTIONS (Edit + Exclude Buttons) ========== */
@@ -977,561 +1012,669 @@
 }
 
 /* RSVP styles - NIENTE BORDI/SFONDI */
-.guests-list { 
-    margin-top: 1.5rem; 
-    padding: 0; 
-    background: transparent;
-    border-left: none; 
-}
-.guests-list h3 { font-size: 1.1rem; margin-bottom: 0.8rem; color: #8b7355; }
-.guests-list ul { list-style: none; padding: 0; }
-.guests-list li { padding: 0.3rem 0; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; }
-.guests-list .badge { background: #ffd89b; color: #8b5a00; padding: 0.2rem 0.5rem; border-radius: 10px; font-size: 0.7rem; font-weight: bold; }
-
-.offer-badge { 
-    display: inline-block; 
-    margin-top: 0.8rem; 
-    margin-right: 0.8rem; 
-    padding: 0; 
-    background: transparent; 
-    border-radius: 0; 
-    font-size: 0.85rem; 
-    color: #2e7d32; 
+.guests-list {
+  margin-top: 1.5rem;
+  padding: 0;
+  background: transparent;
+  border-left: none;
 }
 
-.rsvp-section { 
-    margin-top: 2rem; 
-    padding: 0; 
-    background: transparent; 
-    border-radius: 0; 
-    border: none; 
+.guests-list h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.8rem;
+  color: #8b7355;
 }
 
-.rsvp-section h3 { color: #8b7355; margin-bottom: 1rem; text-align: center; font-size: 1.2rem; }
-.rsvp-form { margin-top: 1.5rem; }
+.guests-list ul {
+  list-style: none;
+  padding: 0;
+}
 
-.button-group { display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1.5rem; }
-.rsvp-button { width: 100%; border: none; padding: 0.8rem; font-size: 1rem; border-radius: 25px; cursor: pointer; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15); transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s; font-weight: 600; }
-.rsvp-button:disabled { opacity: 0.6; cursor: not-allowed; }
-.rsvp-button.confirm { background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%); color: white; }
-.rsvp-button.save { background: linear-gradient(135deg, #3e9eec 0%, #368acf 100%); color: white; }
-.rsvp-button.decline { background: linear-gradient(135deg, #f44336 0%, #c62828 100%); color: white; }
+.guests-list li {
+  padding: 0.3rem 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.guests-list .badge {
+  background: #ffd89b;
+  color: #8b5a00;
+  padding: 0.2rem 0.5rem;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: bold;
+}
+
+.offer-badge {
+  display: inline-block;
+  margin-top: 0.8rem;
+  margin-right: 0.8rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  font-size: 0.85rem;
+  color: #2e7d32;
+}
+
+.rsvp-section {
+  margin-top: 2rem;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+}
+
+.rsvp-section h3 {
+  color: #8b7355;
+  margin-bottom: 1rem;
+  text-align: center;
+  font-size: 1.2rem;
+}
+
+.rsvp-form {
+  margin-top: 1.5rem;
+}
+
+.button-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.rsvp-button {
+  width: 100%;
+  border: none;
+  padding: 0.8rem;
+  font-size: 1rem;
+  border-radius: 25px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  transition: transform 0.2s, box-shadow 0.2s, opacity 0.2s;
+  font-weight: 600;
+}
+
+.rsvp-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.rsvp-button.confirm {
+  background: linear-gradient(135deg, #4caf50 0%, #2e7d32 100%);
+  color: white;
+}
+
+.rsvp-button.save {
+  background: linear-gradient(135deg, #3e9eec 0%, #368acf 100%);
+  color: white;
+}
+
+.rsvp-button.decline {
+  background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
+  color: white;
+}
 
 /* Cancel Edit Button (inside RSVP form) */
 .cancel-edit-btn {
-    display: block;
-    width: 100%;
-    margin-top: 0.5rem;
-    padding: 0.5rem;
-    background: transparent;
-    border: none;
-    color: #9ca3af;
-    font-size: 0.75rem;
-    text-align: center;
-    text-decoration: underline;
-    cursor: pointer;
-    transition: color 0.2s;
+  display: block;
+  width: 100%;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: #9ca3af;
+  font-size: 0.75rem;
+  text-align: center;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
 }
 
 .cancel-edit-btn:hover {
-    color: #6b7280;
+  color: #6b7280;
 }
 
 /* Confirmed/Declined Views - Legacy (se ancora necessario) */
-.rsvp-confirmed, .rsvp-declined { 
-    margin-top: 2rem; 
-    padding: 1.5rem; 
-    border-radius: 8px; 
-    text-align: center; 
+.rsvp-confirmed,
+.rsvp-declined {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border-radius: 8px;
+  text-align: center;
 }
-.rsvp-confirmed { background: rgba(232, 245, 233, 0.95); border: 2px solid #4caf50; }
-.rsvp-confirmed h3 { color: #2e7d32; margin-bottom: 1rem; }
-.rsvp-declined { background: rgba(255, 235, 238, 0.95); border: 2px solid #f44336; }
-.rsvp-declined h3 { color: #c62828; margin-bottom: 1rem; }
+
+.rsvp-confirmed {
+  background: rgba(232, 245, 233, 0.95);
+  border: 2px solid #4caf50;
+}
+
+.rsvp-confirmed h3 {
+  color: #2e7d32;
+  margin-bottom: 1rem;
+}
+
+.rsvp-declined {
+  background: rgba(255, 235, 238, 0.95);
+  border: 2px solid #f44336;
+}
+
+.rsvp-declined h3 {
+  color: #c62828;
+  margin-bottom: 1rem;
+}
 
 /* Action Wrapper for Edit Response Button */
 .rsvp-actions {
-    margin-top: 1.5rem;
-    text-align: center;
+  margin-top: 1.5rem;
+  text-align: center;
 }
 
 .edit-response-btn {
-    background: transparent;
-    border: none;
-    font-weight: 600;
-    font-size: 0.95rem;
-    text-decoration: underline;
-    cursor: pointer;
-    transition: color 0.2s;
-    padding: 0.5rem 1rem;
-    color: #8b7355;
+  background: transparent;
+  border: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: underline;
+  cursor: pointer;
+  transition: color 0.2s;
+  padding: 0.5rem 1rem;
+  color: #8b7355;
 }
 
 .edit-response-btn:hover {
-    color: #6b5638;
+  color: #6b5638;
 }
 
 /* WhatsApp CTA Section */
 .whatsapp-section {
-    margin-top: 1.5rem;
-    padding-top: 1rem;
-    border-top: 1px solid #e5e7eb;
-    text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+  text-align: center;
 }
 
 .whatsapp-label {
-    font-size: 0.75rem;
-    color: #6b7280;
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .whatsapp-buttons {
-    display: flex;
-    justify-content: center;
-    gap: 1rem;
-    flex-wrap: wrap;
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .whatsapp-link {
-    display: flex;
-    align-items: center;
-    gap: 0.375rem;
-    color: #16a34a;
-    font-weight: 500;
-    font-size: 0.875rem;
-    text-decoration: none;
-    padding: 0.375rem 0.75rem;
-    border-radius: 9999px;
-    transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  color: #16a34a;
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  padding: 0.375rem 0.75rem;
+  border-radius: 9999px;
+  transition: all 0.2s;
 }
 
 .whatsapp-link:hover {
-    color: #15803d;
-    background: rgba(34, 197, 94, 0.1);
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.1);
 }
 
 /* Message feedback */
-.message { margin-top: 1rem; padding: 0.8rem; border-radius: 6px; text-align: center; font-weight: 600; font-size: 0.9rem; }
-.message.success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-.message.error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+.message {
+  margin-top: 1rem;
+  padding: 0.8rem;
+  border-radius: 6px;
+  text-align: center;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.message.success {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.message.error {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
 
 /* MEDIA QUERIES FOR MOBILE OPTIMIZATION */
 @media (max-width: 480px) {
-    /* Adjust Container Padding */
-    .letter-content {
-        padding: 0.5rem;
-    }
 
-    /* Front Face Adjustments */
-    .front-content {
-        padding: 0 1rem;
-    }
+  /* Adjust Container Padding */
+  .letter-content {
+    padding: 0.5rem;
+  }
 
-    .spacer-top {
-        height: 12%;
-    }
+  /* Front Face Adjustments */
+  .front-content {
+    padding: 0 1rem;
+  }
 
-    .text-names {
-        font-size: 1.8rem;
-        margin-bottom: 0.3rem;
-    }
+  .spacer-top {
+    height: 12%;
+  }
 
-    .text-wit {
-        font-size: 0.8rem;
-        margin-bottom: 0.6rem;
-    }
+  .text-names {
+    font-size: 1.8rem;
+    margin-bottom: 0.3rem;
+  }
 
-    .text-date {
-        font-size: 1.1rem;
-        margin-bottom: 0.4rem;
-    }
+  .text-wit {
+    font-size: 0.8rem;
+    margin-bottom: 0.6rem;
+  }
 
-    .text-details {
-        font-size: 0.75rem;
-        line-height: 1.3;
-    }
+  .text-date {
+    font-size: 1.1rem;
+    margin-bottom: 0.4rem;
+  }
 
-    .text-dress {
-        font-size: 1rem;
-    }
+  .text-details {
+    font-size: 0.75rem;
+    line-height: 1.3;
+  }
 
-    /* Wax Seal Mobile Adjustment */
-    .wax-seal {
-        max-width: 48px;
-        bottom: -6px;
-        left: 20px;
-    }
+  .text-dress {
+    font-size: 1rem;
+  }
 
-    /* Back Face Adjustments */
-    .letter-paper {
-        padding: 1rem;
-        padding-top: 3rem;
-    }
+  /* Wax Seal Mobile Adjustment */
+  .wax-seal {
+    max-width: 48px;
+    bottom: -6px;
+    left: 20px;
+  }
 
-    .letter-title {
-        font-size: 1.5rem;
-        margin-bottom: 1rem;
-    }
+  /* Back Face Adjustments */
+  .letter-paper {
+    padding: 1rem;
+    padding-top: 3rem;
+  }
 
-    .letter-body p {
-        font-size: 0.9rem;
-        line-height: 1.5;
-        margin-bottom: 0.6rem;
-    }
+  .letter-title {
+    font-size: 1.5rem;
+    margin-bottom: 1rem;
+  }
 
-    /* Card Grid Mobile */
-    .card-grid {
-        gap: 0.8rem;
-        padding: 0.8rem 0.3rem;
-        margin-top: 0.5rem;
-    }
+  .letter-body p {
+    font-size: 0.9rem;
+    line-height: 1.5;
+    margin-bottom: 0.6rem;
+  }
 
-    .info-card {
-        padding: 0 0.6rem;
-        gap: 0.4rem;
-    }
+  /* Card Grid Mobile */
+  .card-grid {
+    gap: 0.8rem;
+    padding: 0.8rem 0.3rem;
+    margin-top: 0.5rem;
+  }
 
-    .card-title {
-        font-size: 0.75rem;
-    }
+  .info-card {
+    padding: 0 0.6rem;
+    gap: 0.4rem;
+  }
 
-    .info-card.rsvp-card {
-        padding: 0.6rem 0.8rem;
-    }
+  .card-title {
+    font-size: 0.75rem;
+  }
 
-    .rsvp-card .card-title {
-        font-size: 0.95rem;
-    }
+  .info-card.rsvp-card {
+    padding: 0.6rem 0.8rem;
+  }
 
-    /* RSVP Card Status Mobile */
-    .rsvp-card-status {
-        padding: 0.3rem 0.6rem;
-        gap: 0.3rem;
-    }
+  .rsvp-card .card-title {
+    font-size: 0.95rem;
+  }
 
-    .rsvp-card-emoji {
-        font-size: 1rem;
-    }
+  /* RSVP Card Status Mobile */
+  .rsvp-card-status {
+    padding: 0.3rem 0.6rem;
+    gap: 0.3rem;
+  }
 
-    .rsvp-card-text {
-        font-size: 0.85rem;
-    }
+  .rsvp-card-emoji {
+    font-size: 1rem;
+  }
 
-    /* Modal Mobile */
-    .card-modal-content {
-        padding: 2rem 1.2rem;
-        max-height: 85vh;
-    }
+  .rsvp-card-text {
+    font-size: 0.85rem;
+  }
 
-    .expanded-content h2 {
-        font-size: 1.4rem;
-    }
+  /* Modal Mobile */
+  .card-modal-content {
+    padding: 2rem 1.2rem;
+    max-height: 85vh;
+  }
 
-    /* RSVP Modal Title Mobile */
-    .rsvp-modal-title {
-        font-size: 1.3rem;
-    }
+  .expanded-content h2 {
+    font-size: 1.4rem;
+  }
 
-    /* Summary Page Mobile */
-    .summary-emoji {
-        font-size: 2.5rem;
-    }
+  /* RSVP Modal Title Mobile */
+  .rsvp-modal-title {
+    font-size: 1.3rem;
+  }
 
-    .summary-text {
-        font-size: 1rem;
-    }
+  /* Summary Page Mobile */
+  .summary-emoji {
+    font-size: 2.5rem;
+  }
 
-    /* Guests List Editable Mobile */
-    .guests-list-editable {
-        padding: 0;
-    }
+  .summary-text {
+    font-size: 1rem;
+  }
 
-    .guests-list-editable h3 {
-        font-size: 1rem;
-    }
+  /* Guests List Editable Mobile */
+  .guests-list-editable {
+    padding: 0;
+  }
 
-    .guests-list-editable li {
-        padding: 0.6rem 0;
-    }
+  .guests-list-editable h3 {
+    font-size: 1rem;
+  }
 
-    .guest-name {
-        font-size: 0.9rem;
-    }
+  .guests-list-editable li {
+    padding: 0.6rem 0;
+  }
 
-    .guest-action-btn {
-        width: 26px;
-        height: 26px;
-        font-size: 0.9rem;
-    }
+  .guest-name {
+    font-size: 0.9rem;
+  }
 
-    .guest-input {
-        font-size: 0.9rem;
-    }
-    
-    .guest-textarea {
-        font-size: 0.85rem;
-        min-height: 50px;
-    }
+  .guest-action-btn {
+    width: 26px;
+    height: 26px;
+    font-size: 0.9rem;
+  }
 
-    /* RSVP Next Button Mobile */
-    .rsvp-next-btn {
-        padding: 0.6rem 0;
-        font-size: 1.1rem;
-    }
+  .guest-input {
+    font-size: 0.9rem;
+  }
 
-    /* Guests Summary Mobile */
-    .guests-summary h3 {
-        font-size: 1rem;
-    }
+  .guest-textarea {
+    font-size: 0.85rem;
+    min-height: 50px;
+  }
 
-    .guests-summary li {
-        font-size: 0.9rem;
-    }
+  /* RSVP Next Button Mobile */
+  .rsvp-next-btn {
+    padding: 0.6rem 0;
+    font-size: 1.1rem;
+  }
 
-    /* Phone Field Mobile */
-    .phone-field h3 {
-        font-size: 1rem;
-    }
+  /* Guests Summary Mobile */
+  .guests-summary h3 {
+    font-size: 1rem;
+  }
 
-    .phone-number {
-        font-size: 0.9rem;
-    }
+  .guests-summary li {
+    font-size: 0.9rem;
+  }
 
-    .phone-input {
-        font-size: 0.9rem;
-    }
+  /* Phone Field Mobile */
+  .phone-field h3 {
+    font-size: 1rem;
+  }
 
-    .phone-error {
-        font-size: 0.8rem;
-    }
+  .phone-number {
+    font-size: 0.9rem;
+  }
 
-    /* Travel Form Mobile */
-    .travel-form h3 {
-        font-size: 1rem;
-    }
+  .phone-input {
+    font-size: 0.9rem;
+  }
 
-    .radio-label {
-        font-size: 0.9rem;
-    }
+  .phone-error {
+    font-size: 0.8rem;
+  }
 
-    .travel-input {
-        font-size: 0.9rem;
-    }
+  /* Travel Form Mobile */
+  .travel-form h3 {
+    font-size: 1rem;
+  }
 
-    .checkbox-label {
-        font-size: 0.85rem;
-    }
+  .radio-label {
+    font-size: 0.9rem;
+  }
 
-    /* Accommodation Form Mobile */
-    .accommodation-form h3 {
-        font-size: 1rem;
-    }
+  .travel-input {
+    font-size: 0.9rem;
+  }
 
-    /* Final Summary Mobile */
-    .final-summary {
-        padding: 0.8rem;
-    }
+  .checkbox-label {
+    font-size: 0.85rem;
+  }
 
-    .final-summary h3 {
-        font-size: 1rem;
-    }
+  /* Accommodation Form Mobile */
+  .accommodation-form h3 {
+    font-size: 1rem;
+  }
 
-    .final-summary p {
-        font-size: 0.85rem;
-    }
+  /* Final Summary Mobile */
+  .final-summary {
+    padding: 0.8rem;
+  }
 
-    /* WhatsApp Alert Mobile */
-    .whatsapp-alert {
-        padding: 0.8rem;
-    }
+  .final-summary h3 {
+    font-size: 1rem;
+  }
 
-    .whatsapp-alert p {
-        font-size: 0.85rem;
-    }
+  .final-summary p {
+    font-size: 0.85rem;
+  }
 
-    /* RSVP Back Button Mobile */
-    .rsvp-back-btn {
-        font-size: 1rem;
-    }
+  /* WhatsApp Alert Mobile */
+  .whatsapp-alert {
+    padding: 0.8rem;
+  }
 
-    /* RSVP Status Header Mobile */
-    .rsvp-status-header {
-        padding: 1rem;
-        gap: 0.8rem;
-    }
+  .whatsapp-alert p {
+    font-size: 0.85rem;
+  }
 
-    .rsvp-status-emoji {
-        font-size: 2rem;
-    }
+  /* RSVP Back Button Mobile */
+  .rsvp-back-btn {
+    font-size: 1rem;
+  }
 
-    .rsvp-status-title {
-        font-size: 1rem;
-    }
+  /* RSVP Status Header Mobile */
+  .rsvp-status-header {
+    padding: 1rem;
+    gap: 0.8rem;
+  }
 
-    .rsvp-status-message {
-        font-size: 0.95rem;
-    }
+  .rsvp-status-emoji {
+    font-size: 2rem;
+  }
 
-    .guests-list {
-        margin-top: 1rem;
-        padding: 0;
-    }
-    
-    .guests-list h3 {
-        font-size: 1rem;
-    }
+  .rsvp-status-title {
+    font-size: 1rem;
+  }
 
-    .guests-list li {
-        font-size: 0.9rem;
-    }
+  .rsvp-status-message {
+    font-size: 0.95rem;
+  }
 
-    .rsvp-form {
-        margin-top: 1rem;
-    }
+  .guests-list {
+    margin-top: 1rem;
+    padding: 0;
+  }
 
-    .rsvp-button {
-        padding: 0.7rem;
-        font-size: 0.95rem;
-    }
+  .guests-list h3 {
+    font-size: 1rem;
+  }
+
+  .guests-list li {
+    font-size: 0.9rem;
+  }
+
+  .rsvp-form {
+    margin-top: 1rem;
+  }
+
+  .rsvp-button {
+    padding: 0.7rem;
+    font-size: 0.95rem;
+  }
 }
 
 /* Single Column Layout for Narrow Screens */
 @media (max-width: 652px) {
-    .card-grid {
-        grid-template-columns: 1fr;
-        gap: 0.7rem;
-        padding: 0 0.5rem;
-    }
+  .card-grid {
+    grid-template-columns: 1fr;
+    gap: 0.7rem;
+    padding: 0 0.5rem;
+  }
 
-    .info-card {
-        padding: 0 1rem;
-    }
+  .info-card {
+    padding: 0 1rem;
+  }
 
-    .card-title {
-        font-size: 0.85rem;
-    }
+  .card-title {
+    font-size: 0.85rem;
+  }
 
-    .info-card.rsvp-card {
-        grid-column: 1;
-    }
+  .info-card.rsvp-card {
+    grid-column: 1;
+  }
 
-    .rsvp-card .card-title {
-        font-size: 1rem;
-    }
+  .rsvp-card .card-title {
+    font-size: 1rem;
+  }
 }
 
 /* Fix for very small screens (iPhone SE, Fold) */
 @media (max-width: 360px) {
-    .text-names { font-size: 1.6rem; }
-    .text-wit { font-size: 0.75rem; }
-    .text-date { font-size: 1rem; }
-    .spacer-top {
-        height: 5%;
-    }
-    
-    .wax-seal {
-        left: 10px;
-        bottom: -11px;
-    }
+  .text-names {
+    font-size: 1.6rem;
+  }
 
-    .card-grid {
-        gap: 0.6rem;
-        padding: 0 0.3rem;
-    }
+  .text-wit {
+    font-size: 0.75rem;
+  }
 
-    .card-title {
-        font-size: 0.8rem;
-    }
+  .text-date {
+    font-size: 1rem;
+  }
 
-    .rsvp-card-emoji {
-        font-size: 0.9rem;
-    }
+  .spacer-top {
+    height: 5%;
+  }
 
-    .rsvp-card-text {
-        font-size: 0.75rem;
-    }
+  .wax-seal {
+    left: 10px;
+    bottom: -11px;
+  }
 
-    .rsvp-modal-title {
-        font-size: 1.2rem;
-    }
+  .card-grid {
+    gap: 0.6rem;
+    padding: 0 0.3rem;
+  }
 
-    .summary-emoji {
-        font-size: 2rem;
-    }
+  .card-title {
+    font-size: 0.8rem;
+  }
 
-    .summary-text {
-        font-size: 0.9rem;
-    }
+  .rsvp-card-emoji {
+    font-size: 0.9rem;
+  }
 
-    .guest-name {
-        font-size: 0.85rem;
-    }
+  .rsvp-card-text {
+    font-size: 0.75rem;
+  }
 
-    .guest-action-btn {
-        width: 24px;
-        height: 24px;
-        font-size: 0.85rem;
-    }
+  .rsvp-modal-title {
+    font-size: 1.2rem;
+  }
 
-    .guest-input {
-        font-size: 0.85rem;
-    }
-    
-    .guest-textarea {
-        font-size: 0.8rem;
-    }
+  .summary-emoji {
+    font-size: 2rem;
+  }
 
-    .rsvp-next-btn {
-        font-size: 1rem;
-    }
+  .summary-text {
+    font-size: 0.9rem;
+  }
 
-    .guests-summary li {
-        font-size: 0.85rem;
-    }
+  .guest-name {
+    font-size: 0.85rem;
+  }
 
-    .phone-number {
-        font-size: 0.85rem;
-    }
+  .guest-action-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 0.85rem;
+  }
 
-    .phone-input {
-        font-size: 0.85rem;
-    }
+  .guest-input {
+    font-size: 0.85rem;
+  }
 
-    .travel-form h3 {
-        font-size: 0.95rem;
-    }
+  .guest-textarea {
+    font-size: 0.8rem;
+  }
 
-    .radio-label {
-        font-size: 0.85rem;
-    }
+  .rsvp-next-btn {
+    font-size: 1rem;
+  }
 
-    .travel-input {
-        font-size: 0.85rem;
-    }
+  .guests-summary li {
+    font-size: 0.85rem;
+  }
 
-    .checkbox-label {
-        font-size: 0.8rem;
-    }
+  .phone-number {
+    font-size: 0.85rem;
+  }
 
-    .final-summary p {
-        font-size: 0.8rem;
-    }
+  .phone-input {
+    font-size: 0.85rem;
+  }
 
-    .rsvp-back-btn {
-        font-size: 0.95rem;
-    }
+  .travel-form h3 {
+    font-size: 0.95rem;
+  }
 
-    .rsvp-status-emoji {
-        font-size: 1.8rem;
-    }
+  .radio-label {
+    font-size: 0.85rem;
+  }
 
-    .rsvp-status-title {
-        font-size: 0.95rem;
-    }
+  .travel-input {
+    font-size: 0.85rem;
+  }
 
-    .rsvp-status-message {
-        font-size: 0.85rem;
-    }
+  .checkbox-label {
+    font-size: 0.8rem;
+  }
+
+  .final-summary p {
+    font-size: 0.8rem;
+  }
+
+  .rsvp-back-btn {
+    font-size: 0.95rem;
+  }
+
+  .rsvp-status-emoji {
+    font-size: 1.8rem;
+  }
+
+  .rsvp-status-title {
+    font-size: 0.95rem;
+  }
+
+  .rsvp-status-message {
+    font-size: 0.85rem;
+  }
 }

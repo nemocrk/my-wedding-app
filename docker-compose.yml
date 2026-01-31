@@ -11,7 +11,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD:-changeme_in_prod}
     volumes:
-      - dev_postgres_data:/var/lib/postgresql/data
+      - dev_postgres_data:/var/lib/postgresql
     networks:
       - dev_db_network
     healthcheck:
@@ -25,7 +25,7 @@ services:
   # ---------------------------------------------
   adminer:
     container_name: dev-wed-app-adminer
-    image: adminer
+    image: adminer:latest
     restart: always
     ports:
       - "8081:8080"
@@ -143,6 +143,8 @@ services:
       - dev_media_volume_worker:/app/media
     depends_on:
       backend:
+        condition: service_healthy
+      whatsapp-integration:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:${DB_PASSWORD:-changeme_in_prod}@pgbouncer:5432/wedding_db

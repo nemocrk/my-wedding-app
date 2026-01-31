@@ -21,13 +21,13 @@ app.use((req, res, next) => {
 
 // Configurazione Ambiente
 const WAHA_URLS = {
-  groom: process.env.WAHA_GROOM_URL || 'http://waha-groom:3000',
-  bride: process.env.WAHA_BRIDE_URL || 'http://waha-bride:3000'
+    groom: process.env.WAHA_GROOM_URL || 'http://waha-groom:3000',
+    bride: process.env.WAHA_BRIDE_URL || 'http://waha-bride:3000'
 };
 
 const WAHA_API_KEYS = {
-  groom: process.env.WAHA_API_KEY_GROOM,
-  bride: process.env.WAHA_API_KEY_BRIDE
+    groom: process.env.WAHA_API_KEY_GROOM,
+    bride: process.env.WAHA_API_KEY_BRIDE
 };
 
 const DJANGO_API_URL = process.env.DJANGO_API_URL || 'http://backend:8000/api/admin';
@@ -36,10 +36,10 @@ const DJANGO_API_URL = process.env.DJANGO_API_URL || 'http://backend:8000/api/ad
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
 
-function emitStatus(sessionType, chatId, status) {
-    const eventData = { 
+function emitStatus(session_type, chatId, status) {
+    const eventData = {
         type: 'message_status',
-        session: sessionType,
+        session: session_type,
         chatId: chatId,
         status: status, // 'reading', 'waiting_rate', 'typing', 'sending', 'sent', 'failed'
         timestamp: new Date().toISOString()
@@ -50,7 +50,7 @@ function emitStatus(sessionType, chatId, status) {
 
 async function logEvent(queueId, phase, durationMs = null, metadata = {}) {
     if (!queueId) return; // Skip if no queue_id provided
-    
+
     try {
         await axios.post(`${DJANGO_API_URL}/whatsapp-events/`, {
             queue_message: queueId,
@@ -75,12 +75,12 @@ function extractErrorDetails(error, context) {
         responseData: error.response?.data,
         stack: error.stack
     };
-    
+
     console.error(`[ERROR CHAIN - ${context}]`, JSON.stringify(details, null, 2));
-    
+
     // Costruisci messaggio di errore user-friendly ma completo
     let userMessage = `${context}: ${error.message}`;
-    
+
     if (error.response?.data) {
         if (typeof error.response.data === 'string') {
             userMessage += ` - ${error.response.data}`;
@@ -92,59 +92,82 @@ function extractErrorDetails(error, context) {
             userMessage += ` - ${JSON.stringify(error.response.data)}`;
         }
     }
-    
+
     if (error.response?.status) {
         userMessage += ` (HTTP ${error.response.status})`;
     }
-    
+
     return { details, userMessage };
 }
 
-async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null) {
-    const apiKey = WAHA_API_KEYS[sessionType]; 
+async function sendHumanLike(wahaUrl, session_type, chatId, text, queueId = null) {
+    const apiKey = WAHA_API_KEYS[session_type];
     const headers = { 'X-Api-Key': apiKey, 'Content-Type': 'application/json' };
 
-    console.log(`[${sessionType}] Starting Human-Like sequence for ${chatId}`);
+    console.log(`[${session_type}] Starting Human-Like sequence for ${chatId}`);
 
     const SESSION_NAME = 'default';
 
     try {
+        // 0. GET LID
+        const cleanPhone = chatId.replace(/[^0-9]/g, '');
+        const checkResp = await axios.get(`${wahaUrl}/api/contacts/check-exists`, {
+            headers,
+            timeout: 5000,
+            params: { phone: cleanPhone, session: SESSION_NAME }
+        });
+
+        const numberExists = !!checkResp.data?.numberExists;
+        if (!numberExists || !(checkResp.data?.chatId)) {
+            console.error(`[${session_type}] sendText FAILED - number doesn't exists`);
+            throw new Error(`sendText FAILED - number doesn't exists`); // Re-throw con messaggio arricchito
+        }
+        const pn = checkResp.data?.chatId.replace('@', '%40');
+        const lidResp = await axios.get(`${wahaUrl}/api/${SESSION_NAME}/lids/pn/${pn}`, { headers });
+        console.log(`[${session_type}] ${wahaUrl}/api/${SESSION_NAME}/lids/pn/${pn}:\n${JSON.stringify(lidResp.data, null, 2)}`)
+        if (!lidResp.data?.lid) {
+            console.error(`[${session_type}] sendText FAILED - lid not found`);
+            throw new Error(`sendText FAILED - lid not found`); // Re-throw con messaggio arricchito
+        }
+
+        const lid = lidResp.data.lid
+
         // 1. MARK AS SEEN (Reading)
         const readingStart = Date.now();
-        emitStatus(sessionType, chatId, 'reading');
-        await logEvent(queueId, 'reading', null, { session: sessionType, chatId });
-        
+        emitStatus(session_type, chatId, 'reading');
+        await logEvent(queueId, 'reading', null, { session: session_type, chatId });
+
         try {
-            console.log(`[${sessionType}] Calling sendSeen for ${chatId}`);
-            const seenResp = await axios.post(`${wahaUrl}/api/sendSeen`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${session_type}] Calling sendSeen for ${chatId}`);
+            const seenResp = await axios.post(`${wahaUrl}/api/sendSeen`, { chatId: lid, session: SESSION_NAME }, { headers });
             console.log('[%s] sendSeen response:', session_type, seenResp.status, seenResp.data);
         } catch (e) {
             const { userMessage } = extractErrorDetails(e, 'sendSeen');
-            console.warn(`[${sessionType}] Failed sendSeen (non-blocking): ${userMessage}`);
+            console.warn(`[${session_type}] Failed sendSeen (non-blocking): ${userMessage}`);
         }
-        
+
         const readingDuration = Date.now() - readingStart;
 
         // 2. RANDOM DELAY (Waiting Human)
         const waitStart = Date.now();
         const waitTime = Math.floor(Math.random() * 2000) + 2000;
-        emitStatus(sessionType, chatId, 'waiting_human');
+        emitStatus(session_type, chatId, 'waiting_human');
         await logEvent(queueId, 'waiting_human', null, { wait_ms: waitTime });
         await sleep(waitTime);
         const waitDuration = Date.now() - waitStart;
 
         // 3. START TYPING
         const typingStart = Date.now();
-        emitStatus(sessionType, chatId, 'typing');
+        emitStatus(session_type, chatId, 'typing');
         await logEvent(queueId, 'typing', null, { text_length: text.length });
-        
+
         try {
-            console.log(`[${sessionType}] Calling startTyping for ${chatId}`);
-            const typingResp = await axios.post(`${wahaUrl}/api/startTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${session_type}] Calling startTyping for ${chatId}`);
+            const typingResp = await axios.post(`${wahaUrl}/api/startTyping`, { chatId: lid, session: SESSION_NAME }, { headers });
             console.log('[%s] startTyping response:', session_type, typingResp.status, typingResp.data);
         } catch (e) {
             const { userMessage } = extractErrorDetails(e, 'startTyping');
-            console.warn(`[${sessionType}] Failed startTyping (non-blocking): ${userMessage}`);
+            console.warn(`[${session_type}] Failed startTyping (non-blocking): ${userMessage}`);
         }
 
         // Calculate typing duration based on text length
@@ -153,57 +176,57 @@ async function sendHumanLike(wahaUrl, sessionType, chatId, text, queueId = null)
 
         // 4. STOP TYPING
         try {
-            console.log(`[${sessionType}] Calling stopTyping for ${chatId}`);
-            const stopResp = await axios.post(`${wahaUrl}/api/stopTyping`, { chatId, session: SESSION_NAME }, { headers });
+            console.log(`[${session_type}] Calling stopTyping for ${chatId}`);
+            const stopResp = await axios.post(`${wahaUrl}/api/stopTyping`, { chatId: lid, session: SESSION_NAME }, { headers });
             console.log('[%s] stopTyping response:', session_type, stopResp.status, stopResp.data);
         } catch (e) {
             const { userMessage } = extractErrorDetails(e, 'stopTyping');
-            console.warn(`[${sessionType}] Failed stopTyping (non-blocking): ${userMessage}`);
+            console.warn(`[${session_type}] Failed stopTyping (non-blocking): ${userMessage}`);
         }
-        
+
         const typingDuration = Date.now() - typingStart;
 
         // 5. SEND MESSAGE (CRITICAL - Errors here are blocking)
         const sendStart = Date.now();
-        emitStatus(sessionType, chatId, 'sending');
+        emitStatus(session_type, chatId, 'sending');
         await logEvent(queueId, 'sending');
-        
-        console.log(`[${sessionType}] Calling sendText for ${chatId}, message length: ${text.length}`);
+
+        console.log(`[${session_type}] Calling sendText for ${chatId}, message length: ${text.length}`);
         let result;
         try {
             result = await axios.post(`${wahaUrl}/api/sendText`, {
-                chatId,
+                chatId: lid,
                 text,
                 session: SESSION_NAME
             }, { headers });
             console.log('[%s] sendText SUCCESS:', session_type, result.status, JSON.stringify(result.data));
         } catch (e) {
             const { userMessage } = extractErrorDetails(e, 'sendText');
-            console.error(`[${sessionType}] sendText FAILED - throwing error`);
+            console.error(`[${session_type}] sendText FAILED - throwing error`);
             throw new Error(userMessage); // Re-throw con messaggio arricchito
         }
-        
+
         const sendDuration = Date.now() - sendStart;
-        
-        emitStatus(sessionType, chatId, 'sent');
-        await logEvent(queueId, 'sent', sendDuration, { 
+
+        emitStatus(session_type, chatId, 'sent');
+        await logEvent(queueId, 'sent', sendDuration, {
             message_id: result.data?.id,
             total_duration_ms: Date.now() - readingStart
         });
-        
-        console.log(`[${sessionType}] Human-like sequence completed successfully for ${chatId}`);
+
+        console.log(`[${session_type}] Human-like sequence completed successfully for ${chatId}`);
         return result;
     } catch (error) {
         // Emit failed status on error
-        console.error(`[${sessionType}] FATAL: Human-like sequence failed for ${chatId}`);
+        console.error(`[${session_type}] FATAL: Human-like sequence failed for ${chatId}`);
         const { details, userMessage } = extractErrorDetails(error, 'sendHumanLike');
-        
-        emitStatus(sessionType, chatId, 'failed');
-        await logEvent(queueId, 'failed', null, { 
+
+        emitStatus(session_type, chatId, 'failed');
+        await logEvent(queueId, 'failed', null, {
             error: userMessage,
-            errorDetails: details 
+            errorDetails: details
         });
-        
+
         // Re-throw con messaggio user-friendly preservando dettagli
         const enrichedError = new Error(userMessage);
         enrichedError.originalError = error;
@@ -242,7 +265,7 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     if (!session_type || !contact_id) {
         return res.status(400).json({ error: 'Missing params' });
     }
-    
+
     const wahaUrl = WAHA_URLS[session_type];
     if (!wahaUrl) {
         return res.status(400).json({ error: 'Invalid session type' });
@@ -251,9 +274,9 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
     const cleanPhone = contact_id.replace(/[^0-9]/g, '');
     const SESSION_NAME = 'default';
-    const statusUrl = `${wahaUrl}/api/sessions/default`; 
+    const statusUrl = `${wahaUrl}/api/sessions/default`;
     let status = 'UNKNOWN';
-    
+
     try {
         console.log(`[${session_type}] Verify contact: checking current status`);
         const s = await axios.get(statusUrl, { headers, timeout: 5000 });
@@ -266,8 +289,8 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
     }
 
     if (status !== 'WORKING') {
-        return res.json({ 
-            contact_id: cleanPhone, 
+        return res.json({
+            contact_id: cleanPhone,
             status: 'not_valid',
             description: 'The number is not registered on WhatsApp'
         });
@@ -288,8 +311,8 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
         const chatId = checkResp.data?.chatId || `${cleanPhone}@c.us`;
 
         if (!numberExists) {
-            return res.json({ 
-                contact_id: cleanPhone, 
+            return res.json({
+                contact_id: cleanPhone,
                 status: 'not_exist',
                 description: 'The number is not registered on WhatsApp'
             });
@@ -317,15 +340,15 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
         }
 
         if (inAddressBook) {
-            return res.json({ 
-                contact_id: cleanPhone, 
+            return res.json({
+                contact_id: cleanPhone,
                 status: 'ok',
                 description: 'Contact verified and present in address book'
             });
         }
 
-        return res.json({ 
-            contact_id: cleanPhone, 
+        return res.json({
+            contact_id: cleanPhone,
             status: 'not_present',
             description: 'Number exists but not in your contacts list'
         });
@@ -339,158 +362,158 @@ app.get('/:session_type/:contact_id/check', async (req, res) => {
 
 // GET /:session_type/status
 app.get('/:session_type/status', async (req, res) => {
-  const { session_type } = req.params;
-  const wahaUrl = WAHA_URLS[session_type];
-  
-  if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
+    const { session_type } = req.params;
+    const wahaUrl = WAHA_URLS[session_type];
 
-  try {
-    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
-    console.log(`[${session_type}] Fetching status from ${wahaUrl}`);
-    const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
-      headers,
-      timeout: 5000
-    });
-    console.log('[%s]  Status response:', session_type, response.status, response.data.status);
-    
-    const data = response.data;
-    let state = 'disconnected';
-    if (data.status === 'WORKING') state = 'connected';
-    else if (data.status === 'SCAN_QR_CODE') state = 'waiting_qr';
-    else if (data.status === 'STARTING') state = 'connecting';
-    else if (data.status === 'STOPPED') state = 'disconnected';
-    
-    // FETCH PROFILE INFO (incluso picture) se connesso
-    if (state === 'connected') {
-        try {
-            console.log('[%s]  Fetching profile info', session_type);
-            const profileResp = await axios.get(`${wahaUrl}/api/default/profile`, { 
-                headers, 
-                timeout: 3000 
-            });
-            console.log('[%s] Profile fetched:', session_type, profileResp.data);
-            
-            if (profileResp.data) {
-                data.me = { 
-                    ...data.me, 
-                    ...profileResp.data,
-                    pushName: profileResp.data.name || data.me?.pushName 
-                };
+    if (!wahaUrl) return res.status(400).json({ error: 'Invalid session type' });
+
+    try {
+        const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
+        console.log(`[${session_type}] Fetching status from ${wahaUrl}`);
+        const response = await axios.get(`${wahaUrl}/api/sessions/default`, {
+            headers,
+            timeout: 5000
+        });
+        console.log('[%s]  Status response:', session_type, response.status, response.data.status, JSON.stringify(response.data, null, 2));
+
+        const data = response.data;
+        let state = 'disconnected';
+        if (data.status === 'WORKING') state = 'connected';
+        else if (data.status === 'SCAN_QR_CODE') state = 'waiting_qr';
+        else if (data.status === 'STARTING') state = 'connecting';
+        else if (data.status === 'STOPPED') state = 'disconnected';
+
+        // FETCH PROFILE INFO (incluso picture) se connesso
+        if (state === 'connected') {
+            try {
+                console.log('[%s]  Fetching profile info', session_type);
+                const profileResp = await axios.get(`${wahaUrl}/api/default/profile`, {
+                    headers,
+                    timeout: 3000
+                });
+                console.log('[%s] Profile fetched:', session_type, profileResp.data);
+
+                if (profileResp.data) {
+                    data.me = {
+                        ...data.me,
+                        ...profileResp.data,
+                        pushName: profileResp.data.name || data.me?.pushName
+                    };
+                }
+            } catch (e) {
+                const { userMessage } = extractErrorDetails(e, 'fetchProfile');
+                console.warn(`Failed to fetch profile: ${userMessage}`);
             }
-        } catch (e) {
-            const { userMessage } = extractErrorDetails(e, 'fetchProfile');
-            console.warn(`Failed to fetch profile: ${userMessage}`);
         }
-    }
-    let qr_code = null;
-    if (state === 'waiting_qr') {
-       console.log('[%s] Refresh: fetching QR for scan state', session_type);
-       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { 
-          headers, responseType: 'arraybuffer' 
-       });
-       qr_code = {qr_code: `data:image/png;base64,${Buffer.from(qrResp.data, 'binary').toString('base64')}`};
-    }
+        let qr_code = null;
+        if (state === 'waiting_qr') {
+            console.log('[%s] Refresh: fetching QR for scan state', session_type);
+            const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
+                headers, responseType: 'arraybuffer'
+            });
+            qr_code = { qr_code: `data:image/png;base64,${Buffer.from(qrResp.data, 'binary').toString('base64')}` };
+        }
 
 
-    res.json({ state, raw: data, ...qr_code });
-  } catch (error) {
-    const { userMessage } = extractErrorDetails(error, 'getStatus');
-    res.json({ state: 'error', error: userMessage });
-  }
+        res.json({ state, raw: data, ...qr_code });
+    } catch (error) {
+        const { userMessage } = extractErrorDetails(error, 'getStatus');
+        res.json({ state: 'error', error: userMessage });
+    }
 });
 
 // GET /:session_type/qr
 app.get('/:session_type/qr', async (req, res) => {
-  const { session_type } = req.params;
-  const wahaUrl = WAHA_URLS[session_type];
-  
-  try {
-    console.log('[%s] Fetching QR code', session_type);
-    const response = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
-      headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
-      responseType: 'arraybuffer',
-      timeout: 10000
-    });
-    console.log(`[${session_type}] QR code fetched, size: ${response.data.length} bytes`);
-    
-    const base64Image = Buffer.from(response.data, 'binary').toString('base64');
-    res.json({ qr_code: `data:image/png;base64,${base64Image}` });
-  } catch (error) {
-    const { userMessage } = extractErrorDetails(error, 'getQR');
-    res.status(500).json({ error: userMessage });
-  }
+    const { session_type } = req.params;
+    const wahaUrl = WAHA_URLS[session_type];
+
+    try {
+        console.log('[%s] Fetching QR code', session_type);
+        const response = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
+            headers: { 'X-Api-Key': WAHA_API_KEYS[session_type] },
+            responseType: 'arraybuffer',
+            timeout: 10000
+        });
+        console.log(`[${session_type}] QR code fetched, size: ${response.data.length} bytes`);
+
+        const base64Image = Buffer.from(response.data, 'binary').toString('base64');
+        res.json({ qr_code: `data:image/png;base64,${base64Image}` });
+    } catch (error) {
+        const { userMessage } = extractErrorDetails(error, 'getQR');
+        res.status(500).json({ error: userMessage });
+    }
 });
 
 // POST /:session_type/refresh
 app.post('/:session_type/refresh', async (req, res) => {
-  const { session_type } = req.params;
-  const wahaUrl = WAHA_URLS[session_type];
-  
-  try {
-    const statusUrl = `${wahaUrl}/api/sessions/default`; 
-    const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
-    
-    let status = 'UNKNOWN';
-    try {
-        console.log('[%s] Refresh: checking current status', session_type);
-        const s = await axios.get(statusUrl, { headers, timeout: 5000 });
-        status = s.data.status;
-        console.log(`[${session_type}] Refresh: current status is ${status}`);
-    } catch (e) {
-        const { userMessage } = extractErrorDetails(e, 'refreshStatusCheck');
-        console.warn(`Refresh status check failed: ${userMessage}`);
-        status = 'STOPPED';
-    }
-
-    if (status === 'WORKING') {
-      return res.json({ state: 'connected' });
-    }
-    
-    if (status === 'SCAN_QR_CODE') {
-       console.log(`[${session_type}] Refresh: fetching QR for scan state`);
-       const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, { 
-          headers, responseType: 'arraybuffer' 
-       });
-       const b64 = Buffer.from(qrResp.data, 'binary').toString('base64');
-       return res.json({ state: 'waiting_qr', qr_code: `data:image/png;base64,${b64}` });
-    }
+    const { session_type } = req.params;
+    const wahaUrl = WAHA_URLS[session_type];
 
     try {
-        console.log(`[${session_type}] Refresh: starting session`);
-        await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers });
-        return res.json({ state: 'connecting', message: 'Session start triggered' });
-    } catch (e) {
-        const { userMessage } = extractErrorDetails(e, 'sessionStart');
-        return res.json({ state: 'error', error: userMessage });
-    }
+        const statusUrl = `${wahaUrl}/api/sessions/default`;
+        const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
 
-  } catch (error) {
-    const { userMessage } = extractErrorDetails(error, 'refresh');
-    res.status(500).json({ state: 'error', error: userMessage });
-  }
+        let status = 'UNKNOWN';
+        try {
+            console.log('[%s] Refresh: checking current status', session_type);
+            const s = await axios.get(statusUrl, { headers, timeout: 5000 });
+            status = s.data.status;
+            console.log(`[${session_type}] Refresh: current status is ${status}`);
+        } catch (e) {
+            const { userMessage } = extractErrorDetails(e, 'refreshStatusCheck');
+            console.warn(`Refresh status check failed: ${userMessage}`);
+            status = 'STOPPED';
+        }
+
+        if (status === 'WORKING') {
+            return res.json({ state: 'connected' });
+        }
+
+        if (status === 'SCAN_QR_CODE') {
+            console.log(`[${session_type}] Refresh: fetching QR for scan state`);
+            const qrResp = await axios.get(`${wahaUrl}/api/default/auth/qr`, {
+                headers, responseType: 'arraybuffer'
+            });
+            const b64 = Buffer.from(qrResp.data, 'binary').toString('base64');
+            return res.json({ state: 'waiting_qr', qr_code: `data:image/png;base64,${b64}` });
+        }
+
+        try {
+            console.log(`[${session_type}] Refresh: starting session`);
+            await axios.post(`${wahaUrl}/api/sessions/default/start`, {}, { headers });
+            return res.json({ state: 'connecting', message: 'Session start triggered' });
+        } catch (e) {
+            const { userMessage } = extractErrorDetails(e, 'sessionStart');
+            return res.json({ state: 'error', error: userMessage });
+        }
+
+    } catch (error) {
+        const { userMessage } = extractErrorDetails(error, 'refresh');
+        res.status(500).json({ state: 'error', error: userMessage });
+    }
 });
 
 // POST /:session_type/logout
 app.post('/:session_type/logout', async (req, res) => {
     const { session_type } = req.params;
     const wahaUrl = WAHA_URLS[session_type];
-    
+
     if (!wahaUrl) return res.status(400).json({ error: 'Invalid session' });
 
     try {
         const headers = { 'X-Api-Key': WAHA_API_KEYS[session_type] };
-        
+
         console.log(`[${session_type}] Logout: starting logout sequence`);
-        
+
         // 1. Try Logout (3s timeout)
         try {
-             await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers, timeout: 3000 });
-             console.log(`[${session_type}] Logout: logout call succeeded`);
+            await axios.post(`${wahaUrl}/api/sessions/default/logout`, {}, { headers, timeout: 3000 });
+            console.log(`[${session_type}] Logout: logout call succeeded`);
         } catch (e) {
             const { userMessage } = extractErrorDetails(e, 'logout');
             console.warn(`Logout warn (proceeding anyway): ${userMessage}`);
         }
-        
+
         await sleep(500);
 
         // 2. Try Stop (4s timeout)
@@ -532,11 +555,11 @@ app.post('/:session_type/send', async (req, res) => {
     } catch (error) {
         console.error(`[${session_type}] Send FAILED for ${phone}`);
         const { userMessage } = extractErrorDetails(error, 'send');
-        
-        res.status(500).json({ 
+
+        res.status(500).json({
             error: userMessage,
             phone,
-            queue_id 
+            queue_id
         });
     }
 });
@@ -546,5 +569,5 @@ app.get('/health', (req, res) => res.json({ status: 'ok' }));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`WhatsApp Integration Service running on port ${PORT}`);
+    console.log(`WhatsApp Integration Service running on port ${PORT}`);
 });

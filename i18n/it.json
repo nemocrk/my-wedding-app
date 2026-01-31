@@ -634,6 +634,10 @@
                         "trigger_read": "Letto (Read)",
                         "trigger_confirmed": "Accettato (Confirmed)",
                         "trigger_declined": "Declinato (Declined)",
+                        "recipient_status": "Invia a:",
+                        "recipient_select": "-- Seleziona Destinatario --",
+                        "recipient_guest": "Ospite",
+                        "recipient_spouse": "Coniuge",
                         "content": "Contenuto Messaggio",
                         "content_placeholder": "Ciao {name}, ecco il tuo invito...",
                         "is_active": "Template Attivo"

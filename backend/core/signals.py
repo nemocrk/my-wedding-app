@@ -166,7 +166,7 @@ def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
 
     # Itera sui template (potrebbero essercene molteplici, anche se logicamente uno per status è meglio)
     for template in templates:
-        if not instance.phone_number:
+        if not instance.phone_number and not template.recipient == WhatsAppTemplate.Recipient.SPOUSE:
             logger.warning(f"Skipping automated message for {instance.name}: No phone number")
             continue
 
@@ -188,7 +188,7 @@ def trigger_whatsapp_on_status_change(sender, instance, created, **kwargs):
         # Creazione Messaggio in Coda
         queue_item = WhatsAppMessageQueue.objects.create(
             session_type=sender_session,
-            recipient_number=instance.phone_number,
+            recipient_number=instance.phone_number if template.recipient == WhatsAppTemplate.Recipient.GUEST else 'spouse',
             message_body=message_body,
             status=WhatsAppMessageQueue.Status.PENDING,
             scheduled_for=timezone.now() # Invia il prima possibile
