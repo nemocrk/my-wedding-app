@@ -197,7 +197,9 @@ async function sendHumanLike(wahaUrl, session_type, chatId, text, queueId = null
             result = await axios.post(`${wahaUrl}/api/sendText`, {
                 chatId: lid,
                 text,
-                session: SESSION_NAME
+                session: SESSION_NAME,
+                linkPreview: true,
+                linkPreviewHighQuality: true
             }, { headers });
             console.log('[%s] sendText SUCCESS:', session_type, result.status, JSON.stringify(result.data));
         } catch (e) {
