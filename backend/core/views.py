@@ -520,8 +520,13 @@ class InvitationViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # Bulk update (atomic)
-        updated_count = invitations.update(status=Invitation.Status.SENT)
+        # Iteriamo e salviamo per scatenare i segnali (WhatsApp automation)
+        updated_count = 0
+        with transaction.atomic():
+            for invitation in invitations:
+                invitation.status = Invitation.Status.SENT
+                invitation.save()
+                updated_count += 1
         
         logger.info(f"📤 Bulk-send: {updated_count} invitations marked as SENT")
         
