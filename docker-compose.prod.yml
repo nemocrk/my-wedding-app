@@ -11,6 +11,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - postgres_data:/var/lib/postgresql
     networks:
       - db_network
@@ -61,6 +62,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 3
+    volumes:
+      - /etc/hosts:/etc/hosts:ro
     expose:
       - "5432"
 
@@ -73,6 +76,7 @@ services:
     restart: always
     command: gunicorn wedding.wsgi:application --bind 0.0.0.0:8000 --workers 4
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - static_volume:/app/staticfiles
       - media_volume:/app/media
     depends_on:
@@ -108,6 +112,7 @@ services:
     restart: always
     command: python manage.py run_whatsapp_worker
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - static_volume_worker:/app/staticfiles
       - media_volume_worker:/app/media
     depends_on:
@@ -132,6 +137,8 @@ services:
     restart: always
     networks:
       - frontend_public_network
+    volumes:
+      - /etc/hosts:/etc/hosts:ro
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
@@ -150,6 +157,8 @@ services:
     restart: always
     networks:
       - frontend_intranet_network
+    volumes:
+      - /etc/hosts:/etc/hosts:ro
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/health" ]
       interval: 30s
@@ -167,6 +176,7 @@ services:
     image: ghcr.io/${GITHUB_REPOSITORY_OWNER:-nemocrk}/my-wedding-app-nginx-public:${IMAGE_TAG:-latest}
     restart: always
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - static_volume:/var/www/static:ro
       - media_volume:/var/www/media:ro
     depends_on:
@@ -199,6 +209,8 @@ services:
         condition: service_healthy
       whatsapp-integration:
         condition: service_healthy
+    volumes:
+      - /etc/hosts:/etc/hosts:ro
     networks:
       - frontend_intranet_network
       - backend_network
@@ -228,6 +240,7 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - waha_groom_sessions:/app/.sessions
       - waha_groom_media:/app/.media
     expose:
@@ -253,6 +266,7 @@ services:
       - whatsapp_intranet_network
       - whatsapp_public_network
     volumes:
+      - /etc/hosts:/etc/hosts:ro
       - waha_bride_sessions:/app/.sessions
       - waha_bride_media:/app/.media
     expose:
@@ -284,6 +298,8 @@ services:
     networks:
       - backend_network
       - whatsapp_intranet_network
+    volumes:
+      - /etc/hosts:/etc/hosts:ro
     expose:
       - "3000"
     healthcheck:
