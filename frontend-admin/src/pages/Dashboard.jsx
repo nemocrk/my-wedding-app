@@ -147,12 +147,18 @@ const Dashboard = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
                   <span className="text-gray-600">{t('admin.dashboard.costs.adult_meals', { count: stats.guests.adults_confirmed })}</span>
-                  <span className="font-medium">--- €</span>
+                  <span className="font-medium">{`${stats.financials.adults_confirmed_cost.toLocaleString()} €`}</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="text-gray-600">{t('admin.dashboard.costs.child_meals', { count: stats.guests.children_confirmed })}</span>
-                  <span className="font-medium">--- €</span>
+                  <span className="font-medium">{`${stats.financials.children_confirmed_cost.toLocaleString()} €`}</span>
                 </li>
+                {stats.suppliers.items.map((item) => (
+                  <li className="flex justify-between">
+                    <span className="text-gray-600">{`${item.type.name} - ${item.name}`}</span>
+                    <span className="font-medium">{`${item.cost?.toLocaleString() ?? 0} €`}</span>
+                  </li>
+                ))}
                 <li className="flex justify-between pt-2 border-t border-dashed">
                   <span className="font-bold text-gray-800">{t('admin.dashboard.charts.current_total')}</span>
                   <span className="font-bold text-pink-600">€ {stats.financials.confirmed.toLocaleString()}</span>

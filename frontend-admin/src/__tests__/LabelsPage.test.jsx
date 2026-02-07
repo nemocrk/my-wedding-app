@@ -82,7 +82,7 @@ describe('LabelManager', () => {
       expect(elementsFamily[0]).toBeInTheDocument();
     });
     // Click Delete on second item
-    const editBtn = screen.getByRole('button', { name: /Edit Family/i }); // Assuming button text or title
+    const editBtn = within(document.querySelector('.lg\\:block')).getByRole('button', { name: /Edit Family/i }); // Assuming button text or title
     fireEvent.click(editBtn);
 
     const colorsDiv = screen.getByText('Colore').closest('div');
@@ -114,7 +114,7 @@ describe('LabelManager', () => {
       expect(elementsFamily[0]).toBeInTheDocument();
     });
     // Click Delete on second item
-    const deleteBtn = screen.getByRole('button', { name: /delete Family/i }); // Assuming button text or title
+    const deleteBtn = within(document.querySelector('.lg\\:block')).getByRole('button', { name: /delete Family/i }); // Assuming button text or title
     fireEvent.click(deleteBtn);
     const cancelBtn = screen.getByText('Annulla'); // Assuming button text or title
     fireEvent.click(cancelBtn);

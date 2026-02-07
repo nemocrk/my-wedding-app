@@ -14,6 +14,19 @@
         "understood": "Ho capito, chiudi",
         "error_occurred": "Si è verificato un errore",
         "confirm": "Conferma",
+        "name": "Nome",
+        "description": "Descrizione",
+        "actions": "Azioni",
+        "contact": "Contatti",
+        "notes": "Note",
+        "create": "Crea",
+        "new": "Nuovo",
+        "created": "Creato con successo",
+        "updated": "Aggiornato con successo",
+        "deleted": "Eliminato con successo",
+        "error": "Errore",
+        "error_loading": "Errore caricamento dati",
+        "confirm_delete": "Sei sicuro di voler eliminare?",
         "processing": "Elaborazione...",
         "error_modal": {
             "title": "Ops! Qualcosa non va",
@@ -189,6 +202,8 @@
                 "invitations": "Inviti",
                 "accommodations": "Alloggi",
                 "labels": "Etichette",
+                "supplierTypes": "Tipi Fornitore",
+                "suppliers": "Fornitori",
                 "whatsapp": "WhatsApp",
                 "configuration": "Configurazione"
             },
@@ -197,6 +212,16 @@
         "header": {
             "title_main": "Wedding",
             "title_accent": "Admin"
+        },
+        "suppliers": {
+            "title": "Fornitori",
+            "subtitle": "Gestisci i fornitori dell'evento e i costi",
+            "no_suppliers": "Nessun fornitore trovato.",
+            "table": {
+                "type": "Tipo",
+                "cost": "Costo",
+                "currency": "Valuta"
+            }
         },
         "tests": {
             "pie_chart_mock": "Pie Chart Mock",
@@ -858,6 +883,19 @@
                 "viewport": "Viewport originale",
                 "no_heatmap": "Nessun dato heatmap",
                 "select_for_replay": "Seleziona una sessione con dati heatmap per vedere il replay"
+            }
+        },
+        "suppliers": {
+            "title": "Fornitori",
+            "subtitle": "Gestisci i fornitori dell'evento e i costi",
+            "no_suppliers": "Nessun fornitore trovato.",
+            "types_title": "Tipi Fornitore",
+            "types_subtitle": "Gestisci le categorie di fornitori",
+            "no_types": "Nessun tipo di fornitore trovato.",
+            "table": {
+                "type": "Tipo",
+                "cost": "Costo",
+                "currency": "Valuta"
             }
         }
     }

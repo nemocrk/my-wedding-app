@@ -14,6 +14,19 @@
     "understood": "Got it, close",
     "error_occurred": "An error occurred",
     "confirm": "Confirm",
+    "name": "Name",
+    "description": "Description",
+    "actions": "Actions",
+    "contact": "Contact",
+    "notes": "Notes",
+    "create": "Create",
+    "new": "New",
+    "created": "Created successfully",
+    "updated": "Updated successfully",
+    "deleted": "Deleted successfully",
+    "error": "Error",
+    "error_loading": "Error loading data",
+    "confirm_delete": "Are you sure you want to delete?",
     "processing": "Processing...",
     "error_modal": {
       "title": "Oops! Something went wrong",
@@ -189,6 +202,8 @@
         "invitations": "Invitations",
         "accommodations": "Accommodations",
         "labels": "Labels",
+        "supplierTypes": "Supplier Types",
+        "suppliers": "Suppliers",
         "whatsapp": "WhatsApp",
         "configuration": "Configuration"
       },
@@ -858,6 +873,19 @@
         "viewport": "Original viewport",
         "no_heatmap": "No heatmap data",
         "select_for_replay": "Select a session with heatmap data to view replay"
+      }
+    },
+    "suppliers": {
+      "title": "Suppliers",
+      "subtitle": "Manage event suppliers and costs",
+      "no_suppliers": "No suppliers found.",
+      "types_title": "Supplier Types",
+      "types_subtitle": "Manage supplier categories",
+      "no_types": "No supplier types found.",
+      "table": {
+        "type": "Type",
+        "cost": "Cost",
+        "currency": "Currency"
       }
     }
   }

@@ -114,42 +114,88 @@ const LabelManager = () => {
             <p className="text-lg font-medium text-gray-900">{t('admin.labels.no_labels')}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                    {t('admin.labels.table.preview')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                    {t('admin.labels.table.name')}
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
-                    {t('admin.labels.table.color')}
-                  </th>
-                  <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
-                    {t('admin.labels.table.actions')}
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {labels.map((label) => (
-                  <tr key={label.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <span
-                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-sm"
-                        style={{ backgroundColor: label.color }}
-                      >
+          <>
+            <div className="overflow-x-auto hidden lg:block">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
+                      {t('admin.labels.table.preview')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
+                      {t('admin.labels.table.name')}
+                    </th>
+                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-1/4">
+                      {t('admin.labels.table.color')}
+                    </th>
+                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                      {t('admin.labels.table.actions')}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {labels.map((label) => (
+                    <tr key={label.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-6 py-4">
+                        <span
+                          className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-sm"
+                          style={{ backgroundColor: label.color }}
+                        >
+                          {label.name}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-sm font-medium text-gray-900">
                         {label.name}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                      </td>
+                      <td className="px-6 py-4 text-sm font-mono text-gray-500">
+                        {label.color}
+                      </td>
+                      <td className="px-6 py-4 text-right text-sm font-medium">
+                        <button
+                          onClick={() => handleEdit(label)}
+                          className="text-indigo-600 hover:text-indigo-900 mr-4"
+                          aria-label={`Edit ${label.name}`}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClick(label.id)}
+                          className="text-red-600 hover:text-red-900"
+                          aria-label={`Delete ${label.name}`}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <div className="lg:hidden space-y-3">
+              {labels.map((label) => (
+                <div key={label.id} className="bg-white p-4 rounded-lg shadow-sm border border-gray-200 flex flex-col gap-3">
+
+                  {/* Riga Superiore: Numero e Status */}
+                  <div className="flex justify-between items-center">
+                    <span
+                      className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white shadow-sm"
+                      style={{ backgroundColor: label.color }}
+                    >
                       {label.name}
-                    </td>
-                    <td className="px-6 py-4 text-sm font-mono text-gray-500">
-                      {label.color}
-                    </td>
-                    <td className="px-6 py-4 text-right text-sm font-medium">
+                    </span>
+                  </div>
+
+                  {/* Corpo: Info Sessione e Preview */}
+                  <div className="text-sm text-gray-600">
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs font-bold uppercase tracking-wider text-gray-400">{label.name}</span>
+                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded">{label.color}</span>
+                    </div>
+                  </div>
+
+                  {/* Footer: Azioni */}
+                  <div className="flex justify-between items-end pt-2 border-t border-gray-100 flex-col">
+                    <div className="flex gap-3">
                       <button
                         onClick={() => handleEdit(label)}
                         className="text-indigo-600 hover:text-indigo-900 mr-4"
@@ -164,12 +210,12 @@ const LabelManager = () => {
                       >
                         <Trash2 size={18} />
                       </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
 

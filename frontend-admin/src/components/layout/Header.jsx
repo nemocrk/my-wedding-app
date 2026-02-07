@@ -1,9 +1,9 @@
 // frontend-admin/src/components/layout/Header.jsx
-import React, { useState } from 'react';
-import { Menu, X, LayoutDashboard, Users, Home, Settings, LogOut, Tag, MessageCircle } from 'lucide-react';
+import { Box, Home, LayoutDashboard, Menu, MessageCircle, Settings, Tag, Truck, Users, X } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import LanguageSwitcher from '../LanguageSwitcher';
-import { useTranslation } from 'react-i18next';
 
 const Header = () => {
   const { t } = useTranslation();
@@ -12,12 +12,14 @@ const Header = () => {
   const toggleMenu = () => setIsOpen(!isOpen);
 
   const menuItems = [
-        { path: '/dashboard', title: t('admin.sidebar.nav.dashboard'), icon: <LayoutDashboard size={20} /> },
-        { path: '/invitations', title: t('admin.sidebar.nav.invitations'), icon: <Users size={20} /> },
-        { path: '/accommodations', title: t('admin.sidebar.nav.accommodations'), icon: <Home size={20} /> },
-        { path: '/whatsapp', title: t('admin.sidebar.nav.whatsapp'), icon: <MessageCircle size={20} /> },
-        { path: '/labels', title: t('admin.sidebar.nav.labels'), icon: <Tag size={20} />}, 
-        { path: '/config', title: t('admin.sidebar.nav.configuration'), icon: <Settings size={20} /> }
+    { path: '/dashboard', title: t('admin.sidebar.nav.dashboard'), icon: <LayoutDashboard size={20} /> },
+    { path: '/invitations', title: t('admin.sidebar.nav.invitations'), icon: <Users size={20} /> },
+    { path: '/accommodations', title: t('admin.sidebar.nav.accommodations'), icon: <Home size={20} /> },
+    { path: '/whatsapp', title: t('admin.sidebar.nav.whatsapp'), icon: <MessageCircle size={20} /> },
+    { path: '/labels', title: t('admin.sidebar.nav.labels'), icon: <Tag size={20} /> },
+    { path: '/config', title: t('admin.sidebar.nav.configuration'), icon: <Settings size={20} /> },
+    { path: '/supplier-types', icon: <Box size={20} />, title: t('admin.sidebar.nav.supplierTypes') },
+    { path: '/suppliers', icon: <Truck size={20} />, title: t('admin.sidebar.nav.suppliers') },
   ];
 
   return (
