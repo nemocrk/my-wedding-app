@@ -5,6 +5,7 @@ from .models import (
     WhatsAppMessageQueue, WhatsAppMessageEvent, WhatsAppTemplate,
     ConfigurableText, InvitationLabel
 )
+from .models import SupplierType, Supplier
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -364,3 +365,25 @@ class WhatsAppTemplateSerializer(serializers.ModelSerializer):
     class Meta:
         model = WhatsAppTemplate
         fields = '__all__'
+
+
+class SupplierTypeSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SupplierType
+        fields = ['id', 'name', 'description', 'created_at', 'updated_at']
+
+
+class SupplierSerializer(serializers.ModelSerializer):
+    type = SupplierTypeSerializer(read_only=True)
+    type_id = serializers.PrimaryKeyRelatedField(write_only=True, queryset=SupplierType.objects.all(), source='type')
+
+    class Meta:
+        model = Supplier
+        fields = ['id', 'name', 'type', 'type_id', 'cost', 'currency', 'contact', 'notes', 'created_at', 'updated_at']
+
+    def validate_cost(self, value):
+        if value is None:
+            return 0
+        if value < 0:
+            raise serializers.ValidationError('Cost must be >= 0')
+        return value

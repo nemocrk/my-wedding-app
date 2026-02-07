@@ -6,6 +6,7 @@ from core.views import (
     InvitationViewSet, GlobalConfigViewSet, DashboardStatsView, AccommodationViewSet, 
     WhatsAppTemplateViewSet, ConfigurableTextViewSet, AdminGoogleFontsProxyView,
     InvitationLabelViewSet,
+    SupplierViewSet, SupplierTypeViewSet,
     # Public Views
     PublicInvitationAuthView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
@@ -30,6 +31,8 @@ admin_router.register(r'accommodations', AccommodationViewSet, basename='admin-a
 admin_router.register(r'config', GlobalConfigViewSet, basename='admin-config')
 admin_router.register(r'whatsapp-templates', WhatsAppTemplateViewSet, basename='admin-whatsapp-templates')
 admin_router.register(r'texts', ConfigurableTextViewSet, basename='admin-texts')
+admin_router.register(r'supplier-types', SupplierTypeViewSet, basename='admin-supplier-type')
+admin_router.register(r'suppliers', SupplierViewSet, basename='admin-supplier')
 
 # Viewset spostati dal core a whatsapp per pulizia, ma registrati qui per mantenere endpoint unificati sotto /api/admin/
 admin_router.register(r'whatsapp-queue', WhatsAppMessageQueueViewSet, basename='admin-whatsapp-queue')

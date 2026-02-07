@@ -21,25 +21,28 @@ vi.mock('../components/accommodations/AccommodationList', () => ({
 }));
 
 vi.mock('../components/accommodations/CreateAccommodationModal', () => ({
-  default: ({ isOpen, onSave }) => isOpen ? (
+  default: ({ isOpen, onSave, onClose }) => isOpen ? (
     <div data-testid="create-modal">
       <button onClick={() => onSave({ name: 'New Hotel' })}>Save New</button>
+      <button onClick={() => onClose()}>Close</button>
     </div>
   ) : null
 }));
 
 vi.mock('../components/accommodations/EditAccommodationModal', () => ({
-  default: ({ isOpen, onSave }) => isOpen ? (
+  default: ({ isOpen, onSave, onClose }) => isOpen ? (
     <div data-testid="edit-modal">
       <button onClick={() => onSave(1, { name: 'Updated Hotel' })}>Save Edit</button>
+      <button onClick={() => onClose()}>Close</button>
     </div>
   ) : null
 }));
 
 vi.mock('../components/accommodations/AutoAssignStrategyModal', () => ({
-  default: ({ isOpen, onSuccess }) => isOpen ? (
+  default: ({ isOpen, onSuccess, onClose }) => isOpen ? (
     <div data-testid="strategy-modal">
       <button onClick={() => onSuccess({ assigned_guests: 5 })}>Run Strategy</button>
+      <button onClick={() => onClose()}>Close</button>
     </div>
   ) : null
 }));
@@ -90,6 +93,12 @@ describe('AccommodationsPage', () => {
 
     await waitFor(() => screen.getByTestId('create-modal'));
 
+    fireEvent.click(screen.getByText('Close'));
+
+    fireEvent.click(createBtn);
+
+    await waitFor(() => screen.getByTestId('create-modal'));
+
     // Save
     api.createAccommodation.mockResolvedValue({});
     api.fetchAccommodations.mockResolvedValue([...mockAccommodations, { id: 2, name: 'New Hotel' }]); // Refresh mock
@@ -107,6 +116,13 @@ describe('AccommodationsPage', () => {
     await waitFor(() => screen.getByTestId('acc-item-1'));
 
     // Click Edit in child component
+    fireEvent.click(screen.getByText('Edit'));
+
+    await waitFor(() => screen.getByTestId('edit-modal'));
+
+
+    fireEvent.click(screen.getByText('Close'));
+
     fireEvent.click(screen.getByText('Edit'));
 
     await waitFor(() => screen.getByTestId('edit-modal'));
@@ -166,6 +182,10 @@ describe('AccommodationsPage', () => {
     fireEvent.click(screen.getByText('Assegnazione Automatica'));
     await waitFor(() => screen.getByTestId('strategy-modal'));
 
+    fireEvent.click(screen.getByText('Close'));
+
+    fireEvent.click(screen.getByText('Assegnazione Automatica'));
+    await waitFor(() => screen.getByTestId('strategy-modal'));
     // Run
     fireEvent.click(screen.getByText('Run Strategy'));
 

@@ -122,7 +122,7 @@ async function sendHumanLike(wahaUrl, session_type, chatId, text, queueId = null
             console.error(`[${session_type}] sendText FAILED - number doesn't exists`);
             throw new Error(`sendText FAILED - number doesn't exists`); // Re-throw con messaggio arricchito
         }
-        const pn = checkResp.data?.chatId.replace('@', '%40');
+        const pn = checkResp.data?.chatId.replace(/@/g, '%40');
         const lidResp = await axios.get(`${wahaUrl}/api/${SESSION_NAME}/lids/pn/${pn}`, { headers });
         console.log(`[${session_type}] ${wahaUrl}/api/${SESSION_NAME}/lids/pn/${pn}:\n${JSON.stringify(lidResp.data, null, 2)}`)
         if (!lidResp.data?.lid) {

@@ -2,7 +2,7 @@ from rest_framework import viewsets, status, filters
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
-from django.db.models import F, Sum, Count, Q
+from django.db.models import F, Sum, Count, Q, Min, OuterRef, Subquery
 from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.conf import settings
@@ -16,6 +16,8 @@ from .serializers import (
     AccommodationSerializer, PublicInvitationSerializer, WhatsAppTemplateSerializer,
     ConfigurableTextSerializer, InvitationLabelSerializer
 )
+from .models import Supplier, SupplierType
+from .serializers import SupplierSerializer, SupplierTypeSerializer
 import logging
 import os
 import json
@@ -1034,6 +1036,42 @@ class AccommodationViewSet(viewsets.ModelViewSet):
                 'result': result
             })
 
+
+class SupplierTypeViewSet(viewsets.ModelViewSet):
+    """CRUD per i tipi di fornitore"""
+    queryset = SupplierType.objects.all().order_by('name')
+    serializer_class = SupplierTypeSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'description']
+
+
+class SupplierViewSet(viewsets.ModelViewSet):
+    """CRUD per i fornitori (costi inclusi)"""
+    queryset = Supplier.objects.all().order_by('name')
+    serializer_class = SupplierSerializer
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields = ['name', 'notes']
+    ordering_fields = ['cost', 'name', 'created_at']
+
+    def get_queryset(self):
+        qs = super().get_queryset()
+        type_id = self.request.query_params.get('type')
+        min_cost = self.request.query_params.get('min_cost')
+        max_cost = self.request.query_params.get('max_cost')
+        if type_id:
+            qs = qs.filter(type__id=type_id)
+        if min_cost:
+            try:
+                qs = qs.filter(cost__gte=min_cost)
+            except Exception:
+                pass
+        if max_cost:
+            try:
+                qs = qs.filter(cost__lte=max_cost)
+            except Exception:
+                pass
+        return qs
+
 class DashboardStatsView(APIView):
     """Statistiche dashboard (solo admin) - UPDATED to exclude not_coming guests"""
     def get(self, request):
@@ -1087,15 +1125,13 @@ class DashboardStatsView(APIView):
                 trans_confirmed += (inv_adults + inv_children)
 
         def calculate_cost(adults, children, acc_adults, acc_children, transfers):
-            total = 0
-            total += float(adults) * float(config.price_adult_meal)
-            total += float(children) * float(config.price_child_meal)
-            total += float(acc_adults) * float(config.price_accommodation_adult)
-            total += float(acc_children) * float(config.price_accommodation_child)
-            total += float(transfers) * float(config.price_transfer)
-            return total
+            adults_cost = float(adults) * float(config.price_adult_meal) + float(acc_adults) * float(config.price_accommodation_adult)
+            children_cost = float(children) * float(config.price_child_meal) + float(acc_children) * float(config.price_accommodation_child)
+            transfers_cost = float(transfers) * float(config.price_transfer)
+            total = adults_cost + children_cost + transfers_cost
+            return total, adults_cost, children_cost, transfers_cost
 
-        cost_confirmed = calculate_cost(
+        cost_confirmed, adults_confirmed_cost, children_confirmed_cost, transfers_cost = calculate_cost(
             adults_confirmed, children_confirmed,
             acc_confirmed_adults, acc_confirmed_children,
             trans_confirmed
@@ -1116,13 +1152,57 @@ class DashboardStatsView(APIView):
             if inv.transfer_offered:
                 est_trans += (inv_adults + inv_children)
 
-        cost_total_estimated = calculate_cost(
+        cost_total_estimated, adults_estimated_cost, children_estimated_cost, transfers_estimated_cost = calculate_cost(
             adults_confirmed + adults_pending,
             children_confirmed + children_pending,
             est_acc_adults,
             est_acc_children,
             est_trans
         )
+
+        # Supplier costs: aggregate all suppliers (event-level costs)
+        try:
+            suppliers_total = SupplierType.objects.annotate(
+                    min_cost=Min('suppliers__cost')
+                ).aggregate(
+                    total=Sum('min_cost')
+                )['total']
+            # Ensure numeric type is float to avoid Decimal/float arithmetic issues
+            if suppliers_total is None:
+                suppliers_total = 0.0
+            else:
+                suppliers_total = float(suppliers_total)
+        except Exception:
+            suppliers_total = 0.0
+
+        # Prepare items: one row per SupplierType with cheapest supplier, or empty row if none exist
+        suppliers_items = []
+        for supplier_type in SupplierType.objects.all().order_by('id'):
+            # Find the cheapest supplier for this type
+            cheapest = supplier_type.suppliers.order_by('cost').first()
+            
+            if cheapest:
+                # Serialize the actual cheapest supplier
+                item = SupplierSerializer(cheapest).data
+            else:
+                # Create an empty row representation for this supplier type
+                item = {
+                    'id': None,
+                    'name': '',
+                    'type': SupplierTypeSerializer(supplier_type).data,
+                    'type_id': supplier_type.id,
+                    'cost': None,
+                    'currency': '',
+                    'contact': '',
+                    'notes': '',
+                    'created_at': None,
+                    'updated_at': None
+                }
+            suppliers_items.append(item)
+
+        # Add supplier costs to confirmed & estimated totals
+        cost_confirmed += suppliers_total
+        cost_total_estimated += suppliers_total
 
         return Response({
             'guests': stats_guests,
@@ -1140,6 +1220,15 @@ class DashboardStatsView(APIView):
             'financials': {
                 'confirmed': cost_confirmed,
                 'estimated_total': cost_total_estimated,
+                'currency': '€',
+                'adults_confirmed_cost': adults_confirmed_cost,
+                'children_confirmed_cost': children_confirmed_cost,
+                'transfers_cost': transfers_cost
+            }
+            ,
+            'suppliers': {
+                'total': suppliers_total,
+                'items': suppliers_items,
                 'currency': '€'
             }
         })

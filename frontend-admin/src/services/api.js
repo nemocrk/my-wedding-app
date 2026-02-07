@@ -235,6 +235,61 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
   },
 
+  // --- SUPPLIERS (New) ---
+  fetchSupplierTypes: async () => {
+    return fetchClient(`${API_BASE_URL}/supplier-types/`);
+  },
+
+  createSupplierType: async (data) => {
+    return fetchClient(`${API_BASE_URL}/supplier-types/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateSupplierType: async (id, data) => {
+    return fetchClient(`${API_BASE_URL}/supplier-types/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSupplierType: async (id) => {
+    return fetchClientDelete(`${API_BASE_URL}/supplier-types/${id}/`, { method: 'DELETE' });
+  },
+
+  fetchSuppliers: async (filters = {}) => {
+    const qp = new URLSearchParams();
+    if (filters.type) qp.append('type', filters.type);
+    if (filters.min_cost) qp.append('min_cost', filters.min_cost);
+    if (filters.max_cost) qp.append('max_cost', filters.max_cost);
+    if (filters.search) qp.append('search', filters.search);
+    const q = qp.toString() ? `?${qp.toString()}` : '';
+    return fetchClient(`${API_BASE_URL}/suppliers/${q}`);
+  },
+
+  createSupplier: async (data) => {
+    return fetchClient(`${API_BASE_URL}/suppliers/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updateSupplier: async (id, data) => {
+    return fetchClient(`${API_BASE_URL}/suppliers/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteSupplier: async (id) => {
+    return fetchClientDelete(`${API_BASE_URL}/suppliers/${id}/`, { method: 'DELETE' });
+  },
+
   // --- WHATSAPP INTEGRATION ---
   getWhatsAppStatus: async (type) => {
     return fetchClient(`${API_BASE_URL}/whatsapp/${type}/status/`);

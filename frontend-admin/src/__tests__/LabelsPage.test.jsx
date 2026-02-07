@@ -82,7 +82,7 @@ describe('LabelManager', () => {
       expect(elementsFamily[0]).toBeInTheDocument();
     });
     // Click Delete on second item
-    const editBtn = screen.getByRole('button', { name: /Edit Family/i }); // Assuming button text or title
+    const editBtn = within(document.querySelector('.lg\\:block')).getByRole('button', { name: /Edit Family/i }); // Assuming button text or title
     fireEvent.click(editBtn);
 
     const colorsDiv = screen.getByText('Colore').closest('div');
@@ -94,7 +94,7 @@ describe('LabelManager', () => {
 
     expect(api.updateInvitationLabel).toHaveBeenCalledWith(2, { "color": "#EF4444", "name": "Family", });
 
-    fireEvent.click(editBtn);
+    fireEvent.click(within(document.querySelector('.lg\\:hidden')).getByRole('button', { name: /Edit Family/i }));
     const header = screen.getByText('Modifica Etichetta').closest('div');
     const closeBtn = within(header).getByRole('button');
     fireEvent.click(closeBtn);
@@ -114,14 +114,16 @@ describe('LabelManager', () => {
       expect(elementsFamily[0]).toBeInTheDocument();
     });
     // Click Delete on second item
-    const deleteBtn = screen.getByRole('button', { name: /delete Family/i }); // Assuming button text or title
+    const deleteBtn = within(document.querySelector('.lg\\:block')).getByRole('button', { name: /delete Family/i }); // Assuming button text or title
     fireEvent.click(deleteBtn);
     const cancelBtn = screen.getByText('Annulla'); // Assuming button text or title
     fireEvent.click(cancelBtn);
-    fireEvent.click(deleteBtn);
+    const deleteBtnMobile = within(document.querySelector('.lg\\:hidden')).getByRole('button', { name: /delete Family/i }); // Assuming button text or title
+    fireEvent.click(deleteBtnMobile);
     const deleteBtns = screen.getByText('Elimina'); // Assuming button text or title
     fireEvent.click(deleteBtns);
 
     expect(api.deleteInvitationLabel).toHaveBeenCalledWith(2);
   });
+
 });

@@ -45,7 +45,7 @@ describe('Dashboard Component', () => {
       declined: 3,
     },
     logistics: {
-      accommodation: { 
+      accommodation: {
         total_confirmed: 15,
         confirmed_adults: 12,
         confirmed_children: 3
@@ -55,7 +55,41 @@ describe('Dashboard Component', () => {
     financials: {
       estimated_total: 15000,
       confirmed: 8000,
+      adults_confirmed_cost: 200.0,
+      children_confirmed_cost: 100.0,
+      transfers_cost: 0.0
     },
+    suppliers: {
+      total: 2500.0,
+      items: [
+        {
+          id: 2,
+          name: "Ipotetico",
+          type: {
+            id: 1,
+            name: "DJ",
+            description: "Il Dj della Serata",
+          },
+          cost: 1500.00,
+          currency: "EUR",
+          contact: {},
+          notes: "",
+        },
+        {
+          id: null,
+          name: "",
+          type: {
+            id: 2,
+            name: "Fiorista",
+            description: "Gli Addobbi",
+          },
+          cost: null,
+          currency: "",
+          contact: "",
+          notes: "",
+        },
+      ]
+    }
   };
 
   const mockDynamicStats = {
@@ -198,7 +232,7 @@ describe('Dashboard Component', () => {
 
     // Total confirmed should be 40 + 5 = 45 (not_coming excluded by backend)
     expect(screen.getByText('45')).toBeInTheDocument();
-    
+
     // Pending should be 15 + 2 = 17
     expect(screen.getByText('17')).toBeInTheDocument();
   });
@@ -222,7 +256,7 @@ describe('Dashboard Component', () => {
     api.getDashboardStats.mockResolvedValue(mockStats);
     // Setup mock for initial load (empty filters)
     api.getDynamicDashboardStats.mockResolvedValue(mockDynamicStats);
-    
+
     render(<Dashboard />);
 
     await waitFor(() => {
@@ -231,7 +265,7 @@ describe('Dashboard Component', () => {
 
     // Initially, dynamic stats is called once to get available filters
     await waitFor(() => {
-        expect(api.getDynamicDashboardStats).toHaveBeenCalledWith([]);
+      expect(api.getDynamicDashboardStats).toHaveBeenCalledWith([]);
     });
 
     // Click a filter
@@ -268,21 +302,21 @@ describe('Dashboard Component', () => {
     });
 
     const filterButton = await screen.findByText('test_filter');
-    
+
     // Should have unselected style initially
     expect(filterButton).toHaveClass('bg-gray-100');
-    
+
     // Click to select
     await user.click(filterButton);
-    
+
     // Should have selected style
     await waitFor(() => {
       expect(filterButton).toHaveClass('bg-blue-600');
     });
-    
+
     // Click again to deselect
     await user.click(filterButton);
-    
+
     // Should return to unselected style
     await waitFor(() => {
       expect(filterButton).toHaveClass('bg-gray-100');
@@ -292,12 +326,12 @@ describe('Dashboard Component', () => {
   it('handles dynamic stats API error gracefully', async () => {
     const user = userEvent.setup();
     api.getDashboardStats.mockResolvedValue(mockStats);
-    
+
     // First call succeeds (to get filters), second fails (after filter selection)
     api.getDynamicDashboardStats
       .mockResolvedValueOnce(mockDynamicStats)
       .mockRejectedValueOnce(new Error('Dynamic Stats Error'));
-    
+
     render(<Dashboard />);
 
     await waitFor(() => {
@@ -327,7 +361,7 @@ describe('Dashboard Component', () => {
     // Select first filter
     const filter1 = await screen.findByText('test_filter');
     await user.click(filter1);
-    
+
     await waitFor(() => {
       expect(filter1).toHaveClass('bg-blue-600');
     });
@@ -335,7 +369,7 @@ describe('Dashboard Component', () => {
     // Select second filter
     const filter2 = screen.getByText('test2');
     await user.click(filter2);
-    
+
     await waitFor(() => {
       expect(filter2).toHaveClass('bg-blue-600');
     });
@@ -355,12 +389,12 @@ describe('Dashboard Component', () => {
   it('displays loading state while fetching dynamic chart data', async () => {
     const user = userEvent.setup();
     api.getDashboardStats.mockResolvedValue(mockStats);
-    
+
     // Slow response simulation
-    api.getDynamicDashboardStats.mockImplementation(() => 
+    api.getDynamicDashboardStats.mockImplementation(() =>
       new Promise(resolve => setTimeout(() => resolve(mockDynamicStats), 100))
     );
-    
+
     render(<Dashboard />);
 
     await waitFor(() => {
@@ -404,7 +438,7 @@ describe('Dashboard Component', () => {
 
     // Check accommodation count
     expect(screen.getByText('25')).toBeInTheDocument();
-    
+
     // Check transfer count
     expect(screen.getByText('18')).toBeInTheDocument();
   });

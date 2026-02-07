@@ -235,6 +235,47 @@ class Room(models.Model):
         unique_together = ['accommodation', 'room_number']
 
 
+class SupplierType(models.Model):
+    """Tipo di fornitore (es. Catering, Fotografia, Fiori)"""
+    name = models.CharField(max_length=120, unique=True, verbose_name="Nome Tipo Fornitore")
+    description = models.TextField(blank=True, null=True, verbose_name="Descrizione")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Tipo Fornitore"
+        verbose_name_plural = "Tipi Fornitore"
+        ordering = ['name']
+
+
+class Supplier(models.Model):
+    """Rappresenta un fornitore e il relativo costo associato all'evento"""
+    name = models.CharField(max_length=200, verbose_name="Nome Fornitore")
+    type = models.ForeignKey(
+        SupplierType,
+        related_name='suppliers',
+        on_delete=models.PROTECT,
+        verbose_name='Tipo Fornitore'
+    )
+    cost = models.DecimalField(max_digits=12, decimal_places=2, default=0.00, verbose_name='Costo')
+    currency = models.CharField(max_length=3, default='EUR', verbose_name='Valuta')
+    contact = models.JSONField(default=dict, blank=True, null=True, verbose_name='Contatti')
+    notes = models.TextField(blank=True, null=True, verbose_name='Note')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.type.name}) - {self.cost} {self.currency}"
+
+    class Meta:
+        verbose_name = "Fornitore"
+        verbose_name_plural = "Fornitori"
+        ordering = ['name']
+
+
 class Invitation(models.Model):
     class Status(models.TextChoices):
         IMPORTED = 'imported', 'Importato'
