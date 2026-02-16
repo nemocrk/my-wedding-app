@@ -55,7 +55,7 @@ describe('RoomAssignmentModal Component', () => {
 
     it('renders nothing when not open', () => {
         render(<RoomAssignmentModal isOpen={false} room={mockRoom} onClose={mockOnClose} />);
-        expect(screen.queryByText(/Assegna Ospiti/i)).not.toBeInTheDocument();
+        expect(screen.queryByText(/admin.room_assignment.title/i)).not.toBeInTheDocument();
     });
 
     it('fetches and displays invitations when open', async () => {
@@ -74,7 +74,7 @@ describe('RoomAssignmentModal Component', () => {
         
         await waitFor(() => expect(screen.getByText('Rossi Family')).toBeInTheDocument());
 
-        const searchInput = screen.getByPlaceholderText(/Cerca invito/i);
+        const searchInput = screen.getByPlaceholderText(/admin.room_assignment.search_placeholder/i);
         fireEvent.change(searchInput, { target: { value: 'Bianchi' } });
 
         expect(screen.queryByText('Rossi Family')).not.toBeInTheDocument();
@@ -156,7 +156,7 @@ describe('RoomAssignmentModal Component', () => {
         fireEvent.click(screen.getByText('Rossi Family'));
         fireEvent.click(screen.getByLabelText(/Mario Rossi/i));
 
-        const saveBtn = screen.getByText(/Assegna Selezionati/i);
+        const saveBtn = screen.getByText(/admin.room_assignment.save_btn/i);
         fireEvent.click(saveBtn);
 
         await waitFor(() => {
