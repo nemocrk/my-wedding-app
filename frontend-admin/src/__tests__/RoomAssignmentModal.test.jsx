@@ -60,9 +60,9 @@ describe('RoomAssignmentModal Component', () => {
 
     it('fetches and displays invitations when open', async () => {
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} />);
-        
+
         expect(api.fetchInvitations).toHaveBeenCalledWith({ status: 'confirmed' });
-        
+
         await waitFor(() => {
             expect(screen.getByText('Rossi Family')).toBeInTheDocument();
             expect(screen.getByText('Bianchi Couple')).toBeInTheDocument();
@@ -71,7 +71,7 @@ describe('RoomAssignmentModal Component', () => {
 
     it('filters invitations by search term', async () => {
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} />);
-        
+
         await waitFor(() => expect(screen.getByText('Rossi Family')).toBeInTheDocument());
 
         const searchInput = screen.getByPlaceholderText(/admin.room_assignment.search_placeholder/i);
@@ -83,7 +83,7 @@ describe('RoomAssignmentModal Component', () => {
 
     it('expands invitation and allows selecting guests', async () => {
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} />);
-        
+
         await waitFor(() => expect(screen.getByText('Rossi Family')).toBeInTheDocument());
 
         // Click to expand
@@ -102,7 +102,7 @@ describe('RoomAssignmentModal Component', () => {
     it('validates capacity correctly (Adults)', async () => {
         // Room capacity: 2 Adults
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} />);
-        
+
         await waitFor(() => expect(screen.getByText('Bianchi Couple')).toBeInTheDocument());
         fireEvent.click(screen.getByText('Bianchi Couple'));
 
@@ -120,7 +120,7 @@ describe('RoomAssignmentModal Component', () => {
         // Now try to select a 3rd adult from another invitation
         fireEvent.click(screen.getByText('Rossi Family'));
         const marioCheckbox = screen.getByLabelText(/Mario Rossi/i);
-        
+
         // Should be disabled or prevent selection logic check
         // In our component logic, we disabled the input? 
         // Let's check if it is disabled or if clicking does nothing
@@ -135,13 +135,13 @@ describe('RoomAssignmentModal Component', () => {
     it('validates capacity correctly (Children can use Adult slots if needed)', async () => {
         // Room: 2 Adults, 1 Child
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} />);
-        
+
         await waitFor(() => {
             expect(screen.getByText('Rossi Family')).toBeInTheDocument();
         });
 
         fireEvent.click(screen.getByText('Rossi Family'));
-        
+
         // Select Child -> Takes Child slot (0/1 used)
         const luigiCheckbox = screen.getByLabelText(/Luigi Rossi/i);
         fireEvent.click(luigiCheckbox);
@@ -150,9 +150,9 @@ describe('RoomAssignmentModal Component', () => {
 
     it('calls updateInvitation on save', async () => {
         render(<RoomAssignmentModal isOpen={true} room={mockRoom} onClose={mockOnClose} onSuccess={mockOnSuccess} />);
-        
+
         await waitFor(() => expect(screen.getByText('Rossi Family')).toBeInTheDocument());
-        
+
         fireEvent.click(screen.getByText('Rossi Family'));
         fireEvent.click(screen.getByLabelText(/Mario Rossi/i));
 
@@ -160,7 +160,7 @@ describe('RoomAssignmentModal Component', () => {
         fireEvent.click(saveBtn);
 
         await waitFor(() => {
-            expect(api.updateInvitation).toHaveBeenCalledWith(101, {
+            expect(api.updateInvitation).toHaveBeenCalledWith("101", {
                 guests: [{
                     id: 1,
                     assigned_room: 1,

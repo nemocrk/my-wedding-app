@@ -711,7 +711,7 @@ const InvitationList = () => {
                               <Edit2 size={18} />
                             </button>
                           </Tooltip>
-                          {invitation.status === 'declined' && (
+                          {['confirmed', 'declined'].includes(invitation.status) && (
                             <Tooltip content={t('admin.invitations.actions.restore')} position="top">
                               <button
                                 onClick={() => handleMarkAsSent(invitation.id)}
@@ -832,11 +832,21 @@ const InvitationList = () => {
                       {invitation.accommodation_offered && (
                         <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded border border-blue-100 flex items-center">
                           <Home size={10} className="mr-1" /> {t('admin.invitations.services.accommodation')}
+                          {invitation.status === 'confirmed' && invitation.accommodation_requested && (
+                            <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                              <CheckCircle size={10} className="mr-1" />
+                            </span>
+                          )}
                         </span>
                       )}
                       {invitation.transfer_offered && (
                         <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100 flex items-center">
                           <Bus size={10} className="mr-1" /> {t('admin.invitations.services.transfer')}
+                          {invitation.status === 'confirmed' && invitation.transfer_requested && (
+                            <span className="text-green-700 bg-green-50 px-1.5 py-0.5 rounded border border-green-100 font-semibold flex items-center">
+                              <CheckCircle size={10} className="mr-1" />
+                            </span>
+                          )}
                         </span>
                       )}
                     </div>

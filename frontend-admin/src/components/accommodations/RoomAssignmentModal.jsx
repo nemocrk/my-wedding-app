@@ -28,14 +28,14 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
             // Fetch all confirmed invitations
             // Note: Ideally backend should filter, but for now we filter client-side as per requirements
             const response = await api.fetchInvitations({ status: 'confirmed' });
-            
+
             // Filter: accommodation requested AND has unassigned guests (or assigned to other rooms)
             // We want to show guests that are NOT already in THIS room.
-            const candidates = response.filter(inv => 
-                inv.accommodation_requested && 
+            const candidates = response.filter(inv =>
+                inv.accommodation_requested &&
                 inv.guests.some(g => !g.not_coming && (g.assigned_room !== room.id))
             );
-            
+
             setInvitations(candidates);
         } catch (error) {
             console.error("Failed to fetch invitations", error);
@@ -58,7 +58,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
         if (!room) return { adults: 0, children: 0 };
         const currentAdults = (room.assigned_guests || []).filter(g => !g.is_child).length;
         const currentChildren = (room.assigned_guests || []).filter(g => g.is_child).length;
-        
+
         let newAdults = 0;
         let newChildren = 0;
 
@@ -85,7 +85,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
         if (selectedGuests.has(guest.id)) return true; // Can always deselect
 
         const { totalAdults, totalChildren } = occupancy;
-        
+
         // Adult logic: Must have adult slots
         if (!guest.is_child) {
             return totalAdults < room.capacity_adults;
@@ -127,7 +127,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
         try {
             // Group selected guests by invitation
             const guestsByInvitation = {};
-            
+
             for (const guestId of selectedGuests) {
                 let foundInv = null;
                 let foundGuest = null;
@@ -139,22 +139,31 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
                         break;
                     }
                 }
-                
+
                 if (foundInv && foundGuest) {
                     if (!guestsByInvitation[foundInv.id]) {
-                        guestsByInvitation[foundInv.id] = [];
+                        guestsByInvitation[foundInv.id] = foundInv;
                     }
-                    guestsByInvitation[foundInv.id].push({
-                        id: foundGuest.id,
-                        assigned_room: room.id,
-                        accommodation_pinned: true
-                    });
+                    guestsByInvitation[foundInv.id] = {
+                        ...guestsByInvitation[foundInv.id],
+                        guests: guestsByInvitation[foundInv.id].guests.map(
+                            (guest) => {
+                                if (guest.id === foundGuest.id)
+                                    return {
+                                        ...guest,
+                                        assigned_room: room.id,
+                                        accommodation_pinned: true
+                                    }
+                                return guest;
+                            }
+                        )
+                    };
                 }
             }
 
             // Execute updates sequentially
-            for (const [invId, guestsPayload] of Object.entries(guestsByInvitation)) {
-                await api.updateInvitation(invId, { guests: guestsPayload });
+            for (const [invId, invPayload] of Object.entries(guestsByInvitation)) {
+                await api.updateInvitation(invId, invPayload);
             }
 
             if (onSuccess) onSuccess();
@@ -167,8 +176,8 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
         }
     };
 
-    const filteredInvitations = invitations.filter(inv => 
-        inv.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    const filteredInvitations = invitations.filter(inv =>
+        inv.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         inv.code.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
@@ -177,7 +186,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center p-4">
             <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] flex flex-col">
-                
+
                 {/* Header */}
                 <div className="p-6 border-b border-gray-100 flex justify-between items-start">
                     <div>
@@ -231,7 +240,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
                         filteredInvitations.map(inv => {
                             const isExpanded = expandedInvitations.has(inv.id) || searchTerm.length > 0;
                             const unassignedGuests = inv.guests.filter(g => !g.not_coming && g.assigned_room !== room.id);
-                            
+
                             if (unassignedGuests.length === 0) return null;
 
                             return (
@@ -246,7 +255,7 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
                                         </div>
                                         {isExpanded ? <ChevronUp size={20} className="text-gray-400" /> : <ChevronDown size={20} className="text-gray-400" />}
                                     </button>
-                                    
+
                                     {isExpanded && (
                                         <div className="bg-gray-50 px-4 py-2 space-y-2 border-t border-gray-200">
                                             {unassignedGuests.map(guest => {
@@ -254,11 +263,10 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
                                                 const disabled = !isSelected && !canSelectGuest(guest);
 
                                                 return (
-                                                    <label 
-                                                        key={guest.id} 
-                                                        className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${
-                                                            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
-                                                        } ${isSelected ? 'bg-purple-50 border border-purple-200' : ''}`}
+                                                    <label
+                                                        key={guest.id}
+                                                        className={`flex items-center p-2 rounded-md cursor-pointer transition-colors ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-gray-100'
+                                                            } ${isSelected ? 'bg-purple-50 border border-purple-200' : ''}`}
                                                     >
                                                         <input
                                                             type="checkbox"
@@ -311,9 +319,8 @@ const RoomAssignmentModal = ({ isOpen, onClose, room, onSuccess }) => {
                     <button
                         onClick={handleSave}
                         disabled={selectedGuests.size === 0 || isSaving}
-                        className={`flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg shadow-sm transition-all ${
-                            selectedGuests.size === 0 || isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
-                        }`}
+                        className={`flex items-center gap-2 px-6 py-2 bg-purple-600 text-white rounded-lg shadow-sm transition-all ${selectedGuests.size === 0 || isSaving ? 'opacity-50 cursor-not-allowed' : 'hover:bg-purple-700'
+                            }`}
                     >
                         {isSaving ? <Loader className="animate-spin" size={20} /> : <Check size={20} />}
                         {t('admin.room_assignment.save_btn', 'Assegna Selezionati')} ({selectedGuests.size})
