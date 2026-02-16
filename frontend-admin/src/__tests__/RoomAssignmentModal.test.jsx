@@ -161,11 +161,15 @@ describe('RoomAssignmentModal Component', () => {
 
         await waitFor(() => {
             expect(api.updateInvitation).toHaveBeenCalledWith("101", {
-                guests: [{
-                    id: 1,
-                    assigned_room: 1,
-                    accommodation_pinned: true
-                }]
+                id: 101,
+                name: 'Rossi Family',
+                code: 'ROSSI',
+                status: 'confirmed',
+                accommodation_requested: true,
+                guests: [
+                    { "accommodation_pinned": true, "assigned_room": 1, id: 1, first_name: 'Mario', last_name: 'Rossi', is_child: false }, // Adult
+                    { id: 2, first_name: 'Luigi', last_name: 'Rossi', is_child: true, assigned_room: null }   // Child
+                ]
             });
             expect(mockOnSuccess).toHaveBeenCalled();
         });
