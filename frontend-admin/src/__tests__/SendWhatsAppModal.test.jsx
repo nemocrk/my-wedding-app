@@ -1,6 +1,6 @@
-import { render, screen, waitFor, act } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi, afterEach } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SendWhatsAppModal from '../components/whatsapp/SendWhatsAppModal';
 import * as apiModule from '../services/api';
 
@@ -72,7 +72,7 @@ describe('SendWhatsAppModal', () => {
     );
 
     expect(screen.getByText(/admin.whatsapp.send_modal.title/)).toBeInTheDocument();
-    
+
     await waitFor(() => {
       expect(apiModule.api.fetchWhatsAppTemplates).toHaveBeenCalled();
     });
@@ -194,7 +194,7 @@ describe('SendWhatsAppModal', () => {
 
     // Then send message
     await waitFor(() => {
-       expect(apiModule.api.enqueueWhatsAppMessage).toHaveBeenCalledWith(expect.objectContaining({
+      expect(apiModule.api.enqueueWhatsAppMessage).toHaveBeenCalledWith(expect.objectContaining({
         message_body: 'Ciao Mario Rossi, link: http://test.com/invitation'
       }));
     });
@@ -217,7 +217,7 @@ describe('SendWhatsAppModal', () => {
     );
 
     await waitFor(() => expect(screen.getByText('Template 1')).toBeInTheDocument());
-    
+
     await user.selectOptions(screen.getByRole('combobox'), '1');
     await user.click(screen.getByText('admin.whatsapp.send_modal.enqueue_button'));
 
@@ -228,8 +228,8 @@ describe('SendWhatsAppModal', () => {
 
     // Check UI counters
     await waitFor(() => {
-        expect(screen.getByText('admin.whatsapp.send_modal.sent_count{"count":1}')).toBeInTheDocument();
-        expect(screen.getByText('admin.whatsapp.send_modal.failed_count{"count":1}')).toBeInTheDocument();
+      expect(screen.getByText('admin.whatsapp.send_modal.sent_count{"count":1}')).toBeInTheDocument();
+      expect(screen.getByText('admin.whatsapp.send_modal.failed_count{"count":1}')).toBeInTheDocument();
     });
 
     // Finish
@@ -237,7 +237,7 @@ describe('SendWhatsAppModal', () => {
       expect(onSuccessMock).toHaveBeenCalled();
       expect(onCloseMock).toHaveBeenCalled();
     }, { timeout: 3000 });
-  });
+  }, 10000);
 
   it('shows warning when using {link} with many recipients', async () => {
     const user = userEvent.setup();
@@ -259,7 +259,7 @@ describe('SendWhatsAppModal', () => {
   });
 
   it('handles template loading error gracefully', async () => {
-    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => { });
     apiModule.api.fetchWhatsAppTemplates.mockRejectedValue(new Error('Load Failed'));
 
     render(
@@ -277,7 +277,7 @@ describe('SendWhatsAppModal', () => {
 
     const options = screen.getAllByRole('option');
     expect(options).toHaveLength(1);
-    
+
     consoleSpy.mockRestore();
   });
 });

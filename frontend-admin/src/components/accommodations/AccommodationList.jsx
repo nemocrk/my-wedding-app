@@ -1,8 +1,8 @@
-import { Baby, Bed, Edit2, Home, Pin, PinOff, Trash2, User, Users } from 'lucide-react';
+import { Baby, Bed, Edit2, Home, Pin, PinOff, Trash2, User, UserPlus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../common/Tooltip';
 
-const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) => {
+const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin, onAddGuests }) => {
     const { t } = useTranslation();
 
     if (!accommodations || accommodations.length === 0) {
@@ -86,6 +86,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                 const roomOccupied = room.occupied_count || 0;
                                 const roomPercent = roomCapacity > 0 ? Math.round((roomOccupied / roomCapacity) * 100) : 0;
                                 const availableSlots = room.available_slots || { adult_slots_free: room.capacity_adults, child_slots_free: room.capacity_children };
+                                const hasFreeSlots = availableSlots.adult_slots_free > 0 || availableSlots.child_slots_free > 0;
 
                                 return (
                                     <div key={room.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -97,13 +98,29 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                     {t('admin.accommodations.list.capacity_label')}: {t('admin.accommodations.list.adults_short')}:{room.capacity_adults} {t('admin.accommodations.list.children_short')}:{room.capacity_children}
                                                 </span>
                                             </div>
-                                            <div className="text-xs">
-                                                <span className={`font-semibold ${availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0
-                                                    ? 'text-red-600'
-                                                    : 'text-green-600'
-                                                    }`}>
-                                                    {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
-                                                </span>
+                                            <div className="flex items-center gap-3">
+                                                {/* Add Guests Button */}
+                                                {hasFreeSlots && onAddGuests && (
+                                                    <Tooltip content={t('admin.accommodations.list.add_guests', 'Aggiungi Ospiti')} position="top">
+                                                        <button
+                                                            onClick={() => onAddGuests(room)}
+                                                            className="text-purple-600 hover:bg-purple-100 p-1.5 rounded-md transition-colors flex items-center gap-1"
+                                                            aria-label="Add Guests"
+                                                        >
+                                                            <UserPlus size={16} />
+                                                            <span className="text-xs font-medium hidden sm:inline">{t('common.add', 'Aggiungi')}</span>
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                <div className="text-xs">
+                                                    <span className={`font-semibold ${availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0
+                                                        ? 'text-red-600'
+                                                        : 'text-green-600'
+                                                        }`}>
+                                                        {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 

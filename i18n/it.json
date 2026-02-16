@@ -28,6 +28,8 @@
         "error_loading": "Errore caricamento dati",
         "confirm_delete": "Sei sicuro di voler eliminare?",
         "processing": "Elaborazione...",
+        "add": "Aggiungi",
+        "no_results": "Nessun risultato",
         "error_modal": {
             "title": "Ops! Qualcosa non va",
             "title_alt": "Qualcosa è andato storto",
@@ -773,6 +775,7 @@
                 "updated": "Alloggio aggiornato con successo",
                 "deleted": "Alloggio eliminato",
                 "assigned": "{{count}} ospiti assegnati automaticamente",
+                "assigned_manual": "Ospiti assegnati correttamente",
                 "pinned": "Assegnazione bloccata",
                 "unpinned": "Assegnazione sbloccata"
             },
@@ -798,7 +801,8 @@
                 "edit": "Modifica",
                 "delete": "Elimina",
                 "pin": "Blocca assegnazione",
-                "unpin": "Sblocca assegnazione"
+                "unpin": "Sblocca assegnazione",
+                "add_guests": "Aggiungi Ospiti"
             },
             "create_modal": {
                 "title": "Crea Nuova Struttura",
@@ -884,6 +888,12 @@
                 "no_heatmap": "Nessun dato heatmap",
                 "select_for_replay": "Seleziona una sessione con dati heatmap per vedere il replay"
             }
+        },
+        "room_assignment": {
+            "title": "Assegna Ospiti alla Stanza",
+            "search_placeholder": "Cerca invito per nome o codice...",
+            "no_candidates": "Nessun invito disponibile",
+            "save_btn": "Assegna Selezionati"
         },
         "suppliers": {
             "title": "Fornitori",

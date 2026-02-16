@@ -28,6 +28,8 @@
     "error_loading": "Error loading data",
     "confirm_delete": "Are you sure you want to delete?",
     "processing": "Processing...",
+    "add": "Add",
+    "no_results": "No results",
     "error_modal": {
       "title": "Oops! Something went wrong",
       "title_alt": "Something went wrong",
@@ -763,6 +765,7 @@
         "updated": "Accommodation updated successfully",
         "deleted": "Accommodation deleted",
         "assigned": "{{count}} guests assigned automatically",
+        "assigned_manual": "Guests assigned successfully",
         "pinned": "Assignment locked",
         "unpinned": "Assignment unlocked"
       },
@@ -788,7 +791,8 @@
         "edit": "Edit",
         "delete": "Delete",
         "pin": "Lock assignment",
-        "unpin": "Unlock assignment"
+        "unpin": "Unlock assignment",
+        "add_guests": "Add Guests"
       },
       "create_modal": {
         "title": "Create New Facility",
@@ -874,6 +878,12 @@
         "no_heatmap": "No heatmap data",
         "select_for_replay": "Select a session with heatmap data to view replay"
       }
+    },
+    "room_assignment": {
+      "title": "Assign Guests to Room",
+      "search_placeholder": "Search invitation by name or code...",
+      "no_candidates": "No invitations available",
+      "save_btn": "Assign Selected"
     },
     "suppliers": {
       "title": "Suppliers",
