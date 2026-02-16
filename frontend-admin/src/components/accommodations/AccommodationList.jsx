@@ -1,8 +1,8 @@
-import { Baby, Bed, Edit2, Home, Pin, PinOff, Trash2, User, Users } from 'lucide-react';
+import { Baby, Bed, Edit2, Home, Pin, PinOff, Trash2, User, UserPlus, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import Tooltip from '../common/Tooltip';
 
-const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) => {
+const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin, onAddGuests }) => {
     const { t } = useTranslation();
 
     if (!accommodations || accommodations.length === 0) {
@@ -86,6 +86,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                 const roomOccupied = room.occupied_count || 0;
                                 const roomPercent = roomCapacity > 0 ? Math.round((roomOccupied / roomCapacity) * 100) : 0;
                                 const availableSlots = room.available_slots || { adult_slots_free: room.capacity_adults, child_slots_free: room.capacity_children };
+                                const hasFreeSlots = availableSlots.adult_slots_free > 0 || availableSlots.child_slots_free > 0;
 
                                 return (
                                     <div key={room.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
@@ -97,13 +98,29 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                     {t('admin.accommodations.list.capacity_label')}: {t('admin.accommodations.list.adults_short')}:{room.capacity_adults} {t('admin.accommodations.list.children_short')}:{room.capacity_children}
                                                 </span>
                                             </div>
-                                            <div className="text-xs">
-                                                <span className={`font-semibold ${availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0
-                                                    ? 'text-red-600'
-                                                    : 'text-green-600'
-                                                    }`}>
-                                                    {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
-                                                </span>
+                                            <div className="flex items-center gap-3">
+                                                {/* Add Guests Button */}
+                                                {hasFreeSlots && onAddGuests && (
+                                                    <Tooltip content={t('admin.accommodations.list.add_guests', 'Aggiungi Ospiti')} position="top">
+                                                        <button
+                                                            onClick={() => onAddGuests(room)}
+                                                            className="text-purple-600 hover:bg-purple-100 p-1.5 rounded-md transition-colors flex items-center gap-1"
+                                                            aria-label="Add Guests"
+                                                        >
+                                                            <UserPlus size={16} />
+                                                            <span className="text-xs font-medium hidden sm:inline">{t('common.add', 'Aggiungi')}</span>
+                                                        </button>
+                                                    </Tooltip>
+                                                )}
+
+                                                <div className="text-xs">
+                                                    <span className={`font-semibold ${availableSlots.adult_slots_free === 0 && availableSlots.child_slots_free === 0
+                                                        ? 'text-red-600'
+                                                        : 'text-green-600'
+                                                        }`}>
+                                                        {t('admin.accommodations.list.free_slots')}: {t('admin.accommodations.list.adults_short')}:{availableSlots.adult_slots_free} {t('admin.accommodations.list.children_short')}:{availableSlots.child_slots_free}
+                                                    </span>
+                                                </div>
                                             </div>
                                         </div>
 
@@ -123,24 +140,24 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
 
                                         {/* Assigned Guests in Room */}
                                         {room.assigned_guests && room.assigned_guests.length > 0 ? (
-                                            <div className="mt-3">
-                                                <p className="text-xs font-semibold text-gray-500 mb-2">{t('admin.accommodations.list.assigned_guests')}:</p>
-                                                <div className="flex flex-wrap gap-2">
+                                            <div className=\"mt-3\">
+                                                <p className=\"text-xs font-semibold text-gray-500 mb-2\">{t('admin.accommodations.list.assigned_guests')}:</p>
+                                                <div className=\"flex flex-wrap gap-2\">
                                                     {room.assigned_guests.map((guest, idx) => (
-                                                        <div key={idx} className="flex items-center gap-1">
+                                                        <div key={idx} className=\"flex items-center gap-1\">
                                                             <span
                                                                 className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${guest.is_child
                                                                     ? 'bg-pink-50 text-pink-700 border-pink-200'
                                                                     : 'bg-blue-50 text-blue-700 border-blue-200'
                                                                     }`}
                                                             >
-                                                                {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
+                                                                {guest.is_child ? <Baby size={12} className=\"mr-1\" /> : <User size={12} className=\"mr-1\" />}
                                                                 {guest.first_name} {guest.last_name || ''}
                                                             </span>
                                                             {guest.invitation && onTogglePin && (
                                                                 <Tooltip
                                                                     content={guest.accommodation_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
-                                                                    position="top"
+                                                                    position=\"top\"
                                                                 >
                                                                     <button
                                                                         onClick={() => onTogglePin(guest.invitation, guest, !guest.accommodation_pinned)}
@@ -159,7 +176,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin }) =>
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className="text-xs text-gray-400 italic mt-2">{t('admin.accommodations.list.empty_room')}</p>
+                                            <p className=\"text-xs text-gray-400 italic mt-2\">{t('admin.accommodations.list.empty_room')}</p>
                                         )}
                                     </div>
                                 );
