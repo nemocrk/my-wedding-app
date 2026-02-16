@@ -140,24 +140,24 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin, onAd
 
                                         {/* Assigned Guests in Room */}
                                         {room.assigned_guests && room.assigned_guests.length > 0 ? (
-                                            <div className=\"mt-3\">
-                                                <p className=\"text-xs font-semibold text-gray-500 mb-2\">{t('admin.accommodations.list.assigned_guests')}:</p>
-                                                <div className=\"flex flex-wrap gap-2\">
+                                            <div className="mt-3">
+                                                <p className="text-xs font-semibold text-gray-500 mb-2">{t('admin.accommodations.list.assigned_guests')}:</p>
+                                                <div className="flex flex-wrap gap-2">
                                                     {room.assigned_guests.map((guest, idx) => (
-                                                        <div key={idx} className=\"flex items-center gap-1\">
+                                                        <div key={idx} className="flex items-center gap-1">
                                                             <span
                                                                 className={`inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium border shadow-sm ${guest.is_child
                                                                     ? 'bg-pink-50 text-pink-700 border-pink-200'
                                                                     : 'bg-blue-50 text-blue-700 border-blue-200'
                                                                     }`}
                                                             >
-                                                                {guest.is_child ? <Baby size={12} className=\"mr-1\" /> : <User size={12} className=\"mr-1\" />}
+                                                                {guest.is_child ? <Baby size={12} className="mr-1" /> : <User size={12} className="mr-1" />}
                                                                 {guest.first_name} {guest.last_name || ''}
                                                             </span>
                                                             {guest.invitation && onTogglePin && (
                                                                 <Tooltip
                                                                     content={guest.accommodation_pinned ? t('admin.accommodations.list.unpin') : t('admin.accommodations.list.pin')}
-                                                                    position=\"top\"
+                                                                    position="top"
                                                                 >
                                                                     <button
                                                                         onClick={() => onTogglePin(guest.invitation, guest, !guest.accommodation_pinned)}
@@ -176,7 +176,7 @@ const AccommodationList = ({ accommodations, onDelete, onEdit, onTogglePin, onAd
                                                 </div>
                                             </div>
                                         ) : (
-                                            <p className=\"text-xs text-gray-400 italic mt-2\">{t('admin.accommodations.list.empty_room')}</p>
+                                            <p className="text-xs text-gray-400 italic mt-2">{t('admin.accommodations.list.empty_room')}</p>
                                         )}
                                     </div>
                                 );
