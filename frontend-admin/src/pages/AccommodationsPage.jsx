@@ -5,6 +5,7 @@ import AccommodationList from '../components/accommodations/AccommodationList';
 import AutoAssignStrategyModal from '../components/accommodations/AutoAssignStrategyModal';
 import CreateAccommodationModal from '../components/accommodations/CreateAccommodationModal';
 import EditAccommodationModal from '../components/accommodations/EditAccommodationModal';
+import RoomAssignmentModal from '../components/accommodations/RoomAssignmentModal';
 import ErrorModal from '../components/common/ErrorModal';
 import { useConfirm } from '../contexts/ConfirmDialogContext';
 import { api } from '../services/api';
@@ -18,6 +19,11 @@ const AccommodationsPage = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [editingAccommodation, setEditingAccommodation] = useState(null);
     const [isStrategyModalOpen, setIsStrategyModalOpen] = useState(false);
+    
+    // Manual Assignment State
+    const [isAssignmentModalOpen, setIsAssignmentModalOpen] = useState(false);
+    const [selectedRoom, setSelectedRoom] = useState(null);
+
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState('');
@@ -108,6 +114,16 @@ const AccommodationsPage = () => {
         fetchData();
     };
 
+    const handleOpenAssignment = (room) => {
+        setSelectedRoom(room);
+        setIsAssignmentModalOpen(true);
+    };
+
+    const handleAssignmentSuccess = () => {
+        setSuccessMsg(t('admin.accommodations.success.assigned_manual', 'Ospiti assegnati correttamente'));
+        fetchData();
+    };
+
     return (
         <div className="space-y-6">
             <header className="flex justify-between items-center mb-6">
@@ -148,7 +164,7 @@ const AccommodationsPage = () => {
                 <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-md shadow-sm">
                     <div className="flex">
                         <div className="flex-shrink-0">
-                            <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden="true" />
+                            <AlertCircle className="h-5 w-5 text-yellow-400" aria-hidden=\"true\" />
                         </div>
                         <div className="ml-3">
                             <h3 className="text-sm font-medium text-yellow-800">
@@ -173,6 +189,7 @@ const AccommodationsPage = () => {
                 onDelete={handleDelete}
                 onEdit={handleEdit}
                 onTogglePin={handleTogglePin}
+                onAddGuests={handleOpenAssignment}
             />
 
             <CreateAccommodationModal
@@ -196,6 +213,16 @@ const AccommodationsPage = () => {
                 onClose={() => setIsStrategyModalOpen(false)}
                 onSuccess={handleStrategySuccess}
                 onError={setError}
+            />
+
+            <RoomAssignmentModal
+                isOpen={isAssignmentModalOpen}
+                onClose={() => {
+                    setIsAssignmentModalOpen(false);
+                    setSelectedRoom(null);
+                }}
+                room={selectedRoom}
+                onSuccess={handleAssignmentSuccess}
             />
 
             {error && <ErrorModal errorDetails={error} onClose={() => setError(null)} isOpen={!!error} />}
