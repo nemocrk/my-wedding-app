@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.views import APIView
 from django.db.models import F, Sum, Count, Q, Min, OuterRef, Subquery
+from django.db.models.manager import BaseManager
 from django.contrib.sessions.models import Session
 from django.db import transaction
 from django.conf import settings
@@ -687,27 +688,6 @@ class InvitationViewSet(viewsets.ModelViewSet):
             'message': f'Persona {'pinnata' if pin_status else 'depinnata'} correttamente',
         })
         
-            
-
-
-class GlobalConfigViewSet(viewsets.ViewSet):
-    def list(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config)
-        return Response(serializer.data)
-
-    def create(self, request):
-        config, created = GlobalConfig.objects.get_or_create(pk=1)
-        serializer = GlobalConfigSerializer(config, data=request.data, partial=True)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
-    """CRUD for WhatsApp Templates"""
-    queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
-    serializer_class = WhatsAppTemplateSerializer
 
 class AccommodationViewSet(viewsets.ModelViewSet):
     """CRUD completo per Alloggi (solo admin)"""
@@ -1082,22 +1062,25 @@ class DashboardStatsView(APIView):
         declined_invitations = Invitation.objects.filter(status=Invitation.Status.DECLINED)
         
         # CRITICAL: Exclude not_coming guests from all counts
-        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False, not_coming=False).count()
-        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True, not_coming=False).count()
+        adults_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=False, not_coming=False).select_related('invitation').select_related('assigned_room')
+        children_confirmed = Person.objects.filter(invitation__in=confirmed_invitations, is_child=True, not_coming=False).select_related('invitation').select_related('assigned_room')
         
-        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False, not_coming=False).count()
-        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True, not_coming=False).count()
+        adults_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=False, not_coming=False).select_related('invitation').select_related('assigned_room')
+        children_pending = Person.objects.filter(invitation__in=pending_invitations, is_child=True, not_coming=False).select_related('invitation').select_related('assigned_room')
         
-        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False, not_coming=False).count()
-        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True, not_coming=False).count()
+        adults_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=False, not_coming=False).select_related('invitation').select_related('assigned_room')
+        children_declined = Person.objects.filter(invitation__in=declined_invitations, is_child=True, not_coming=False).select_related('invitation').select_related('assigned_room')
+
+        adults_confirmed_or_pending = Person.objects.filter(invitation__status__in=[Invitation.Status.CONFIRMED, Invitation.Status.IMPORTED, Invitation.Status.CREATED, Invitation.Status.SENT, Invitation.Status.READ], is_child=False, not_coming=False).select_related('invitation').select_related('assigned_room')
+        children_confirmed_or_pending = Person.objects.filter(invitation__status__in=[Invitation.Status.CONFIRMED, Invitation.Status.IMPORTED, Invitation.Status.CREATED, Invitation.Status.SENT, Invitation.Status.READ], is_child=True, not_coming=False).select_related('invitation').select_related('assigned_room')
 
         stats_guests = {
-            'adults_confirmed': adults_confirmed,
-            'children_confirmed': children_confirmed,
-            'adults_pending': adults_pending,
-            'children_pending': children_pending,
-            'adults_declined': adults_declined,
-            'children_declined': children_declined,
+            'adults_confirmed': adults_confirmed.count(),
+            'children_confirmed': children_confirmed.count(),
+            'adults_pending': adults_pending.count(),
+            'children_pending': children_pending.count(),
+            'adults_declined': adults_declined.count(),
+            'children_declined': children_declined.count(),
         }
 
         stats_invitations = {
@@ -1113,51 +1096,62 @@ class DashboardStatsView(APIView):
         acc_confirmed_children = 0
         trans_confirmed = 0
 
-        for inv in confirmed_invitations:
-            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
-            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
-            
-            if inv.accommodation_requested:
-                acc_confirmed_adults += inv_adults
-                acc_confirmed_children += inv_children
-            
-            if inv.transfer_requested:
-                trans_confirmed += (inv_adults + inv_children)
+        acc_confirmed_adults = adults_confirmed.filter(invitation__accommodation_requested=True).count()
+        acc_confirmed_children = children_confirmed.filter(invitation__accommodation_requested=True).count()
+        trans_confirmed = adults_confirmed.filter(invitation__transfer_requested=True).count() + children_confirmed.filter(invitation__transfer_requested=True).count()
 
-        def calculate_cost(adults, children, acc_adults, acc_children, transfers):
-            adults_cost = float(adults) * float(config.price_adult_meal) + float(acc_adults) * float(config.price_accommodation_adult)
-            children_cost = float(children) * float(config.price_child_meal) + float(acc_children) * float(config.price_accommodation_child)
-            transfers_cost = float(transfers) * float(config.price_transfer)
+        def calculate_cost(adults: BaseManager[Person], children: BaseManager[Person]):
+            adults_cost = 0
+            for adult in adults.filter(assigned_room__isnull=False):
+                if adult.assigned_room:
+                    adults_cost += adult.assigned_room.adults_price()
+            adults_cost += (adults.exclude(
+                                invitation__status=Invitation.Status.CONFIRMED,
+                                invitation__accommodation_requested=False,
+                            ).filter(
+                                assigned_room__isnull=True
+                            ).filter(
+                                Q(invitation__accommodation_offered=True) |
+                                Q(invitation__accommodation_requested=True)
+                            ).count() * float(config.price_accommodation_adult))
+            adults_cost += adults.count() * float(config.price_adult_meal)
+
+            children_cost = 0
+            for child in children.filter(assigned_room__isnull=False):
+                if child.assigned_room:
+                    children_cost += child.assigned_room.children_price()
+            children_cost += (children.exclude(
+                                invitation__status=Invitation.Status.CONFIRMED,
+                                invitation__accommodation_requested=False,
+                            ).filter(
+                                assigned_room__isnull=True
+                            ).filter(
+                                Q(invitation__accommodation_offered=True) |
+                                Q(invitation__accommodation_requested=True)
+                            ).count() * float(config.price_accommodation_child))
+            children_cost += children.count() * float(config.price_child_meal)
+
+
+            transfers_cost = ((adults.exclude(invitation__status=Invitation.Status.CONFIRMED, invitation__transfer_requested=False).filter(
+                                    Q(invitation__transfer_requested=True) |
+                                    Q(invitation__transfer_offered=True)
+                                ).count() 
+                              + children.exclude(invitation__status=Invitation.Status.CONFIRMED, invitation__transfer_requested=False).filter(
+                                    Q(invitation__transfer_requested=True) |
+                                    Q(invitation__transfer_offered=True)
+                                ).count()) 
+                              * float(config.price_transfer))
+
             total = adults_cost + children_cost + transfers_cost
             return total, adults_cost, children_cost, transfers_cost
 
         cost_confirmed, adults_confirmed_cost, children_confirmed_cost, transfers_cost = calculate_cost(
-            adults_confirmed, children_confirmed,
-            acc_confirmed_adults, acc_confirmed_children,
-            trans_confirmed
+            adults_confirmed, children_confirmed
         )
-
-        est_acc_adults = acc_confirmed_adults
-        est_acc_children = acc_confirmed_children
-        est_trans = trans_confirmed
-
-        for inv in pending_invitations:
-            inv_adults = inv.guests.filter(is_child=False, not_coming=False).count()
-            inv_children = inv.guests.filter(is_child=True, not_coming=False).count()
-            
-            if inv.accommodation_offered:
-                est_acc_adults += inv_adults
-                est_acc_children += inv_children
-            
-            if inv.transfer_offered:
-                est_trans += (inv_adults + inv_children)
-
+        
         cost_total_estimated, adults_estimated_cost, children_estimated_cost, transfers_estimated_cost = calculate_cost(
-            adults_confirmed + adults_pending,
-            children_confirmed + children_pending,
-            est_acc_adults,
-            est_acc_children,
-            est_trans
+            adults_confirmed_or_pending,
+            children_confirmed_or_pending
         )
 
         # Supplier costs: aggregate all suppliers (event-level costs)
