@@ -23,22 +23,20 @@
     }
   ],
   "python.testing.pytestArgs": [
-    "-c",
-    "./backend/pytest.ini"
+    "."
   ],
   "python.testing.unittestEnabled": false,
-  "python.defaultInterpreterPath": "${workspaceFolder}/backend/.venv/bin/python",
+  "python.defaultInterpreterPath": "backend/.venv/bin/python",
   "python.analysis.extraPaths": [
-    "${workspaceFolder}/backend"
+    "backend"
   ],
-  "python.envFile": "${workspaceFolder}/backend/.venv",
+  "python.analysis.autoImportCompletions": true,
   // Linting & Formatting
   "python.linting.enabled": true,
   "python.linting.pylintEnabled": false,
   "python.linting.flake8Enabled": true,
   "python.formatting.provider": "black",
   // Django Support
-  "python.analysis.autoImportCompletions": true,
   "files.associations": {
     "**/templates/**/*.html": "django-html",
     "**/templates/**/*.txt": "django-txt"
