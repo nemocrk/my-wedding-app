@@ -587,7 +587,7 @@ const InvitationList = () => {
                           {invitation.guests?.map((guest, idx) => (
                             <span
                               key={guest.id || idx}
-                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${invitation.status === 'declined'
+                              className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${(invitation.status === 'declined' || guest.not_coming)
                                 ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
                                 : guest.is_child
                                   ? 'bg-pink-50 text-pink-700 border-pink-100'
@@ -818,7 +818,11 @@ const InvitationList = () => {
                     {invitation.guests?.map((g, idx) => (
                       <span
                         key={idx}
-                        className="text-xs bg-slate-100 px-2 py-1 rounded text-slate-600 border border-slate-200 flex items-center"
+                        className={`inline-flex items-center px-2 py-1 rounded-md text-xs font-medium border ${(invitation.status === 'declined' || g.not_coming)
+                          ? 'bg-red-50 text-red-400 border-red-100 line-through opacity-70'
+                          : g.is_child
+                            ? 'bg-pink-50 text-pink-700 border-pink-100'
+                            : 'bg-slate-50 text-slate-700 border-slate-200'}`}
                       >
                         {g.is_child ? <Baby size={10} className="mr-1" /> : <User size={10} className="mr-1" />}
                         {g.first_name}
