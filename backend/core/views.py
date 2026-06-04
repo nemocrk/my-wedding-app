@@ -565,7 +565,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
             )
         if action_type not in ['add', 'remove']:
             return Response(
-                {'error': 'action must be \'add\' or \'remove\''}, 
+                {'error': 'action must be \'add\' or \'remove\''},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -1295,27 +1295,35 @@ class PaymentSummaryView(APIView):
     KPI aggregati globali sui pagamenti.
     Restituisce: totale contratti, pagato, pianificato, rimanente, prossima scadenza.
     GET /api/admin/payment-events/summary/
+
+    FIX #146: Sum() su FloatField restituisce float Python, non Decimal.
+    Sommare float + Decimal solleva TypeError. Tutti i risultati di Sum/aggregati
+    vengono ora coerciti in Decimal via Decimal(str(...)) prima di qualsiasi
+    operazione aritmetica.
     """
     def get(self, request):
-        # Recupera i ContentType per Supplier e Room
-        supplier_ct = ContentType.objects.get_for_model(Supplier)
         room_ct = ContentType.objects.get_for_model(Room)
 
-        # Totale contratti: somma di Supplier.cost + Room.price
-        total_contracts = (
-            Supplier.objects.aggregate(t=Sum('cost'))['t'] or Decimal('0')
-        ) + (
-            Room.objects.aggregate(t=Sum('price'))['t'] or Decimal('0')
-        )
+        # FIX: coerci i risultati di Sum() in Decimal prima di sommare.
+        # Sum('cost') e Sum('price') su FloatField restituiscono float, non Decimal.
+        supplier_sum_raw = Supplier.objects.aggregate(t=Sum('cost'))['t']
+        room_sum_raw = Room.objects.aggregate(t=Sum('price'))['t']
+
+        supplier_sum = Decimal(str(supplier_sum_raw)) if supplier_sum_raw is not None else Decimal('0')
+        room_sum = Decimal(str(room_sum_raw)) if room_sum_raw is not None else Decimal('0')
+
+        total_contracts = supplier_sum + room_sum
 
         # Aggregati sugli eventi di pagamento (esclusi cancelled)
-        paid_agg = PaymentEvent.objects.filter(
+        paid_raw = PaymentEvent.objects.filter(
             status=PaymentEvent.Status.PAID
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        ).aggregate(total=Sum('amount'))['total']
+        paid_agg = Decimal(str(paid_raw)) if paid_raw is not None else Decimal('0')
 
-        planned_agg = PaymentEvent.objects.filter(
+        planned_raw = PaymentEvent.objects.filter(
             status=PaymentEvent.Status.PLANNED
-        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+        ).aggregate(total=Sum('amount'))['total']
+        planned_agg = Decimal(str(planned_raw)) if planned_raw is not None else Decimal('0')
 
         total_remaining = total_contracts - paid_agg
 
