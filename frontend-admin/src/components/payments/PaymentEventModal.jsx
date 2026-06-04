@@ -1,4 +1,4 @@
-import { Loader2, X } from 'lucide-react';
+import { Loader2, Plus, X } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import paymentService from '../../services/paymentService';
@@ -20,6 +20,11 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
   const [saving, setSaving] = useState(false);
   const [errors, setErrors] = useState({});
 
+  // Inline platform creation state
+  const [showAddPlatform, setShowAddPlatform] = useState(false);
+  const [newPlatformName, setNewPlatformName] = useState('');
+  const [savingPlatform, setSavingPlatform] = useState(false);
+
   const [form, setForm] = useState({
     label: '',
     amount: '',
@@ -29,14 +34,18 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
     platform: '',
   });
 
-  // Load platforms on mount
-  useEffect(() => {
-    if (!isOpen) return;
+  const loadPlatforms = () => {
     setLoadingPlatforms(true);
     paymentService.getPlatforms()
       .then(data => setPlatforms(data?.results ?? data ?? []))
       .catch(() => setPlatforms([]))
       .finally(() => setLoadingPlatforms(false));
+  };
+
+  // Load platforms when modal opens
+  useEffect(() => {
+    if (!isOpen) return;
+    loadPlatforms();
   }, [isOpen]);
 
   // Populate form when editing
@@ -61,6 +70,8 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
       });
     }
     setErrors({});
+    setShowAddPlatform(false);
+    setNewPlatformName('');
   }, [isOpen, eventToEdit, payable]);
 
   const validate = () => {
@@ -78,17 +89,41 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
     if (errors[field]) setErrors(prev => ({ ...prev, [field]: undefined }));
   };
 
+  // Inline platform creation handler
+  const handleCreatePlatform = async () => {
+    if (!newPlatformName.trim()) return;
+    setSavingPlatform(true);
+    try {
+      const created = await paymentService.createPlatform({ name: newPlatformName.trim() });
+      await loadPlatforms();
+      // Auto-select the newly created platform
+      setForm(prev => ({ ...prev, platform: String(created.id) }));
+      setShowAddPlatform(false);
+      setNewPlatformName('');
+    } catch (err) {
+      console.error('Create platform error:', err);
+    } finally {
+      setSavingPlatform(false);
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
     setSaving(true);
     try {
       const payload = {
-        ...form,
+        label: form.label,
         amount: parseFloat(form.amount),
-        platform: form.platform || null,
-        content_type: payable?.content_type,
+        currency: form.currency,
+        payment_date: form.payment_date,
+        status: form.status,
+        // FIX #146: was `content_type: payable?.content_type` (undefined).
+        // The payable object from the API exposes `content_type_id`, not `content_type`.
+        content_type: payable?.content_type_id,
         object_id: payable?.object_id,
+        // FIX #146: <select> value is always a string; backend expects int or null.
+        platform: form.platform ? parseInt(form.platform, 10) : null,
       };
       if (isEdit) {
         await paymentService.updateEvent(eventToEdit.id, payload);
@@ -232,9 +267,60 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
 
           {/* Platform */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('admin.payments.modal.platform')}
-            </label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {t('admin.payments.modal.platform')}
+              </label>
+              {!showAddPlatform && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddPlatform(true)}
+                  className="flex items-center gap-1 text-xs text-indigo-600 dark:text-indigo-400
+                    hover:text-indigo-700 transition-colors"
+                >
+                  <Plus size={12} />
+                  {t('admin.payments.modal.platform_add')}
+                </button>
+              )}
+            </div>
+
+            {/* Inline new platform form */}
+            {showAddPlatform && (
+              <div className="flex gap-2 mb-2">
+                <input
+                  type="text"
+                  value={newPlatformName}
+                  onChange={e => setNewPlatformName(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), handleCreatePlatform())}
+                  placeholder={t('admin.payments.modal.platform_name_placeholder')}
+                  className="flex-1 px-3 py-1.5 rounded-lg border border-indigo-300 dark:border-indigo-700
+                    text-sm bg-white dark:bg-gray-800 dark:text-white focus:outline-none
+                    focus:ring-2 focus:ring-indigo-500"
+                  autoFocus
+                />
+                <button
+                  type="button"
+                  onClick={handleCreatePlatform}
+                  disabled={savingPlatform || !newPlatformName.trim()}
+                  className="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50
+                    text-white text-xs font-medium flex items-center gap-1 transition-colors"
+                >
+                  {savingPlatform
+                    ? <Loader2 size={12} className="animate-spin" />
+                    : <Plus size={12} />}
+                  {t('common.save')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowAddPlatform(false); setNewPlatformName(''); }}
+                  className="px-2 py-1.5 rounded-lg border border-gray-200 dark:border-gray-700
+                    text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 text-xs transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            )}
+
             {loadingPlatforms ? (
               <div className="flex items-center gap-2 text-sm text-gray-400">
                 <Loader2 size={14} className="animate-spin" />
