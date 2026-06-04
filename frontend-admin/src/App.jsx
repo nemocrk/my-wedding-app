@@ -10,6 +10,7 @@ import Configuration from './pages/Configuration';
 import Dashboard from './pages/Dashboard';
 import InvitationList from './pages/InvitationList';
 import LabelManager from './pages/LabelManager';
+import PaymentsPage from './pages/PaymentsPage';
 import SuppliersPage from './pages/SuppliersPage';
 import SupplierTypesPage from './pages/SupplierTypesPage';
 import WhatsAppConfig from './pages/WhatsAppConfig';
@@ -37,6 +38,7 @@ function App() {
                 <Route path="labels" element={<LabelManager />} />
                 <Route path="supplier-types" element={<SupplierTypesPage />} />
                 <Route path="suppliers" element={<SuppliersPage />} />
+                <Route path="payments" element={<PaymentsPage />} />
                 <Route path="config" element={<Configuration />} />
                 <Route path="whatsapp" element={<WhatsAppConfig />} />
               </Route>

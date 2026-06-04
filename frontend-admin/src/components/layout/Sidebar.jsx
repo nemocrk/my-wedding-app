@@ -1,4 +1,4 @@
-import { Box, Hotel, LayoutDashboard, LogOut, MessageCircle, Settings, Tag, Truck, Users } from 'lucide-react';
+import { Box, CreditCard, Hotel, LayoutDashboard, LogOut, MessageCircle, Settings, Tag, Truck, Users } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { NavLink } from 'react-router-dom';
 import LanguageSwitcher from '../LanguageSwitcher';
@@ -14,6 +14,7 @@ const Sidebar = () => {
         { path: '/labels', icon: Tag, label: t('admin.sidebar.nav.labels') },
         { path: '/supplier-types', icon: Box, label: t('admin.sidebar.nav.supplierTypes') },
         { path: '/suppliers', icon: Truck, label: t('admin.sidebar.nav.suppliers') },
+        { path: '/payments', icon: CreditCard, label: t('admin.sidebar.nav.payments') },
         { path: '/config', label: t('admin.sidebar.nav.configuration'), icon: Settings },
     ];
 
@@ -33,9 +34,10 @@ const Sidebar = () => {
                             <NavLink
                                 to={item.path}
                                 className={({ isActive }) =>
-                                    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${isActive
-                                        ? 'bg-pink-50 text-pink-700 font-medium'
-                                        : 'text-gray-700 hover:bg-gray-100'
+                                    `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                                        isActive
+                                            ? 'bg-pink-50 text-pink-700 font-medium'
+                                            : 'text-gray-700 hover:bg-gray-100'
                                     }`
                                 }
                             >
@@ -47,14 +49,10 @@ const Sidebar = () => {
                 </ul>
             </nav>
 
-            {/* Footer Section: Language Switcher + Logout */}
             <div className="border-t border-gray-200">
-                {/* Language Switcher */}
                 <div className="p-4 border-b border-gray-100">
                     <LanguageSwitcher />
                 </div>
-
-                {/* Logout Button */}
                 <div className="p-4">
                     <button className="flex items-center gap-3 text-gray-600 hover:text-red-600 transition-colors w-full px-3 py-2 rounded-md hover:bg-red-50">
                         <LogOut size={20} />
