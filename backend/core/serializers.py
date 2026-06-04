@@ -463,14 +463,18 @@ class PayableItemSerializer(serializers.Serializer):
     """
     Serializer di sola lettura per la lista unificata di entità pagabili.
     Ogni item rappresenta un Supplier oppure una Room con il riepilogo pagamenti.
+
+    NOTA: il campo eventi è esposto come 'events' (non 'payment_events')
+    per allineamento con il frontend (PayableRow.jsx usa payable.events).
     """
     entity_type = serializers.CharField()           # 'supplier' | 'room'
     entity_id = serializers.IntegerField()
     entity_name = serializers.CharField()           # es. "Hotel Belvedere - Camera 101"
     content_type_id = serializers.IntegerField()
+    object_id = serializers.IntegerField()
     contract_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
     currency = serializers.CharField()
     total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_planned = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_remaining = serializers.DecimalField(max_digits=12, decimal_places=2)
-    payment_events = PaymentEventSerializer(many=True)
+    events = PaymentEventSerializer(many=True)      # era 'payment_events' — rinominato per match frontend
