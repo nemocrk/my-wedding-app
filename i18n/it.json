@@ -206,6 +206,7 @@
                 "labels": "Etichette",
                 "supplierTypes": "Tipi Fornitore",
                 "suppliers": "Fornitori",
+                "payments": "Pagamenti",
                 "whatsapp": "WhatsApp",
                 "configuration": "Configurazione"
             },
@@ -906,6 +907,99 @@
                 "type": "Tipo",
                 "cost": "Costo",
                 "currency": "Valuta"
+            }
+        },
+        "payments": {
+            "page_title": "Pagamenti",
+            "page_subtitle": "Traccia i pagamenti verso fornitori e alloggi",
+            "loading": "Caricamento pagamenti...",
+            "error_loading": "Errore nel caricamento dei pagamenti",
+            "tabs": {
+                "payments": "Pagamenti",
+                "platforms": "Piattaforme"
+            },
+            "kpi": {
+                "total_contracts": "Totale Contratti",
+                "total_contracts_subtitle": "Valore totale accordato",
+                "total_paid": "Totale Pagato",
+                "total_paid_subtitle": "Somma pagamenti effettuati",
+                "total_planned": "Totale Pianificato",
+                "total_planned_subtitle": "Rate future programmate",
+                "total_remaining": "Rimanente",
+                "total_remaining_subtitle": "Da saldare",
+                "next_deadline": "Prossima Scadenza",
+                "next_deadline_none": "Nessuna scadenza"
+            },
+            "payables": {
+                "title": "Fornitori & Alloggi",
+                "empty": "Nessun elemento trovato",
+                "empty_subtitle": "Aggiungi fornitori o alloggi per tracciare i pagamenti",
+                "entity_type_room": "Camera",
+                "entity_type_supplier": "Fornitore",
+                "contract": "Contratto",
+                "paid": "Pagato",
+                "planned": "Pianificato",
+                "remaining": "Rimanente",
+                "expand": "Espandi",
+                "collapse": "Comprimi",
+                "add_event": "Aggiungi Rata"
+            },
+            "status": {
+                "paid": "Saldato",
+                "partial": "Parziale",
+                "pending": "Da Pagare",
+                "overpaid": "Sovrapagato"
+            },
+            "events": {
+                "title": "Rate di Pagamento",
+                "empty": "Nessuna rata registrata",
+                "label": "Etichetta",
+                "platform": "Piattaforma",
+                "date": "Data",
+                "amount": "Importo",
+                "currency": "Valuta",
+                "status": "Stato",
+                "notes": "Note",
+                "status_planned": "Pianificato",
+                "status_paid": "Pagato",
+                "status_cancelled": "Annullato"
+            },
+            "event_modal": {
+                "title_create": "Aggiungi Rata",
+                "title_edit": "Modifica Rata",
+                "label_placeholder": "es. Acconto, Saldo, Rata 1",
+                "select_platform": "-- Seleziona Piattaforma --",
+                "notes_placeholder": "Note opzionali...",
+                "save": "Salva",
+                "saving": "Salvataggio...",
+                "cancel": "Annulla",
+                "delete_confirm": "Sei sicuro di voler eliminare questa rata?"
+            },
+            "platforms": {
+                "title": "Piattaforme di Pagamento",
+                "subtitle": "Gestisci i metodi di pagamento disponibili",
+                "empty": "Nessuna piattaforma configurata",
+                "empty_subtitle": "Aggiungi la prima piattaforma (es. Bonifico, Carta, PayPal)",
+                "new": "Nuova Piattaforma",
+                "name_label": "Nome Piattaforma",
+                "name_placeholder": "es. Bonifico, Carta, PayPal",
+                "create_title": "Nuova Piattaforma",
+                "edit_title": "Modifica Piattaforma",
+                "delete_confirm": "Sei sicuro di voler eliminare questa piattaforma?",
+                "delete_warning": "Attenzione: la piattaforma è in uso in alcune rate e non può essere eliminata.",
+                "save": "Salva",
+                "cancel": "Annulla"
+            },
+            "alerts": {
+                "event_created": "Rata aggiunta con successo",
+                "event_updated": "Rata aggiornata con successo",
+                "event_deleted": "Rata eliminata",
+                "platform_created": "Piattaforma creata con successo",
+                "platform_updated": "Piattaforma aggiornata con successo",
+                "platform_deleted": "Piattaforma eliminata",
+                "platform_in_use": "Impossibile eliminare: piattaforma in uso",
+                "error_save": "Errore durante il salvataggio",
+                "error_delete": "Errore durante l'eliminazione"
             }
         }
     }
