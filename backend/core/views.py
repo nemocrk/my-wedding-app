@@ -19,6 +19,10 @@ from .serializers import (
 )
 from .models import Supplier, SupplierType
 from .serializers import SupplierSerializer, SupplierTypeSerializer
+from .models import PaymentPlatform, PaymentEvent
+from .serializers import PaymentPlatformSerializer, PaymentEventSerializer, PayableItemSerializer
+from django.contrib.contenttypes.models import ContentType
+from decimal import Decimal
 import logging
 import os
 import json
@@ -1245,3 +1249,185 @@ class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
     """CRUD for WhatsApp Templates"""
     queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
     serializer_class = WhatsAppTemplateSerializer
+
+
+# ========================================
+# PAYMENT API (Issue #146)
+# ========================================
+
+class PaymentPlatformViewSet(viewsets.ModelViewSet):
+    """
+    CRUD per le piattaforme di pagamento configurabili.
+    Condivise globalmente tra Fornitori e Alloggi.
+    """
+    queryset = PaymentPlatform.objects.all().order_by('name')
+    serializer_class = PaymentPlatformSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+
+class PaymentEventViewSet(viewsets.ModelViewSet):
+    """
+    CRUD per gli eventi di pagamento.
+    Filtrabili per entità pagabile tramite ?content_type_id=X&object_id=Y.
+    """
+    serializer_class = PaymentEventSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['payment_date', 'amount', 'status']
+    ordering = ['payment_date']
+
+    def get_queryset(self):
+        qs = PaymentEvent.objects.select_related('platform', 'content_type').all()
+        ct_id = self.request.query_params.get('content_type_id')
+        obj_id = self.request.query_params.get('object_id')
+        status_filter = self.request.query_params.get('status')
+        if ct_id:
+            qs = qs.filter(content_type_id=ct_id)
+        if obj_id:
+            qs = qs.filter(object_id=obj_id)
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+
+class PaymentSummaryView(APIView):
+    """
+    KPI aggregati globali sui pagamenti.
+    Restituisce: totale contratti, pagato, pianificato, rimanente, prossima scadenza.
+    GET /api/admin/payment-events/summary/
+    """
+    def get(self, request):
+        # Recupera i ContentType per Supplier e Room
+        supplier_ct = ContentType.objects.get_for_model(Supplier)
+        room_ct = ContentType.objects.get_for_model(Room)
+
+        # Totale contratti: somma di Supplier.cost + Room.price
+        total_contracts = (
+            Supplier.objects.aggregate(t=Sum('cost'))['t'] or Decimal('0')
+        ) + (
+            Room.objects.aggregate(t=Sum('price'))['t'] or Decimal('0')
+        )
+
+        # Aggregati sugli eventi di pagamento (esclusi cancelled)
+        paid_agg = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PAID
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        planned_agg = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PLANNED
+        ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+
+        total_remaining = total_contracts - paid_agg
+
+        # Prossima scadenza: il primo evento PLANNED con la data più vicina
+        next_event = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PLANNED
+        ).select_related('content_type').order_by('payment_date').first()
+
+        next_deadline = None
+        if next_event:
+            # Ricostruisce il nome dell'entità per il label
+            try:
+                entity = next_event.content_type.get_object_for_this_type(pk=next_event.object_id)
+                if next_event.content_type == room_ct:
+                    entity_name = f"{entity.accommodation.name} - Camera {entity.room_number}"
+                else:
+                    entity_name = entity.name
+            except Exception:
+                entity_name = 'N/D'
+
+            next_deadline = {
+                'label': f"{next_event.label} - {entity_name}",
+                'date': next_event.payment_date,
+                'amount': next_event.amount,
+                'currency': next_event.currency,
+            }
+
+        return Response({
+            'total_contracts': total_contracts,
+            'total_paid': paid_agg,
+            'total_planned': planned_agg,
+            'total_remaining': total_remaining,
+            'next_deadline': next_deadline,
+        })
+
+
+class PayablesListView(APIView):
+    """
+    Lista unificata di tutte le entità pagabili (Room + Supplier)
+    con riepilogo pagamenti aggregato per ciascuna.
+    Ordinamento: prima Alloggi (per nome struttura → numero camera), poi Fornitori (per nome).
+    GET /api/admin/payment-events/payables/
+    """
+    def get(self, request):
+        supplier_ct = ContentType.objects.get_for_model(Supplier)
+        room_ct = ContentType.objects.get_for_model(Room)
+
+        items = []
+
+        # --- CAMERE ---
+        rooms = Room.objects.select_related('accommodation').order_by(
+            'accommodation__name', 'room_number'
+        )
+        for room in rooms:
+            events_qs = PaymentEvent.objects.filter(
+                content_type=room_ct, object_id=room.pk
+            ).select_related('platform').order_by('payment_date')
+
+            total_paid = events_qs.filter(
+                status=PaymentEvent.Status.PAID
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            total_planned = events_qs.filter(
+                status=PaymentEvent.Status.PLANNED
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            contract_amount = room.price or Decimal('0')
+            total_remaining = contract_amount - total_paid
+
+            items.append({
+                'entity_type': 'room',
+                'entity_id': room.pk,
+                'entity_name': f"{room.accommodation.name} - Camera {room.room_number}",
+                'content_type_id': room_ct.pk,
+                'contract_amount': contract_amount,
+                'currency': 'EUR',
+                'total_paid': total_paid,
+                'total_planned': total_planned,
+                'total_remaining': total_remaining,
+                'payment_events': PaymentEventSerializer(events_qs, many=True).data,
+            })
+
+        # --- FORNITORI ---
+        suppliers = Supplier.objects.order_by('name')
+        for supplier in suppliers:
+            events_qs = PaymentEvent.objects.filter(
+                content_type=supplier_ct, object_id=supplier.pk
+            ).select_related('platform').order_by('payment_date')
+
+            total_paid = events_qs.filter(
+                status=PaymentEvent.Status.PAID
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            total_planned = events_qs.filter(
+                status=PaymentEvent.Status.PLANNED
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            contract_amount = supplier.cost or Decimal('0')
+            total_remaining = contract_amount - total_paid
+
+            items.append({
+                'entity_type': 'supplier',
+                'entity_id': supplier.pk,
+                'entity_name': supplier.name,
+                'content_type_id': supplier_ct.pk,
+                'contract_amount': contract_amount,
+                'currency': supplier.currency or 'EUR',
+                'total_paid': total_paid,
+                'total_planned': total_planned,
+                'total_remaining': total_remaining,
+                'payment_events': PaymentEventSerializer(events_qs, many=True).data,
+            })
+
+        serializer = PayableItemSerializer(items, many=True)
+        return Response(serializer.data)
