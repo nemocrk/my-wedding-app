@@ -936,6 +936,8 @@
       },
       "status": {
         "paid": "Paid",
+        "planned": "Planned",
+        "cancelled": "Cancelled",
         "partial": "Partial",
         "pending": "Pending",
         "overpaid": "Overpaid"
@@ -969,7 +971,13 @@
         "date": "Date",
         "amount": "Amount",
         "currency": "Currency",
-        "status": "Status"
+        "status": "Status",
+        "error_label_required": "Label Required",
+        "error_amount_required": "Amount Required",
+        "error_date_required": "Date Required",
+        "platform_add": "Add",
+        "platform_name_placeholder": "Platform name (e.g. Bank transfer)",
+        "platform_none": "— No platform —"
       },
       "platforms": {
         "title": "Payment Platforms",

@@ -259,7 +259,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
                       : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
                 >
-                  {t(`payments.status.${s}`)}
+                  {t(`admin.payments.status.${s}`)}
                 </button>
               ))}
             </div>

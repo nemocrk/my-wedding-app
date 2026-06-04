@@ -946,6 +946,8 @@
             },
             "status": {
                 "paid": "Saldato",
+                "planned": "Pianificato",
+                "cancelled": "Annullato",
                 "partial": "Parziale",
                 "pending": "Da Pagare",
                 "overpaid": "Sovrapagato"
@@ -979,7 +981,13 @@
                 "date": "Data",
                 "amount": "Importo",
                 "currency": "Valuta",
-                "status": "Stato"
+                "status": "Stato",
+                "error_label_required": "Label is required",
+                "error_amount_required": "Amount is required",
+                "error_date_required": "Date is required",
+                "platform_add": "Aggiungi",
+                "platform_name_placeholder": "Nome piattaforma (es. Bonifico)",
+                "platform_none": "— Nessuna piattaforma —"
             },
             "platforms": {
                 "title": "Piattaforme di Pagamento",
