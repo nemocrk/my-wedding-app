@@ -413,6 +413,15 @@ class PaymentEventSerializer(serializers.ModelSerializer):
     Accetta sia 'content_type_id' che 'content_type' come chiave in input
     per compatibilità con i test e con i client che usano il nome del campo
     nativo del modello Django (GenericForeignKey usa 'content_type').
+
+    NOTA DI IMPLEMENTAZIONE — campo 'platform':
+    Quando questo serializer viene usato in sola lettura all'interno di
+    PayableItemSerializer (plain-dict context, non queryset ORM), DRF's
+    PrimaryKeyRelatedField chiama value.pk sul valore del campo 'platform'.
+    Se la view ha già serializzato l'evento e il valore è un int, la chiamata
+    .pk esplode con AttributeError. Il metodo to_representation() normalizza
+    il valore a int prima che DRF lo elabori, rendendo il serializer sicuro
+    sia in contesto ORM che in contesto dict pre-serializzato.
     """
     platform_name = serializers.CharField(source='platform.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
@@ -439,6 +448,30 @@ class PaymentEventSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'platform_name', 'status_display', 'created_at', 'updated_at']
+
+    def to_representation(self, instance):
+        """Normalizza il campo 'platform' prima della serializzazione DRF.
+
+        PrimaryKeyRelatedField.to_representation() chiama value.pk, il che
+        funziona su oggetti ORM ma solleva AttributeError se il valore è
+        già un int (es. quando il serializer opera su dict pre-serializzati
+        all'interno di PayableItemSerializer).
+
+        Questo override estrae l'id prima che DRF lo elabori, garantendo
+        compatibilità in entrambi i contesti senza modificare il contratto
+        dell'API verso l'esterno.
+        """
+        # Normalizza platform a oggetto ORM se è un int, così super() non esplode
+        if isinstance(instance, dict):
+            platform_val = instance.get('platform')
+            if isinstance(platform_val, int):
+                try:
+                    instance = dict(instance)
+                    instance['platform'] = PaymentPlatform.objects.get(pk=platform_val)
+                except PaymentPlatform.DoesNotExist:
+                    instance = dict(instance)
+                    instance['platform'] = None
+        return super().to_representation(instance)
 
     def to_internal_value(self, data):
         """
