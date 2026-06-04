@@ -356,7 +356,7 @@ class AdminGoogleFontsProxyView(APIView):
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error reading font info file: {e}")
             return Response(
-                {'error': 'Failed to load font database'}, 
+                {'error': 'Failed to load font database'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -1358,6 +1358,12 @@ class PayablesListView(APIView):
     con riepilogo pagamenti aggregato per ciascuna.
     Ordinamento: prima Alloggi (per nome struttura → numero camera), poi Fornitori (per nome).
     GET /api/admin/payment-events/payables/
+
+    Fix #146:
+    - contract_amount wrapped in Decimal() per evitare TypeError float vs Decimal
+      (Room.price e Supplier.cost possono essere restituiti come float da Django)
+    - Aggiunta chiave 'object_id' nei dict passati a PayableItemSerializer
+    - Rinominata chiave 'payment_events' → 'events' per allineamento con PayableItemSerializer
     """
     def get(self, request):
         supplier_ct = ContentType.objects.get_for_model(Supplier)
@@ -1382,12 +1388,14 @@ class PayablesListView(APIView):
                 status=PaymentEvent.Status.PLANNED
             ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
-            contract_amount = room.price or Decimal('0')
+            # FIX: wrap in Decimal() to avoid TypeError when room.price is float
+            contract_amount = Decimal(str(room.price)) if room.price else Decimal('0')
             total_remaining = contract_amount - total_paid
 
             items.append({
                 'entity_type': 'room',
                 'entity_id': room.pk,
+                'object_id': room.pk,           # FIX: required by PayableItemSerializer
                 'entity_name': f"{room.accommodation.name} - Camera {room.room_number}",
                 'content_type_id': room_ct.pk,
                 'contract_amount': contract_amount,
@@ -1395,7 +1403,7 @@ class PayablesListView(APIView):
                 'total_paid': total_paid,
                 'total_planned': total_planned,
                 'total_remaining': total_remaining,
-                'payment_events': PaymentEventSerializer(events_qs, many=True).data,
+                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
             })
 
         # --- FORNITORI ---
@@ -1413,12 +1421,14 @@ class PayablesListView(APIView):
                 status=PaymentEvent.Status.PLANNED
             ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
-            contract_amount = supplier.cost or Decimal('0')
+            # FIX: wrap in Decimal() to avoid TypeError when supplier.cost is float
+            contract_amount = Decimal(str(supplier.cost)) if supplier.cost else Decimal('0')
             total_remaining = contract_amount - total_paid
 
             items.append({
                 'entity_type': 'supplier',
                 'entity_id': supplier.pk,
+                'object_id': supplier.pk,       # FIX: required by PayableItemSerializer
                 'entity_name': supplier.name,
                 'content_type_id': supplier_ct.pk,
                 'contract_amount': contract_amount,
@@ -1426,7 +1436,7 @@ class PayablesListView(APIView):
                 'total_paid': total_paid,
                 'total_planned': total_planned,
                 'total_remaining': total_remaining,
-                'payment_events': PaymentEventSerializer(events_qs, many=True).data,
+                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
             })
 
         serializer = PayableItemSerializer(items, many=True)
