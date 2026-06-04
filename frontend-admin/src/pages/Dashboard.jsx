@@ -154,7 +154,7 @@ const Dashboard = () => {
                   <span className="font-medium">{`${stats.financials.children_confirmed_cost.toLocaleString()} €`}</span>
                 </li>
                 {stats.suppliers.items.map((item) => (
-                  <li className="flex justify-between">
+                  <li key={item.type?.id ?? item.id ?? item.type_id} className="flex justify-between">
                     <span className="text-gray-600">{`${item.type.name} - ${item.name}`}</span>
                     <span className="font-medium">{`${item.cost?.toLocaleString() ?? 0} €`}</span>
                   </li>

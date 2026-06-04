@@ -32,13 +32,11 @@ export const api = {
 
   // --- INVITATIONS ---
   fetchInvitations: async (filters = {}) => {
-    // Build query string from filters
     const queryParams = new URLSearchParams();
     if (filters.status) queryParams.append('status', filters.status);
     if (filters.label) queryParams.append('label', filters.label);
     if (filters.search) queryParams.append('search', filters.search);
     if (filters.ordering) queryParams.append('ordering', filters.ordering);
-
     const queryString = queryParams.toString() ? `?${queryParams.toString()}` : '';
     return fetchClient(`${API_BASE_URL}/invitations/${queryString}`);
   },
@@ -75,7 +73,7 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/invitations/${id}/mark-as-sent/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}) // Empty body for action
+      body: JSON.stringify({})
     });
   },
 
@@ -91,16 +89,11 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/invitations/bulk-labels/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        invitation_ids: invitationIds,
-        label_ids: labelIds,
-        action: action
-      })
+      body: JSON.stringify({ invitation_ids: invitationIds, label_ids: labelIds, action })
     });
   },
 
   verifyContact: async (id) => {
-    // Uses fallback option (PATCH to set state to not_valid which triggers backend task)
     return fetchClient(`${API_BASE_URL}/invitations/${id}/`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -109,9 +102,7 @@ export const api = {
   },
 
   deleteInvitation: async (id) => {
-    return fetchClientDelete(`${API_BASE_URL}/invitations/${id}/`, {
-      method: 'DELETE',
-    });
+    return fetchClientDelete(`${API_BASE_URL}/invitations/${id}/`, { method: 'DELETE' });
   },
 
   generateInvitationLink: async (id) => {
@@ -155,12 +146,12 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/languages/`);
   },
 
-  // --- GOOGLE FONTS PROXY (New) ---
+  // --- GOOGLE FONTS PROXY ---
   fetchGoogleFonts: async () => {
     return fetchClient(`${API_BASE_URL}/google-fonts/`);
   },
 
-  // --- CONFIGURABLE TEXTS (Dynamic Content) ---
+  // --- CONFIGURABLE TEXTS ---
   fetchConfigurableTexts: async (lang = null) => {
     const url = lang ? `${API_BASE_URL}/texts/?lang=${lang}` : `${API_BASE_URL}/texts/`;
     return fetchClient(url);
@@ -179,7 +170,6 @@ export const api = {
   },
 
   updateConfigurableText: async (key, data, lang = 'it') => {
-    // Note: 'key' in URL must be handled correctly if it contains dots
     return fetchClient(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
@@ -188,9 +178,7 @@ export const api = {
   },
 
   deleteConfigurableText: async (key, lang = 'it') => {
-    return fetchClientDelete(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, {
-      method: 'DELETE',
-    });
+    return fetchClientDelete(`${API_BASE_URL}/texts/${key}/?lang=${lang}`, { method: 'DELETE' });
   },
 
   // --- ACCOMMODATIONS ---
@@ -215,19 +203,14 @@ export const api = {
   },
 
   deleteAccommodation: async (id) => {
-    return fetchClientDelete(`${API_BASE_URL}/accommodations/${id}/`, {
-      method: 'DELETE'
-    });
+    return fetchClientDelete(`${API_BASE_URL}/accommodations/${id}/`, { method: 'DELETE' });
   },
 
   triggerAutoAssign: async (resetPrevious = false, strategy = 'SIMULATION') => {
     return fetchClient(`${API_BASE_URL}/accommodations/auto-assign/`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        reset_previous: resetPrevious,
-        strategy: strategy
-      })
+      body: JSON.stringify({ reset_previous: resetPrevious, strategy })
     });
   },
 
@@ -235,7 +218,7 @@ export const api = {
     return fetchClient(`${API_BASE_URL}/accommodations/unassigned-invitations/`);
   },
 
-  // --- SUPPLIERS (New) ---
+  // --- SUPPLIERS ---
   fetchSupplierTypes: async () => {
     return fetchClient(`${API_BASE_URL}/supplier-types/`);
   },
@@ -290,6 +273,71 @@ export const api = {
     return fetchClientDelete(`${API_BASE_URL}/suppliers/${id}/`, { method: 'DELETE' });
   },
 
+  // --- PAYMENT PLATFORMS (#146) ---
+  fetchPaymentPlatforms: async () => {
+    return fetchClient(`${API_BASE_URL}/payment-platforms/`);
+  },
+
+  createPaymentPlatform: async (data) => {
+    return fetchClient(`${API_BASE_URL}/payment-platforms/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updatePaymentPlatform: async (id, data) => {
+    return fetchClient(`${API_BASE_URL}/payment-platforms/${id}/`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  deletePaymentPlatform: async (id) => {
+    return fetchClientDelete(`${API_BASE_URL}/payment-platforms/${id}/`, { method: 'DELETE' });
+  },
+
+  // --- PAYMENT EVENTS (#146) ---
+  fetchPaymentEvents: async (filters = {}) => {
+    const qp = new URLSearchParams();
+    if (filters.content_type_id) qp.append('content_type_id', filters.content_type_id);
+    if (filters.object_id) qp.append('object_id', filters.object_id);
+    if (filters.status) qp.append('status', filters.status);
+    if (filters.platform) qp.append('platform', filters.platform);
+    const q = qp.toString() ? `?${qp.toString()}` : '';
+    return fetchClient(`${API_BASE_URL}/payment-events/${q}`);
+  },
+
+  createPaymentEvent: async (data) => {
+    return fetchClient(`${API_BASE_URL}/payment-events/`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  updatePaymentEvent: async (id, data) => {
+    return fetchClient(`${API_BASE_URL}/payment-events/${id}/`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  },
+
+  deletePaymentEvent: async (id) => {
+    return fetchClientDelete(`${API_BASE_URL}/payment-events/${id}/`, { method: 'DELETE' });
+  },
+
+  // --- PAYMENT SUMMARY & PAYABLES (#146) ---
+  getPaymentSummary: async () => {
+    return fetchClient(`${API_BASE_URL}/payment-events/summary/`);
+  },
+
+  getPayablesList: async () => {
+    return fetchClient(`${API_BASE_URL}/payment-events/payables/`);
+  },
+
   // --- WHATSAPP INTEGRATION ---
   getWhatsAppStatus: async (type) => {
     return fetchClient(`${API_BASE_URL}/whatsapp/${type}/status/`);
@@ -316,7 +364,6 @@ export const api = {
     });
   },
 
-  // --- WHATSAPP QUEUE ---
   fetchWhatsAppQueue: async () => {
     return fetchClient(`${API_BASE_URL}/whatsapp-queue/`);
   },
@@ -329,7 +376,6 @@ export const api = {
     });
   },
 
-  // --- WHATSAPP TEMPLATES ---
   fetchWhatsAppTemplates: async () => {
     return fetchClient(`${API_BASE_URL}/whatsapp-templates/`);
   },
@@ -351,8 +397,6 @@ export const api = {
   },
 
   deleteWhatsAppTemplate: async (id) => {
-    return fetchClientDelete(`${API_BASE_URL}/whatsapp-templates/${id}/`, {
-      method: 'DELETE'
-    });
+    return fetchClientDelete(`${API_BASE_URL}/whatsapp-templates/${id}/`, { method: 'DELETE' });
   }
 };

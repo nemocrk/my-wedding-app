@@ -7,6 +7,11 @@ from core.views import (
     WhatsAppTemplateViewSet, ConfigurableTextViewSet, AdminGoogleFontsProxyView,
     InvitationLabelViewSet,
     SupplierViewSet, SupplierTypeViewSet,
+    # Payment Views (#146)
+    PaymentPlatformViewSet,
+    PaymentEventViewSet,
+    PaymentSummaryView,
+    PayablesListView,
     # Public Views
     PublicInvitationAuthView, PublicRSVPView,
     PublicLogInteractionView, PublicLogHeatmapView, PublicConfigurableTextView,
@@ -33,6 +38,9 @@ admin_router.register(r'whatsapp-templates', WhatsAppTemplateViewSet, basename='
 admin_router.register(r'texts', ConfigurableTextViewSet, basename='admin-texts')
 admin_router.register(r'supplier-types', SupplierTypeViewSet, basename='admin-supplier-type')
 admin_router.register(r'suppliers', SupplierViewSet, basename='admin-supplier')
+# Payment ViewSets (#146)
+admin_router.register(r'payment-platforms', PaymentPlatformViewSet, basename='admin-payment-platform')
+admin_router.register(r'payment-events', PaymentEventViewSet, basename='admin-payment-event')
 
 # Viewset spostati dal core a whatsapp per pulizia, ma registrati qui per mantenere endpoint unificati sotto /api/admin/
 admin_router.register(r'whatsapp-queue', WhatsAppMessageQueueViewSet, basename='admin-whatsapp-queue')
@@ -54,6 +62,11 @@ urlpatterns = [
     # ADMIN API (Intranet - Nginx filtered)
     # Tutti gli endpoint CRUD per inviti, alloggi, config
     # ========================================
+    # Payment custom actions — DEVONO precedere include(admin_router.urls)
+    # per evitare che il router intercetti /payment-events/{pk}/ su questi path
+    path('api/admin/payment-events/summary/', PaymentSummaryView.as_view(), name='admin-payment-summary'),
+    path('api/admin/payment-events/payables/', PayablesListView.as_view(), name='admin-payment-payables'),
+
     path('api/admin/', include(admin_router.urls)),
     path('api/admin/dashboard/stats/', DashboardStatsView.as_view(), name='admin-dashboard-stats'),
     path('api/admin/dashboard/dynamic-stats/', DynamicDashboardStatsView.as_view(), name='admin-dashboard-dynamic-stats'),

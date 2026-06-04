@@ -1,5 +1,7 @@
 from django.db import models
 from django.core.exceptions import ValidationError
+from django.contrib.contenttypes.fields import GenericForeignKey
+from django.contrib.contenttypes.models import ContentType
 import hashlib
 
 class GlobalConfig(models.Model):
@@ -274,6 +276,100 @@ class Supplier(models.Model):
         verbose_name = "Fornitore"
         verbose_name_plural = "Fornitori"
         ordering = ['name']
+
+
+# ---------------------------------------------
+# PAYMENT MODELS (Issue #146)
+# ---------------------------------------------
+
+class PaymentPlatform(models.Model):
+    """Piattaforma/metodo di pagamento configurabile (es. Bonifico, Carta, Booking)"""
+    name = models.CharField(max_length=100, unique=True, verbose_name="Nome Piattaforma")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+    class Meta:
+        verbose_name = "Piattaforma Pagamento"
+        verbose_name_plural = "Piattaforme Pagamento"
+        ordering = ['name']
+
+
+class PaymentEvent(models.Model):
+    """
+    Singolo evento di pagamento verso un fornitore (Supplier) o una camera (Room).
+    Usa GenericForeignKey per supportare entrambe le entità pagabili.
+
+    status:
+      - planned   → rata futura, NON conteggiata nei totali pagati
+      - paid      → pagamento effettuato, conteggiata nei totali
+      - cancelled → annullato, esclusa da tutti i calcoli
+    """
+    class Status(models.TextChoices):
+        PLANNED   = 'planned',   'Pianificato'
+        PAID      = 'paid',      'Pagato'
+        CANCELLED = 'cancelled', 'Annullato'
+
+    # --- Entità pagabile (Supplier oppure Room) via GenericForeignKey ---
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        verbose_name="Tipo Entità"
+    )
+    object_id = models.PositiveIntegerField(verbose_name="ID Entità")
+    payable = GenericForeignKey('content_type', 'object_id')
+
+    # --- Dati pagamento ---
+    platform = models.ForeignKey(
+        PaymentPlatform,
+        on_delete=models.PROTECT,
+        verbose_name="Piattaforma"
+    )
+    label = models.CharField(
+        max_length=100,
+        verbose_name="Etichetta",
+        help_text="Es: Acconto, Saldo, Rata 1, Caparra"
+    )
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        verbose_name="Importo"
+    )
+    currency = models.CharField(
+        max_length=3,
+        default='EUR',
+        verbose_name="Valuta"
+    )
+    payment_date = models.DateField(verbose_name="Data Pagamento")
+    status = models.CharField(
+        max_length=20,
+        choices=Status.choices,
+        default=Status.PLANNED,
+        verbose_name="Stato"
+    )
+    notes = models.TextField(
+        blank=True,
+        null=True,
+        verbose_name="Note"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.label} — {self.amount} {self.currency} ({self.get_status_display()})"
+
+    class Meta:
+        verbose_name = "Evento Pagamento"
+        verbose_name_plural = "Eventi Pagamento"
+        ordering = ['payment_date']
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['status']),
+            models.Index(fields=['payment_date']),
+        ]
 
 
 class Invitation(models.Model):

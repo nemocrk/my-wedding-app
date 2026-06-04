@@ -19,6 +19,10 @@ from .serializers import (
 )
 from .models import Supplier, SupplierType
 from .serializers import SupplierSerializer, SupplierTypeSerializer
+from .models import PaymentPlatform, PaymentEvent
+from .serializers import PaymentPlatformSerializer, PaymentEventSerializer, PayableItemSerializer
+from django.contrib.contenttypes.models import ContentType
+from decimal import Decimal
 import logging
 import os
 import json
@@ -352,7 +356,7 @@ class AdminGoogleFontsProxyView(APIView):
         except (json.JSONDecodeError, IOError) as e:
             logger.error(f"Error reading font info file: {e}")
             return Response(
-                {'error': 'Failed to load font database'}, 
+                {'error': 'Failed to load font database'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
@@ -561,7 +565,7 @@ class InvitationViewSet(viewsets.ModelViewSet):
             )
         if action_type not in ['add', 'remove']:
             return Response(
-                {'error': 'action must be \'add\' or \'remove\''}, 
+                {'error': 'action must be \'add\' or \'remove\''},
                 status=status.HTTP_400_BAD_REQUEST
             )
         
@@ -1245,3 +1249,203 @@ class WhatsAppTemplateViewSet(viewsets.ModelViewSet):
     """CRUD for WhatsApp Templates"""
     queryset = WhatsAppTemplate.objects.all().order_by('-created_at')
     serializer_class = WhatsAppTemplateSerializer
+
+
+# ========================================
+# PAYMENT API (Issue #146)
+# ========================================
+
+class PaymentPlatformViewSet(viewsets.ModelViewSet):
+    """
+    CRUD per le piattaforme di pagamento configurabili.
+    Condivise globalmente tra Fornitori e Alloggi.
+    """
+    queryset = PaymentPlatform.objects.all().order_by('name')
+    serializer_class = PaymentPlatformSerializer
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name']
+
+
+class PaymentEventViewSet(viewsets.ModelViewSet):
+    """
+    CRUD per gli eventi di pagamento.
+    Filtrabili per entità pagabile tramite ?content_type_id=X&object_id=Y.
+    """
+    serializer_class = PaymentEventSerializer
+    filter_backends = [filters.OrderingFilter]
+    ordering_fields = ['payment_date', 'amount', 'status']
+    ordering = ['payment_date']
+
+    def get_queryset(self):
+        qs = PaymentEvent.objects.select_related('platform', 'content_type').all()
+        ct_id = self.request.query_params.get('content_type_id')
+        obj_id = self.request.query_params.get('object_id')
+        status_filter = self.request.query_params.get('status')
+        if ct_id:
+            qs = qs.filter(content_type_id=ct_id)
+        if obj_id:
+            qs = qs.filter(object_id=obj_id)
+        if status_filter:
+            qs = qs.filter(status=status_filter)
+        return qs
+
+
+class PaymentSummaryView(APIView):
+    """
+    KPI aggregati globali sui pagamenti.
+    Restituisce: totale contratti, pagato, pianificato, rimanente, prossima scadenza.
+    GET /api/admin/payment-events/summary/
+
+    FIX #146: Sum() su FloatField restituisce float Python, non Decimal.
+    Sommare float + Decimal solleva TypeError. Tutti i risultati di Sum/aggregati
+    vengono ora coerciti in Decimal via Decimal(str(...)) prima di qualsiasi
+    operazione aritmetica.
+    """
+    def get(self, request):
+        room_ct = ContentType.objects.get_for_model(Room)
+
+        # FIX: coerci i risultati di Sum() in Decimal prima di sommare.
+        # Sum('cost') e Sum('price') su FloatField restituiscono float, non Decimal.
+        supplier_sum_raw = Supplier.objects.aggregate(t=Sum('cost'))['t']
+        room_sum_raw = Room.objects.aggregate(t=Sum('price'))['t']
+
+        supplier_sum = Decimal(str(supplier_sum_raw)) if supplier_sum_raw is not None else Decimal('0')
+        room_sum = Decimal(str(room_sum_raw)) if room_sum_raw is not None else Decimal('0')
+
+        total_contracts = supplier_sum + room_sum
+
+        # Aggregati sugli eventi di pagamento (esclusi cancelled)
+        paid_raw = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PAID
+        ).aggregate(total=Sum('amount'))['total']
+        paid_agg = Decimal(str(paid_raw)) if paid_raw is not None else Decimal('0')
+
+        planned_raw = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PLANNED
+        ).aggregate(total=Sum('amount'))['total']
+        planned_agg = Decimal(str(planned_raw)) if planned_raw is not None else Decimal('0')
+
+        total_remaining = total_contracts - paid_agg
+
+        # Prossima scadenza: il primo evento PLANNED con la data più vicina
+        next_event = PaymentEvent.objects.filter(
+            status=PaymentEvent.Status.PLANNED
+        ).select_related('content_type').order_by('payment_date').first()
+
+        next_deadline = None
+        if next_event:
+            # Ricostruisce il nome dell'entità per il label
+            try:
+                entity = next_event.content_type.get_object_for_this_type(pk=next_event.object_id)
+                if next_event.content_type == room_ct:
+                    entity_name = f"{entity.accommodation.name} - Camera {entity.room_number}"
+                else:
+                    entity_name = entity.name
+            except Exception:
+                entity_name = 'N/D'
+
+            next_deadline = {
+                'label': f"{next_event.label} - {entity_name}",
+                'date': next_event.payment_date,
+                'amount': next_event.amount,
+                'currency': next_event.currency,
+            }
+
+        return Response({
+            'total_contracts': total_contracts,
+            'total_paid': paid_agg,
+            'total_planned': planned_agg,
+            'total_remaining': total_remaining,
+            'next_deadline': next_deadline,
+        })
+
+
+class PayablesListView(APIView):
+    """
+    Lista unificata di tutte le entità pagabili (Room + Supplier)
+    con riepilogo pagamenti aggregato per ciascuna.
+    Ordinamento: prima Alloggi (per nome struttura → numero camera), poi Fornitori (per nome).
+    GET /api/admin/payment-events/payables/
+
+    Fix #146:
+    - contract_amount wrapped in Decimal() per evitare TypeError float vs Decimal
+      (Room.price e Supplier.cost possono essere restituiti come float da Django)
+    - Aggiunta chiave 'object_id' nei dict passati a PayableItemSerializer
+    - Rinominata chiave 'payment_events' → 'events' per allineamento con PayableItemSerializer
+    """
+    def get(self, request):
+        supplier_ct = ContentType.objects.get_for_model(Supplier)
+        room_ct = ContentType.objects.get_for_model(Room)
+
+        items = []
+
+        # --- CAMERE ---
+        rooms = Room.objects.select_related('accommodation').order_by(
+            'accommodation__name', 'room_number'
+        )
+        for room in rooms:
+            events_qs = PaymentEvent.objects.filter(
+                content_type=room_ct, object_id=room.pk
+            ).select_related('platform').order_by('payment_date')
+
+            total_paid = events_qs.filter(
+                status=PaymentEvent.Status.PAID
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            total_planned = events_qs.filter(
+                status=PaymentEvent.Status.PLANNED
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            # FIX: wrap in Decimal() to avoid TypeError when room.price is float
+            contract_amount = Decimal(str(room.price)) if room.price else Decimal('0')
+            total_remaining = contract_amount - total_paid
+
+            items.append({
+                'entity_type': 'room',
+                'entity_id': room.pk,
+                'object_id': room.pk,           # FIX: required by PayableItemSerializer
+                'entity_name': f"{room.accommodation.name} - Camera {room.room_number}",
+                'content_type_id': room_ct.pk,
+                'contract_amount': contract_amount,
+                'currency': 'EUR',
+                'total_paid': total_paid,
+                'total_planned': total_planned,
+                'total_remaining': total_remaining,
+                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
+            })
+
+        # --- FORNITORI ---
+        suppliers = Supplier.objects.order_by('name')
+        for supplier in suppliers:
+            events_qs = PaymentEvent.objects.filter(
+                content_type=supplier_ct, object_id=supplier.pk
+            ).select_related('platform').order_by('payment_date')
+
+            total_paid = events_qs.filter(
+                status=PaymentEvent.Status.PAID
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            total_planned = events_qs.filter(
+                status=PaymentEvent.Status.PLANNED
+            ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+            # FIX: wrap in Decimal() to avoid TypeError when supplier.cost is float
+            contract_amount = Decimal(str(supplier.cost)) if supplier.cost else Decimal('0')
+            total_remaining = contract_amount - total_paid
+
+            items.append({
+                'entity_type': 'supplier',
+                'entity_id': supplier.pk,
+                'object_id': supplier.pk,       # FIX: required by PayableItemSerializer
+                'entity_name': supplier.name,
+                'content_type_id': supplier_ct.pk,
+                'contract_amount': contract_amount,
+                'currency': supplier.currency or 'EUR',
+                'total_paid': total_paid,
+                'total_planned': total_planned,
+                'total_remaining': total_remaining,
+                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
+            })
+
+        serializer = PayableItemSerializer(items, many=True)
+        return Response(serializer.data)
