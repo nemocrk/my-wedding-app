@@ -8,10 +8,17 @@ import {
 import PaymentStatusBadge from './PaymentStatusBadge';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-const formatCurrency = (amount, currency = 'EUR') =>
-  new Intl.NumberFormat('it-IT', {
+/**
+ * Safely formats a numeric or string amount as currency.
+ * Handles string values like "500.00" that come from DRF DecimalField serialization.
+ */
+const formatCurrency = (amount, currency = 'EUR') => {
+  const numeric = parseFloat(amount);
+  if (isNaN(numeric)) return '—';
+  return new Intl.NumberFormat('it-IT', {
     style: 'currency', currency, minimumFractionDigits: 2,
-  }).format(amount);
+  }).format(numeric);
+};
 
 function EntityIcon({ type }) {
   return type === 'room'
@@ -59,9 +66,10 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
           <p className="text-xs text-gray-400">{entityTypeLabel}</p>
         </div>
 
+        {/* FIX #146: was payable.total_cost (undefined) → now payable.contract_amount */}
         <div className="text-right mr-3">
           <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            {formatCurrency(payable.total_cost, payable.currency)}
+            {formatCurrency(payable.contract_amount, payable.currency)}
           </p>
           <p className="text-xs text-gray-400">{payable.currency}</p>
         </div>
