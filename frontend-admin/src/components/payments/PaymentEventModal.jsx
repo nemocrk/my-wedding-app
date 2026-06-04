@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { Loader2, X } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { X, Loader2 } from 'lucide-react';
 import paymentService from '../../services/paymentService';
 
 const STATUS_OPTIONS = ['planned', 'paid', 'cancelled'];
@@ -65,10 +65,10 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
 
   const validate = () => {
     const e = {};
-    if (!form.label.trim()) e.label = t('payments.modal.error_label_required');
+    if (!form.label.trim()) e.label = t('admin.payments.modal.error_label_required');
     if (!form.amount || isNaN(parseFloat(form.amount)) || parseFloat(form.amount) <= 0)
-      e.amount = t('payments.modal.error_amount_required');
-    if (!form.payment_date) e.payment_date = t('payments.modal.error_date_required');
+      e.amount = t('admin.payments.modal.error_amount_required');
+    if (!form.payment_date) e.payment_date = t('admin.payments.modal.error_date_required');
     setErrors(e);
     return Object.keys(e).length === 0;
   };
@@ -122,7 +122,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
           <div>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
-              {isEdit ? t('payments.modal.title_edit') : t('payments.modal.title_create')}
+              {isEdit ? t('admin.payments.modal.title_edit') : t('admin.payments.modal.title_create')}
             </h2>
             {payable && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
@@ -144,16 +144,16 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
           {/* Label */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('payments.modal.label')} <span className="text-red-500">*</span>
+              {t('admin.payments.modal.label')} <span className="text-red-500">*</span>
             </label>
             <input
               type="text"
               value={form.label}
               onChange={e => handleChange('label', e.target.value)}
-              placeholder={t('payments.modal.label_placeholder')}
+              placeholder={t('admin.payments.modal.label_placeholder')}
               className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 dark:text-white
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors
-                ${ errors.label ? 'border-red-400' : 'border-gray-200 dark:border-gray-700' }`}
+                ${errors.label ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
             />
             {errors.label && <p className="text-xs text-red-500 mt-1">{errors.label}</p>}
           </div>
@@ -162,7 +162,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
           <div className="flex gap-3">
             <div className="flex-1">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('payments.modal.amount')} <span className="text-red-500">*</span>
+                {t('admin.payments.modal.amount')} <span className="text-red-500">*</span>
               </label>
               <input
                 type="number"
@@ -173,13 +173,13 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
                 placeholder="0.00"
                 className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 dark:text-white
                   focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors
-                  ${ errors.amount ? 'border-red-400' : 'border-gray-200 dark:border-gray-700' }`}
+                  ${errors.amount ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
               />
               {errors.amount && <p className="text-xs text-red-500 mt-1">{errors.amount}</p>}
             </div>
             <div className="w-24">
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                {t('payments.modal.currency')}
+                {t('admin.payments.modal.currency')}
               </label>
               <input
                 type="text"
@@ -194,7 +194,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
           {/* Payment date */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('payments.modal.date')} <span className="text-red-500">*</span>
+              {t('admin.payments.modal.date')} <span className="text-red-500">*</span>
             </label>
             <input
               type="date"
@@ -202,7 +202,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
               onChange={e => handleChange('payment_date', e.target.value)}
               className={`w-full px-3 py-2 rounded-lg border text-sm bg-white dark:bg-gray-800 dark:text-white
                 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors
-                ${ errors.payment_date ? 'border-red-400' : 'border-gray-200 dark:border-gray-700' }`}
+                ${errors.payment_date ? 'border-red-400' : 'border-gray-200 dark:border-gray-700'}`}
             />
             {errors.payment_date && <p className="text-xs text-red-500 mt-1">{errors.payment_date}</p>}
           </div>
@@ -210,7 +210,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
           {/* Status */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('payments.modal.status')}
+              {t('admin.payments.modal.status')}
             </label>
             <div className="flex gap-2">
               {STATUS_OPTIONS.map(s => (
@@ -219,7 +219,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
                   type="button"
                   onClick={() => handleChange('status', s)}
                   className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all
-                    ${ form.status === s
+                    ${form.status === s
                       ? `${STATUS_COLORS[s]} border-transparent ring-2 ring-offset-1 ring-current`
                       : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}
@@ -233,7 +233,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
           {/* Platform */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              {t('payments.modal.platform')}
+              {t('admin.payments.modal.platform')}
             </label>
             {loadingPlatforms ? (
               <div className="flex items-center gap-2 text-sm text-gray-400">
@@ -247,7 +247,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
                 className="w-full px-3 py-2 rounded-lg border border-gray-200 dark:border-gray-700 text-sm
                   bg-white dark:bg-gray-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
               >
-                <option value="">{t('payments.modal.platform_none')}</option>
+                <option value="">{t('admin.payments.modal.platform_none')}</option>
                 {platforms.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -279,7 +279,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
                 text-white text-sm font-medium flex items-center justify-center gap-2 transition-colors"
             >
               {saving && <Loader2 size={14} className="animate-spin" />}
-              {saving ? t('common.processing') : t('payments.modal.save')}
+              {saving ? t('common.processing') : t('admin.payments.modal.save')}
             </button>
           </div>
         </form>

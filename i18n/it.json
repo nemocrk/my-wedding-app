@@ -964,7 +964,7 @@
                 "status_paid": "Pagato",
                 "status_cancelled": "Annullato"
             },
-            "event_modal": {
+            "modal": {
                 "title_create": "Aggiungi Rata",
                 "title_edit": "Modifica Rata",
                 "label_placeholder": "es. Acconto, Saldo, Rata 1",
@@ -973,7 +973,13 @@
                 "save": "Salva",
                 "saving": "Salvataggio...",
                 "cancel": "Annulla",
-                "delete_confirm": "Sei sicuro di voler eliminare questa rata?"
+                "delete_confirm": "Sei sicuro di voler eliminare questa rata?",
+                "label": "Etichetta",
+                "platform": "Piattaforma",
+                "date": "Data",
+                "amount": "Importo",
+                "currency": "Valuta",
+                "status": "Stato"
             },
             "platforms": {
                 "title": "Piattaforme di Pagamento",
