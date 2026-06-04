@@ -1,191 +1,242 @@
-import { Plus, RefreshCw } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  CreditCard, RefreshCw, Plus, ChevronDown, ChevronUp,
+  Building2, BedDouble, Pencil, Trash2, Loader2
+} from 'lucide-react';
+import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
-import { useToast } from '../contexts/ToastContext';
-import { paymentService } from '../services/paymentService';
+import PaymentEventModal from '../components/payments/PaymentEventModal';
 
-/**
- * PaymentsPage (#146)
- * Pagina principale del Payment Tracker.
- *
- * Struttura attuale (v1):
- *   - PaymentKPIBar  — 5 KPI aggregati (summary)
- *   - PayablesTable  — lista entità pagabili con eventi (TODO: prossimo commit)
- *
- * I componenti PayablesTable e PaymentEventModal saranno aggiunti
- * nel commit successivo per mantenere PR reviewable.
- */
-const PaymentsPage = () => {
+// ── Status badge ─────────────────────────────────────────────────────────────
+const STATUS_STYLES = {
+  paid:      'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300',
+  planned:   'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300',
+  cancelled: 'bg-red-100   text-red-800   dark:bg-red-900/30   dark:text-red-300',
+};
+
+function StatusBadge({ status, t }) {
+  return (
+    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${ STATUS_STYLES[status] ?? 'bg-gray-100 text-gray-600' }`}>
+      {t(`payments.status.${status}`, { defaultValue: status })}
+    </span>
+  );
+}
+
+// ── Entity icon ───────────────────────────────────────────────────────────────
+function EntityIcon({ type }) {
+  return type === 'room'
+    ? <BedDouble size={14} className="text-blue-500" />
+    : <Building2 size={14} className="text-purple-500" />;
+}
+
+// ── Currency formatter ────────────────────────────────────────────────────────
+function formatCurrency(amount, currency = 'EUR') {
+  return new Intl.NumberFormat('it-IT', { style: 'currency', currency, minimumFractionDigits: 2 }).format(amount);
+}
+
+// ── Payable row ───────────────────────────────────────────────────────────────
+function PayableRow({ payable, t, onAddEvent, onEditEvent, onDeleteEvent }) {
+  const [expanded, setExpanded] = useState(false);
+  const hasEvents = payable.events?.length > 0;
+
+  return (
+    <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden mb-3">
+      {/* Header */}
+      <div
+        className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        onClick={() => setExpanded(v => !v)}
+        role="button"
+        tabIndex={0}
+        onKeyDown={e => e.key === 'Enter' && setExpanded(v => !v)}
+      >
+        <EntityIcon type={payable.entity_type} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{payable.entity_name}</p>
+          <p className="text-xs text-gray-400">
+            {t(`payments.entity_type.${payable.entity_type}`, { defaultValue: payable.entity_type })}
+          </p>
+        </div>
+        <div className="text-right mr-3">
+          <p className="text-sm font-semibold text-gray-900 dark:text-white">
+            {formatCurrency(payable.total_cost, payable.currency)}
+          </p>
+          <p className="text-xs text-gray-400">{payable.currency}</p>
+        </div>
+        <button
+          onClick={e => { e.stopPropagation(); onAddEvent(payable); }}
+          className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400
+            hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+          aria-label={t('payments.add_event')}
+          title={t('payments.add_event')}
+        >
+          <Plus size={14} />
+        </button>
+        {hasEvents && (
+          expanded
+            ? <ChevronUp size={16} className="text-gray-400" />
+            : <ChevronDown size={16} className="text-gray-400" />
+        )}
+      </div>
+
+      {/* Events list */}
+      {expanded && hasEvents && (
+        <div className="divide-y divide-gray-50 dark:divide-gray-800 bg-gray-50 dark:bg-gray-800/50">
+          {payable.events.map(ev => (
+            <div key={ev.id} className="flex items-center gap-3 px-4 py-2.5">
+              <div className="flex-1 min-w-0">
+                <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{ev.label}</p>
+                <p className="text-xs text-gray-400">{ev.payment_date ?? '—'}</p>
+              </div>
+              <p className="text-sm font-medium text-gray-800 dark:text-white mr-2">
+                {formatCurrency(ev.amount, ev.currency)}
+              </p>
+              <StatusBadge status={ev.status} t={t} />
+              <button
+                onClick={() => onEditEvent(payable, ev)}
+                className="p-1 rounded text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 transition-colors"
+                aria-label={t('common.edit')}
+              >
+                <Pencil size={13} />
+              </button>
+              <button
+                onClick={() => onDeleteEvent(ev)}
+                className="p-1 rounded text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                aria-label={t('common.delete')}
+              >
+                <Trash2 size={13} />
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {expanded && !hasEvents && (
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-800/50 text-xs text-gray-400 italic">
+          {t('payments.no_events_for_entity')}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+export default function PaymentsPage() {
   const { t } = useTranslation();
-  const toast = useToast();
-
-  const [summary, setSummary] = useState(null);
-  const [payables, setPayables] = useState([]);
-  const [loadingSummary, setLoadingSummary] = useState(true);
-  const [loadingPayables, setLoadingPayables] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [payables, setPayables] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const fetchSummary = useCallback(async () => {
-    setLoadingSummary(true);
-    try {
-      const data = await paymentService.getSummary();
-      setSummary(data);
-    } catch (e) {
-      console.error(e);
-      toast.error(t('common.error_loading'));
-    } finally {
-      setLoadingSummary(false);
-    }
-  }, [toast, t]);
+  // Modal state
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedPayable, setSelectedPayable] = useState(null);
+  const [eventToEdit, setEventToEdit] = useState(null);
 
-  const fetchPayables = useCallback(async () => {
-    setLoadingPayables(true);
-    try {
-      const data = await paymentService.getPayables();
-      setPayables(Array.isArray(data) ? data : data.results ?? []);
-    } catch (e) {
-      console.error(e);
-      toast.error(t('common.error_loading'));
-    } finally {
-      setLoadingPayables(false);
-    }
-  }, [toast, t]);
+  const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
+  // Load payables
   useEffect(() => {
-    fetchSummary();
-    fetchPayables();
-  }, [fetchSummary, fetchPayables, refreshKey]);
+    setLoading(true);
+    paymentService.getPayables()
+      .then(data => setPayables(data?.results ?? data ?? []))
+      .catch(() => setPayables([]))
+      .finally(() => setLoading(false));
+  }, [refreshKey]);
 
-  const handleRefresh = () => setRefreshKey((k) => k + 1);
-
-  // ---- Status badge helper ----
-  const statusConfig = {
-    paid: { label: t('payments.status.paid'), cls: 'bg-green-100 text-green-700' },
-    planned: { label: t('payments.status.planned'), cls: 'bg-amber-100 text-amber-700' },
-    cancelled: { label: t('payments.status.cancelled'), cls: 'bg-gray-100 text-gray-500 line-through' },
+  const handleAddEvent = (payable) => {
+    setSelectedPayable(payable);
+    setEventToEdit(null);
+    setModalOpen(true);
   };
 
-  const StatusBadge = ({ status }) => {
-    const cfg = statusConfig[status] ?? { label: status, cls: 'bg-gray-100 text-gray-600' };
-    return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${cfg.cls}`}>
-        {cfg.label}
-      </span>
-    );
+  const handleEditEvent = (payable, ev) => {
+    setSelectedPayable(payable);
+    setEventToEdit(ev);
+    setModalOpen(true);
+  };
+
+  const handleDeleteEvent = async (ev) => {
+    if (!window.confirm(t('common.confirm_delete'))) return;
+    try {
+      await paymentService.deleteEvent(ev.id);
+      refresh();
+    } catch (err) {
+      console.error('Delete event error:', err);
+    }
+  };
+
+  const handleModalSaved = () => {
+    setModalOpen(false);
+    refresh();
   };
 
   return (
-    <div className="animate-fadeIn pb-24">
-      {/* Header */}
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-800">{t('payments.title')}</h1>
-          <p className="text-sm text-gray-500 mt-1">{t('payments.subtitle')}</p>
+    <div className="p-6 max-w-5xl mx-auto">
+      {/* Page header */}
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-indigo-100 dark:bg-indigo-900/30 rounded-xl">
+            <CreditCard size={22} className="text-indigo-600 dark:text-indigo-400" />
+          </div>
+          <div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('payments.title')}</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">{t('payments.subtitle')}</p>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={handleRefresh}
-            className="flex items-center gap-1.5 px-3 py-2 text-sm text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <RefreshCw size={15} />
-            {t('common.refresh')}
-          </button>
-          <button
-            disabled
-            title={t('payments.add_event_coming_soon')}
-            className="flex items-center gap-1.5 px-4 py-2 text-sm bg-pink-600 text-white rounded-lg opacity-50 cursor-not-allowed"
-          >
-            <Plus size={15} />
-            {t('payments.add_event')}
-          </button>
-        </div>
+        <button
+          onClick={refresh}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
+            text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+        >
+          <RefreshCw size={15} />
+          {t('common.loading') === t('common.loading') ? 'Aggiorna' : 'Refresh'}
+        </button>
       </div>
 
       {/* KPI Bar */}
-      <PaymentKPIBar summary={summary} loading={loadingSummary} />
+      <PaymentKPIBar refreshKey={refreshKey} />
 
-      {/* Payables List */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-100">
-          <h2 className="text-base font-semibold text-gray-700">{t('payments.payables_title')}</h2>
-        </div>
+      {/* Payables section */}
+      <div className="mt-8">
+        <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
+          {t('payments.payables_title')}
+        </h2>
 
-        {loadingPayables ? (
-          <div className="divide-y divide-gray-100">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="px-6 py-4 animate-pulse flex items-center gap-4">
-                <div className="w-8 h-8 rounded-full bg-gray-100" />
-                <div className="flex-1">
-                  <div className="h-4 bg-gray-100 rounded w-1/3 mb-2" />
-                  <div className="h-3 bg-gray-100 rounded w-1/4" />
-                </div>
-                <div className="h-4 bg-gray-100 rounded w-24" />
-              </div>
+        {loading ? (
+          <div className="space-y-3">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
             ))}
           </div>
         ) : payables.length === 0 ? (
-          <div className="p-12 text-center">
-            <p className="text-gray-400 text-sm">{t('payments.no_payables')}</p>
+          <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+            <CreditCard size={40} className="mb-3 opacity-40" />
+            <p className="text-sm">{t('payments.no_payables')}</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
-            {payables.map((item) => (
-              <div key={`${item.entity_type}-${item.object_id}`} className="px-6 py-4">
-                {/* Payable header */}
-                <div className="flex items-center justify-between mb-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wide ${
-                      item.entity_type === 'room'
-                        ? 'bg-indigo-50 text-indigo-600'
-                        : 'bg-pink-50 text-pink-600'
-                    }`}>
-                      {t(`payments.entity_type.${item.entity_type}`)}
-                    </span>
-                    <span className="text-sm font-semibold text-gray-800">{item.name}</span>
-                  </div>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <span>{t('payments.kpi.total_contracts')}: <strong className="text-gray-700 tabular-nums">{item.total_contract} {item.currency}</strong></span>
-                    <span className="text-green-600 font-medium tabular-nums">✓ {item.total_paid} {item.currency}</span>
-                    <span className="text-amber-600 font-medium tabular-nums">⏳ {item.total_planned} {item.currency}</span>
-                    <span className="text-pink-600 font-medium tabular-nums">◻ {item.total_remaining} {item.currency}</span>
-                  </div>
-                </div>
-
-                {/* Events list */}
-                {item.payment_events && item.payment_events.length > 0 ? (
-                  <div className="ml-2 space-y-1">
-                    {item.payment_events.map((evt) => (
-                      <div
-                        key={evt.id}
-                        className="flex items-center justify-between py-1.5 px-3 rounded-lg hover:bg-gray-50 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={evt.status} />
-                          <span className="text-sm text-gray-700">{evt.label}</span>
-                          {evt.platform_name && (
-                            <span className="text-xs text-gray-400">· {evt.platform_name}</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-4">
-                          <span className="text-sm tabular-nums font-medium text-gray-700">
-                            {evt.amount} {evt.currency}
-                          </span>
-                          <span className="text-xs text-gray-400">{evt.payment_date}</span>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-xs text-gray-400 ml-2 italic">{t('payments.no_events_for_entity')}</p>
-                )}
-              </div>
+          <div>
+            {payables.map(p => (
+              <PayableRow
+                key={`${p.entity_type}-${p.object_id}`}
+                payable={p}
+                t={t}
+                onAddEvent={handleAddEvent}
+                onEditEvent={handleEditEvent}
+                onDeleteEvent={handleDeleteEvent}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Payment Event Modal */}
+      <PaymentEventModal
+        isOpen={modalOpen}
+        onClose={() => setModalOpen(false)}
+        onSaved={handleModalSaved}
+        payable={selectedPayable}
+        eventToEdit={eventToEdit}
+      />
     </div>
   );
-};
-
-export default PaymentsPage;
+}
