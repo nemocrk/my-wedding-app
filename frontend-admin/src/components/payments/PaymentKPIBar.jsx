@@ -1,14 +1,10 @@
+// frontend-admin/src/components/payments/PaymentKPIBar.jsx
+import { useEffect, useState } from 'react';
 import { AlertCircle, CheckCircle2, Clock, TrendingDown, Wallet } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import paymentService from '../../services/paymentService';
 
-/**
- * PaymentKPIBar
- * Barra KPI orizzontale con i 5 aggregati principali del Payment Tracker.
- *
- * Props:
- *   summary  {object}  — risposta di /api/admin/payment-events/summary/
- *   loading  {bool}
- */
+// ── Helpers ─────────────────────────────────────────────────────────────────
 const formatCurrency = (value, currency = 'EUR') => {
   if (value === undefined || value === null) return '—';
   return new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(Number(value));
@@ -36,8 +32,26 @@ const KPICardSkeleton = () => (
   </div>
 );
 
-const PaymentKPIBar = ({ summary, loading }) => {
+// ── Component ─────────────────────────────────────────────────────────────────
+/**
+ * PaymentKPIBar
+ * Fetches payment summary internally and renders 5 KPI cards.
+ *
+ * Props:
+ *   refreshKey  {number}  — increment to trigger a re-fetch
+ */
+const PaymentKPIBar = ({ refreshKey = 0 }) => {
   const { t } = useTranslation();
+  const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    paymentService.getSummary()
+      .then(data => setSummary(data))
+      .catch(() => setSummary(null))
+      .finally(() => setLoading(false));
+  }, [refreshKey]);
 
   if (loading) {
     return (
@@ -51,40 +65,40 @@ const PaymentKPIBar = ({ summary, loading }) => {
 
   const nextDeadlineLabel = summary.next_deadline
     ? `${summary.next_deadline.label} · ${summary.next_deadline.date}`
-    : t('payments.kpi.no_deadline');
+    : t('admin.payments.kpi.next_deadline_none');
 
   const kpis = [
     {
       icon: Wallet,
-      label: t('payments.kpi.total_contracts'),
+      label: t('admin.payments.kpi.total_contracts'),
       value: formatCurrency(summary.total_contracts),
       colorClass: 'text-indigo-600',
       bgClass: 'bg-white border-gray-100',
     },
     {
       icon: CheckCircle2,
-      label: t('payments.kpi.total_paid'),
+      label: t('admin.payments.kpi.total_paid'),
       value: formatCurrency(summary.total_paid),
       colorClass: 'text-green-600',
       bgClass: 'bg-green-50 border-green-100',
     },
     {
       icon: Clock,
-      label: t('payments.kpi.total_planned'),
+      label: t('admin.payments.kpi.total_planned'),
       value: formatCurrency(summary.total_planned),
       colorClass: 'text-amber-600',
       bgClass: 'bg-amber-50 border-amber-100',
     },
     {
       icon: TrendingDown,
-      label: t('payments.kpi.total_remaining'),
+      label: t('admin.payments.kpi.total_remaining'),
       value: formatCurrency(summary.total_remaining),
       colorClass: 'text-pink-600',
       bgClass: 'bg-pink-50 border-pink-100',
     },
     {
       icon: AlertCircle,
-      label: t('payments.kpi.next_deadline'),
+      label: t('admin.payments.kpi.next_deadline'),
       value: nextDeadlineLabel,
       colorClass: summary.next_deadline ? 'text-orange-500' : 'text-gray-400',
       bgClass: summary.next_deadline ? 'bg-orange-50 border-orange-100' : 'bg-white border-gray-100',
