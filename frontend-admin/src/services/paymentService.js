@@ -22,3 +22,7 @@ export const paymentService = {
   getSummary: () => api.getPaymentSummary(),
   getPayables: () => api.getPayablesList(),
 };
+
+// Supporta sia `import paymentService from '...'` (default)
+// che `import { paymentService } from '...'` (named)
+export default paymentService;
