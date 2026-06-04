@@ -329,4 +329,5 @@ def test_payables_aggregates_match_events(client, platform, supplier):
     assert Decimal(supplier_item['total_paid']) == Decimal('400.00')
     assert Decimal(supplier_item['total_planned']) == Decimal('300.00')
     assert Decimal(supplier_item['total_remaining']) == Decimal('1600.00')  # 2000 - 400
-    assert len(supplier_item['payment_events']) == 2
+    # Il campo si chiama 'events' (non 'payment_events') per allineamento con PayableRow.jsx
+    assert len(supplier_item['events']) == 2
