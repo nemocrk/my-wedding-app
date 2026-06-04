@@ -408,10 +408,15 @@ class PaymentPlatformSerializer(serializers.ModelSerializer):
 
 
 class PaymentEventSerializer(serializers.ModelSerializer):
-    """Serializer per gli eventi di pagamento (CRUD)."""
+    """Serializer per gli eventi di pagamento (CRUD).
+
+    Accetta sia 'content_type_id' che 'content_type' come chiave in input
+    per compatibilità con i test e con i client che usano il nome del campo
+    nativo del modello Django (GenericForeignKey usa 'content_type').
+    """
     platform_name = serializers.CharField(source='platform.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
-    # Campi per scrittura
+    # Campi per scrittura — esposti sia in lettura che in scrittura
     content_type_id = serializers.IntegerField(write_only=False)
     object_id = serializers.IntegerField(write_only=False)
 
@@ -434,6 +439,18 @@ class PaymentEventSerializer(serializers.ModelSerializer):
             'updated_at',
         ]
         read_only_fields = ['id', 'platform_name', 'status_display', 'created_at', 'updated_at']
+
+    def to_internal_value(self, data):
+        """
+        Alias: accetta 'content_type' come sinonimo di 'content_type_id'.
+        Il campo nativo Django del modello si chiama 'content_type' (FK a ContentType),
+        ma il serializer lo espone come 'content_type_id' per chiarezza API.
+        Questo override normalizza il payload prima della validazione standard.
+        """
+        data = data.copy()
+        if 'content_type' in data and 'content_type_id' not in data:
+            data['content_type_id'] = data.pop('content_type')
+        return super().to_internal_value(data)
 
     def validate_amount(self, value):
         if value <= 0:
