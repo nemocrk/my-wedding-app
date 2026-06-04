@@ -1,3 +1,5 @@
+from decimal import Decimal
+from django.contrib.contenttypes.models import ContentType
 from rest_framework import serializers
 from .models import (
     Invitation, Person, GlobalConfig, Accommodation, Room,
@@ -6,6 +8,7 @@ from .models import (
     ConfigurableText, InvitationLabel
 )
 from .models import SupplierType, Supplier
+from .models import PaymentPlatform, PaymentEvent
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -387,3 +390,87 @@ class SupplierSerializer(serializers.ModelSerializer):
         if value < 0:
             raise serializers.ValidationError('Cost must be >= 0')
         return value
+
+
+# --- PAYMENT SERIALIZERS (Issue #146) ---
+
+class PaymentPlatformSerializer(serializers.ModelSerializer):
+    """Serializer per le piattaforme di pagamento configurabili."""
+    class Meta:
+        model = PaymentPlatform
+        fields = ['id', 'name', 'created_at', 'updated_at']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def validate_name(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError('Il nome della piattaforma non può essere vuoto.')
+        return value.strip()
+
+
+class PaymentEventSerializer(serializers.ModelSerializer):
+    """Serializer per gli eventi di pagamento (CRUD)."""
+    platform_name = serializers.CharField(source='platform.name', read_only=True)
+    status_display = serializers.CharField(source='get_status_display', read_only=True)
+    # Campi per scrittura
+    content_type_id = serializers.IntegerField(write_only=False)
+    object_id = serializers.IntegerField(write_only=False)
+
+    class Meta:
+        model = PaymentEvent
+        fields = [
+            'id',
+            'content_type_id',
+            'object_id',
+            'platform',
+            'platform_name',
+            'label',
+            'amount',
+            'currency',
+            'payment_date',
+            'status',
+            'status_display',
+            'notes',
+            'created_at',
+            'updated_at',
+        ]
+        read_only_fields = ['id', 'platform_name', 'status_display', 'created_at', 'updated_at']
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError('L\'importo deve essere maggiore di zero.')
+        return value
+
+    def validate(self, data):
+        """Verifica che content_type_id e object_id puntino a Supplier o Room."""
+        ct_id = data.get('content_type_id')
+        obj_id = data.get('object_id')
+        if ct_id and obj_id:
+            allowed_models = ['supplier', 'room']
+            try:
+                ct = ContentType.objects.get(pk=ct_id)
+            except ContentType.DoesNotExist:
+                raise serializers.ValidationError({'content_type_id': 'ContentType non trovato.'})
+            if ct.model not in allowed_models:
+                raise serializers.ValidationError(
+                    {'content_type_id': f'Tipo entità non supportato: {ct.model}. Valori ammessi: {allowed_models}'}
+                )
+            if not ct.get_object_for_this_type(pk=obj_id):
+                raise serializers.ValidationError({'object_id': 'Oggetto non trovato.'})
+        return data
+
+
+class PayableItemSerializer(serializers.Serializer):
+    """
+    Serializer di sola lettura per la lista unificata di entità pagabili.
+    Ogni item rappresenta un Supplier oppure una Room con il riepilogo pagamenti.
+    """
+    entity_type = serializers.CharField()           # 'supplier' | 'room'
+    entity_id = serializers.IntegerField()
+    entity_name = serializers.CharField()           # es. "Hotel Belvedere - Camera 101"
+    content_type_id = serializers.IntegerField()
+    contract_amount = serializers.DecimalField(max_digits=12, decimal_places=2)
+    currency = serializers.CharField()
+    total_paid = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_planned = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_remaining = serializers.DecimalField(max_digits=12, decimal_places=2)
+    payment_events = PaymentEventSerializer(many=True)
