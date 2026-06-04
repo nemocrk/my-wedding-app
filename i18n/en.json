@@ -206,6 +206,7 @@
         "labels": "Labels",
         "supplierTypes": "Supplier Types",
         "suppliers": "Suppliers",
+        "payments": "Payments",
         "whatsapp": "WhatsApp",
         "configuration": "Configuration"
       },
@@ -226,10 +227,10 @@
       "save_button": "Save Changes",
       "saving": "Saving...",
       "success_message": "Configuration saved successfully!",
-      "error_message": "Error during save.",
+      "error_message": "Error while saving.",
       "error_load": "Error loading configuration.",
-      "dynamic_texts_title": "Dynamic Contents",
-      "dynamic_texts_subtitle": "Manage configurable texts displayed in user invitation cards",
+      "dynamic_texts_title": "Dynamic Content",
+      "dynamic_texts_subtitle": "Manage configurable texts shown in user invitation cards",
       "text_editor": {
         "localization": "Localization",
         "title": "Configurable Texts",
@@ -242,7 +243,7 @@
           "cancel": "Cancel",
           "save": "Save"
         },
-        "save_error": "Error during save",
+        "save_error": "Error while saving",
         "load_error": "Unable to load configurations"
       }
     },
@@ -262,7 +263,7 @@
         "transfer": "Transfer per person (€)"
       },
       "texts": {
-        "title": "Texts and Communications",
+        "title": "Texts & Communications",
         "letter_template": "Welcome Letter Template",
         "available_vars": "Available: {guest_names}, {family_name}, {code}",
         "placeholder": "Enter text here..."
@@ -270,7 +271,7 @@
       "security": {
         "title": "Public Link Security",
         "secret_key": "Secret Key for Links",
-        "secret_warning": "(WARNING: Changing this value will make all previously sent links stop working)",
+        "secret_warning": "(WARNING: Changing this value will invalidate all previously sent links)",
         "unauthorized_message": "Error Message (Expired/Invalid Link)"
       },
       "whatsapp": {
@@ -284,7 +285,7 @@
     "dashboard": {
       "title": "Dashboard",
       "page_title": "Dashboard",
-      "page_subtitle": "Event overview",
+      "page_subtitle": "General event overview",
       "loading": "Loading data...",
       "error": "Error loading data",
       "kpi": {
@@ -311,13 +312,13 @@
         "cost_breakdown": "Cost Breakdown",
         "current_total": "Current Total",
         "tooltip_people": "People",
-        "tooltip_total_cost": "Total cost"
+        "tooltip_total_cost": "Total Cost"
       },
       "logistics": {
         "accommodation": "Accommodation",
         "accommodation_subtitle": "Guests with accommodation",
-        "transfer": "Shuttle",
-        "transfer_subtitle": "Guests with transportation"
+        "transfer": "Transfer",
+        "transfer_subtitle": "Guests with transport"
       },
       "costs": {
         "adult_meals": "{{count}} Adults",
@@ -335,14 +336,14 @@
           "replay_available": "Replay available ({{width}}x{{height}})"
         },
         "timeline": {
-          "title": "Event Timeline",
+          "title": "Events Timeline",
           "select_session": "Select a session"
         },
         "replay": {
           "title": "Session Replay",
           "viewport_original": "Original viewport: {{width}}x{{height}}",
           "no_heatmap": "No heatmap data",
-          "select_session_prompt": "Select a session with heatmap data to view replay",
+          "select_session_prompt": "Select a session with heatmap data to watch the replay",
           "controls": {
             "restart": "Restart",
             "play": "Play",
@@ -352,15 +353,15 @@
       }
     },
     "invitations": {
-      "page_title": "Invitation Management",
+      "page_title": "Manage Invitations",
       "page_subtitle": "Manage guests and send WhatsApp messages",
       "loading": "Loading invitations...",
       "no_invitations": "No invitations found",
-      "no_invitations_subtitle": "Create your first invitation",
+      "no_invitations_subtitle": "Create the first invitation",
       "buttons": {
         "import_contacts": "Import Contacts",
         "new_invitation": "New Invitation",
-        "deselect_all": "Deselect All",
+        "deselect_all": "Deselect all",
         "verify_contacts": "Verify Contacts",
         "send_whatsapp": "Send WhatsApp",
         "send_invitations": "Send Invitations",
@@ -371,11 +372,11 @@
       },
       "bulk_send_confirm": {
         "title": "Send Selected Invitations",
-        "subtitle": "This action will trigger the automatic welcome message for valid contacts",
+        "subtitle": "This action will send the automatic welcome message to valid contacts",
         "ready_to_send": "Ready to send",
-        "missing_contact": "No contact",
+        "missing_contact": "Missing contact",
         "exclusion_warning": "Some invitations will be excluded",
-        "exclusion_details": "{{count}} invitations allow no valid phone number and will be skipped.",
+        "exclusion_details": "{{count}} invitations have no valid phone number and will be ignored.",
         "recipient_list": "Recipients",
         "no_valid_contacts": "No valid contacts selected.",
         "confirm_action": "Confirm Send"
@@ -383,7 +384,7 @@
       "bulk_labels": {
         "title": "Bulk Label Management",
         "subtitle": "Edit labels for {{count}} selected invitations",
-        "action_label": "Action",
+        "action_label": "Action to perform",
         "action_add": "Add Labels (keep existing)",
         "action_remove": "Remove Labels (if present)",
         "labels_select": "Select Labels"
@@ -416,8 +417,8 @@
       "verification": {
         "ok": "OK",
         "not_present": "Not present",
-        "not_exist": "Doesn't exist",
-        "not_valid": "Invalid",
+        "not_exist": "Does not exist",
+        "not_valid": "Not valid",
         "verifying": "Verifying...",
         "click_to_verify": "Click to verify"
       },
@@ -435,23 +436,23 @@
         "interaction_log": "Interaction Log",
         "copy_link": "Copy Invitation Link",
         "link_copied": "Link Copied!",
-        "preview": "Invitation Preview",
+        "preview": "Preview Invitation",
         "edit": "Edit",
         "delete": "Delete",
         "restore": "Restore"
       },
       "services": {
         "accommodation": "Accommodation",
-        "transfer": "Shuttle"
+        "transfer": "Transfer"
       },
       "alerts": {
         "verify_failed": "Verification failed",
         "bulk_verify_complete": "Verification completed for {{count}} contacts",
         "bulk_verify_failed": "Bulk verification failed",
         "no_valid_contacts": "No valid contacts selected",
-        "some_invalid": "{{count}} out of {{total}} contacts are invalid. Continue with valid ones only?",
-        "invalid_contact": "Contact is invalid for WhatsApp sending",
-        "delete_failed": "Deletion failed"
+        "some_invalid": "{{count}} of {{total}} contacts are invalid. Proceed with valid ones only?",
+        "invalid_contact": "The contact is not valid for WhatsApp sending",
+        "delete_failed": "Delete failed"
       },
       "delete_modal": {
         "title": "Delete Invitation",
@@ -459,30 +460,26 @@
         "confirm": "Delete",
         "cancel": "Cancel"
       },
-      "confirmation": {
-        "title": "Confirm Action",
-        "message": "Are you sure you want to proceed?"
-      },
       "create_modal": {
         "title": "Create New Invitation",
         "step_of": "Step {{step}} of {{total}}",
         "steps": {
           "details": {
             "title": "Main Details",
-            "side_groom": "Groom's Side",
-            "side_bride": "Bride's Side",
+            "side_groom": "Groom Side",
+            "side_bride": "Bride Side",
             "display_name": "Display Name",
-            "display_name_placeholder": "e.g., Rossi Family",
+            "display_name_placeholder": "e.g. The Rossi Family",
             "unique_code": "Unique Code",
-            "unique_code_placeholder": "e.g., ROSSI2024",
+            "unique_code_placeholder": "e.g. ROSSI2024",
             "phone_number": "Phone Number",
-            "phone_placeholder": "e.g., +39 333 1234567",
+            "phone_placeholder": "e.g. +39 333 1234567",
             "phone_hint": "Required for WhatsApp sending",
             "offered_options": "Offered Options",
             "accommodation_offered": "Accommodation Offered",
-            "transfer_offered": "Shuttle Offered",
+            "transfer_offered": "Transfer Offered",
             "labels": "Labels",
-            "no_labels": "No labels available. Create them from label management.",
+            "no_labels": "No labels available. Create them from the labels section.",
             "validation": {
               "name_code_required": "Name and Code are required"
             }
@@ -490,20 +487,20 @@
           "guests": {
             "title": "Guest List",
             "add_guest": "Add Guest",
-            "name_label": "First Name",
+            "name_label": "Name",
             "name_placeholder": "First Name",
             "lastname_label": "Last Name",
             "lastname_placeholder": "Last Name",
             "child_checkbox": "Child (0-10)",
             "validation": {
-              "min_one": "Add at least one first name for each guest"
+              "min_one": "Enter at least one name per guest"
             }
           },
           "review": {
-            "title": "Table Affinity",
-            "no_other_invites": "There are no other invitations yet to create affinity with.",
-            "affinity_title": "Affinity (Seat Together)",
-            "non_affinity_title": "Non-Affinity (Keep Apart)"
+            "title": "Table Affinities",
+            "no_other_invites": "There are no other invitations to create affinities with yet.",
+            "affinity_title": "Affinities (Nearby table)",
+            "non_affinity_title": "Non-Affinities (Far away)"
           }
         },
         "buttons": {
@@ -515,7 +512,7 @@
       },
       "import_modal": {
         "title": "Import Contacts from File",
-        "drag_drop": "Drag CSV/Excel file here or",
+        "drag_drop": "Drag the CSV/Excel file here or",
         "browse": "browse",
         "format_csv": "CSV Format",
         "format_excel": "Excel Format (.xlsx)",
@@ -526,11 +523,11 @@
         "optional_columns": "Optional columns",
         "column_child": "is_child",
         "column_origin": "origin (groom/bride)",
-        "column_display_name": "display_name (if you want to group)",
+        "column_display_name": "display_name (to group guests)",
         "download_template": "Download Template",
         "preview_title": "Preview ({{count}} guests detected)",
         "import_button": "Import {{count}} Guests",
-        "success": "Import completed! {{count}} invitations created.",
+        "success": "Import complete! {{count}} invitations created.",
         "error": "Error during import",
         "validation": {
           "invalid_format": "Invalid file format. Use CSV or XLSX.",
@@ -538,23 +535,27 @@
         }
       },
       "import": {
-        "title": "Import from Phonebook",
+        "title": "Import from Contacts",
         "warning_title": "Warning!",
-        "ha_warning": "You cannot import contacts inside the HomeAssistant App",
+        "ha_warning": "Contacts cannot be imported inside the HomeAssistant App",
         "open_external": "Open external browser",
-        "groom_side": "Groom's Side",
-        "bride_side": "Bride's Side",
+        "groom_side": "Groom Side",
+        "bride_side": "Bride Side",
         "success_count": "{{count}} contacts imported successfully!",
         "description": "Select contacts from your phone to quickly add them to the invitation list.",
         "open_phonebook": "Open Phonebook",
         "selected_contacts": "Selected Contacts",
         "processing": "Processing...",
         "cancel_selection": "Cancel selection"
+      },
+      "confirmation": {
+        "title": "Confirm Action",
+        "message": "Are you sure you want to proceed?"
       }
     },
     "labels": {
       "title": "Label Management",
-      "subtitle": "Organize invitees with custom tags",
+      "subtitle": "Organise guests with custom tags",
       "new_label": "New Label",
       "no_labels": "No labels found",
       "create_title": "New Label",
@@ -562,12 +563,12 @@
       "table": {
         "preview": "Preview",
         "name": "Name",
-        "color": "Color Code",
+        "color": "Colour Code",
         "actions": "Actions"
       },
       "form": {
         "name": "Label Name",
-        "color": "Color"
+        "color": "Colour"
       },
       "delete_modal": {
         "title": "Delete Label",
@@ -606,7 +607,7 @@
         },
         "notes": {
           "title": "Important Anti-Ban Notes",
-          "rule_1": "Never send messages to contacts who haven't written first.",
+          "rule_1": "Never send messages to contacts who haven't messaged you first.",
           "rule_2": "The system simulates human typing (typing...) before each send.",
           "rule_3": "A safety limit of 10 messages/hour per session is active."
         }
@@ -620,7 +621,7 @@
       "qr_modal": {
         "title": "Scan QR Code ({{session}})",
         "generating": "Generating QR Code...",
-        "instructions": "Open WhatsApp on your phone > Settings > Linked devices > Link a device",
+        "instructions": "Open WhatsApp on your phone > Settings > Linked Devices > Link a Device",
         "close": "Close"
       },
       "templates": {
@@ -642,7 +643,7 @@
           "title_edit": "Edit Template",
           "fields": {
             "name": "Template Name",
-            "name_placeholder": "e.g., Receipt Confirmation",
+            "name_placeholder": "e.g. Confirmation Receipt",
             "type": "Type",
             "type_manual": "Manual (Spot)",
             "type_auto": "Automatic (Status Change)",
@@ -651,7 +652,7 @@
             "trigger_select": "-- Select Status --",
             "trigger_sent": "Sent",
             "trigger_read": "Read",
-            "trigger_confirmed": "Accepted (Confirmed)",
+            "trigger_confirmed": "Confirmed",
             "trigger_declined": "Declined",
             "recipient_": "Recipient: ",
             "recipient_status": "Send to:",
@@ -659,8 +660,8 @@
             "recipient_guest": "Guest",
             "recipient_spouse": "Spouse",
             "content": "Message Content",
-            "content_placeholder": "Hi {name}, here's your invitation...",
-            "is_active": "Template Active"
+            "content_placeholder": "Hi {name}, here is your invitation...",
+            "is_active": "Active Template"
           },
           "placeholders": {
             "name": "Name",
@@ -725,14 +726,14 @@
         "choose_message": "-- Choose a message --",
         "preview_message": "Message Preview",
         "placeholder_info": "(Placeholders will be replaced for each recipient)",
-        "textarea_placeholder": "Select a template or type a message...",
+        "textarea_placeholder": "Select a template or write a message...",
         "variables": "Variables",
         "link_warning_1": "You are using",
-        "link_warning_2": "with multiple recipients. The system will generate a unique link for each one, sending might take longer.",
-        "enqueue_button": "Queue"
+        "link_warning_2": "with many recipients. The system will generate a unique link for each one; sending may take longer.",
+        "enqueue_button": "Add to Queue"
       },
       "dashboard": {
-        "title": "Message Queue",
+        "title": "Message Send Queue",
         "stream_status": "Realtime Stream: {{status}}",
         "refresh_tooltip": "Refresh list",
         "retry_failed_btn": "Retry Failed",
@@ -755,7 +756,7 @@
     },
     "accommodations": {
       "page_title": "Accommodation Management",
-      "page_subtitle": "Organize guest accommodations",
+      "page_subtitle": "Organise guest accommodation",
       "buttons": {
         "auto_assign": "Auto Assignment",
         "new_accommodation": "New Accommodation"
@@ -764,8 +765,8 @@
         "created": "Accommodation created successfully",
         "updated": "Accommodation updated successfully",
         "deleted": "Accommodation deleted",
-        "assigned": "{{count}} guests assigned automatically",
-        "assigned_manual": "Guests assigned successfully",
+        "assigned": "{{count}} guests automatically assigned",
+        "assigned_manual": "Guests assigned correctly",
         "pinned": "Assignment locked",
         "unpinned": "Assignment unlocked"
       },
@@ -778,14 +779,14 @@
       },
       "close_success": "Close",
       "list": {
-        "no_accommodations": "No accommodations configured",
-        "no_accommodations_subtitle": "Create your first facility",
+        "no_accommodations": "No accommodation configured",
+        "no_accommodations_subtitle": "Create the first structure",
         "total_capacity": "Total Capacity",
         "rooms_title": "Rooms",
         "capacity_label": "Cap.",
         "adults_short": "A",
         "children_short": "C",
-        "free_slots": "Free",
+        "free_slots": "Free slots",
         "assigned_guests": "Assigned Guests",
         "empty_room": "Empty room",
         "edit": "Edit",
@@ -795,16 +796,16 @@
         "add_guests": "Add Guests"
       },
       "create_modal": {
-        "title": "Create New Facility",
+        "title": "Create New Structure",
         "step_of": "Step {{step}} of {{total}}",
         "step1": {
-          "structure_name": "Facility Name",
-          "structure_placeholder": "e.g., Rossi Hotel",
+          "structure_name": "Structure Name",
+          "structure_placeholder": "e.g. Hotel Rossi",
           "address_label": "Address",
-          "address_placeholder": "Via Roma, 1"
+          "address_placeholder": "1 Main Street"
         },
         "step2": {
-          "info_message": "Define rooms with their respective capacities (adults and children).",
+          "info_message": "Define the rooms with their respective capacities (adults and children).",
           "room_name": "Room",
           "room_placeholder": "101",
           "adults_label": "Adults",
@@ -822,10 +823,10 @@
         "title": "Edit Accommodation",
         "step_of": "Step {{step}} of {{total}}",
         "step1": {
-          "structure_name": "Facility Name",
-          "structure_placeholder": "e.g., Rossi Hotel",
+          "structure_name": "Structure Name",
+          "structure_placeholder": "e.g. Hotel Rossi",
           "address_label": "Address",
-          "address_placeholder": "Via Roma, 1"
+          "address_placeholder": "1 Main Street"
         },
         "step2": {
           "info_message": "Edit existing rooms or add new ones.",
@@ -844,7 +845,7 @@
       },
       "auto_assign_modal": {
         "title": "Strategy Arena",
-        "subtitle": "Optimize automatic assignment",
+        "subtitle": "Optimise the automatic assignment",
         "simulation": {
           "title": "Scenario Simulation",
           "description": "The system will run 6 different algorithms in parallel to find the best fit. No changes will be saved until you choose a strategy.",
@@ -858,10 +859,10 @@
           "guests": "Guests",
           "unassigned": "Unassigned",
           "wasted_beds": "Wasted Beds",
-          "wasted_beds_info": "The \"Wasted Beds\" algorithm indicates free beds in partially occupied rooms. A lower value means a more efficient fit (Tetris style).",
+          "wasted_beds_info": "The \"Wasted Beds\" algorithm shows free bed spots in partially occupied rooms. A lower value means a more efficient fit (Tetris-style).",
           "apply_button": "Apply This Strategy",
-          "cancel_button": "Cancel",
-          "confirm_apply": "Apply strategy {{strategy}}? Changes will be saved to the database."
+          "confirm_apply": "Apply strategy {{strategy}}? Changes will be saved to the DB.",
+          "cancel_button": "Cancel"
         }
       },
       "interactions_modal": {
@@ -871,12 +872,12 @@
         "no_interactions": "No interactions",
         "events_count": "{{count}} events",
         "replay_available": "Replay available",
-        "timeline_title": "Event Timeline",
+        "timeline_title": "Events Timeline",
         "select_session": "Select a session",
         "replay_title": "Session Replay",
         "viewport": "Original viewport",
         "no_heatmap": "No heatmap data",
-        "select_for_replay": "Select a session with heatmap data to view replay"
+        "select_for_replay": "Select a session with heatmap data to watch the replay"
       }
     },
     "room_assignment": {
@@ -896,6 +897,99 @@
         "type": "Type",
         "cost": "Cost",
         "currency": "Currency"
+      }
+    },
+    "payments": {
+      "page_title": "Payments",
+      "page_subtitle": "Track payments to suppliers and accommodations",
+      "loading": "Loading payments...",
+      "error_loading": "Error loading payments",
+      "tabs": {
+        "payments": "Payments",
+        "platforms": "Platforms"
+      },
+      "kpi": {
+        "total_contracts": "Total Contracts",
+        "total_contracts_subtitle": "Total agreed value",
+        "total_paid": "Total Paid",
+        "total_paid_subtitle": "Sum of payments made",
+        "total_planned": "Total Planned",
+        "total_planned_subtitle": "Future scheduled instalments",
+        "total_remaining": "Remaining",
+        "total_remaining_subtitle": "Still to be paid",
+        "next_deadline": "Next Deadline",
+        "next_deadline_none": "No deadline"
+      },
+      "payables": {
+        "title": "Suppliers & Accommodations",
+        "empty": "No items found",
+        "empty_subtitle": "Add suppliers or accommodations to track payments",
+        "entity_type_room": "Room",
+        "entity_type_supplier": "Supplier",
+        "contract": "Contract",
+        "paid": "Paid",
+        "planned": "Planned",
+        "remaining": "Remaining",
+        "expand": "Expand",
+        "collapse": "Collapse",
+        "add_event": "Add Instalment"
+      },
+      "status": {
+        "paid": "Paid",
+        "partial": "Partial",
+        "pending": "Pending",
+        "overpaid": "Overpaid"
+      },
+      "events": {
+        "title": "Payment Instalments",
+        "empty": "No instalments recorded",
+        "label": "Label",
+        "platform": "Platform",
+        "date": "Date",
+        "amount": "Amount",
+        "currency": "Currency",
+        "status": "Status",
+        "notes": "Notes",
+        "status_planned": "Planned",
+        "status_paid": "Paid",
+        "status_cancelled": "Cancelled"
+      },
+      "event_modal": {
+        "title_create": "Add Instalment",
+        "title_edit": "Edit Instalment",
+        "label_placeholder": "e.g. Deposit, Balance, Instalment 1",
+        "select_platform": "-- Select Platform --",
+        "notes_placeholder": "Optional notes...",
+        "save": "Save",
+        "saving": "Saving...",
+        "cancel": "Cancel",
+        "delete_confirm": "Are you sure you want to delete this instalment?"
+      },
+      "platforms": {
+        "title": "Payment Platforms",
+        "subtitle": "Manage available payment methods",
+        "empty": "No platforms configured",
+        "empty_subtitle": "Add the first platform (e.g. Bank Transfer, Card, PayPal)",
+        "new": "New Platform",
+        "name_label": "Platform Name",
+        "name_placeholder": "e.g. Bank Transfer, Card, PayPal",
+        "create_title": "New Platform",
+        "edit_title": "Edit Platform",
+        "delete_confirm": "Are you sure you want to delete this platform?",
+        "delete_warning": "Warning: the platform is in use by some instalments and cannot be deleted.",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "alerts": {
+        "event_created": "Instalment added successfully",
+        "event_updated": "Instalment updated successfully",
+        "event_deleted": "Instalment deleted",
+        "platform_created": "Platform created successfully",
+        "platform_updated": "Platform updated successfully",
+        "platform_deleted": "Platform deleted",
+        "platform_in_use": "Cannot delete: platform in use",
+        "error_save": "Error while saving",
+        "error_delete": "Error while deleting"
       }
     }
   }
