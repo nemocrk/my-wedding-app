@@ -933,7 +933,11 @@
         "remaining": "Remaining",
         "expand": "Expand",
         "collapse": "Collapse",
-        "add_event": "Add Instalment"
+        "add_event": "Add Instalment",
+        "entity_type_meal": "Catering",
+        "meal_adults": "adults",
+        "meal_children": "children",
+        "meal_breakdown": "Cover breakdown"
       },
       "filters": {
         "entity_type_label": "Type",
@@ -1020,6 +1024,13 @@
         "platform_in_use": "Cannot delete: platform in use",
         "error_save": "Error while saving",
         "error_delete": "Error while deleting"
+      },
+      "charts": {
+        "cumulative_title": "Cumulative payment trend",
+        "cumulative_paid": "Paid (cumulative)",
+        "cumulative_planned": "Planned (cumulative)",
+        "week_of": "Week of",
+        "today": "Today"
       }
     }
   }

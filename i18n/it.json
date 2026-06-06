@@ -943,7 +943,11 @@
                 "remaining": "Rimanente",
                 "expand": "Espandi",
                 "collapse": "Comprimi",
-                "add_event": "Aggiungi Rata"
+                "add_event": "Aggiungi Rata",
+                "entity_type_meal": "Banchetto",
+                "meal_adults": "adulti",
+                "meal_children": "bambini",
+                "meal_breakdown": "Dettaglio coperti"
             },
             "filters": {
                 "entity_type_label": "Tipo",
@@ -1030,6 +1034,13 @@
                 "platform_in_use": "Impossibile eliminare: piattaforma in uso",
                 "error_save": "Errore durante il salvataggio",
                 "error_delete": "Errore durante l'eliminazione"
+            },
+            "charts": {
+                "cumulative_title": "Andamento cumulativo pagamenti",
+                "cumulative_paid": "Pagato (cumulato)",
+                "cumulative_planned": "Pianificato (cumulato)",
+                "week_of": "Settimana del",
+                "today": "Oggi"
             }
         }
     }
