@@ -19,7 +19,7 @@ from .serializers import (
 )
 from .models import Supplier, SupplierType
 from .serializers import SupplierSerializer, SupplierTypeSerializer
-from .models import PaymentPlatform, PaymentEvent
+from .models import MealCost, PaymentPlatform, PaymentEvent
 from .serializers import PaymentPlatformSerializer, PaymentEventSerializer, PayableItemSerializer
 from django.contrib.contenttypes.models import ContentType
 from decimal import Decimal
@@ -1290,29 +1290,62 @@ class PaymentEventViewSet(viewsets.ModelViewSet):
         return qs
 
 
+def _meal_contract_amount(config: GlobalConfig) -> Decimal:
+    """
+    Calcola il contract_amount del costo pasto in tempo reale.
+
+    REGOLA P1: esclude ospiti con not_coming=True.
+    Considera solo inviti con status='confirmed' — gli RSVP definitivi.
+    Ospiti non confermati (pending/sent) NON contribuiscono al preventivo pasto
+    perché non sappiamo ancora se verranno o meno.
+
+    Formula:
+        contract_amount = (adulti_confermati × price_adult_meal)
+                        + (bambini_confermati × price_child_meal)
+    """
+    confirmed_qs = Person.objects.filter(
+        invitation__status=Invitation.Status.CONFIRMED,
+        not_coming=False,
+    )
+    adults_count = confirmed_qs.filter(is_child=False).count()
+    children_count = confirmed_qs.filter(is_child=True).count()
+
+    price_adult = Decimal(str(config.price_adult_meal))
+    price_child = Decimal(str(config.price_child_meal))
+
+    return (adults_count * price_adult) + (children_count * price_child), adults_count, children_count, price_adult, price_child
+
+
 class PaymentSummaryView(APIView):
     """
     KPI aggregati globali sui pagamenti.
     Restituisce: totale contratti, pagato, pianificato, rimanente, prossima scadenza.
     GET /api/admin/payment-events/summary/
 
-    FIX #146: Sum() su FloatField restituisce float Python, non Decimal.
+    Fix #146: Sum() su FloatField restituisce float Python, non Decimal.
     Sommare float + Decimal solleva TypeError. Tutti i risultati di Sum/aggregati
     vengono ora coerciti in Decimal via Decimal(str(...)) prima di qualsiasi
     operazione aritmetica.
+
+    Update (MealCost): total_contracts include ora il contract_amount del pasto
+    calcolato dinamicamente da _meal_contract_amount().
     """
     def get(self, request):
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
         room_ct = ContentType.objects.get_for_model(Room)
+        meal_ct = ContentType.objects.get_for_model(MealCost)
 
         # FIX: coerci i risultati di Sum() in Decimal prima di sommare.
-        # Sum('cost') e Sum('price') su FloatField restituiscono float, non Decimal.
         supplier_sum_raw = Supplier.objects.aggregate(t=Sum('cost'))['t']
         room_sum_raw = Room.objects.aggregate(t=Sum('price'))['t']
 
         supplier_sum = Decimal(str(supplier_sum_raw)) if supplier_sum_raw is not None else Decimal('0')
         room_sum = Decimal(str(room_sum_raw)) if room_sum_raw is not None else Decimal('0')
 
-        total_contracts = supplier_sum + room_sum
+        # Costo pasto dinamico (esclude not_coming — regola P1)
+        meal_amount, _, _, _, _ = _meal_contract_amount(config)
+
+        total_contracts = supplier_sum + room_sum + meal_amount
 
         # Aggregati sugli eventi di pagamento (esclusi cancelled)
         paid_raw = PaymentEvent.objects.filter(
@@ -1334,11 +1367,12 @@ class PaymentSummaryView(APIView):
 
         next_deadline = None
         if next_event:
-            # Ricostruisce il nome dell'entità per il label
             try:
                 entity = next_event.content_type.get_object_for_this_type(pk=next_event.object_id)
                 if next_event.content_type == room_ct:
                     entity_name = f"{entity.accommodation.name} - Camera {entity.room_number}"
+                elif next_event.content_type == meal_ct:
+                    entity_name = "Costo Pasto Ospiti"
                 else:
                     entity_name = entity.name
             except Exception:
@@ -1362,24 +1396,65 @@ class PaymentSummaryView(APIView):
 
 class PayablesListView(APIView):
     """
-    Lista unificata di tutte le entità pagabili (Room + Supplier)
+    Lista unificata di tutte le entità pagabili (Room + Supplier + MealCost)
     con riepilogo pagamenti aggregato per ciascuna.
-    Ordinamento: prima Alloggi (per nome struttura → numero camera), poi Fornitori (per nome).
+    Ordinamento: Pasto → Alloggi (per nome struttura → numero camera) → Fornitori (per nome).
     GET /api/admin/payment-events/payables/
 
-    Fix #146:
-    - contract_amount wrapped in Decimal() per evitare TypeError float vs Decimal
-      (Room.price e Supplier.cost possono essere restituiti come float da Django)
-    - Aggiunta chiave 'object_id' nei dict passati a PayableItemSerializer
-    - Rinominata chiave 'payment_events' → 'events' per allineamento con PayableItemSerializer
+    Aggiornamenti (MealCost):
+    - Aggiunto blocco 'meal' che espone il singleton MealCost come payable item.
+    - contract_amount calcolato dinamicamente da _meal_contract_amount().
+    - Conteggio ospiti ESCLUDE not_coming=True (regola P1).
+    - Campi extra: meal_adults_count, meal_children_count, meal_price_adult, meal_price_child.
     """
     def get(self, request):
+        config, _ = GlobalConfig.objects.get_or_create(pk=1)
         supplier_ct = ContentType.objects.get_for_model(Supplier)
         room_ct = ContentType.objects.get_for_model(Room)
+        meal_ct = ContentType.objects.get_for_model(MealCost)
 
         items = []
 
-        # --- CAMERE ---
+        # -------------------------------------------------------
+        # 1. COSTO PASTO (singleton MealCost — sempre presente)
+        # -------------------------------------------------------
+        meal_obj = MealCost.get_or_create_singleton()
+        meal_amount, adults_count, children_count, price_adult, price_child = _meal_contract_amount(config)
+
+        meal_events_qs = PaymentEvent.objects.filter(
+            content_type=meal_ct, object_id=meal_obj.pk
+        ).select_related('platform').order_by('payment_date')
+
+        meal_paid = meal_events_qs.filter(
+            status=PaymentEvent.Status.PAID
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+        meal_planned = meal_events_qs.filter(
+            status=PaymentEvent.Status.PLANNED
+        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
+
+        items.append({
+            'entity_type': 'meal',
+            'entity_id': meal_obj.pk,
+            'object_id': meal_obj.pk,
+            'entity_name': 'Costo Pasto Ospiti',
+            'content_type_id': meal_ct.pk,
+            'contract_amount': meal_amount,
+            'currency': 'EUR',
+            'total_paid': meal_paid,
+            'total_planned': meal_planned,
+            'total_remaining': meal_amount - meal_paid,
+            'events': PaymentEventSerializer(meal_events_qs, many=True).data,
+            # Campi extra — usati da PaymentsPage per il breakdown adulti/bambini
+            'meal_adults_count': adults_count,
+            'meal_children_count': children_count,
+            'meal_price_adult': price_adult,
+            'meal_price_child': price_child,
+        })
+
+        # -------------------------------------------------------
+        # 2. CAMERE
+        # -------------------------------------------------------
         rooms = Room.objects.select_related('accommodation').order_by(
             'accommodation__name', 'room_number'
         )
@@ -1396,14 +1471,13 @@ class PayablesListView(APIView):
                 status=PaymentEvent.Status.PLANNED
             ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
-            # FIX: wrap in Decimal() to avoid TypeError when room.price is float
             contract_amount = Decimal(str(room.price)) if room.price else Decimal('0')
             total_remaining = contract_amount - total_paid
 
             items.append({
                 'entity_type': 'room',
                 'entity_id': room.pk,
-                'object_id': room.pk,           # FIX: required by PayableItemSerializer
+                'object_id': room.pk,
                 'entity_name': f"{room.accommodation.name} - Camera {room.room_number}",
                 'content_type_id': room_ct.pk,
                 'contract_amount': contract_amount,
@@ -1411,10 +1485,12 @@ class PayablesListView(APIView):
                 'total_paid': total_paid,
                 'total_planned': total_planned,
                 'total_remaining': total_remaining,
-                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
+                'events': PaymentEventSerializer(events_qs, many=True).data,
             })
 
-        # --- FORNITORI ---
+        # -------------------------------------------------------
+        # 3. FORNITORI
+        # -------------------------------------------------------
         suppliers = Supplier.objects.order_by('name')
         for supplier in suppliers:
             events_qs = PaymentEvent.objects.filter(
@@ -1429,14 +1505,13 @@ class PayablesListView(APIView):
                 status=PaymentEvent.Status.PLANNED
             ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
 
-            # FIX: wrap in Decimal() to avoid TypeError when supplier.cost is float
             contract_amount = Decimal(str(supplier.cost)) if supplier.cost else Decimal('0')
             total_remaining = contract_amount - total_paid
 
             items.append({
                 'entity_type': 'supplier',
                 'entity_id': supplier.pk,
-                'object_id': supplier.pk,       # FIX: required by PayableItemSerializer
+                'object_id': supplier.pk,
                 'entity_name': supplier.name,
                 'content_type_id': supplier_ct.pk,
                 'contract_amount': contract_amount,
@@ -1444,7 +1519,7 @@ class PayablesListView(APIView):
                 'total_paid': total_paid,
                 'total_planned': total_planned,
                 'total_remaining': total_remaining,
-                'events': PaymentEventSerializer(events_qs, many=True).data,  # FIX: era 'payment_events'
+                'events': PaymentEventSerializer(events_qs, many=True).data,
             })
 
         serializer = PayableItemSerializer(items, many=True)
