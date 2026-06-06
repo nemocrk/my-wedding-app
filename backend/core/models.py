@@ -279,6 +279,36 @@ class Supplier(models.Model):
 
 
 # ---------------------------------------------
+# MEAL COST SINGLETON (Issue: payments-meal-cost-chart)
+# ---------------------------------------------
+
+class MealCost(models.Model):
+    """
+    Singleton che funge da ancora per i PaymentEvent relativi al costo pasto.
+    Il contract_amount NON è persistito qui: viene calcolato dinamicamente
+    da GlobalConfig × ospiti confermati (status='confirmed', not_coming=False).
+
+    NOTA: non creare il file di migration manualmente — generare con:
+        python manage.py makemigrations core --name=add_mealcost_singleton
+    ATTENZIONE: eseguire la migration PRIMA di qualsiasi deploy che usi
+    PayablesListView con entity_type='meal'.
+    """
+
+    class Meta:
+        verbose_name = "Costo Pasto"
+        verbose_name_plural = "Costo Pasto"
+
+    def __str__(self):
+        return "Costo Pasto Ospiti"
+
+    @classmethod
+    def get_or_create_singleton(cls):
+        """Restituisce l'istanza singleton, creandola se non esiste."""
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj
+
+
+# ---------------------------------------------
 # PAYMENT MODELS (Issue #146)
 # ---------------------------------------------
 
@@ -299,8 +329,9 @@ class PaymentPlatform(models.Model):
 
 class PaymentEvent(models.Model):
     """
-    Singolo evento di pagamento verso un fornitore (Supplier) o una camera (Room).
-    Usa GenericForeignKey per supportare entrambe le entità pagabili.
+    Singolo evento di pagamento verso un fornitore (Supplier), una camera (Room)
+    o il costo pasto (MealCost).
+    Usa GenericForeignKey per supportare tutte le entità pagabili.
 
     status:
       - planned   → rata futura, NON conteggiata nei totali pagati
@@ -312,7 +343,7 @@ class PaymentEvent(models.Model):
         PAID      = 'paid',      'Pagato'
         CANCELLED = 'cancelled', 'Annullato'
 
-    # --- Entità pagabile (Supplier oppure Room) via GenericForeignKey ---
+    # --- Entità pagabile (Supplier, Room oppure MealCost) via GenericForeignKey ---
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.CASCADE,

@@ -38,7 +38,8 @@
       "hide_technical_data": "Hide technical details",
       "show_technical_data": "Show error details"
     },
-    "error_loading_data": "Error loading data"
+    "error_loading_data": "Error loading data",
+    "refresh": "Refresh"
   },
   "invitation": {
     "errors": {
@@ -932,7 +933,26 @@
         "remaining": "Remaining",
         "expand": "Expand",
         "collapse": "Collapse",
-        "add_event": "Add Instalment"
+        "add_event": "Add Instalment",
+        "entity_type_meal": "Catering",
+        "meal_adults": "adults",
+        "meal_children": "children",
+        "meal_breakdown": "Cover breakdown"
+      },
+      "filters": {
+        "entity_type_label": "Type",
+        "entity_type_all": "All types",
+        "status_label": "Status",
+        "status_all": "All statuses",
+        "status_unpaid": "Unpaid",
+        "status_partial": "Partial",
+        "status_paid": "Paid",
+        "date_from": "From",
+        "date_to": "To",
+        "reset": "Clear filters",
+        "no_results": "No results",
+        "no_results_subtitle": "Try adjusting the active filters.",
+        "results_count": "results"
       },
       "status": {
         "paid": "Paid",
@@ -1004,6 +1024,13 @@
         "platform_in_use": "Cannot delete: platform in use",
         "error_save": "Error while saving",
         "error_delete": "Error while deleting"
+      },
+      "charts": {
+        "cumulative_title": "Cumulative payment trend",
+        "cumulative_paid": "Paid (cumulative)",
+        "cumulative_planned": "Planned (cumulative)",
+        "week_of": "Week of",
+        "today": "Today"
       }
     }
   }

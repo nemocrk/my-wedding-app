@@ -30,7 +30,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
     amount: '',
     currency: 'EUR',
     payment_date: '',
-    status: 'planned',
+    status: 'paid',
     platform: '',
   });
 
@@ -56,16 +56,16 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
         amount: eventToEdit.amount ?? '',
         currency: eventToEdit.currency ?? 'EUR',
         payment_date: eventToEdit.payment_date ?? '',
-        status: eventToEdit.status ?? 'planned',
+        status: eventToEdit.status ?? '',
         platform: eventToEdit.platform ?? '',
       });
     } else {
       setForm({
         label: '',
-        amount: '',
+        amount: payable?.total_remaining,
         currency: payable?.currency ?? 'EUR',
-        payment_date: '',
-        status: 'planned',
+        payment_date: (new Date()).toISOString().slice(0, 10),
+        status: 'paid',
         platform: '',
       });
     }
@@ -161,7 +161,7 @@ export default function PaymentEventModal({ isOpen, onClose, onSaved, payable, e
             </h2>
             {payable && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                {payable.entity_name} &mdash; {payable.currency}
+                {payable.entity_name} &mdash; {payable.currency} {payable.contract_amount}
               </p>
             )}
           </div>
