@@ -38,7 +38,8 @@
             "hide_technical_data": "Nascondi dettagli tecnici",
             "show_technical_data": "Mostra dettagli errore"
         },
-        "error_loading_data": "Errore caricamento dati"
+        "error_loading_data": "Errore caricamento dati",
+        "refresh": "Aggiorna"
     },
     "invitation": {
         "errors": {
@@ -943,6 +944,21 @@
                 "expand": "Espandi",
                 "collapse": "Comprimi",
                 "add_event": "Aggiungi Rata"
+            },
+            "filters": {
+                "entity_type_label": "Tipo",
+                "entity_type_all": "Tutti i tipi",
+                "status_label": "Stato",
+                "status_all": "Tutti gli stati",
+                "status_unpaid": "Non pagato",
+                "status_partial": "Parziale",
+                "status_paid": "Pagato",
+                "date_from": "Dal",
+                "date_to": "Al",
+                "reset": "Azzera filtri",
+                "no_results": "Nessun risultato",
+                "no_results_subtitle": "Prova a modificare i filtri attivi.",
+                "results_count": "risultati"
             },
             "status": {
                 "paid": "Saldato",
