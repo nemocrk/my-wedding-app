@@ -4,7 +4,7 @@
  *
  * Visualizza il cumulato dei pagamenti nel tempo aggregato per settimana.
  *
- * - Linea piena verde   → cumulato eventi con status === 'paid'
+ * - Linea piena verde      → cumulato eventi con status === 'paid'
  * - Linea tratteggiata gialla → cumulato eventi con status === 'planned'
  *
  * Asse X: data di inizio settimana (lunedì) nel formato "12 mag"
@@ -36,44 +36,61 @@ const fmt = (v, currency = 'EUR') =>
   new Intl.NumberFormat('it-IT', { style: 'currency', currency }).format(Number(v) || 0);
 
 /**
- * Dato un Date, restituisce il lunedì della settimana corrente come Date.
- * Usato per raggruppare eventi nella stessa settimana.
+ * Dato un Date (o una stringa ISO YYYY-MM-DD), restituisce il lunedì della
+ * settimana come stringa ISO "YYYY-MM-DD" operando INTERAMENTE in UTC.
+ *
+ * Motivazione: `new Date('2025-05-12')` è UTC midnight. Usare getDay()/setDate()
+ * (che operano in local time) causa un off-by-one nei fusi orari UTC+N.
+ * Lavorando solo con metodi UTC il risultato è stabile in qualsiasi timezone.
+ *
+ * @param   {Date|string} date
+ * @returns {string}  "YYYY-MM-DD" del lunedì della settimana
  */
 export function getWeekStart(date) {
-  const d = new Date(date);
-  const day = d.getDay(); // 0=dom, 1=lun, ...
-  const diff = (day === 0 ? -6 : 1 - day); // giorni da sottrarre per arrivare a lunedì
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + diff);
+  const d   = new Date(date);
+  // getUTCDay: 0=dom, 1=lun, 2=mar, …, 6=sab
+  const day  = d.getUTCDay();
+  const diff = day === 0 ? -6 : 1 - day; // giorni da aggiungere (negativo = indietro)
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() + diff);
+  // Restituisce ISO slice stabile: toISOString() è sempre UTC
   return d;
 }
 
 /**
  * Formatta la data di inizio settimana come etichetta asse X.
- * Esempio: Date(2025-05-12) → "12 mag"
+ * Usa UTC day/month per coerenza con getWeekStart.
+ * Esempio: getWeekStart('2025-05-14') → "12 mag"
+ *
+ * @param   {Date} date  — risultato di getWeekStart
+ * @returns {string}
  */
 export function formatWeekLabel(date) {
-  return new Intl.DateTimeFormat('it-IT', { day: 'numeric', month: 'short' }).format(date);
+  // timeZone: 'UTC' evita che Intl sposti la data di un giorno
+  return new Intl.DateTimeFormat('it-IT', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 /**
  * Estrae e aggrega tutti gli eventi paid/planned da tutti i payables,
- * li raggruppa per settimana e calcola il cumulato.
+ * li raggruppa per settimana (lunedì UTC) e calcola il cumulato.
  *
- * @param {object[]} payables
+ * @param   {object[]} payables
  * @returns {{ weekKey: string, label: string, paid: number, planned: number }[]}
  */
 export function buildChartData(payables) {
-  // Raccoglie tutti gli eventi con data valida
-  const byWeek = {}; // Map<isoLunedì, { paid, planned }>
+  const byWeek = {}; // Map<"YYYY-MM-DD", { weekStart: Date, paid: number, planned: number }>
 
   for (const payable of payables) {
     for (const ev of (payable.events ?? [])) {
       if (!ev.payment_date) continue;
       if (ev.status !== 'paid' && ev.status !== 'planned') continue;
 
-      const weekStart = getWeekStart(new Date(ev.payment_date));
-      const key = weekStart.toISOString().slice(0, 10); // "YYYY-MM-DD" del lunedì
+      const weekStart = getWeekStart(ev.payment_date); // opera in UTC
+      const key = weekStart.toISOString().slice(0, 10); // "YYYY-MM-DD" stabile
 
       if (!byWeek[key]) {
         byWeek[key] = { weekStart, paid: 0, planned: 0 };
@@ -84,22 +101,21 @@ export function buildChartData(payables) {
 
   if (Object.keys(byWeek).length === 0) return [];
 
-  // Ordina per data crescente
-  const sorted = Object.entries(byWeek)
-    .sort(([a], [b]) => a.localeCompare(b));
+  // Ordina per chiave ISO crescente
+  const sorted = Object.entries(byWeek).sort(([a], [b]) => a.localeCompare(b));
 
-  // Calcola il cumulato
-  let cumulPaid = 0;
+  // Calcola il cumulato progressivo
+  let cumulPaid    = 0;
   let cumulPlanned = 0;
 
   return sorted.map(([key, { weekStart, paid, planned }]) => {
     cumulPaid    += paid;
     cumulPlanned += planned;
     return {
-      weekKey:  key,
-      label:    formatWeekLabel(weekStart),
-      paid:     Math.round(cumulPaid    * 100) / 100,
-      planned:  Math.round(cumulPlanned * 100) / 100,
+      weekKey: key,
+      label:   formatWeekLabel(weekStart),
+      paid:    Math.round(cumulPaid    * 100) / 100,
+      planned: Math.round(cumulPlanned * 100) / 100,
     };
   });
 }
@@ -139,11 +155,10 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
   const data     = useMemo(() => buildChartData(payables), [payables]);
   const currency = payables[0]?.events?.[0]?.currency ?? 'EUR';
 
-  // Non renderizzare se non ci sono dati
   if (data.length === 0) return null;
 
-  // Linea di riferimento alla data odierna
-  const todayLabel = formatWeekLabel(getWeekStart(new Date()));
+  // Linea di riferimento sulla settimana corrente (se presente nel dataset)
+  const todayLabel  = formatWeekLabel(getWeekStart(new Date()));
   const todayInData = data.some(d => d.label === todayLabel);
 
   return (
@@ -152,7 +167,6 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
         dark:border-gray-800 rounded-2xl p-5"
       data-testid="payment-cumulative-chart"
     >
-      {/* Header */}
       <div className="flex items-center gap-2 mb-5">
         <TrendingUp size={16} className="text-green-500" />
         <h3 className="text-sm font-semibold text-gray-800 dark:text-white">
@@ -165,20 +179,17 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
           data={data}
           margin={{ top: 4, right: 16, left: 0, bottom: 4 }}
         >
-          {/* Griglia orizzontale leggera */}
           <CartesianGrid
             strokeDasharray="3 3"
             vertical={false}
             stroke="rgba(156,163,175,0.2)"
           />
-
           <XAxis
             dataKey="label"
             tick={{ fontSize: 11, fill: TICK_COLOR }}
             axisLine={false}
             tickLine={false}
           />
-
           <YAxis
             tickFormatter={v => fmt(v, currency)}
             tick={{ fontSize: 10, fill: TICK_COLOR }}
@@ -186,19 +197,15 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
             tickLine={false}
             width={72}
           />
-
           <Tooltip
             content={<ChartTooltip currency={currency} t={t} />}
             cursor={{ stroke: 'rgba(156,163,175,0.3)', strokeWidth: 1 }}
           />
-
           <Legend
             iconType="circle"
             iconSize={8}
             wrapperStyle={{ fontSize: 11, paddingTop: 8 }}
           />
-
-          {/* Linea piena — paid cumulato */}
           <Line
             type="monotone"
             dataKey="paid"
@@ -208,8 +215,6 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
             dot={{ r: 3, fill: COLOR_PAID }}
             activeDot={{ r: 5 }}
           />
-
-          {/* Linea tratteggiata — planned cumulato */}
           <Line
             type="monotone"
             dataKey="planned"
@@ -220,8 +225,6 @@ const PaymentCumulativeChart = ({ payables = [] }) => {
             dot={{ r: 3, fill: COLOR_PLANNED }}
             activeDot={{ r: 5 }}
           />
-
-          {/* Linea verticale sulla settimana corrente */}
           {todayInData && (
             <ReferenceLine
               x={todayLabel}
