@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { CreditCard, RefreshCw, X } from 'lucide-react';
 import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
+import PaymentCumulativeChart from '../components/payments/PaymentCumulativeChart';
 import PaymentEventModal from '../components/payments/PaymentEventModal';
 import PayableRow from '../components/payments/PayableRow';
-import MealCostChart from '../components/payments/MealCostChart';
 import { useConfirm } from '../contexts/ConfirmDialogContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -38,7 +38,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
     { value: 'all',      label: t('admin.payments.filters.entity_type_all') },
     { value: 'supplier', label: t('admin.payments.payables.entity_type_supplier') },
     { value: 'room',     label: t('admin.payments.payables.entity_type_room') },
-    // Aggiunta opzione meal — fix lacuna #1
     { value: 'meal',     label: t('admin.payments.payables.entity_type_meal') },
   ];
 
@@ -56,7 +55,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
 
   return (
     <div className="flex flex-wrap items-center gap-3 mb-4">
-      {/* Filtro tipo entità */}
       <select
         value={filters.entityType}
         onChange={e => onChange({ ...filters, entityType: e.target.value })}
@@ -68,7 +66,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
         ))}
       </select>
 
-      {/* Filtro stato */}
       <select
         value={filters.status}
         onChange={e => onChange({ ...filters, status: e.target.value })}
@@ -80,7 +77,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
         ))}
       </select>
 
-      {/* Range date — da */}
       <div className="flex items-center gap-1.5">
         <label className="text-xs text-gray-400 whitespace-nowrap">
           {t('admin.payments.filters.date_from')}
@@ -94,7 +90,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
         />
       </div>
 
-      {/* Range date — a */}
       <div className="flex items-center gap-1.5">
         <label className="text-xs text-gray-400 whitespace-nowrap">
           {t('admin.payments.filters.date_to')}
@@ -108,7 +103,6 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
         />
       </div>
 
-      {/* Reset — visibile solo se almeno un filtro attivo */}
       {hasActiveFilters && (
         <button
           onClick={onReset}
@@ -132,12 +126,10 @@ export default function PaymentsPage() {
   const [payables, setPayables] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal state
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState(null);
   const [eventToEdit, setEventToEdit] = useState(null);
 
-  // Filters state
   const [filters, setFilters] = useState(EMPTY_FILTERS);
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
@@ -150,7 +142,6 @@ export default function PaymentsPage() {
       .finally(() => setLoading(false));
   }, [refreshKey]);
 
-  // ── Filtri client-side ────────────────────────────────────────────────────
   const hasActiveFilters = useMemo(
     () => JSON.stringify(filters) !== JSON.stringify(EMPTY_FILTERS),
     [filters]
@@ -158,36 +149,24 @@ export default function PaymentsPage() {
 
   const filteredPayables = useMemo(() => {
     return payables.filter(p => {
-      // Filtro tipo entità (ora include 'meal')
       if (filters.entityType !== 'all' && p.entity_type !== filters.entityType) return false;
-
-      // Filtro stato (calcolato dagli eventi)
       if (filters.status !== 'all' && getPayableStatus(p) !== filters.status) return false;
-
-      // Filtro range date — include il payable se almeno un evento cade nel range
       if (filters.dateFrom || filters.dateTo) {
         const events = p.events ?? [];
         const from = filters.dateFrom ? new Date(filters.dateFrom) : null;
-        const to = filters.dateTo ? new Date(filters.dateTo) : null;
+        const to   = filters.dateTo   ? new Date(filters.dateTo)   : null;
         const hasMatchingEvent = events.some(ev => {
           if (!ev.payment_date) return false;
           const d = new Date(ev.payment_date);
           if (from && d < from) return false;
-          if (to && d > to) return false;
+          if (to   && d > to)   return false;
           return true;
         });
         if (!hasMatchingEvent) return false;
       }
-
       return true;
     });
   }, [payables, filters]);
-
-  // Payables di tipo meal per il grafico — non dipendono dai filtri attivi
-  const mealPayables = useMemo(
-    () => payables.filter(p => p.entity_type === 'meal'),
-    [payables]
-  );
 
   // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleAddEvent = (payable) => {
@@ -204,10 +183,10 @@ export default function PaymentsPage() {
 
   const handleDeleteEvent = async (ev) => {
     const ok = await confirm({
-      title: t('common.confirm_delete'),
-      message: t('admin.payments.modal.delete_confirm'),
+      title:       t('common.confirm_delete'),
+      message:     t('admin.payments.modal.delete_confirm'),
       confirmText: t('common.delete'),
-      cancelText: t('common.cancel'),
+      cancelText:  t('common.cancel'),
       isDangerous: true,
     });
     if (!ok) return;
@@ -252,21 +231,23 @@ export default function PaymentsPage() {
         </button>
       </div>
 
-      {/* KPI Bar */}
+      {/* ── Sezione KPI: KPIBar + CumulativeChart ── */}
       <PaymentKPIBar refreshKey={refreshKey} />
 
-      {/* Grafico costi pasto — visibile solo se ci sono payable di tipo meal */}
-      {!loading && mealPayables.length > 0 && (
-        <MealCostChart payables={mealPayables} />
+      {/*
+        Grafico cumulato — mostrato appena i dati sono caricati.
+        Passa tutti i payables (non i filtrati) per avere una vista completa.
+      */}
+      {!loading && (
+        <PaymentCumulativeChart payables={payables} />
       )}
 
-      {/* Payables section */}
+      {/* ── Lista payables ── */}
       <div className="mt-8">
         <h2 className="text-base font-semibold text-gray-900 dark:text-white mb-4">
           {t('admin.payments.payables.title')}
         </h2>
 
-        {/* FilterBar — non mostrata durante il loading */}
         {!loading && (
           <FilterBar
             filters={filters}
@@ -310,7 +291,6 @@ export default function PaymentsPage() {
           </div>
         ) : (
           <div>
-            {/* Contatore risultati filtrati */}
             {hasActiveFilters && (
               <p className="text-xs text-gray-400 mb-3">
                 {filteredPayables.length} / {payables.length}{' '}
