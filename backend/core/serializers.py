@@ -8,7 +8,7 @@ from .models import (
     ConfigurableText, InvitationLabel
 )
 from .models import SupplierType, Supplier
-from .models import PaymentPlatform, PaymentEvent
+from .models import MealCost, PaymentPlatform, PaymentEvent
 
 class GlobalConfigSerializer(serializers.ModelSerializer):
     class Meta:
@@ -491,11 +491,11 @@ class PaymentEventSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, data):
-        """Verifica che content_type_id e object_id puntino a Supplier o Room."""
+        """Verifica che content_type_id e object_id puntino a Supplier, Room o MealCost."""
         ct_id = data.get('content_type_id')
         obj_id = data.get('object_id')
         if ct_id and obj_id:
-            allowed_models = ['supplier', 'room']
+            allowed_models = ['supplier', 'room', 'mealcost']
             try:
                 ct = ContentType.objects.get(pk=ct_id)
             except ContentType.DoesNotExist:
@@ -512,12 +512,18 @@ class PaymentEventSerializer(serializers.ModelSerializer):
 class PayableItemSerializer(serializers.Serializer):
     """
     Serializer di sola lettura per la lista unificata di entità pagabili.
-    Ogni item rappresenta un Supplier oppure una Room con il riepilogo pagamenti.
+    Ogni item rappresenta un Supplier, una Room o il MealCost con il riepilogo pagamenti.
+
+    Campi aggiuntivi per entity_type='meal':
+      - meal_adults_count: numero adulti confermati (not_coming=False)
+      - meal_children_count: numero bambini confermati (not_coming=False)
+      - meal_price_adult: prezzo unitario adulto da GlobalConfig
+      - meal_price_child: prezzo unitario bambino da GlobalConfig
 
     NOTA: il campo eventi è esposto come 'events' (non 'payment_events')
     per allineamento con il frontend (PayableRow.jsx usa payable.events).
     """
-    entity_type = serializers.CharField()           # 'supplier' | 'room'
+    entity_type = serializers.CharField()           # 'supplier' | 'room' | 'meal'
     entity_id = serializers.IntegerField()
     entity_name = serializers.CharField()           # es. "Hotel Belvedere - Camera 101"
     content_type_id = serializers.IntegerField()
@@ -528,3 +534,9 @@ class PayableItemSerializer(serializers.Serializer):
     total_planned = serializers.DecimalField(max_digits=12, decimal_places=2)
     total_remaining = serializers.DecimalField(max_digits=12, decimal_places=2)
     events = PaymentEventSerializer(many=True)      # era 'payment_events' — rinominato per match frontend
+
+    # Campi meal (presenti solo quando entity_type='meal', null altrimenti)
+    meal_adults_count = serializers.IntegerField(allow_null=True, required=False)
+    meal_children_count = serializers.IntegerField(allow_null=True, required=False)
+    meal_price_adult = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True, required=False)
+    meal_price_child = serializers.DecimalField(max_digits=10, decimal_places=2, allow_null=True, required=False)
