@@ -1,23 +1,36 @@
 // frontend-admin/src/__tests__/PaymentsPage.test.jsx
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ConfirmDialogProvider } from '../contexts/ConfirmDialogContext';
 import { ToastProvider } from '../contexts/ToastContext';
 import PaymentsPage from '../pages/PaymentsPage';
 import paymentService from '../services/paymentService';
 
-// ── Mocks ─────────────────────────────────────────────────────────────────────
+// ── Mocks ────────────────────────────────────────────────────────────────────
+
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key) => key,
+    i18n: { language: 'it' },
+  }),
+}));
 
 vi.mock('../services/paymentService', () => ({
   default: {
-    getPayables: vi.fn(),
-    deleteEvent: vi.fn(),
+    getPayables:     vi.fn(),
+    getSummary:      vi.fn(),
+    deleteEvent:     vi.fn(),
+    createEvent:     vi.fn(),
+    updateEvent:     vi.fn(),
+    getPlatforms:    vi.fn(),
+    createPlatform:  vi.fn(),
   },
 }));
 
 vi.mock('../components/payments/PaymentKPIBar', () => ({
   default: ({ refreshKey }) => (
-    <div data-testid="kpi-bar" data-refresh-key={refreshKey}>KPIBar</div>
+    <div data-testid="kpi-bar" data-refresh-key={refreshKey} />
   ),
 }));
 
@@ -25,9 +38,9 @@ vi.mock('../components/payments/PayableRow', () => ({
   default: ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => (
     <div data-testid={`payable-row-${payable.object_id}`}>
       <span>{payable.entity_name}</span>
-      <button onClick={() => onAddEvent(payable)}>add-event</button>
-      <button onClick={() => onEditEvent(payable, { id: 99, label: 'Test' })}>edit-event</button>
-      <button onClick={() => onDeleteEvent({ id: 99 })}>delete-event</button>
+      <button onClick={() => onAddEvent(payable)}>add</button>
+      <button onClick={() => onEditEvent(payable, { id: 99, label: 'ev' })}>edit</button>
+      <button onClick={() => onDeleteEvent({ id: 99 })}>delete</button>
     </div>
   ),
 }));
@@ -36,16 +49,12 @@ vi.mock('../components/payments/PaymentEventModal', () => ({
   default: ({ isOpen, onClose, onSaved, payable, eventToEdit }) =>
     isOpen ? (
       <div data-testid="payment-modal">
-        <span data-testid="modal-mode">{eventToEdit ? 'edit' : 'create'}</span>
         <span data-testid="modal-payable">{payable?.entity_name}</span>
-        <button onClick={onClose}>modal-close</button>
-        <button onClick={onSaved}>modal-saved</button>
+        <span data-testid="modal-event">{eventToEdit?.label ?? 'new'}</span>
+        <button onClick={onClose}>close</button>
+        <button onClick={onSaved}>saved</button>
       </div>
     ) : null,
-}));
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({ t: (key) => key }),
 }));
 
 // ── Provider wrapper ──────────────────────────────────────────────────────────
@@ -67,40 +76,54 @@ const renderPage = () =>
 
 // ── Fixtures ──────────────────────────────────────────────────────────────────
 
-const makePayable = (id, name, entityType = 'supplier') => ({
-  object_id: id,
-  entity_type: entityType,
-  entity_name: name,
-  contract_amount: '1000.00',
-  events: [],
-});
+const PAYABLES = [
+  {
+    entity_type:      'supplier',
+    entity_id:        3,
+    entity_name:      'Altro DJ',
+    content_type_id:  20,
+    object_id:        3,
+    contract_amount:  '13000.00',
+    currency:         'EUR',
+    total_paid:       '0.00',
+    total_planned:    '0.00',
+    total_remaining:  '13000.00',
+    events:           [],
+  },
+  {
+    entity_type:      'room',
+    entity_id:        173,
+    entity_name:      'ht - Camera 101',
+    content_type_id:  15,
+    object_id:        173,
+    contract_amount:  '500.00',
+    currency:         'EUR',
+    total_paid:       '0.00',
+    total_planned:    '0.00',
+    total_remaining:  '500.00',
+    events:           [],
+  },
+];
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('PaymentsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    paymentService.getPayables.mockResolvedValue([]);
+    paymentService.getPayables.mockResolvedValue(PAYABLES);
+    paymentService.getSummary.mockResolvedValue({});
     paymentService.deleteEvent.mockResolvedValue({});
   });
 
-  it('renders page title and subtitle', async () => {
-    renderPage();
-    await waitFor(() => {
-      expect(screen.getByText('admin.payments.page_title')).toBeInTheDocument();
-      expect(screen.getByText('admin.payments.page_subtitle')).toBeInTheDocument();
-    });
-  });
-
+  // ── Loading state ──────────────────────────────────────────────────────────
   it('shows skeleton loaders while fetching', () => {
-    // getPayables non risolve subito — verifichiamo lo stato loading
     paymentService.getPayables.mockReturnValue(new Promise(() => {}));
     renderPage();
-    // Con loading=true vengono renderizzati 3 div animate-pulse
     const skeletons = document.querySelectorAll('.animate-pulse');
-    expect(skeletons.length).toBeGreaterThanOrEqual(1);
+    expect(skeletons.length).toBeGreaterThanOrEqual(3);
   });
 
+  // ── Empty states ───────────────────────────────────────────────────────────
   it('shows empty state when no payables are returned', async () => {
     paymentService.getPayables.mockResolvedValue([]);
     renderPage();
@@ -125,106 +148,107 @@ describe('PaymentsPage', () => {
     });
   });
 
+  // ── Payables list ──────────────────────────────────────────────────────────
   it('renders a PayableRow for each payable', async () => {
-    paymentService.getPayables.mockResolvedValue([
-      makePayable(1, 'Fotografo'),
-      makePayable(2, 'Catering'),
-    ]);
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();
-      expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();
+      expect(screen.getByTestId('payable-row-3')).toBeInTheDocument();
+      expect(screen.getByTestId('payable-row-173')).toBeInTheDocument();
     });
+    expect(screen.getByText('Altro DJ')).toBeInTheDocument();
+    expect(screen.getByText('ht - Camera 101')).toBeInTheDocument();
   });
 
   it('supports results-wrapped API response', async () => {
-    paymentService.getPayables.mockResolvedValue({
-      results: [makePayable(5, 'Fiorista')],
-    });
+    paymentService.getPayables.mockResolvedValue({ results: PAYABLES });
     renderPage();
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-5')).toBeInTheDocument();
+      expect(screen.getByTestId('payable-row-3')).toBeInTheDocument();
     });
   });
 
+  // ── KPI bar ────────────────────────────────────────────────────────────────
   it('renders the KPIBar with initial refreshKey=0', async () => {
     renderPage();
     await waitFor(() => {
-      const bar = screen.getByTestId('kpi-bar');
-      expect(bar).toBeInTheDocument();
-      expect(bar.getAttribute('data-refresh-key')).toBe('0');
+      expect(screen.getByTestId('kpi-bar')).toBeInTheDocument();
     });
+    expect(screen.getByTestId('kpi-bar')).toHaveAttribute('data-refresh-key', '0');
   });
 
+  // ── Refresh ────────────────────────────────────────────────────────────────
   it('increments refreshKey and re-fetches on refresh button click', async () => {
     renderPage();
-    await waitFor(() => screen.getByText('common.refresh'));
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('common.refresh'));
+    const refreshBtn = screen.getByRole('button', { name: /common.refresh/i });
+    await userEvent.click(refreshBtn);
 
     await waitFor(() => {
       expect(paymentService.getPayables).toHaveBeenCalledTimes(2);
-      expect(screen.getByTestId('kpi-bar').getAttribute('data-refresh-key')).toBe('1');
     });
+    expect(screen.getByTestId('kpi-bar')).toHaveAttribute('data-refresh-key', '1');
   });
 
+  // ── Add event modal ────────────────────────────────────────────────────────
   it('opens modal in create mode when add button is clicked', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('add-event'));
+    const addButtons = screen.getAllByRole('button', { name: 'add' });
+    await userEvent.click(addButtons[0]);
 
     expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('modal-mode').textContent).toBe('create');
-    expect(screen.getByTestId('modal-payable').textContent).toBe('Fotografo');
+    expect(screen.getByTestId('modal-payable')).toHaveTextContent('Altro DJ');
+    expect(screen.getByTestId('modal-event')).toHaveTextContent('new');
   });
 
+  // ── Edit event modal ───────────────────────────────────────────────────────
   it('opens modal in edit mode when edit button is clicked', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('edit-event'));
+    const editButtons = screen.getAllByRole('button', { name: 'edit' });
+    await userEvent.click(editButtons[0]);
 
     expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
-    expect(screen.getByTestId('modal-mode').textContent).toBe('edit');
+    expect(screen.getByTestId('modal-event')).toHaveTextContent('ev');
   });
 
+  // ── Modal close ────────────────────────────────────────────────────────────
   it('closes modal when onClose is called', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('add-event'));
+    await userEvent.click(screen.getAllByRole('button', { name: 'add' })[0]);
     expect(screen.getByTestId('payment-modal')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('modal-close'));
+    await userEvent.click(screen.getByRole('button', { name: 'close' }));
     expect(screen.queryByTestId('payment-modal')).not.toBeInTheDocument();
   });
 
+  // ── Modal saved ────────────────────────────────────────────────────────────
   it('closes modal and re-fetches when onSaved is called', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('add-event'));
-    fireEvent.click(screen.getByText('modal-saved'));
+    await userEvent.click(screen.getAllByRole('button', { name: 'add' })[0]);
+    await userEvent.click(screen.getByRole('button', { name: 'saved' }));
 
+    expect(screen.queryByTestId('payment-modal')).not.toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.queryByTestId('payment-modal')).not.toBeInTheDocument();
       expect(paymentService.getPayables).toHaveBeenCalledTimes(2);
     });
   });
 
+  // ── Delete event ───────────────────────────────────────────────────────────
   it('calls deleteEvent and refreshes when delete is confirmed', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('delete-event'));
+    await userEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
 
-    // Il ConfirmDialog appare — confermiamo
+    // Il vero ConfirmDialogProvider mostra il dialog — confermiamo
     await waitFor(() =>
       expect(screen.getByText('common.confirm_delete')).toBeInTheDocument()
     );
@@ -237,11 +261,10 @@ describe('PaymentsPage', () => {
   });
 
   it('does NOT call deleteEvent when confirm is cancelled', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
     renderPage();
-    await screen.findByTestId('payable-row-1');
+    await waitFor(() => screen.getByTestId('payable-row-3'));
 
-    fireEvent.click(screen.getByText('delete-event'));
+    await userEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
 
     await waitFor(() =>
       expect(screen.getByText('common.confirm_delete')).toBeInTheDocument()
@@ -250,25 +273,41 @@ describe('PaymentsPage', () => {
 
     await waitFor(() => {
       expect(paymentService.deleteEvent).not.toHaveBeenCalled();
+      expect(paymentService.getPayables).toHaveBeenCalledTimes(1);
     });
   });
 
   it('handles deleteEvent error gracefully without crashing', async () => {
-    paymentService.getPayables.mockResolvedValue([makePayable(1, 'Fotografo')]);
-    paymentService.deleteEvent.mockRejectedValue(new Error('Server error'));
-    renderPage();
-    await screen.findByTestId('payable-row-1');
+    paymentService.deleteEvent.mockRejectedValue(new Error('Delete failed'));
+    const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-    fireEvent.click(screen.getByText('delete-event'));
+    renderPage();
+    await waitFor(() => screen.getByTestId('payable-row-3'));
+
+    await userEvent.click(screen.getAllByRole('button', { name: 'delete' })[0]);
 
     await waitFor(() =>
       expect(screen.getByText('common.confirm_delete')).toBeInTheDocument()
     );
     fireEvent.click(screen.getByRole('button', { name: 'common.delete' }));
 
-    // Non deve crashare — la pagina rimane montata
+    await waitFor(() => {
+      expect(consoleSpy).toHaveBeenCalledWith(
+        'Delete event error:',
+        expect.any(Error)
+      );
+    });
+    // La pagina rimane montata
+    expect(screen.getByText('admin.payments.page_title')).toBeInTheDocument();
+    consoleSpy.mockRestore();
+  });
+
+  // ── Page header ────────────────────────────────────────────────────────────
+  it('renders page title and subtitle', async () => {
+    renderPage();
     await waitFor(() => {
       expect(screen.getByText('admin.payments.page_title')).toBeInTheDocument();
+      expect(screen.getByText('admin.payments.page_subtitle')).toBeInTheDocument();
     });
   });
 });
