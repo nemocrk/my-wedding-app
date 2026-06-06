@@ -16,18 +16,24 @@
  * Props:
  *   payables  {object[]}  — tutti i payable con relativi events[]
  */
+import { TrendingUp } from 'lucide-react';
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip,
-  ResponsiveContainer, Legend, CartesianGrid, ReferenceLine,
+  CartesianGrid,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis, YAxis,
 } from 'recharts';
-import { TrendingUp } from 'lucide-react';
 
 // ── Costanti ──────────────────────────────────────────────────────────────────
-const COLOR_PAID    = '#22c55e'; // green-500
+const COLOR_PAID = '#22c55e'; // green-500
 const COLOR_PLANNED = '#facc15'; // yellow-400
-const TICK_COLOR    = '#9ca3af'; // gray-400
+const TICK_COLOR = '#9ca3af'; // gray-400
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -47,9 +53,9 @@ const fmt = (v, currency = 'EUR') =>
  * @returns {string}  "YYYY-MM-DD" del lunedì della settimana
  */
 export function getWeekStart(date) {
-  const d   = new Date(date);
+  const d = new Date(date);
   // getUTCDay: 0=dom, 1=lun, 2=mar, …, 6=sab
-  const day  = d.getUTCDay();
+  const day = d.getUTCDay();
   const diff = day === 0 ? -6 : 1 - day; // giorni da aggiungere (negativo = indietro)
   d.setUTCHours(0, 0, 0, 0);
   d.setUTCDate(d.getUTCDate() + diff);
@@ -82,40 +88,71 @@ export function formatWeekLabel(date) {
  * @returns {{ weekKey: string, label: string, paid: number, planned: number }[]}
  */
 export function buildChartData(payables) {
-  const byWeek = {}; // Map<"YYYY-MM-DD", { weekStart: Date, paid: number, planned: number }>
+  const byWeek = {};
 
+  // 1. INIZIALIZZA LA SETTIMANA CORRENTE
+  const currentWeekStart = getWeekStart(new Date());
+  const currentWeekKey = currentWeekStart.toISOString().slice(0, 10);
+
+  byWeek[currentWeekKey] = {
+    weekStart: currentWeekStart,
+    paid: 0,
+    planned: 0
+  };
+
+  // 2. ELABORA I DATI
   for (const payable of payables) {
     for (const ev of (payable.events ?? [])) {
       if (!ev.payment_date) continue;
       if (ev.status !== 'paid' && ev.status !== 'planned') continue;
 
-      const weekStart = getWeekStart(ev.payment_date); // opera in UTC
-      const key = weekStart.toISOString().slice(0, 10); // "YYYY-MM-DD" stabile
+      const weekStart = getWeekStart(ev.payment_date);
+      const key = weekStart.toISOString().slice(0, 10);
 
       if (!byWeek[key]) {
         byWeek[key] = { weekStart, paid: 0, planned: 0 };
       }
-      byWeek[key][ev.status] += parseFloat(ev.amount || 0);
+
+      const amount = parseFloat(ev.amount || 0);
+      byWeek[key][ev.status] += isNaN(amount) ? 0 : amount;
     }
   }
 
-  if (Object.keys(byWeek).length === 0) return [];
-
-  // Ordina per chiave ISO crescente
+  // 3. ORDINA E CALCOLA IL CUMULATO
   const sorted = Object.entries(byWeek).sort(([a], [b]) => a.localeCompare(b));
 
-  // Calcola il cumulato progressivo
-  let cumulPaid    = 0;
+  let cumulPaid = 0;
   let cumulPlanned = 0;
 
   return sorted.map(([key, { weekStart, paid, planned }]) => {
-    cumulPaid    += paid;
-    cumulPlanned += planned;
+    cumulPaid += paid;
+    cumulPlanned += planned + paid;
+
+    // Determiniamo in che epoca ci troviamo rispetto a "oggi"
+    const isFuture = key > currentWeekKey;
+    const isPast = key < currentWeekKey;
+
+    let valPaid = Math.round(cumulPaid * 100) / 100;
+    let valPlanned = Math.round(cumulPlanned * 100) / 100;
+
+    let displayPaid = isFuture ? null : valPaid; // Nascondi Paid nel futuro
+    let displayPlanned = valPlanned;
+
+    // LA MAGIA È QUI:
+    // Se siamo nel passato E non ci sono ritardi (planned === paid), 
+    // nascondiamo la linea gialla per non sporcare il grafico.
+    if (isPast && valPlanned === valPaid) {
+      displayPlanned = null;
+    }
+    // NOTA: Non mettiamo a null displayPlanned per la settimana corrente (isPast = false),
+    // anche se planned == paid. Questo funge da "ponte" per far nascere 
+    // la linea gialla tratteggiata esattamente dalla fine della linea verde!
+
     return {
       weekKey: key,
-      label:   formatWeekLabel(weekStart),
-      paid:    Math.round(cumulPaid    * 100) / 100,
-      planned: Math.round(cumulPlanned * 100) / 100,
+      label: formatWeekLabel(weekStart),
+      paid: displayPaid,
+      planned: displayPlanned,
     };
   });
 }
@@ -152,14 +189,14 @@ function ChartTooltip({ active, payload, label, currency, t }) {
 const PaymentCumulativeChart = ({ payables = [] }) => {
   const { t } = useTranslation();
 
-  const data     = useMemo(() => buildChartData(payables), [payables]);
+  const data = useMemo(() => buildChartData(payables), [payables]);
   const currency = payables[0]?.events?.[0]?.currency ?? 'EUR';
 
   if (data.length === 0) return null;
 
   // Linea di riferimento sulla settimana corrente (se presente nel dataset)
-  const todayLabel  = formatWeekLabel(getWeekStart(new Date()));
-  const todayInData = data.some(d => d.label === todayLabel);
+  const todayLabel = formatWeekLabel(getWeekStart(new Date()));
+  const todayInData = true || data.some(d => d.label === todayLabel);
 
   return (
     <div

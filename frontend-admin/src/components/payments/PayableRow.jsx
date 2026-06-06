@@ -7,6 +7,30 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import PaymentStatusBadge from './PaymentStatusBadge';
 
+// ── InlineProgress ─────────────────────────────────────────────────────────────
+/**
+ * Renders an inline progress bar showing payment progress.
+ * Displays the percentage of total contract amount that has been paid.
+ * Aligned vertically between rows.
+ */
+function InlineProgress({ percentage, className = '' }) {
+  const barWidth = percentage > 0 ? Math.min(percentage, 100) : 0;
+
+  return (
+    <div className={`flex items-center justify-end gap-2 ${className}`}>
+      <span className="text-xs text-gray-500 dark:text-gray-400">
+        {percentage.toFixed(1)}% paid
+      </span>
+      <div className="w-24 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+        <div
+          className="h-full bg-indigo-500 transition-all duration-300"
+          style={{ width: `${barWidth}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 /**
  * Safely formats a numeric or string amount as currency.
@@ -94,6 +118,11 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
   const [expanded, setExpanded] = useState(false);
   const hasEvents = payable.events?.length > 0;
 
+  // Calculate total paid and percentage
+  const totalPaid = (payable.events ?? []).reduce((sum, ev) => sum + (parseFloat(ev.amount) ?? 0), 0);
+  const totalAmount = parseFloat(payable.contract_amount) || 0;
+  const paymentPercentage = totalAmount > 0 ? (totalPaid / totalAmount) * 100 : 0;
+
   const entityTypeLabel = (() => {
     if (payable.entity_type === 'room') return t('admin.payments.payables.entity_type_room');
     if (payable.entity_type === 'meal') return t('admin.payments.payables.entity_type_meal');
@@ -107,47 +136,56 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
   );
 
   return (
-    <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden mb-3">
+    <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden mb-3 align-items-center">
       {/* Row header */}
       <div
-        className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-gray-900 cursor-pointer
+        className="grid items-center grid-cols-[minmax(0,1fr)_240px_160px] px-4 py-3 bg-white dark:bg-gray-900 cursor-pointer
           hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         onClick={() => setExpanded(v => !v)}
         role="button"
         tabIndex={0}
         onKeyDown={e => e.key === 'Enter' && setExpanded(v => !v)}
       >
-        <EntityIcon type={payable.entity_type} />
-
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {payable.name + (payable.meta.supplier_type !== undefined ? " - " + payable.meta.supplier_type : "")}
-          </p>
-          <p className="text-xs text-gray-400">{entityTypeLabel}</p>
+        <div className="flex items-center min-w-0">
+          <EntityIcon type={payable.entity_type} />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
+              {payable.name + (payable.meta.supplier_type !== undefined ? " - " + payable.meta.supplier_type : "")}
+            </p>
+            <p className="text-xs text-gray-400">{entityTypeLabel}</p>
+          </div>
         </div>
 
-        <div className="text-right mr-3">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">
-            {formatCurrency(payable.contract_amount, payable.currency)}
-          </p>
-          <p className="text-xs text-gray-400">{payable.currency}</p>
+        {/* Payment progress bar */}
+        <InlineProgress
+          percentage={paymentPercentage}
+          className="w-full"
+        />
+
+        <div className="flex items-center justify-end">
+          <div className="text-right mr-3">
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">
+              {formatCurrency(payable.contract_amount, payable.currency)}
+            </p>
+            <p className="text-xs text-gray-400">{payable.currency}</p>
+          </div>
+
+          <button
+            onClick={e => { e.stopPropagation(); onAddEvent(payable); }}
+            className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400
+              hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
+            aria-label={t('admin.payments.payables.add_event')}
+            title={t('admin.payments.payables.add_event')}
+          >
+            <Plus size={14} />
+          </button>
+
+          {false && (hasEvents || hasMealDetails) && (
+            expanded
+              ? <ChevronUp size={16} className="text-gray-400" />
+              : <ChevronDown size={16} className="text-gray-400" />
+          )}
         </div>
-
-        <button
-          onClick={e => { e.stopPropagation(); onAddEvent(payable); }}
-          className="p-1.5 rounded-lg bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400
-            hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition-colors"
-          aria-label={t('admin.payments.payables.add_event')}
-          title={t('admin.payments.payables.add_event')}
-        >
-          <Plus size={14} />
-        </button>
-
-        {(hasEvents || hasMealDetails) && (
-          expanded
-            ? <ChevronUp size={16} className="text-gray-400" />
-            : <ChevronDown size={16} className="text-gray-400" />
-        )}
       </div>
 
       {/* Meal breakdown — visible when expanded and entity_type === 'meal' */}

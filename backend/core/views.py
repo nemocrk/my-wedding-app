@@ -1476,7 +1476,9 @@ class PayablesListView(APIView):
         items.append({
             'entity_type': 'meal',
             'entity_id': meal_obj.pk,
+            'object_id': meal_obj.pk,  
             'name': 'Costo Pasto Ospiti',
+            'content_type_id': meal_ct.pk,
             'contract_amount': meal_amount,
             'currency': 'EUR',
             'total_paid': meal_paid,
@@ -1503,7 +1505,9 @@ class PayablesListView(APIView):
             items.append({
                 'entity_type': 'room',
                 'entity_id': room.pk,
+                'object_id': room.pk,           # FIX: required by PayableItemSerializer
                 'name': f"{room.accommodation.name} - Camera {room.room_number}",
+                'content_type_id': room_ct.pk,
                 'contract_amount': contract,
                 'currency': 'EUR',
                 'total_paid': paid,
@@ -1528,7 +1532,9 @@ class PayablesListView(APIView):
             items.append({
                 'entity_type': 'supplier',
                 'entity_id': sup.pk,
+                'object_id': sup.pk,       # FIX: required by PayableItemSerializer
                 'name': sup.name,
+                'content_type_id': supplier_ct.pk,
                 'contract_amount': contract,
                 'currency': sup.currency or 'EUR',
                 'total_paid': paid,

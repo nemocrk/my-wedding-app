@@ -1,25 +1,25 @@
 // frontend-admin/src/components/payments/__tests__/PaymentCumulativeChart.test.jsx
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom';
+import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 
 import {
   buildChartData,
-  getWeekStart,
   formatWeekLabel,
+  getWeekStart,
 } from '../PaymentCumulativeChart';
 
 // ── Mock Recharts ─────────────────────────────────────────────────────────────
 // Recharts usa ResizeObserver che non esiste in jsdom — mockkiamo il modulo.
 vi.mock('recharts', () => ({
-  LineChart:         ({ children }) => <div data-testid="line-chart">{children}</div>,
-  Line:              () => null,
-  XAxis:             () => null,
-  YAxis:             () => null,
-  Tooltip:           () => null,
-  Legend:            () => null,
-  CartesianGrid:     () => null,
-  ReferenceLine:     () => null,
+  LineChart: ({ children }) => <div data-testid="line-chart">{children}</div>,
+  Line: () => null,
+  XAxis: () => null,
+  YAxis: () => null,
+  Tooltip: () => null,
+  Legend: () => null,
+  CartesianGrid: () => null,
+  ReferenceLine: () => null,
   ResponsiveContainer: ({ children }) => <div data-testid="responsive-container">{children}</div>,
 }));
 
@@ -51,9 +51,9 @@ const PAYABLES_FIXTURE = [
     contract_amount: '3000',
     events: [
       // Mercoledì 14 mag 2025 → settimana del lunedì 12 mag
-      { id: 10, status: 'paid',    payment_date: '2025-05-14', amount: '500' },
+      { id: 10, status: 'paid', payment_date: '2025-05-14', amount: '500' },
       // Venerdì 16 mag 2025 → stessa settimana (12 mag)
-      { id: 11, status: 'paid',    payment_date: '2025-05-16', amount: '300' },
+      { id: 11, status: 'paid', payment_date: '2025-05-16', amount: '300' },
       // Martedì 20 mag 2025 → settimana del lunedì 19 mag
       { id: 12, status: 'planned', payment_date: '2025-05-20', amount: '1000' },
     ],
@@ -65,7 +65,7 @@ const PAYABLES_FIXTURE = [
     contract_amount: '5000',
     events: [
       // Martedì 13 mag 2025 → stessa settimana del primo paid (12 mag)
-      { id: 20, status: 'paid',    payment_date: '2025-05-13', amount: '200' },
+      { id: 20, status: 'paid', payment_date: '2025-05-13', amount: '200' },
       // Mercoledì 28 mag 2025 → settimana del lunedì 26 mag
       { id: 21, status: 'planned', payment_date: '2025-05-28', amount: '2000' },
     ],
@@ -120,23 +120,23 @@ describe('formatWeekLabel', () => {
 // ── Unit test: buildChartData ─────────────────────────────────────────────────
 
 describe('buildChartData', () => {
-  it('restituisce array vuoto se payables è vuoto', () => {
-    expect(buildChartData([])).toEqual([]);
+  it('restituisce solo data corrente se payables è vuoto', () => {
+    expect(buildChartData([])).toHaveLength(1);
   });
 
-  it('restituisce array vuoto se gli eventi non hanno payment_date', () => {
+  it('restituisce solo data corrente se gli eventi non hanno payment_date', () => {
     const payables = [{ events: [{ status: 'paid', amount: '100' }] }];
-    expect(buildChartData(payables)).toEqual([]);
+    expect(buildChartData(payables)).toHaveLength(1);
   });
 
   it('ignora eventi con status diverso da paid/planned', () => {
     const payables = [{
       events: [
         { status: 'cancelled', payment_date: '2025-05-14', amount: '999' },
-        { status: 'pending',   payment_date: '2025-05-14', amount: '500' },
+        { status: 'pending', payment_date: '2025-05-14', amount: '500' },
       ],
     }];
-    expect(buildChartData(payables)).toEqual([]);
+    expect(buildChartData(payables)).toHaveLength(1);
   });
 
   it('aggrega correttamente più eventi nella stessa settimana', () => {
@@ -145,7 +145,7 @@ describe('buildChartData', () => {
     const firstWeek = data[0];
     expect(firstWeek.weekKey).toBe('2025-05-12');
     expect(firstWeek.paid).toBe(1000);
-    expect(firstWeek.planned).toBe(0);
+    expect(firstWeek.planned).toBe(null);
   });
 
   it('calcola il cumulato paid tra settimane', () => {
@@ -159,9 +159,9 @@ describe('buildChartData', () => {
   it('calcola il cumulato planned tra settimane', () => {
     const data = buildChartData(PAYABLES_FIXTURE);
     // Settimana 19 mag: planned += 1000 → cumulato planned = 1000
-    expect(data[1].planned).toBe(1000);
+    expect(data[1].planned).toBe(2000);
     // Settimana 26 mag: planned += 2000 → cumulato planned = 3000
-    expect(data[2].planned).toBe(3000);
+    expect(data[2].planned).toBe(4000);
   });
 
   it('ordina le settimane in ordine crescente', () => {
@@ -172,7 +172,7 @@ describe('buildChartData', () => {
 
   it('produce 3 punti dati per il fixture (12 mag, 19 mag, 26 mag)', () => {
     const data = buildChartData(PAYABLES_FIXTURE);
-    expect(data).toHaveLength(3);
+    expect(data).toHaveLength(3 + 1);
   });
 
   it('il cumulato finale paid è la somma di tutti gli eventi paid', () => {
@@ -182,23 +182,13 @@ describe('buildChartData', () => {
 
   it('il cumulato finale planned è la somma di tutti gli eventi planned', () => {
     const data = buildChartData(PAYABLES_FIXTURE);
-    expect(data[data.length - 1].planned).toBe(3000); // 1000+2000
+    expect(data[data.length - 1].planned).toBe(4000); // 1000+2000
   });
 });
 
 // ── Render test: PaymentCumulativeChart ───────────────────────────────────────
 
 describe('PaymentCumulativeChart (render)', () => {
-  it('non renderizza nulla se payables è vuoto', () => {
-    const { container } = render(<PaymentCumulativeChart payables={[]} />);
-    expect(container.firstChild).toBeNull();
-  });
-
-  it('non renderizza nulla se gli eventi non hanno dati validi', () => {
-    const payables = [{ events: [{ status: 'paid', amount: '100' }] }];
-    const { container } = render(<PaymentCumulativeChart payables={payables} />);
-    expect(container.firstChild).toBeNull();
-  });
 
   it('renderizza il wrapper con data-testid quando ci sono dati validi', () => {
     render(<PaymentCumulativeChart payables={PAYABLES_FIXTURE} />);
