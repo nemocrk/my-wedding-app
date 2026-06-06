@@ -1,6 +1,6 @@
 // frontend-admin/src/__tests__/PaymentsPage.test.jsx
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfirmDialogProvider } from '../contexts/ConfirmDialogContext';
 import { ToastProvider } from '../contexts/ToastContext';
@@ -106,9 +106,9 @@ const PAYABLES = [
 ];
 
 /**
- * Payable con eventi per testare getPayableStatus (righe 20-28) e filtri data (166-176).
- * - partial: paid 500 su 1000
- * - paid: paid 1000 su 1000
+ * Payables con eventi reali per testare:
+ * - getPayableStatus (righe 20-28): unpaid / partial / paid
+ * - filtri data (righe 166-176)
  */
 const PAYABLES_WITH_EVENTS = [
   {
@@ -159,7 +159,6 @@ const PAYABLES_WITH_EVENTS = [
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
-/** Attende che la FilterBar sia visibile (appare solo dopo il loading). */
 const waitForFilterBar = () =>
   waitFor(() =>
     expect(
@@ -349,50 +348,41 @@ describe('PaymentsPage', () => {
   it('FilterBar: filters by entity type supplier', async () => {
     renderPage();
     await waitForFilterBar();
-
-    const entitySelect = screen.getByRole('combobox', {
-      name: 'admin.payments.filters.entity_type_label',
-    });
-    fireEvent.change(entitySelect, { target: { value: 'supplier' } });
-
+    fireEvent.change(
+      screen.getByRole('combobox', { name: 'admin.payments.filters.entity_type_label' }),
+      { target: { value: 'supplier' } }
+    );
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-3')).toBeInTheDocument();   // supplier
-      expect(screen.queryByTestId('payable-row-173')).not.toBeInTheDocument(); // room esclusa
+      expect(screen.getByTestId('payable-row-3')).toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-173')).not.toBeInTheDocument();
     });
   });
 
   it('FilterBar: filters by entity type room', async () => {
     renderPage();
     await waitForFilterBar();
-
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.entity_type_label' }),
       { target: { value: 'room' } }
     );
-
     await waitFor(() => {
-      expect(screen.queryByTestId('payable-row-3')).not.toBeInTheDocument();  // supplier escluso
-      expect(screen.getByTestId('payable-row-173')).toBeInTheDocument();       // room inclusa
+      expect(screen.queryByTestId('payable-row-3')).not.toBeInTheDocument();
+      expect(screen.getByTestId('payable-row-173')).toBeInTheDocument();
     });
   });
 
   // ── FilterBar — status (riga 71) — copre getPayableStatus (righe 20-28) ──────
-  it('FilterBar: filters by status=unpaid shows only payables with no paid events', async () => {
+  it('FilterBar: filters by status=unpaid', async () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.status_label' }),
       { target: { value: 'unpaid' } }
     );
-
     await waitFor(() => {
-      // Camera 5: events=[] → unpaid ✓
       expect(screen.getByTestId('payable-row-5')).toBeInTheDocument();
-      // Fotografo: fully paid → escluso
       expect(screen.queryByTestId('payable-row-1')).not.toBeInTheDocument();
-      // Catering: partial → escluso
       expect(screen.queryByTestId('payable-row-2')).not.toBeInTheDocument();
     });
   });
@@ -401,16 +391,14 @@ describe('PaymentsPage', () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.status_label' }),
       { target: { value: 'partial' } }
     );
-
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();         // Catering: partial ✓
-      expect(screen.queryByTestId('payable-row-1')).not.toBeInTheDocument();   // paid → escluso
-      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument();   // unpaid → escluso
+      expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-1')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument();
     });
   });
 
@@ -418,32 +406,28 @@ describe('PaymentsPage', () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.status_label' }),
       { target: { value: 'paid' } }
     );
-
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();         // Fotografo: paid ✓
-      expect(screen.queryByTestId('payable-row-2')).not.toBeInTheDocument();   // partial → escluso
-      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument();   // unpaid → escluso
+      expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-2')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument();
     });
   });
 
   // ── FilterBar — dateFrom / dateTo (righe 88-102, 166-176) ────────────────
-  it('FilterBar: filters by dateFrom includes payables with events on/after date', async () => {
+  // NOTA: <input type="date"> non ha role "textbox" → usare getByLabelText (aria-label presente)
+
+  it('FilterBar: filters by dateFrom', async () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
-    // dateFrom=2026-06-01: solo Fotografo (2026-06-01) e Catering planned (2026-09-01)
     fireEvent.change(
-      screen.getByRole('textbox', { hidden: true, name: 'admin.payments.filters.date_from' }) ||
       screen.getByLabelText('admin.payments.filters.date_from'),
       { target: { value: '2026-06-01' } }
     );
-
     await waitFor(() => {
       expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();       // evento 2026-06-01 ✓
       expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();       // evento 2026-09-01 ✓
@@ -451,17 +435,14 @@ describe('PaymentsPage', () => {
     });
   });
 
-  it('FilterBar: filters by dateTo excludes events after date', async () => {
+  it('FilterBar: filters by dateTo', async () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
-    // dateTo=2026-05-31: solo Catering paid (2026-05-01)
     fireEvent.change(
       screen.getByLabelText('admin.payments.filters.date_to'),
       { target: { value: '2026-05-31' } }
     );
-
     await waitFor(() => {
       expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();       // evento 2026-05-01 ✓
       expect(screen.queryByTestId('payable-row-1')).not.toBeInTheDocument(); // evento 2026-06-01 > 05-31
@@ -469,11 +450,10 @@ describe('PaymentsPage', () => {
     });
   });
 
-  it('FilterBar: dateFrom + dateTo range — only matching events', async () => {
+  it('FilterBar: dateFrom + dateTo range', async () => {
     paymentService.getPayables.mockResolvedValue(PAYABLES_WITH_EVENTS);
     renderPage();
     await waitForFilterBar();
-
     fireEvent.change(
       screen.getByLabelText('admin.payments.filters.date_from'),
       { target: { value: '2026-05-01' } }
@@ -482,20 +462,17 @@ describe('PaymentsPage', () => {
       screen.getByLabelText('admin.payments.filters.date_to'),
       { target: { value: '2026-06-30' } }
     );
-
     await waitFor(() => {
-      expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();       // 2026-06-01 ✓
-      expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();       // 2026-05-01 ✓
-      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument(); // nessun evento
+      expect(screen.getByTestId('payable-row-1')).toBeInTheDocument();
+      expect(screen.getByTestId('payable-row-2')).toBeInTheDocument();
+      expect(screen.queryByTestId('payable-row-5')).not.toBeInTheDocument();
     });
   });
 
   // ── FilterBar — reset (righe 98-102) ───────────────────────────────────────
-  it('FilterBar: reset button clears active filters and shows all payables', async () => {
+  it('FilterBar: reset button clears active filters', async () => {
     renderPage();
     await waitForFilterBar();
-
-    // Attiva filtro supplier → nasconde la room
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.entity_type_label' }),
       { target: { value: 'supplier' } }
@@ -503,13 +480,10 @@ describe('PaymentsPage', () => {
     await waitFor(() =>
       expect(screen.queryByTestId('payable-row-173')).not.toBeInTheDocument()
     );
-
-    // Il bottone reset appare solo con filtri attivi
-    const resetBtn = screen.getByText('admin.payments.filters.reset');
-    expect(resetBtn).toBeInTheDocument();
-    fireEvent.click(resetBtn);
-
-    // Dopo il reset entrambi i payable sono visibili
+    // Bottone reset nella FilterBar (indice 0 tra i reset presenti)
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'admin.payments.filters.reset' })[0]
+    );
     await waitFor(() => {
       expect(screen.getByTestId('payable-row-3')).toBeInTheDocument();
       expect(screen.getByTestId('payable-row-173')).toBeInTheDocument();
@@ -520,18 +494,15 @@ describe('PaymentsPage', () => {
   it('shows filtered results counter when a filter is active', async () => {
     renderPage();
     await waitForFilterBar();
-
-    // Filtro supplier → 1 su 2
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.entity_type_label' }),
       { target: { value: 'supplier' } }
     );
-
     await waitFor(() => {
-      // Contatore "1 / 2 admin.payments.filters.results_count"
       expect(
         screen.getByText((content) =>
-          content.includes('1') && content.includes('2') &&
+          content.includes('1') &&
+          content.includes('2') &&
           content.includes('admin.payments.filters.results_count')
         )
       ).toBeInTheDocument();
@@ -542,23 +513,20 @@ describe('PaymentsPage', () => {
   it('shows filtered empty state and reset link when filter matches nothing', async () => {
     renderPage();
     await waitForFilterBar();
-
-    // Filtro status=paid su payables senza eventi → nessun risultato
+    // status=paid su payables senza events pagati → nessun risultato
     fireEvent.change(
       screen.getByRole('combobox', { name: 'admin.payments.filters.status_label' }),
       { target: { value: 'paid' } }
     );
-
-    await waitFor(() => {
-      expect(screen.getByText('admin.payments.filters.no_results')).toBeInTheDocument();
-    });
-
-    // Il bottone reset inline nell’empty state (riga 290)
-    const resetLink = screen.getByRole('button', { name: 'admin.payments.filters.reset' });
-    expect(resetLink).toBeInTheDocument();
-    fireEvent.click(resetLink);
-
-    // Dopo il reset tornano i payable normali
+    await waitFor(() =>
+      expect(screen.getByText('admin.payments.filters.no_results')).toBeInTheDocument()
+    );
+    // Con filtro attivo ci sono DUE bottoni reset nel DOM:
+    // [0] = FilterBar reset (header), [1] = empty-state reset inline (riga 290)
+    const resetButtons = screen.getAllByRole('button', { name: 'admin.payments.filters.reset' });
+    expect(resetButtons).toHaveLength(2);
+    // Clicchiamo il reset inline dell’empty state (riga 290)
+    fireEvent.click(resetButtons[1]);
     await waitFor(() =>
       expect(screen.getByTestId('payable-row-3')).toBeInTheDocument()
     );
