@@ -1356,9 +1356,11 @@ class PaymentSummaryView(APIView):
     vengono ora coerciti in Decimal via Decimal(str(...)) prima di qualsiasi
     operazione aritmetica.
 
-    Fix total_remaining: total_remaining = total_contracts - paid_agg - planned_agg
-    Semantica corretta: "quanto resta da pianificare o pagare".
-    Escludere solo i PAID sottostimava il rimanente quando esistono eventi PLANNED.
+    Semantica di total_remaining:
+        total_remaining = total_contracts - total_paid
+    Rappresenta quanto del valore contrattuale non è ancora stato effettivamente
+    pagato. Gli eventi PLANNED sono inclusi in questo rimanente (non vanno
+    sottratti — sono parte di ciò che deve ancora essere versato).
 
     Update (MealCost): total_contracts include ora il contract_amount del pasto
     calcolato dinamicamente da _meal_contract_amount().
@@ -1391,9 +1393,9 @@ class PaymentSummaryView(APIView):
         ).aggregate(total=Sum('amount'))['total']
         planned_agg = Decimal(str(planned_raw)) if planned_raw is not None else Decimal('0')
 
-        # FIX: total_remaining esclude sia PAID che PLANNED.
-        # "Quanto resta ancora da pianificare o pagare."
-        total_remaining = total_contracts - paid_agg - planned_agg
+        # total_remaining = quanto del contratto non è ancora stato pagato.
+        # Gli eventi PLANNED sono ancora "da pagare" → non vanno sottratti.
+        total_remaining = total_contracts - paid_agg
 
         # Prossima scadenza: il primo evento PLANNED con la data più vicina
         next_event = PaymentEvent.objects.filter(
@@ -1438,10 +1440,8 @@ class PayablesListView(APIView):
 
     Ottimizzazione N+1 (fix):
     - Gli eventi di pagamento per Room e Supplier vengono prefetchati con una
-      singola query per tipo entità usando Prefetch + to_attr, eliminando le
-      query O(3n) precedenti (events_qs + 2 aggregate per ogni entità).
-    - I totali PAID/PLANNED vengono calcolati in-memory iterando i prefetch.
-    - MealCost (singleton) usa ancora query dirette: ha un solo oggetto.
+      singola query per tipo, poi distribuiti in Python — evita N query per N entità.
+    - MealCost: query singola su PaymentEvent filtrata per meal_ct.
     """
     def get(self, request):
         config, _ = GlobalConfig.objects.get_or_create(pk=1)
@@ -1449,123 +1449,97 @@ class PayablesListView(APIView):
         room_ct = ContentType.objects.get_for_model(Room)
         meal_ct = ContentType.objects.get_for_model(MealCost)
 
-        # ------------------------------------------------------------------
-        # Prefetch globale degli eventi di pagamento per Room e Supplier.
-        # Una query per tipo entità invece di 3 query per ogni riga.
-        # ------------------------------------------------------------------
-        room_events_map: dict[int, list] = {}
-        supplier_events_map: dict[int, list] = {}
-
-        all_payment_events = (
-            PaymentEvent.objects
-            .filter(content_type__in=[room_ct, supplier_ct])
-            .select_related('platform', 'content_type')
-            .order_by('payment_date')
+        # --- Prefetch eventi per tipo (anti N+1) ---
+        all_events = PaymentEvent.objects.select_related('platform', 'content_type').filter(
+            content_type__in=[supplier_ct, room_ct, meal_ct]
         )
-        for evt in all_payment_events:
-            if evt.content_type_id == room_ct.pk:
-                room_events_map.setdefault(evt.object_id, []).append(evt)
-            else:
-                supplier_events_map.setdefault(evt.object_id, []).append(evt)
 
-        def _aggregate_events(events: list):
-            """Calcola totali PAID/PLANNED in-memory da una lista di PaymentEvent."""
-            paid = Decimal('0')
-            planned = Decimal('0')
-            for e in events:
-                amt = Decimal(str(e.amount)) if e.amount is not None else Decimal('0')
-                if e.status == PaymentEvent.Status.PAID:
-                    paid += amt
-                elif e.status == PaymentEvent.Status.PLANNED:
-                    planned += amt
+        # Raggruppa eventi per (content_type_id, object_id)
+        events_by_entity: dict = {}
+        for ev in all_events:
+            key = (ev.content_type_id, ev.object_id)
+            events_by_entity.setdefault(key, []).append(ev)
+
+        def _aggregate(events):
+            paid = sum(e.amount for e in events if e.status == PaymentEvent.Status.PAID)
+            planned = sum(e.amount for e in events if e.status == PaymentEvent.Status.PLANNED)
             return paid, planned
 
         items = []
 
-        # -------------------------------------------------------
-        # 1. COSTO PASTO (singleton MealCost — sempre presente)
-        # -------------------------------------------------------
-        meal_obj = MealCost.get_or_create_singleton()
+        # --- 1. MealCost ---
         meal_amount, adults_count, children_count, price_adult, price_child = _meal_contract_amount(config)
-
-        meal_events_qs = PaymentEvent.objects.filter(
-            content_type=meal_ct, object_id=meal_obj.pk
-        ).select_related('platform').order_by('payment_date')
-
-        meal_paid = meal_events_qs.filter(
-            status=PaymentEvent.Status.PAID
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
-        meal_planned = meal_events_qs.filter(
-            status=PaymentEvent.Status.PLANNED
-        ).aggregate(t=Sum('amount'))['t'] or Decimal('0')
-
+        meal_obj, _ = MealCost.objects.get_or_create(pk=1)
+        meal_events = events_by_entity.get((meal_ct.id, meal_obj.pk), [])
+        meal_paid, meal_planned = _aggregate(meal_events)
+        meal_remaining = meal_amount - meal_paid
         items.append({
             'entity_type': 'meal',
             'entity_id': meal_obj.pk,
-            'object_id': meal_obj.pk,
-            'entity_name': 'Costo Pasto Ospiti',
-            'content_type_id': meal_ct.pk,
+            'name': 'Costo Pasto Ospiti',
             'contract_amount': meal_amount,
             'currency': 'EUR',
             'total_paid': meal_paid,
             'total_planned': meal_planned,
-            'total_remaining': meal_amount - meal_paid,
-            'events': PaymentEventSerializer(meal_events_qs, many=True).data,
-            # Campi extra — usati da PaymentsPage per il breakdown adulti/bambini
-            'meal_adults_count': adults_count,
-            'meal_children_count': children_count,
-            'meal_price_adult': price_adult,
-            'meal_price_child': price_child,
+            'total_remaining': meal_remaining,
+            'events': PaymentEventSerializer(meal_events, many=True).data,
+            'meta': {
+                'adults_count': adults_count,
+                'children_count': children_count,
+                'price_adult': price_adult,
+                'price_child': price_child,
+            },
         })
 
-        # -------------------------------------------------------
-        # 2. CAMERE (ottimizzato: usa prefetch map)
-        # -------------------------------------------------------
+        # --- 2. Rooms ---
         rooms = Room.objects.select_related('accommodation').order_by(
             'accommodation__name', 'room_number'
         )
         for room in rooms:
-            events = room_events_map.get(room.pk, [])
-            total_paid, total_planned = _aggregate_events(events)
-            contract_amount = Decimal(str(room.price)) if room.price else Decimal('0')
-
+            room_events = events_by_entity.get((room_ct.id, room.pk), [])
+            paid, planned = _aggregate(room_events)
+            contract = Decimal(str(room.price)) if room.price is not None else Decimal('0')
+            remaining = contract - paid
             items.append({
                 'entity_type': 'room',
                 'entity_id': room.pk,
-                'object_id': room.pk,
-                'entity_name': f"{room.accommodation.name} - Camera {room.room_number}",
-                'content_type_id': room_ct.pk,
-                'contract_amount': contract_amount,
+                'name': f"{room.accommodation.name} - Camera {room.room_number}",
+                'contract_amount': contract,
                 'currency': 'EUR',
-                'total_paid': total_paid,
-                'total_planned': total_planned,
-                'total_remaining': contract_amount - total_paid,
-                'events': PaymentEventSerializer(events, many=True).data,
+                'total_paid': paid,
+                'total_planned': planned,
+                'total_remaining': remaining,
+                'events': PaymentEventSerializer(room_events, many=True).data,
+                'meta': {
+                    'accommodation_name': room.accommodation.name,
+                    'room_number': room.room_number,
+                    'capacity_adults': room.capacity_adults,
+                    'capacity_children': room.capacity_children,
+                },
             })
 
-        # -------------------------------------------------------
-        # 3. FORNITORI (ottimizzato: usa prefetch map)
-        # -------------------------------------------------------
-        suppliers = Supplier.objects.order_by('name')
-        for supplier in suppliers:
-            events = supplier_events_map.get(supplier.pk, [])
-            total_paid, total_planned = _aggregate_events(events)
-            contract_amount = Decimal(str(supplier.cost)) if supplier.cost else Decimal('0')
-
+        # --- 3. Suppliers ---
+        suppliers = Supplier.objects.select_related('type').order_by('name')
+        for sup in suppliers:
+            sup_events = events_by_entity.get((supplier_ct.id, sup.pk), [])
+            paid, planned = _aggregate(sup_events)
+            contract = Decimal(str(sup.cost)) if sup.cost is not None else Decimal('0')
+            remaining = contract - paid
             items.append({
                 'entity_type': 'supplier',
-                'entity_id': supplier.pk,
-                'object_id': supplier.pk,
-                'entity_name': supplier.name,
-                'content_type_id': supplier_ct.pk,
-                'contract_amount': contract_amount,
-                'currency': supplier.currency or 'EUR',
-                'total_paid': total_paid,
-                'total_planned': total_planned,
-                'total_remaining': contract_amount - total_paid,
-                'events': PaymentEventSerializer(events, many=True).data,
+                'entity_id': sup.pk,
+                'name': sup.name,
+                'contract_amount': contract,
+                'currency': sup.currency or 'EUR',
+                'total_paid': paid,
+                'total_planned': planned,
+                'total_remaining': remaining,
+                'events': PaymentEventSerializer(sup_events, many=True).data,
+                'meta': {
+                    'supplier_type': sup.type.name if sup.type else None,
+                    'contact': sup.contact,
+                    'notes': sup.notes,
+                },
             })
 
-        serializer = PayableItemSerializer(items, many=True)
-        return Response(serializer.data)
+        return Response(items)
