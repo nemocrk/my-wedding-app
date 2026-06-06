@@ -6,6 +6,7 @@ import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
 import PaymentEventModal from '../components/payments/PaymentEventModal';
 import PayableRow from '../components/payments/PayableRow';
+import ConfirmDialog from '../components/ui/ConfirmDialog';
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
@@ -17,6 +18,10 @@ export default function PaymentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState(null);
   const [eventToEdit, setEventToEdit] = useState(null);
+
+  // Confirm dialog state
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState(null);
 
   const refresh = useCallback(() => setRefreshKey(k => k + 1), []);
 
@@ -40,14 +45,28 @@ export default function PaymentsPage() {
     setModalOpen(true);
   };
 
-  const handleDeleteEvent = async (ev) => {
-    if (!window.confirm(t('common.confirm_delete'))) return;
+  // Apre il ConfirmDialog invece di window.confirm()
+  const handleDeleteEvent = (ev) => {
+    setEventToDelete(ev);
+    setConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = async () => {
+    setConfirmOpen(false);
+    if (!eventToDelete) return;
     try {
-      await paymentService.deleteEvent(ev.id);
+      await paymentService.deleteEvent(eventToDelete.id);
       refresh();
     } catch (err) {
       console.error('Delete event error:', err);
+    } finally {
+      setEventToDelete(null);
     }
+  };
+
+  const handleCancelDelete = () => {
+    setConfirmOpen(false);
+    setEventToDelete(null);
   };
 
   const handleModalSaved = () => {
@@ -72,13 +91,14 @@ export default function PaymentsPage() {
             </p>
           </div>
         </div>
+        {/* FIX: era t('common.loading'), ora corretto in t('common.refresh') */}
         <button
           onClick={refresh}
           className="flex items-center gap-2 px-4 py-2 rounded-xl border border-gray-200 dark:border-gray-700
             text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
         >
           <RefreshCw size={15} />
-          {t('common.loading')}
+          {t('common.refresh')}
         </button>
       </div>
 
@@ -92,9 +112,13 @@ export default function PaymentsPage() {
         </h2>
 
         {loading ? (
+          // Skeleton migliorato: altezze variabili per maggior realismo
           <div className="space-y-3">
-            {[...Array(3)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse" />
+            {[14, 20, 16].map((h, i) => (
+              <div
+                key={i}
+                className={`h-${h} bg-gray-100 dark:bg-gray-800 rounded-xl animate-pulse`}
+              />
             ))}
           </div>
         ) : payables.length === 0 ? (
@@ -125,6 +149,17 @@ export default function PaymentsPage() {
         onSaved={handleModalSaved}
         payable={selectedPayable}
         eventToEdit={eventToEdit}
+      />
+
+      {/* Confirm Delete Dialog */}
+      <ConfirmDialog
+        isOpen={confirmOpen}
+        title={t('common.confirm_delete')}
+        message={t('admin.payments.events.delete_confirm_message')}
+        confirmLabel={t('common.delete')}
+        confirmVariant="danger"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
       />
     </div>
   );
