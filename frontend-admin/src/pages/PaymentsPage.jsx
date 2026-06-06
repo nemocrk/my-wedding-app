@@ -6,7 +6,7 @@ import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
 import PaymentEventModal from '../components/payments/PaymentEventModal';
 import PayableRow from '../components/payments/PayableRow';
-import ConfirmationModal from '../components/common/ConfirmationModal';
+import { useConfirm } from '../contexts/ConfirmDialogContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -124,6 +124,7 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
+  const { confirm } = useConfirm();
   const [refreshKey, setRefreshKey] = useState(0);
   const [payables, setPayables] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -132,10 +133,6 @@ export default function PaymentsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [selectedPayable, setSelectedPayable] = useState(null);
   const [eventToEdit, setEventToEdit] = useState(null);
-
-  // Confirm dialog state
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [eventToDelete, setEventToDelete] = useState(null);
 
   // Filters state
   const [filters, setFilters] = useState(EMPTY_FILTERS);
@@ -196,27 +193,21 @@ export default function PaymentsPage() {
     setModalOpen(true);
   };
 
-  const handleDeleteEvent = (ev) => {
-    setEventToDelete(ev);
-    setConfirmOpen(true);
-  };
-
-  const handleConfirmDelete = async () => {
-    setConfirmOpen(false);
-    if (!eventToDelete) return;
+  const handleDeleteEvent = async (ev) => {
+    const ok = await confirm({
+      title: t('common.confirm_delete'),
+      message: t('admin.payments.modal.delete_confirm'),
+      confirmText: t('common.delete'),
+      cancelText: t('common.cancel'),
+      isDangerous: true,
+    });
+    if (!ok) return;
     try {
-      await paymentService.deleteEvent(eventToDelete.id);
+      await paymentService.deleteEvent(ev.id);
       refresh();
     } catch (err) {
       console.error('Delete event error:', err);
-    } finally {
-      setEventToDelete(null);
     }
-  };
-
-  const handleCancelDelete = () => {
-    setConfirmOpen(false);
-    setEventToDelete(null);
   };
 
   const handleModalSaved = () => {
@@ -332,18 +323,6 @@ export default function PaymentsPage() {
         onSaved={handleModalSaved}
         payable={selectedPayable}
         eventToEdit={eventToEdit}
-      />
-
-      {/* Confirm Delete */}
-      <ConfirmationModal
-        isOpen={confirmOpen}
-        onClose={handleCancelDelete}
-        onConfirm={handleConfirmDelete}
-        title={t('common.confirm_delete')}
-        message={t('admin.payments.modal.delete_confirm')}
-        confirmText={t('common.delete')}
-        cancelText={t('common.cancel')}
-        isDangerous={true}
       />
     </div>
   );
