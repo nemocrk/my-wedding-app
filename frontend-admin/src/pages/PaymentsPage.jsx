@@ -6,7 +6,7 @@ import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
 import PaymentEventModal from '../components/payments/PaymentEventModal';
 import PayableRow from '../components/payments/PayableRow';
-import ConfirmDialog from '../components/ui/ConfirmDialog';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -334,15 +334,16 @@ export default function PaymentsPage() {
         eventToEdit={eventToEdit}
       />
 
-      {/* Confirm Delete Dialog */}
-      <ConfirmDialog
+      {/* Confirm Delete */}
+      <ConfirmationModal
         isOpen={confirmOpen}
-        title={t('common.confirm_delete')}
-        message={t('admin.payments.events.delete_confirm_message')}
-        confirmLabel={t('common.delete')}
-        confirmVariant="danger"
+        onClose={handleCancelDelete}
         onConfirm={handleConfirmDelete}
-        onCancel={handleCancelDelete}
+        title={t('common.confirm_delete')}
+        message={t('admin.payments.modal.delete_confirm')}
+        confirmText={t('common.delete')}
+        cancelText={t('common.cancel')}
+        isDangerous={true}
       />
     </div>
   );
