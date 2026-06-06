@@ -217,16 +217,6 @@
             "title_main": "Wedding",
             "title_accent": "Admin"
         },
-        "suppliers": {
-            "title": "Fornitori",
-            "subtitle": "Gestisci i fornitori dell'evento e i costi",
-            "no_suppliers": "Nessun fornitore trovato.",
-            "table": {
-                "type": "Tipo",
-                "cost": "Costo",
-                "currency": "Valuta"
-            }
-        },
         "tests": {
             "pie_chart_mock": "Pie Chart Mock",
             "font_picker_mock": "Font Picker"

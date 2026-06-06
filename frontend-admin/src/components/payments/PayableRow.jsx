@@ -1,10 +1,10 @@
 // frontend-admin/src/components/payments/PayableRow.jsx
-import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
 import {
   BedDouble, Building2, ChevronDown, ChevronUp,
   Pencil, Plus, Trash2, UtensilsCrossed,
 } from 'lucide-react';
+import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import PaymentStatusBadge from './PaymentStatusBadge';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -41,15 +41,15 @@ function MealDetails({ payable, t }) {
     {
       key: 'adults',
       label: t('admin.payments.payables.meal_adults'),
-      count: payable.meal_adults_count,
-      unit: payable.meal_adult_unit_cost,
+      count: payable.meta.adults_count,
+      unit: payable.meta.price_adult,
       currency: payable.currency,
     },
     {
       key: 'children',
       label: t('admin.payments.payables.meal_children'),
-      count: payable.meal_children_count,
-      unit: payable.meal_child_unit_cost,
+      count: payable.meta.children_count,
+      unit: payable.meta.price_child,
       currency: payable.currency,
     },
   ].filter(r => r.count !== undefined && r.count !== null);
@@ -95,15 +95,15 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
   const hasEvents = payable.events?.length > 0;
 
   const entityTypeLabel = (() => {
-    if (payable.entity_type === 'room')     return t('admin.payments.payables.entity_type_room');
-    if (payable.entity_type === 'meal')     return t('admin.payments.payables.entity_type_meal');
+    if (payable.entity_type === 'room') return t('admin.payments.payables.entity_type_room');
+    if (payable.entity_type === 'meal') return t('admin.payments.payables.entity_type_meal');
     return t('admin.payments.payables.entity_type_supplier');
   })();
 
   const isMeal = payable.entity_type === 'meal';
   const hasMealDetails = isMeal && (
-    payable.meal_adults_count !== undefined ||
-    payable.meal_children_count !== undefined
+    payable.meta.adults_count !== undefined ||
+    payable.meta.children_count !== undefined
   );
 
   return (
@@ -121,7 +121,7 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
 
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">
-            {payable.entity_name}
+            {payable.name + (payable.meta.supplier_type !== undefined ? " - " + payable.meta.supplier_type : "")}
           </p>
           <p className="text-xs text-gray-400">{entityTypeLabel}</p>
         </div>
