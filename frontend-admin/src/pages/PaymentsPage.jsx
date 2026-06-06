@@ -6,6 +6,7 @@ import paymentService from '../services/paymentService';
 import PaymentKPIBar from '../components/payments/PaymentKPIBar';
 import PaymentEventModal from '../components/payments/PaymentEventModal';
 import PayableRow from '../components/payments/PayableRow';
+import MealCostChart from '../components/payments/MealCostChart';
 import { useConfirm } from '../contexts/ConfirmDialogContext';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -30,13 +31,15 @@ const getPayableStatus = (payable) => {
 
 const EMPTY_FILTERS = { entityType: 'all', status: 'all', dateFrom: '', dateTo: '' };
 
-// ── FilterBar ─────────────────────────────────────────────────────────────────
+// ── FilterBar ───────────────────────────────────────────────────────────────────
 
 function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
   const entityTypeOptions = [
     { value: 'all',      label: t('admin.payments.filters.entity_type_all') },
     { value: 'supplier', label: t('admin.payments.payables.entity_type_supplier') },
     { value: 'room',     label: t('admin.payments.payables.entity_type_room') },
+    // Aggiunta opzione meal — fix lacuna #1
+    { value: 'meal',     label: t('admin.payments.payables.entity_type_meal') },
   ];
 
   const statusOptions = [
@@ -120,7 +123,7 @@ function FilterBar({ filters, onChange, onReset, hasActiveFilters, t }) {
   );
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+// ── Page ────────────────────────────────────────────────────────────────────────
 
 export default function PaymentsPage() {
   const { t } = useTranslation();
@@ -155,7 +158,7 @@ export default function PaymentsPage() {
 
   const filteredPayables = useMemo(() => {
     return payables.filter(p => {
-      // Filtro tipo entità
+      // Filtro tipo entità (ora include 'meal')
       if (filters.entityType !== 'all' && p.entity_type !== filters.entityType) return false;
 
       // Filtro stato (calcolato dagli eventi)
@@ -180,7 +183,13 @@ export default function PaymentsPage() {
     });
   }, [payables, filters]);
 
-  // ── Handlers ─────────────────────────────────────────────────────────────
+  // Payables di tipo meal per il grafico — non dipendono dai filtri attivi
+  const mealPayables = useMemo(
+    () => payables.filter(p => p.entity_type === 'meal'),
+    [payables]
+  );
+
+  // ── Handlers ─────────────────────────────────────────────────────────────────
   const handleAddEvent = (payable) => {
     setSelectedPayable(payable);
     setEventToEdit(null);
@@ -215,7 +224,7 @@ export default function PaymentsPage() {
     refresh();
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  // ── Render ──────────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 max-w-5xl mx-auto">
       {/* Page header */}
@@ -245,6 +254,11 @@ export default function PaymentsPage() {
 
       {/* KPI Bar */}
       <PaymentKPIBar refreshKey={refreshKey} />
+
+      {/* Grafico costi pasto — visibile solo se ci sono payable di tipo meal */}
+      {!loading && mealPayables.length > 0 && (
+        <MealCostChart payables={mealPayables} />
+      )}
 
       {/* Payables section */}
       <div className="mt-8">
