@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   BedDouble, Building2, ChevronDown, ChevronUp,
-  Pencil, Plus, Trash2,
+  Pencil, Plus, Trash2, UtensilsCrossed,
 } from 'lucide-react';
 import PaymentStatusBadge from './PaymentStatusBadge';
 
@@ -20,16 +20,68 @@ const formatCurrency = (amount, currency = 'EUR') => {
   }).format(numeric);
 };
 
+// ── EntityIcon ────────────────────────────────────────────────────────────────
+/**
+ * Renders the correct icon based on entity_type.
+ * Supports: 'room', 'supplier', 'meal'
+ */
 function EntityIcon({ type }) {
-  return type === 'room'
-    ? <BedDouble size={14} className="text-blue-500" />
-    : <Building2 size={14} className="text-purple-500" />;
+  if (type === 'room') return <BedDouble size={14} className="text-blue-500" />;
+  if (type === 'meal') return <UtensilsCrossed size={14} className="text-orange-500" />;
+  return <Building2 size={14} className="text-purple-500" />;
+}
+
+// ── MealDetails ───────────────────────────────────────────────────────────────
+/**
+ * Sub-row showing meal-specific fields (adults, children, unit costs).
+ * Rendered only when entity_type === 'meal' and the payable is expanded.
+ */
+function MealDetails({ payable, t }) {
+  const rows = [
+    {
+      key: 'adults',
+      label: t('admin.payments.payables.meal_adults'),
+      count: payable.meal_adults_count,
+      unit: payable.meal_adult_unit_cost,
+      currency: payable.currency,
+    },
+    {
+      key: 'children',
+      label: t('admin.payments.payables.meal_children'),
+      count: payable.meal_children_count,
+      unit: payable.meal_child_unit_cost,
+      currency: payable.currency,
+    },
+  ].filter(r => r.count !== undefined && r.count !== null);
+
+  if (rows.length === 0) return null;
+
+  return (
+    <div className="px-4 py-2 bg-orange-50/60 dark:bg-orange-900/10 border-b border-orange-100 dark:border-orange-900/30">
+      <p className="text-xs font-medium text-orange-700 dark:text-orange-400 mb-1.5 uppercase tracking-wide">
+        {t('admin.payments.payables.meal_breakdown')}
+      </p>
+      <div className="flex flex-wrap gap-4">
+        {rows.map(r => (
+          <div key={r.key} className="text-xs text-gray-600 dark:text-gray-400">
+            <span className="font-medium text-gray-800 dark:text-gray-200">{r.count}</span>
+            {' '}{r.label}
+            {r.unit !== undefined && r.unit !== null && (
+              <span className="ml-1 text-gray-400">
+                × {formatCurrency(r.unit, r.currency)}
+              </span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
 /**
  * PayableRow
- * Renders a single payable (supplier or room) with its payment events.
+ * Renders a single payable (supplier, room or meal) with its payment events.
  *
  * Props:
  *   payable        {object}   — payable item from API
@@ -42,9 +94,17 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
   const [expanded, setExpanded] = useState(false);
   const hasEvents = payable.events?.length > 0;
 
-  const entityTypeLabel = payable.entity_type === 'room'
-    ? t('admin.payments.payables.entity_type_room')
-    : t('admin.payments.payables.entity_type_supplier');
+  const entityTypeLabel = (() => {
+    if (payable.entity_type === 'room')     return t('admin.payments.payables.entity_type_room');
+    if (payable.entity_type === 'meal')     return t('admin.payments.payables.entity_type_meal');
+    return t('admin.payments.payables.entity_type_supplier');
+  })();
+
+  const isMeal = payable.entity_type === 'meal';
+  const hasMealDetails = isMeal && (
+    payable.meal_adults_count !== undefined ||
+    payable.meal_children_count !== undefined
+  );
 
   return (
     <div className="border border-gray-100 dark:border-gray-800 rounded-xl overflow-hidden mb-3">
@@ -66,7 +126,6 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
           <p className="text-xs text-gray-400">{entityTypeLabel}</p>
         </div>
 
-        {/* FIX #146: was payable.total_cost (undefined) → now payable.contract_amount */}
         <div className="text-right mr-3">
           <p className="text-sm font-semibold text-gray-900 dark:text-white">
             {formatCurrency(payable.contract_amount, payable.currency)}
@@ -84,12 +143,17 @@ const PayableRow = ({ payable, onAddEvent, onEditEvent, onDeleteEvent }) => {
           <Plus size={14} />
         </button>
 
-        {hasEvents && (
+        {(hasEvents || hasMealDetails) && (
           expanded
             ? <ChevronUp size={16} className="text-gray-400" />
             : <ChevronDown size={16} className="text-gray-400" />
         )}
       </div>
+
+      {/* Meal breakdown — visible when expanded and entity_type === 'meal' */}
+      {expanded && hasMealDetails && (
+        <MealDetails payable={payable} t={t} />
+      )}
 
       {/* Events list */}
       {expanded && hasEvents && (
