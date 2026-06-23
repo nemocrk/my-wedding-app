@@ -27,7 +27,7 @@ jobs:
       contains(github.event.pull_request.labels.*.name, 'ready-to-test')
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       # AUTO-CLEANUP: Rimuove la label immediatamente per evitare loop futuri
       - name: 🏷️ Remove Trigger Label
@@ -55,7 +55,7 @@ jobs:
     needs: [static-checks] # Dipende dal successo del job precedente
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Set up Python
         uses: actions/setup-python@v6
@@ -99,7 +99,7 @@ jobs:
     needs: [static-checks]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -145,7 +145,7 @@ jobs:
     needs: [static-checks]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       
       - name: Set up Node.js
         uses: actions/setup-node@v6
@@ -191,7 +191,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: [backend-test, frontend-user-test, frontend-admin-test]
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       # Setup Docker Buildx to handle advanced building and caching
       - name: Set up Docker Buildx
