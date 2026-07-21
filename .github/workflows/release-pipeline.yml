@@ -20,7 +20,7 @@ jobs:
       previous_version: ${{ steps.calc_version.outputs.previous_version }}
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -37,7 +37,7 @@ jobs:
 
       - name: Calculate Next Version
         id: calc_version
-        uses: PaulHatch/semantic-version@v6.0.2
+        uses: PaulHatch/semantic-version@v6.0.3
         with:
           tag_prefix: ""
           major_pattern: "BREAKING CHANGE:"
@@ -112,7 +112,7 @@ jobs:
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0 # Necessario per controllare le differenze git
 
